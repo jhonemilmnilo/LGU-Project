@@ -268,8 +268,26 @@ model Resident {
   updatedAt              DateTime  @updatedAt
 }
 
-model DisasterZone {
+model DisasterMap {
   id          String   @id @default(cuid())
+  title       String
+  location    String?
+  description String?  @db.Text
+  imagePath   String?
+  riskLevel   String?
+  isPublished Boolean  @default(true)
+  
+  zones       DisasterZone[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DisasterZone {
+  id            String       @id @default(cuid())
+  disasterMapId String?
+  disasterMap   DisasterMap? @relation(fields: [disasterMapId], references: [id])
+  
   type        String   // e.g. "Flood", "Landslide", "Storm Surge"
   typeColor   String   // The identifying color for the disaster type (Hex)
   riskLevel   String   // e.g. "Low", "Medium", "High"
@@ -281,3 +299,4 @@ model DisasterZone {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+

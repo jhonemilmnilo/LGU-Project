@@ -1078,3 +1078,94 @@ export async function deleteDisasterZone(id: string) {
     }
 }
 
+// ----------------------------------------
+// DISASTER MAP ACTIONS
+// ----------------------------------------
+
+export async function addDisasterMap(formData: FormData) {
+    try {
+        const imageUrl = await processImageUpload(formData);
+        const mapDelegate = (prisma as any).disasterMap;
+        
+        // If not found, it might be due to server cache. We'll try to access it via general prisma call
+        // but the best fix is a server restart.
+        if (!mapDelegate) throw new Error("Database model 'disasterMap' not found. YOU MUST RESTART THE NPM DEV SERVER (Ctrl+C, then npm run dev) to load the new database schema.");
+
+        const newMap = await mapDelegate.create({
+            data: {
+                title: formData.get("title") as string,
+                location: formData.get("location") as string || null,
+                description: formData.get("description") as string || null,
+                imagePath: imageUrl,
+                riskLevel: formData.get("riskLevel") as string || null,
+                isPublished: true,
+            },
+        });
+
+        revalidatePath("/admin/disasters");
+        return { success: true, disasterMap: newMap };
+    } catch (error) {
+        console.error("Failed to add disaster map:", error);
+        return { success: false, error: "Failed to create disaster map entry." };
+    }
+}
+
+export async function updateDisasterMap(id: string, formData: FormData) {
+    try {
+        const imageUrl = await processImageUpload(formData);
+        const mapDelegate = (prisma as any).disasterMap;
+        if (!mapDelegate) throw new Error("Database model 'disasterMap' not found. Please restart your dev server.");
+
+        const updatedMap = await mapDelegate.update({
+            where: { id },
+            data: {
+                title: formData.get("title") as string,
+                location: formData.get("location") as string || null,
+                description: formData.get("description") as string || null,
+                imagePath: imageUrl || undefined,
+                riskLevel: formData.get("riskLevel") as string || null,
+            },
+        });
+
+        revalidatePath("/admin/disasters");
+        return { success: true, disasterMap: updatedMap };
+    } catch (error) {
+        console.error("Failed to update disaster map:", error);
+        return { success: false, error: "Failed to update disaster map entry." };
+    }
+}
+
+export async function deleteDisasterMap(id: string) {
+    try {
+        const mapDelegate = (prisma as any).disasterMap;
+        if (!mapDelegate) throw new Error("Database model 'disasterMap' not found.");
+
+        await mapDelegate.delete({
+            where: { id }
+        });
+        revalidatePath("/admin/disasters");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to delete disaster map:", error);
+        return { success: false, error: "Failed to delete disaster map entry." };
+    }
+}
+
+export async function toggleDisasterMapStatus(id: string, isPublished: boolean) {
+    try {
+        const mapDelegate = (prisma as any).disasterMap;
+        if (!mapDelegate) throw new Error("Database model 'disasterMap' not found.");
+
+        await mapDelegate.update({
+            where: { id },
+            data: { isPublished }
+        });
+        revalidatePath("/admin/disasters");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update disaster map status:", error);
+        return { success: false, error: "Failed to update disaster map status." };
+    }
+}
+
+

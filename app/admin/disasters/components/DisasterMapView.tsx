@@ -2,27 +2,42 @@
 
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Loader2, Trash2, Maximize2, Plus } from "lucide-react";
+import { Loader2, Trash2, Plus } from "lucide-react";
 import { useDisaster, DisasterZone } from "../providers/DisasterProvider";
 import { addDisasterZone, updateDisasterZone, deleteDisasterZone } from "../../actions";
 import { toast } from "sonner";
 import type { GeoJsonObject } from "geojson";
 
-// Import react-leaflet dynamically to prevent SSR issues
-const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false, loading: () => <MapLoading /> });
-const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
-const Polygon = dynamic(() => import("react-leaflet").then(mod => mod.Polygon), { ssr: false });
-const Marker = dynamic(() => import("react-leaflet").then(mod => mod.Marker), { ssr: false });
-const Popup = dynamic(() => import("react-leaflet").then(mod => mod.Popup), { ssr: false });
-const GeoJSON = dynamic(() => import("react-leaflet").then(mod => mod.GeoJSON), { ssr: false });
+// ─── Dynamic imports to prevent SSR issues ──────────────────────────────────
+const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false, loading: () => <MapLoading /> });
+const TileLayer    = dynamic(() => import("react-leaflet").then(m => m.TileLayer),    { ssr: false });
+const Polygon      = dynamic(() => import("react-leaflet").then(m => m.Polygon),      { ssr: false });
+const Marker       = dynamic(() => import("react-leaflet").then(m => m.Marker),       { ssr: false });
+const Popup        = dynamic(() => import("react-leaflet").then(m => m.Popup),        { ssr: false });
+const GeoJSON      = dynamic(() => import("react-leaflet").then(m => m.GeoJSON),      { ssr: false });
 
-// This component handles the auto-centering when the border loads
-function MapController({ geojson }: { geojson: any }) {
-    const map = (window as any).L ? (window as any).Map : null; // This is a bit tricky with dynamic imports
-    // We'll use the useMap hook inside the component
+const BINALONAN_CENTER: [number, number] = [16.0549, 120.6017];
+const BINALONAN_ZOOM = 13;
+
+// ─── MapController: fits map to Binalonan boundary on load ───────────────────────
+function MapController({ border }: { border: GeoJsonObject | null }) {
+    const { useMap } = require("react-leaflet");
+    const map = useMap();
+
+    useEffect(() => {
+        if (!border || (border as any).type !== "Polygon") return;
+        const latlngs = (border as any).coordinates[0].map(
+            (c: [number, number]) => [c[1], c[0]] as [number, number]
+        );
+        map.fitBounds(latlngs, { padding: [50, 50] });
+        // Prevent zooming out past the fitted view
+        map.setMinZoom(map.getZoom() - 1);
+    }, [border, map]);
+
     return null;
 }
 
+// ─── Loading skeleton ────────────────────────────────────────────────────────
 function MapLoading() {
     return (
         <div className="w-full h-[700px] bg-slate-100 dark:bg-[#151b2b] rounded-2xl flex flex-col items-center justify-center border border-slate-200 dark:border-[#2a3040]">
@@ -32,68 +47,134 @@ function MapLoading() {
     );
 }
 
-// Fixed Leaflet Icons handled in a useEffect below
-let HandleIcon: any;
+// ─── Map style definitions ───────────────────────────────────────────────────
+const MAP_STYLES = {
+    satellite: {
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attribution: "Tiles &copy; Esri",
+    },
+    streets: {
+        url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    dark: {
+        url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        attribution: '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    terrain: {
+        url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        attribution: "Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)",
+    },
+} as const;
 
+type MapStyleKey = keyof typeof MAP_STYLES;
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 export function DisasterMapView() {
     const { zones, activeZoneId, setActiveZoneId, updateZone, removeZone } = useDisaster();
-    const [agnoBorder, setAgnoBorder] = useState<GeoJsonObject | null>(null);
-    const [mounted, setMounted] = useState(false);
+    const [binalonanBorder, setBinalonanBorder] = useState<GeoJsonObject | null>(null);
+    const [mounted,     setMounted]     = useState(false);
     const [iconsLoaded, setIconsLoaded] = useState(false);
+    const [mapStyle,    setMapStyle]    = useState<MapStyleKey>("satellite");
+
+    // Leaflet icon refs — created once after Leaflet loads
+    const [handleIcon,  setHandleIcon]  = useState<any>(null);
+    const [midIcon,     setMidIcon]     = useState<any>(null);
 
     useEffect(() => {
         setMounted(true);
-        fetch('/agno-border.json')
-            .then(res => res.json())
-            .then(data => setAgnoBorder(data))
-            .catch(err => console.error("Failed to load Agno border:", err));
 
-        // Dynamically load Leaflet for custom icons
+        // ── Load Binalonan boundary from public folder ──────────────────────────
+        fetch("/agno-border.json")
+            .then(res => res.json())
+            .then(data => setBinalonanBorder(data))
+            .catch(err => console.error("Failed to load Binalonan border:", err));
+
+        // ── Bootstrap Leaflet icons (must run client-side) ─────────────────
         import("leaflet").then(L => {
-            HandleIcon = new L.DivIcon({
-                className: 'custom-div-icon',
-                html: "<div style='background-color: white; border: 2px solid #3b82f6; width: 12px; height: 12px; border-radius: 2px; box-shadow: 0 0 5px rgba(0,0,0,0.2)'></div>",
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
-            });
+            setHandleIcon(new L.DivIcon({
+                className: "",
+                html: `<div style="
+                    background:#fff; border:2px solid #3b82f6;
+                    width:12px; height:12px; border-radius:2px;
+                    box-shadow:0 0 5px rgba(0,0,0,.25);
+                "></div>`,
+                iconSize:   [12, 12],
+                iconAnchor: [6, 6],
+            }));
+            setMidIcon(new L.DivIcon({
+                className: "",
+                html: `<div style="
+                    background:#fff; border:1.5px solid #3b82f6;
+                    width:8px; height:8px; border-radius:50%; opacity:.7;
+                "></div>`,
+                iconSize:   [8, 8],
+                iconAnchor: [4, 4],
+            }));
             setIconsLoaded(true);
         });
     }, []);
 
+    // ── Mask polygon: darkens everything OUTSIDE Binalonan ─────────────────────
+    const maskPositions = useMemo(() => {
+        if (!binalonanBorder || (binalonanBorder as any).type !== "Polygon") return null;
+        const outerWorld: [number, number][] = [
+            [90, -180], [90, 180], [-90, 180], [-90, -180],
+        ];
+        // GeoJSON [lng, lat] → Leaflet [lat, lng]
+        const binalonanRing: [number, number][] = (binalonanBorder as any).coordinates[0]
+            .map((c: [number, number]) => [c[1], c[0]]);
+        return [outerWorld, binalonanRing];
+    }, [binalonanBorder]);
+
     if (!mounted || !iconsLoaded) return <MapLoading />;
 
-    const handleVertexDrag = async (zone: DisasterZone, shapeIdx: number, vertexIdx: number, latlng: { lat: number, lng: number }) => {
-        const newShapes = [...zone.shapes];
-        newShapes[shapeIdx] = [...newShapes[shapeIdx]];
-        newShapes[shapeIdx][vertexIdx] = [latlng.lat, latlng.lng];
-
+    // ─── Handlers ────────────────────────────────────────────────────────────
+    const handleVertexDrag = async (
+        zone: DisasterZone,
+        sIdx: number,
+        vIdx: number,
+        latlng: { lat: number; lng: number }
+    ) => {
+        const newShapes = zone.shapes.map((s, i) =>
+            i === sIdx
+                ? s.map((v, j) => j === vIdx ? [latlng.lat, latlng.lng] as [number, number] : v)
+                : s
+        );
         updateZone(zone.id, { shapes: newShapes });
         await updateDisasterZone(zone.id, { shapes: newShapes });
     };
 
-    const handleMidPointDrag = async (zone: DisasterZone, shapeIdx: number, insertIdx: number, latlng: { lat: number, lng: number }) => {
-        const newShapes = [...zone.shapes];
-        newShapes[shapeIdx] = [...newShapes[shapeIdx]];
-        newShapes[shapeIdx].splice(insertIdx, 0, [latlng.lat, latlng.lng]);
-
+    const handleMidPointDrag = async (
+        zone: DisasterZone,
+        sIdx: number,
+        insertIdx: number,
+        latlng: { lat: number; lng: number }
+    ) => {
+        const newShapes = zone.shapes.map((s, i) => {
+            if (i !== sIdx) return s;
+            const updated = [...s];
+            updated.splice(insertIdx, 0, [latlng.lat, latlng.lng]);
+            return updated as [number, number][];
+        });
         updateZone(zone.id, { shapes: newShapes });
         await updateDisasterZone(zone.id, { shapes: newShapes });
-        toast.success("New side added!");
+        toast.success("New vertex added!");
     };
 
     const handleAddArea = async (zone: DisasterZone) => {
-        const center = [16.1158, 119.7997];
+        // Default new shape placed at Binalonan's correct center
+        const [clat, clng] = BINALONAN_CENTER;
         const newShape: [number, number][] = [
-            [center[0] + 0.005, center[1] - 0.005],
-            [center[0] + 0.005, center[1] + 0.005],
-            [center[0] - 0.005, center[1] + 0.005],
-            [center[0] - 0.005, center[1] - 0.005]
+            [clat + 0.005, clng - 0.005],
+            [clat + 0.005, clng + 0.005],
+            [clat - 0.005, clng + 0.005],
+            [clat - 0.005, clng - 0.005],
         ];
-
         const newShapes = [...zone.shapes, newShape];
         updateZone(zone.id, { shapes: newShapes });
         await updateDisasterZone(zone.id, { shapes: newShapes });
-        toast.success("New area added to this disaster type!");
+        toast.success("New area added!");
     };
 
     const handleDelete = async (id: string) => {
@@ -106,161 +187,155 @@ export function DisasterMapView() {
         }
     };
 
-    // Calculate the mask to hide areas outside Agno
-    const maskPositions = useMemo(() => {
-        if (!agnoBorder || (agnoBorder as any).type !== "Polygon") return null;
-
-        const outerWorld = [
-            [90, -180],
-            [90, 180],
-            [-90, 180],
-            [-90, -180],
-        ];
-
-        // GeoJSON uses [lng, lat], Leaflet uses [lat, lng]
-        const agnoCoords = (agnoBorder as any).coordinates[0].map((coord: [number, number]) => [coord[1], coord[0]]);
-
-        // Leaflet Polygon hole is an array of arrays
-        return [outerWorld, agnoCoords];
-    }, [agnoBorder]);
-
-    // Use a component that will actually call fitBounds
-    const FitBoundsComponent = () => {
-        const map = (window as any).mapInstance;
-        // This is a workaround since we need the map instance
-        return null;
-    };
-
+    // ─── Render ───────────────────────────────────────────────────────────────
     return (
-        <div className="w-full bg-white dark:bg-[#151b2b] p-4 rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-xl relative z-0 backdrop-blur-sm">
+        <div className="w-full bg-white dark:bg-[#151b2b] p-4 rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-xl relative z-0">
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-[#2a3040] h-[700px] relative">
+            {/* Map Style Switcher */}
+            <div className="absolute top-8 right-8 z-[1000] flex flex-col gap-2">
+                {(Object.keys(MAP_STYLES) as MapStyleKey[]).map(style => (
+                    <button
+                        key={style}
+                        onClick={() => setMapStyle(style)}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter transition-all shadow-lg border-2 ${
+                            mapStyle === style
+                                ? "bg-blue-600 text-white border-blue-600 scale-105"
+                                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent hover:border-blue-500/50"
+                        }`}
+                    >
+                        {style}
+                    </button>
+                ))}
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-[#2a3040] h-[700px]">
                 <MapContainer
-                    center={[16.1158, 119.7997]} // Centered on Agno
-                    zoom={13}
-                    style={{ height: '100%', width: '100%', zIndex: 0 }}
+                    center={BINALONAN_CENTER}   // ✅ Corrected for Binalonan
+                    zoom={BINALONAN_ZOOM}
+                    style={{ height: "100%", width: "100%", zIndex: 0 }}
                 >
+                    {/* Fits map to exact Binalonan boundary on load */}
+                    <MapController border={binalonanBorder} />
+
                     <TileLayer
-                        attribution='Tiles &copy; Esri'
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        attribution={MAP_STYLES[mapStyle].attribution}
+                        url={MAP_STYLES[mapStyle].url}
                     />
 
-                    {agnoBorder && (
+                    {/* Binalonan boundary outline */}
+                    {binalonanBorder && (
                         <GeoJSON
-                            data={agnoBorder}
-                            style={{ color: '#3b82f6', weight: 3, opacity: 1, fillOpacity: 0 }}
+                            key={JSON.stringify(binalonanBorder)} // force re-render on data change
+                            data={binalonanBorder}
+                            style={{
+                                color: "#3b82f6",
+                                weight: 3,
+                                opacity: 1,
+                                fillOpacity: 0,
+                            }}
                         />
                     )}
 
-                    {/* The "Show only for Agno" Mask */}
+                    {/* Mask: dims everything outside Binalonan */}
                     {maskPositions && (
                         <Polygon
                             positions={maskPositions as any}
                             pathOptions={{
                                 fillColor: "#0f172a",
-                                fillOpacity: 0.7,
+                                fillOpacity: 0.65,
                                 weight: 0,
                                 color: "transparent",
-                                pane: "overlayPane"
                             }}
                         />
                     )}
 
-                    {zones.map((zone) => {
+                    {/* Disaster zones */}
+                    {zones.map(zone => {
+                        if (!zone.shapes || !Array.isArray(zone.shapes)) return null;
                         const isActive = activeZoneId === zone.id;
 
-                        if (!zone.shapes || !Array.isArray(zone.shapes)) return null;
+                        return zone.shapes.map((shape: [number, number][], sIdx: number) => (
+                            <div key={`${zone.id}-s-${sIdx}`}>
+                                <Polygon
+                                    positions={shape}
+                                    pathOptions={{
+                                        color:       zone.riskColor,
+                                        fillColor:   zone.typeColor,
+                                        fillOpacity: 0.4,
+                                        weight:      isActive ? 3 : 1,
+                                    }}
+                                    eventHandlers={{
+                                        click: e => {
+                                            (e as any).originalEvent.stopPropagation();
+                                            setActiveZoneId(zone.id);
+                                        },
+                                    }}
+                                >
+                                    <Popup>
+                                        <div className="p-3 min-w-[150px]">
+                                            <p className="font-bold text-lg mb-1">{zone.type}</p>
+                                            <p className="text-sm text-slate-500 mb-3">
+                                                Risk:{" "}
+                                                <span style={{ color: zone.riskColor }} className="font-bold">
+                                                    {zone.riskLevel}
+                                                </span>
+                                            </p>
+                                            <div className="flex flex-col gap-2">
+                                                <button
+                                                    onClick={() => handleAddArea(zone)}
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-bold"
+                                                >
+                                                    <Plus className="w-3 h-3" /> Add Another Area
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(zone.id)}
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-bold"
+                                                >
+                                                    <Trash2 className="w-3 h-3" /> Remove Disaster
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </Popup>
+                                </Polygon>
 
-                        return (
-                            <div key={zone.id}>
-                                {zone.shapes.map((shape: [number, number][], sIdx: number) => (
-                                    <div key={`${zone.id}-s-${sIdx}`}>
-                                        <Polygon
-                                            positions={shape as any}
-                                            pathOptions={{
-                                                color: zone.riskColor,
-                                                fillColor: zone.typeColor,
-                                                fillOpacity: 0.4,
-                                                weight: isActive ? 3 : 1
-                                            }}
-                                            eventHandlers={{
-                                                click: (e) => {
-                                                    (e as any).originalEvent.stopPropagation();
-                                                    setActiveZoneId(zone.id);
-                                                }
-                                            }}
-                                        >
-                                            <Popup>
-                                                <div className="p-3 min-w-[150px]">
-                                                    <p className="font-bold text-lg mb-1">{zone.type}</p>
-                                                    <p className="text-sm text-slate-500 mb-3">
-                                                        Risk: <span style={{ color: zone.riskColor }} className="font-bold">{zone.riskLevel}</span>
-                                                    </p>
-                                                    <div className="flex flex-col gap-2">
-                                                        <button
-                                                            onClick={() => handleAddArea(zone)}
-                                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-bold"
-                                                        >
-                                                            <Plus className="w-3 h-3" /> Add Another Area
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(zone.id)}
-                                                            className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-bold"
-                                                        >
-                                                            <Trash2 className="w-3 h-3" /> Remove Disaster
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </Popup>
-                                        </Polygon>
+                                {/* Vertex & midpoint handles — only when zone is active */}
+                                {isActive && handleIcon && midIcon && (
+                                    <>
+                                        {shape.map((coord, vIdx) => (
+                                            <Marker
+                                                key={`${zone.id}-v-${sIdx}-${vIdx}`}
+                                                position={coord}
+                                                icon={handleIcon}
+                                                draggable
+                                                eventHandlers={{
+                                                    dragend: e => handleVertexDrag(zone, sIdx, vIdx, e.target.getLatLng()),
+                                                }}
+                                            />
+                                        ))}
 
-                                        {/* Editing Handles */}
-                                        {isActive && (
-                                            <>
-                                                {/* Vertex Handles */}
-                                                {shape.map((coord, vIdx) => (
-                                                    <Marker
-                                                        key={`${zone.id}-v-${sIdx}-${vIdx}`}
-                                                        position={coord}
-                                                        icon={HandleIcon}
-                                                        draggable={true}
-                                                        eventHandlers={{
-                                                            dragend: (e) => handleVertexDrag(zone, sIdx, vIdx, e.target.getLatLng())
-                                                        }}
-                                                    />
-                                                ))}
-
-                                                {/* Mid-Point Edge Handles (more side to adjust) */}
-                                                {shape.map((coord, vIdx) => {
-                                                    const nextCoord = shape[(vIdx + 1) % shape.length];
-                                                    const midPoint: [number, number] = [
-                                                        (coord[0] + nextCoord[0]) / 2,
-                                                        (coord[1] + nextCoord[1]) / 2
-                                                    ];
-                                                    return (
-                                                        <Marker
-                                                            key={`${zone.id}-m-${sIdx}-${vIdx}`}
-                                                            position={midPoint}
-                                                            icon={new (window as any).L.DivIcon({
-                                                                className: 'mid-handle',
-                                                                html: "<div style='background-color: white; border: 1px solid #3b82f6; width: 8px; height: 8px; border-radius: 50%; opacity: 0.6;'></div>",
-                                                                iconSize: [8, 8],
-                                                                iconAnchor: [4, 4]
-                                                            })}
-                                                            draggable={true}
-                                                            eventHandlers={{
-                                                                dragend: (e) => handleMidPointDrag(zone, sIdx, vIdx + 1, e.target.getLatLng())
-                                                            }}
-                                                        />
-                                                    );
-                                                })}
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
+                                        {shape.map((coord, vIdx) => {
+                                            const next = shape[(vIdx + 1) % shape.length];
+                                            const mid: [number, number] = [
+                                                (coord[0] + next[0]) / 2,
+                                                (coord[1] + next[1]) / 2,
+                                            ];
+                                            return (
+                                                <Marker
+                                                    key={`${zone.id}-m-${sIdx}-${vIdx}`}
+                                                    position={mid}
+                                                    icon={midIcon}
+                                                    draggable
+                                                    eventHandlers={{
+                                                        dragend: e => handleMidPointDrag(zone, sIdx, vIdx + 1, e.target.getLatLng()),
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </>
+                                )}
                             </div>
-                        );
+                        ));
                     })}
                 </MapContainer>
             </div>

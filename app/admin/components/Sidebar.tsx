@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -37,6 +37,7 @@ export function Sidebar({ session }: SidebarProps) {
         { href: "/admin/hotlines", label: "Hotlines", icon: Phone },
         { href: "/admin/residents", label: "Resident Registry", icon: Users, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
+        { href: "/admin/disasters/manage", label: "Disaster Maps", icon: Layers },
         { href: "/admin/disasters", label: "Hazard Mapping", icon: ShieldAlert },
     ];
 
