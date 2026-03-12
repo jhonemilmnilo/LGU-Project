@@ -7,5 +7,14 @@ export default async function DisastersPage() {
         orderBy: { createdAt: "desc" }
     });
 
-    return <DisasterWorkspace initialHouseholds={households as any} />;
+    // Fetch published disaster maps
+    const mapDelegate = (prisma as any).disasterMap;
+    const publishedMaps = mapDelegate 
+        ? await mapDelegate.findMany({
+            where: { isPublished: true },
+            orderBy: { title: 'asc' }
+        })
+        : [];
+
+    return <DisasterWorkspace initialHouseholds={households as any} initialMaps={publishedMaps as any} />;
 }

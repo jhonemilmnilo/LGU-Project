@@ -38,7 +38,6 @@ export function Sidebar({ session }: SidebarProps) {
         { href: "/admin/residents", label: "Resident Registry", icon: Users, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
         { href: "/admin/disasters/manage", label: "Disaster Maps", icon: Layers },
-        { href: "/admin/disasters", label: "Hazard Mapping", icon: ShieldAlert },
     ];
 
     return (
