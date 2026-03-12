@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "next-themes";
 
 export function Navbar() {
     const { data: session, status } = useSession();
@@ -23,132 +24,170 @@ export function Navbar() {
     
     const backgroundColor = useTransform(
         scrollY,
-        [0, 100],
-        ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.9)"]
+        [0, 60],
+        ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.95)"]
+    );
+
+    const darkBackgroundColor = useTransform(
+        scrollY,
+        [0, 60],
+        ["rgba(10, 12, 16, 0)", "rgba(10, 12, 16, 0.95)"]
     );
     
     const backdropBlur = useTransform(
         scrollY,
-        [0, 100],
-        ["blur(0px)", "blur(12px)"]
+        [0, 60],
+        ["blur(0px)", "blur(20px)"]
     );
 
     const color = useTransform(
         scrollY,
-        [0, 100],
+        [0, 60],
         ["rgba(255, 255, 255, 1)", "rgba(15, 23, 42, 1)"]
+    );
+
+    const darkColor = useTransform(
+        scrollY,
+        [0, 60],
+        ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)"]
     );
 
     const shadow = useTransform(
         scrollY,
-        [0, 100],
-        ["none", "0 10px 30px -10px rgba(0, 0, 0, 0.1)"]
+        [0, 60],
+        ["none", "0 4px 30px -10px rgba(0, 0, 0, 0.1)"]
     );
+
+    const borderOpacity = useTransform(scrollY, [0, 60], [0, 1]);
 
     const isAuth = status === "authenticated";
     const userRole = (session?.user as any)?.role;
+    const { theme, resolvedTheme } = useTheme();
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Standard public links
     const publicLinks = [
-        { name: "Public Services", href: "/#services", icon: Briefcase },
+        { name: "Services", href: "/#services", icon: Briefcase },
         { name: "Tourism", href: "/#tourism", icon: Compass },
-        { name: "News", href: "/#news", icon: Newspaper },
+        { name: "Updates", href: "/#news", icon: Newspaper },
         { name: "Careers", href: "/#careers", icon: Briefcase },
-        { name: "Emergency Hub", href: "/#hotlines", icon: PhoneCall },
+        { name: "Safety", href: "/#hotlines", icon: PhoneCall },
     ];
 
     // Authenticated hub links
     const hubLinks = [
-        { name: "Live Maps", href: "/user/maps", icon: Map },
-        { name: "Portal Updates", href: "/user/updates", icon: Bell },
-        { name: "Kainan at Tuluyan", href: "/user/experience", icon: Coffee },
-        { name: "Places to Visit", href: "/user/tourism", icon: Compass },
-        { name: "LGU Initiatives", href: "/user/initiatives", icon: LayoutGrid },
-        { name: "Public Services", href: "/user/services", icon: HeartPulse },
-        { name: "Leadership Hub", href: "/user/leadership", icon: Users },
+        { name: "Maps", href: "/user/maps", icon: Map },
+        { name: "Updates", href: "/#updates", icon: Bell },
+        { name: "Lifestyle", href: "/user/experience", icon: Coffee },
+        { name: "Tourism", href: "/user/tourism", icon: Compass },
+        { name: "Initiatives", href: "/user/initiatives", icon: LayoutGrid },
+        { name: "Services", href: "/user/services", icon: HeartPulse },
+        { name: "Leadership", href: "/user/leadership", icon: Users },
     ];
 
     const currentLinks = isAuth ? hubLinks : publicLinks;
 
+    // Determine effective theme safely for hydration
+    const activeTheme = mounted ? resolvedTheme : "light";
+
     return (
         <motion.header 
-            style={{ backgroundColor, backdropFilter: backdropBlur, boxShadow: shadow }}
-            className="fixed top-0 left-0 right-0 z-[100] transition-all duration-300"
+            style={{ 
+                backgroundColor: activeTheme === "dark" ? darkBackgroundColor : backgroundColor,
+                backdropFilter: backdropBlur, 
+                boxShadow: shadow,
+            }}
+            className="fixed top-0 left-0 right-0 z-[100] transition-colors duration-300"
         >
-            <div className="max-w-[1500px] mx-auto px-6 h-24 flex items-center justify-between">
-                {/* Logo */}
+            <motion.div 
+                style={{ opacity: borderOpacity }}
+                className="absolute inset-x-0 bottom-0 h-px bg-slate-200/50 dark:bg-white/5"
+            />
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-8 h-20 md:h-24 flex items-center justify-between gap-4">
+                {/* Logo Section */}
                 <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
                     <motion.div 
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20"
                     >
-                        <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                     </motion.div>
                     <div className="flex flex-col">
                         <motion.span 
-                            style={{ color }}
-                            className="text-lg sm:text-xl font-black uppercase tracking-tighter italic leading-none"
+                            style={{ color: activeTheme === "dark" ? darkColor : color }}
+                            className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic leading-none"
                         >
                             Agno<span className="text-blue-600">Portal</span>
+                        </motion.span>
+                        <motion.span 
+                            style={{ opacity: useTransform(scrollY, [0, 80], [0.7, 0.4]) }}
+                            className="text-[8px] sm:text-[10px] uppercase font-bold tracking-[0.2em] mt-1 hidden sm:block text-white"
+                        >
+                            Digital Municipality
                         </motion.span>
                     </div>
                 </Link>
 
-                {/* Desktop Nav - Authenticated users get a compact, icon-based view or a dropdown */}
-                <nav className="hidden lg:flex items-center gap-1">
-                    {currentLinks.map((link) => (
-                        <Link 
-                            key={link.name} 
-                            href={link.href}
-                            className="px-3 xl:px-4 py-2 rounded-full transition-all hover:bg-black/5 dark:hover:bg-white/5 group"
-                        >
-                            <motion.span 
-                                style={{ color }}
-                                className={cn(
-                                    "text-[10px] xl:text-[11px] font-black uppercase tracking-[0.1em] transition-opacity group-hover:opacity-70 flex items-center gap-2",
-                                    pathname === link.href && "text-blue-600 font-black italic underline underline-offset-4 decoration-2"
-                                )}
+                {/* Desktop Navigation - Responsive Breakpoints */}
+                <nav className="hidden xl:flex items-center gap-1 bg-white/5 dark:bg-black/5 p-1 rounded-full backdrop-blur-sm">
+                    {currentLinks.map((link) => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link 
+                                key={link.name} 
+                                href={link.href}
+                                className="relative px-4 py-2 group overflow-hidden"
                             >
-                                {isAuth && <link.icon className="w-3.5 h-3.5" />}
-                                {link.name}
-                            </motion.span>
-                        </Link>
-                    ))}
+                                <motion.div 
+                                    style={{ color: activeTheme === "dark" ? darkColor : color }}
+                                    className={cn(
+                                        "relative z-10 text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 transition-colors group-hover:text-blue-600",
+                                        isActive && "text-blue-600 font-extrabold italic"
+                                    )}
+                                >
+                                    <link.icon className={cn("w-3.5 h-3.5", isActive ? "text-blue-600" : "opacity-70 group-hover:opacity-100")} />
+                                    <span>{link.name}</span>
+                                </motion.div>
+                                {isActive && (
+                                    <motion.div 
+                                        layoutId="activeTab"
+                                        className="absolute inset-0 bg-blue-50 dark:bg-blue-500/10 rounded-full -z-0"
+                                        initial={false}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                )}
+                            </Link>
+                        );
+                    })}
                 </nav>
 
-                {/* Actions */}
-                <div className="hidden lg:flex items-center gap-2 xl:gap-4">
+                {/* Desktop Actions */}
+                <div className="hidden min-[1100px]:flex items-center gap-3">
                     <ThemeToggle />
                     
+                    <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
+
                     {isAuth ? (
-                        <div className="flex items-center gap-2 xl:gap-4 pl-2 xl:pl-4 border-l border-slate-200 dark:border-white/10">
-                            <div className="flex flex-col items-end mr-1 xl:mr-2 hidden 2xl:flex">
-                                <p className="text-[8px] xl:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Signed as</p>
-                                <p className="text-xs xl:text-sm font-black text-blue-600 italic leading-none">{session.user?.name}</p>
-                            </div>
-                            
+                        <div className="flex items-center gap-4">
                             <Button 
                                 onClick={() => signOut({ callbackUrl: "/" })}
-                                variant="outline" 
-                                className="border-red-500/10 text-red-500 font-black uppercase tracking-widest px-4 xl:px-6 rounded-full h-10 xl:h-11 hover:bg-red-500 hover:text-white transition-all active:scale-95 flex items-center gap-2 text-[10px]"
+                                variant="ghost" 
+                                className="text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold uppercase tracking-widest h-10 px-4 rounded-xl flex items-center gap-2 text-[10px] transition-all"
                             >
-                                <LogOut className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-                                <span className="hidden sm:inline">Exit</span>
+                                <LogOut className="w-4 h-4" />
+                                <span className="xl:inline lg:hidden">Sign Out</span>
                             </Button>
-
-                            {userRole === "ADMIN" && (
-                                <Link href="/admin/dashboard">
-                                    <Button className="bg-slate-900 text-white font-black uppercase tracking-widest px-4 xl:px-6 rounded-full h-10 xl:h-11 text-[10px]">
-                                        Admin
-                                    </Button>
-                                </Link>
-                            )}
                         </div>
                     ) : (
                         <Link href="/auth/login">
                             <Button 
-                                variant="default" 
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest px-6 xl:px-8 rounded-full h-10 xl:h-11 shadow-lg shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
+                                style={{ backgroundColor: pathname === "/auth/login" ? "rgba(37, 99, 235, 1)" : undefined }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
                             >
                                 <LogIn className="w-4 h-4" />
                                 Access Hub
@@ -157,64 +196,80 @@ export function Navbar() {
                     )}
                 </div>
 
-                {/* Mobile Menu Trigger */}
-                <button 
-                    className="lg:hidden p-2"
-                    onClick={() => setIsOpen(!isOpen)}
-                >
-                    <motion.div style={{ color }}>
-                        {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
-                    </motion.div>
-                </button>
+                {/* Small Screen Controls (Desktop layout but smaller window) */}
+                <div className="flex min-[1100px]:hidden items-center gap-4">
+                    <ThemeToggle />
+                    <button 
+                        className="p-3 bg-white/5 dark:bg-black/5 rounded-xl border border-white/10"
+                        onClick={() => setIsOpen(!isOpen)}
+                    >
+                        <motion.div style={{ color: activeTheme === "dark" ? darkColor : color }}>
+                            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </motion.div>
+                    </button>
+                </div>
             </div>
 
-            {/* Mobile Menu */}
+            {/* Premium Mobile Menu */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-white/5 overflow-hidden shadow-2xl"
+                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                        className="lg:hidden absolute top-full left-0 right-0 h-screen bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 shadow-2xl overflow-y-auto"
                     >
-                        <div className="px-6 py-10 flex flex-col gap-6">
-                            {currentLinks.map((link) => (
-                                <Link 
-                                    key={link.name} 
-                                    href={link.href}
-                                    onClick={() => setIsOpen(false)}
-                                    className="text-xl font-black uppercase tracking-tighter italic text-slate-900 dark:text-white flex items-center gap-4 group"
-                                >
-                                    {isAuth && <link.icon className="w-5 h-5 text-blue-600" />}
-                                    <span>{link.name}</span>
-                                </Link>
-                            ))}
+                        <div className="px-6 py-12 flex flex-col gap-8 max-w-lg mx-auto">
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Main Navigation</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {currentLinks.map((link) => (
+                                        <Link 
+                                            key={link.name} 
+                                            href={link.href}
+                                            onClick={() => setIsOpen(false)}
+                                            className={cn(
+                                                "p-5 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-between group h-20 transition-all active:scale-[0.98]",
+                                                pathname === link.href && "bg-blue-600/10 border border-blue-600/20"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-5">
+                                                <div className={cn(
+                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
+                                                    pathname === link.href ? "bg-blue-600 text-white" : "bg-white dark:bg-white/10 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"
+                                                )}>
+                                                    <link.icon className="w-6 h-6" />
+                                                </div>
+                                                <span className={cn(
+                                                    "text-lg font-black uppercase italic tracking-tight transition-colors",
+                                                    pathname === link.href ? "text-blue-600" : "text-slate-900 dark:text-white"
+                                                )}>{link.name}</span>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-slate-300">
+                                                <ChevronDown className="w-5 h-5 -rotate-90" />
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
                             
-                            <hr className="border-slate-100 dark:border-white/5" />
+                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-2" />
                             
                             {isAuth ? (
                                 <div className="space-y-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                                            <UserCircle className="w-7 h-7 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{session.user?.name}</p>
-                                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Resident Persona</p>
-                                        </div>
-                                    </div>
                                     <Button 
                                         onClick={() => signOut({ callbackUrl: "/" })}
-                                        className="w-full bg-red-500 h-16 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3"
+                                        className="w-full bg-red-500 hover:bg-red-600 text-white h-16 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-red-500/20"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Logout
+                                        Sign Out
                                     </Button>
                                 </div>
                             ) : (
                                 <Link href="/auth/login" onClick={() => setIsOpen(false)}>
-                                    <Button className="w-full bg-blue-600 h-16 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-blue-500/20">
-                                        Sign In to Portal
+                                    <Button className="w-full bg-blue-600 h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all">
+                                        Access Member Hub
                                     </Button>
                                 </Link>
                             )}

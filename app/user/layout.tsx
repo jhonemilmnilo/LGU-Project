@@ -29,7 +29,7 @@ export default function UserLayout({
         <div className="min-h-screen bg-slate-50 dark:bg-[#06080a] text-slate-900 dark:text-slate-200 font-sans transition-colors duration-500 flex flex-col">
             <Navbar />
 
-            <main className="flex-1 pt-24 pb-12">
+            <main className="flex-1 pt-28 md:pt-36 pb-20">
                 <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}

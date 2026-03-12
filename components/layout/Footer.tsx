@@ -15,7 +15,7 @@ export function Footer() {
                             <Shield className="w-6 h-6 text-white" />
                         </div>
                         <span className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white italic">
-                            Agno<span className="text-blue-600">Municipality</span>
+                            Agno<span className="text-blue-600">Portal</span>
                         </span>
                     </Link>
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">

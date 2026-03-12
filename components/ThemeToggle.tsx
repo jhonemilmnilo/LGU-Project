@@ -14,12 +14,11 @@ export function ThemeToggle() {
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-            className="text-slate-400 hover:text-slate-100 hover:bg-[#2a3040] dark:hover:bg-slate-800 transition-colors w-full flex justify-start px-3 py-2 h-auto"
+            className="w-10 h-10 rounded-xl relative overflow-hidden transition-all duration-300 hover:bg-slate-100 dark:hover:bg-white/10 group"
         >
-            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 mr-3 hidden dark:block" />
-            <Moon className="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 mr-3 block dark:hidden" />
-            <span className="block dark:hidden">Switch to Dark Mode</span>
-            <span className="hidden dark:block">Switch to Light Mode</span>
+            <Sun className="h-5 w-5 text-slate-500 transition-all duration-500 rotate-0 scale-100 dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 text-blue-400 transition-all duration-500 rotate-90 scale-0 dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
         </Button>
     )
 }
