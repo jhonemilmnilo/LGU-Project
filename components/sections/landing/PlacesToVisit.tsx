@@ -38,7 +38,7 @@ export function PlacesToVisit() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {destinations.map((dest, idx) => (
                     <motion.div
                         key={dest.id}
@@ -47,8 +47,8 @@ export function PlacesToVisit() {
                         transition={{ delay: idx * 0.2 }}
                         viewport={{ once: true }}
                         className={cn(
-                            "group relative aspect-[16/10] lg:aspect-auto min-h-[400px] rounded-[3rem] overflow-hidden shadow-2xl",
-                            dest.span
+                            "group relative aspect-[16/10] md:aspect-auto min-h-[400px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl",
+                            dest.id === 1 ? "md:col-span-2" : "col-span-1"
                         )}
                     >
                         <Image

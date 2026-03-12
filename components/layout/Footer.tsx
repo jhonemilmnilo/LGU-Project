@@ -6,8 +6,8 @@ import { Shield, Facebook, Twitter, Instagram, Mail, Phone, MapPin } from "lucid
 
 export function Footer() {
     return (
-        <footer className="bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-white/5 pt-20 pb-10 px-6">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 pb-16 border-b border-slate-100 dark:border-white/5">
+        <footer className="bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-white/5 pt-16 md:pt-20 pb-10 px-6">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 pb-16 border-b border-slate-100 dark:border-white/5">
                 {/* Brand Column */}
                 <div className="space-y-6">
                     <Link href="/" className="flex items-center gap-3">

@@ -28,7 +28,7 @@ export function UserNewsView({ initialNews = [] }: { initialNews: any[] }) {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative aspect-[21/9] rounded-[3rem] overflow-hidden group cursor-pointer shadow-2xl"
+                    className="relative aspect-auto md:aspect-[21/9] min-h-[500px] md:min-h-0 rounded-[2rem] md:rounded-[3rem] overflow-hidden group cursor-pointer shadow-2xl"
                 >
                     <Image
                         src={initialNews[0].imageUrl || "https://images.unsplash.com/photo-150471142745a-5099af501997?auto=format&fit=crop&q=80&w=1200"}
@@ -38,13 +38,13 @@ export function UserNewsView({ initialNews = [] }: { initialNews: any[] }) {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
                     
-                    <div className="absolute bottom-10 left-10 right-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="absolute inset-x-0 bottom-0 p-6 md:p-10 flex flex-col md:flex-row md:items-end justify-between gap-6 z-20">
                         <div className="space-y-4 max-w-2xl">
-                            <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Featured Bulletin</span>
-                            <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter leading-tight">{initialNews[0].title}</h2>
-                            <p className="text-slate-300 font-medium italic line-clamp-2">{initialNews[0].content}</p>
+                            <span className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg italic">Featured Bulletin</span>
+                            <h2 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter leading-tight">{initialNews[0].title}</h2>
+                            <p className="text-slate-200 md:text-slate-300 font-medium italic line-clamp-2 text-sm">{initialNews[0].content}</p>
                         </div>
-                        <Button className="h-14 px-8 bg-white text-blue-600 hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 group/btn">
+                        <Button className="h-14 px-8 bg-white text-blue-600 hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 group/btn shrink-0">
                             Read Full Story
                             <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                         </Button>

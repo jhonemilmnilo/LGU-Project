@@ -32,8 +32,8 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: any[] }) {
                         transition={{ delay: idx * 0.1 }}
                         className="p-8 bg-white dark:bg-[#0a0c10] rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col sm:flex-row gap-8 group hover:border-blue-500 transition-all"
                     >
-                        <div className="w-20 h-20 bg-blue-50 dark:bg-blue-500/10 rounded-[1.5rem] flex items-center justify-center shrink-0 group-hover:bg-blue-600 transition-colors">
-                            <Briefcase className="w-10 h-10 text-blue-600 group-hover:text-white transition-colors" />
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 dark:bg-blue-500/10 rounded-[1.2rem] sm:rounded-[1.5rem] flex items-center justify-center shrink-0 group-hover:bg-blue-600 transition-colors">
+                            <Briefcase className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 group-hover:text-white transition-colors" />
                         </div>
                         
                         <div className="flex-1 space-y-6">

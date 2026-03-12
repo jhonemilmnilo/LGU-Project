@@ -67,7 +67,7 @@ export function DiningLodging() {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {items.map((item, idx) => {
                     const CategoryIcon = item.icon;
                     return (

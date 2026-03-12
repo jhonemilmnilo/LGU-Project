@@ -64,13 +64,13 @@ export function NewsEvents() {
                         >
                             <div className="flex flex-col items-center justify-center min-w-[80px] h-20 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-white/10 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-blue-200">{event.date.split(' ')[0]}</span>
-                                <span className="text-2xl font-black italic tracking-tighter">{event.date.split(' ')[1]}</span>
+                                <span className="text-xl sm:text-2xl font-black italic tracking-tighter">{event.date.split(' ')[1]}</span>
                             </div>
                             <div className="flex-1 space-y-1">
-                                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-blue-600 transition-colors">{event.title}</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic">{event.description}</p>
+                                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-blue-600 transition-colors">{event.title}</h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium italic">{event.description}</p>
                             </div>
-                            <ArrowUpRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                            <ArrowUpRight className="hidden sm:block w-5 h-5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
                         </motion.div>
                     ))}
                 </div>
@@ -97,7 +97,7 @@ export function NewsEvents() {
                             transition={{ delay: idx * 0.1 }}
                             className="flex items-center gap-6 group cursor-pointer"
                         >
-                            <div className="relative min-w-[120px] h-24 rounded-2xl overflow-hidden shadow-lg border border-slate-100 dark:border-white/10">
+                            <div className="relative min-w-[100px] sm:min-w-[120px] h-20 sm:h-24 rounded-2xl overflow-hidden shadow-lg border border-slate-100 dark:border-white/10 shrink-0">
                                 <Image
                                     src={item.image}
                                     alt={item.title}

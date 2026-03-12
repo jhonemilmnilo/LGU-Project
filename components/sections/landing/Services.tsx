@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import { FileText, HeartPulse, Users, Trash2, ArrowUpRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const services = [
     {
@@ -55,7 +56,7 @@ export function Services() {
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.1 }}
                             viewport={{ once: true }}
-                            className="group p-8 bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all cursor-pointer"
+                            className="group p-6 md:p-8 bg-white dark:bg-[#0f1117] rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all cursor-pointer"
                         >
                             <div className="space-y-6">
                                 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors group-hover:bg-blue-600", service.bg)}>
@@ -81,4 +82,4 @@ export function Services() {
     );
 }
 
-import { cn } from "@/lib/utils";
+

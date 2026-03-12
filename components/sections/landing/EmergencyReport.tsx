@@ -28,13 +28,13 @@ export function EmergencyReport() {
             <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
             <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-red-600/5 blur-[100px] rounded-full" />
 
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 relative z-10">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 relative z-10">
                 {/* Hotlines */}
                 <div className="space-y-12">
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
-                            <Siren className="w-8 h-8 text-red-500 animate-pulse" />
-                            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">Emergency Hotlines</h2>
+                            <Siren className="w-6 h-6 md:w-8 md:h-8 text-red-500 animate-pulse" />
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter">Emergency Hotlines</h2>
                         </div>
                         <p className="text-slate-400 font-medium italic max-w-lg">
                             In case of emergency, please contact the appropriate department immediately. 
@@ -76,7 +76,7 @@ export function EmergencyReport() {
                     initial={{ opacity: 0, x: 24 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-[3rem] shadow-2xl relative"
+                    className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl relative"
                 >
                     <div className="space-y-8">
                         <div className="space-y-2">

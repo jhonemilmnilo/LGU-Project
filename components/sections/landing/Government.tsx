@@ -63,7 +63,7 @@ export function Government() {
                 </motion.div>
 
                 {/* Council Members */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-12 w-full pt-10">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 xl:gap-12 w-full pt-10">
                     {rest.map((member, idx) => (
                         <motion.div
                             key={member.name}
@@ -73,7 +73,7 @@ export function Government() {
                             viewport={{ once: true }}
                             className="group flex flex-col items-center space-y-4 text-center"
                         >
-                            <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-white dark:border-slate-800 shadow-xl overflow-hidden ring-2 ring-slate-100 dark:ring-white/5">
+                            <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-2 border-white dark:border-slate-800 shadow-xl overflow-hidden ring-2 ring-slate-100 dark:ring-white/5">
                                 <Image
                                     src={member.image}
                                     alt={member.name}
@@ -82,8 +82,8 @@ export function Government() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">{member.name.replace('Hon. ', '')}</h4>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{member.role}</p>
+                                <h4 className="text-[12px] sm:text-xs md:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">{member.name.replace('Hon. ', '')}</h4>
+                                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">{member.role}</p>
                             </div>
                         </motion.div>
                     ))}

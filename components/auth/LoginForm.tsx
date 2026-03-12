@@ -60,11 +60,11 @@ export function LoginForm() {
                     if (role === "ADMIN") {
                         router.push("/admin/dashboard");
                     } else {
-                        router.push("/user/dashboard");
+                        router.push("/");
                     }
                 } else {
                     // Fallback if session user info is missing
-                    router.push("/user/dashboard");
+                    router.push("/");
                 }
             }
         } catch (error) {

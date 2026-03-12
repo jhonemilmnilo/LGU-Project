@@ -1,0 +1,14 @@
+import prisma from "@/lib/db/prisma";
+import { UserExperienceView } from "./UserExperienceView";
+
+export default async function UserExperiencePage() {
+    const dining = await prisma.dining.findMany({
+        orderBy: { name: "asc" }
+    });
+    
+    const accommodations = await prisma.accommodation.findMany({
+        orderBy: { name: "asc" }
+    });
+
+    return <UserExperienceView initialDining={dining as any} initialAccommodations={accommodations as any} />;
+}

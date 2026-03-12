@@ -93,10 +93,10 @@ export function UserDisasterWorkspace({
                             />
                         </motion.div>
                     ) : (
-                        <div className="aspect-[21/9] flex flex-col items-center justify-center border-4 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] text-center p-20 bg-white dark:bg-black/20">
-                            <MapIcon className="w-20 h-20 text-slate-200 dark:text-white/5 mb-6" />
-                            <h3 className="text-2xl font-black text-slate-400 uppercase italic tracking-tighter">Initializing Sentinel...</h3>
-                            <p className="text-slate-400 mt-2 font-medium italic">Please select a monitoring layer to begin spatial analysis.</p>
+                        <div className="aspect-[16/10] md:aspect-[21/9] flex flex-col items-center justify-center border-4 border-dashed border-slate-200 dark:border-white/5 rounded-[2.5rem] sm:rounded-[4rem] text-center p-8 sm:p-20 bg-white dark:bg-black/20">
+                            <MapIcon className="w-12 h-12 sm:w-20 sm:h-20 text-slate-200 dark:text-white/5 mb-6" />
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-400 uppercase italic tracking-tighter">Initializing Sentinel...</h3>
+                            <p className="text-xs sm:text-sm text-slate-400 mt-2 font-medium italic">Please select a monitoring layer to begin spatial analysis.</p>
                         </div>
                     )}
 

@@ -29,24 +29,24 @@ export function Hero() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="space-y-8"
+                    className="space-y-6 md:space-y-8"
                 >
-                    <div className="space-y-4">
+                    <div className="space-y-3 md:space-y-4">
                         <motion.span 
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.2 }}
-                            className="inline-block px-4 py-1.5 bg-blue-600/20 backdrop-blur-md border border-blue-400/30 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-blue-100"
+                            className="inline-block px-3 py-1 md:px-4 md:py-1.5 bg-blue-600/20 backdrop-blur-md border border-blue-400/30 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-blue-100"
                         >
                             The Home of the Umbrella Rocks
                         </motion.span>
-                        <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-white uppercase italic tracking-tighter leading-[0.85]">
-                            Welcome <br />
+                        <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-white uppercase italic tracking-tighter leading-[0.9] md:leading-[0.85]">
+                            Welcome <br className="hidden sm:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-white">To Agno</span>
                         </h1>
                     </div>
 
-                    <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-200 font-medium leading-relaxed italic">
+                    <p className="max-w-xl md:max-w-2xl mx-auto text-base md:text-xl text-slate-200 font-medium leading-relaxed italic px-4">
                         Discover the pristine beauty of the Umbrella Rocks, our vibrant 
                         community, and the rich heritage of our municipality.
                     </p>
