@@ -26,7 +26,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
     if (!items || items.length === 0) return null;
 
     return (
-        <section id="experience" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
+        <section id="experience" className="py-16 px-6 max-w-7xl mx-auto space-y-12">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-4">
                     <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">

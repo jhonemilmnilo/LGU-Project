@@ -29,7 +29,7 @@ export default async function Home() {
         getSystemSetting("site_logo", ""),
         prisma.tourismSpot.findMany({
             where: { isPublished: true },
-            take: 3
+            take: 5
         }),
         prisma.dining.findMany({
             where: { isPublished: true },
@@ -61,7 +61,7 @@ export default async function Home() {
             
             <Hero slides={slides} />
             
-            <div className="space-y-32 pb-32">
+            <div className="space-y-16 pb-32">
                 <DiningLodging items={discoveryItems} />
                 <PlacesToVisit spots={tourismSpots} />
                 <NewsEvents />
