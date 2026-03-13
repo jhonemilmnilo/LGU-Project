@@ -16,7 +16,11 @@ import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
 
-export function Navbar() {
+interface NavbarProps {
+    logoUrl?: string;
+}
+
+export function Navbar({ logoUrl }: NavbarProps) {
     const { data: session, status } = useSession();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = React.useState(false);
@@ -113,9 +117,13 @@ export function Navbar() {
                     <motion.div 
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20"
+                        className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden"
                     >
-                        <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                        {logoUrl ? (
+                            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                            <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                        )}
                     </motion.div>
                     <div className="flex flex-col">
                         <motion.span 

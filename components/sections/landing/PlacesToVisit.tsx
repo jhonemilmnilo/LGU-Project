@@ -5,26 +5,30 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Camera, Map as MapIcon, Compass } from "lucide-react";
 
-const destinations = [
-    {
-        id: 1,
-        title: "Umbrella Rocks",
-        location: "Sabangan",
-        image: "https://images.unsplash.com/photo-1542332213-31f87348057f?auto=format&fit=crop&q=80&w=1200", // Representative
-        description: "Agno's most iconic landmark, famed for mushroom-shaped rock formations sculpted by the relentless waves of the West Philippine Sea.",
-        span: "col-span-1 lg:col-span-2"
-    },
-    {
-        id: 2,
-        title: "Agno River",
-        location: "Town Proper",
-        image: "https://images.unsplash.com/photo-1437482012496-100b11f2ee2d?auto=format&fit=crop&q=80&w=800",
-        description: "Explore the lifeblood of our town through breathtaking river tours.",
-        span: "col-span-1"
-    }
-];
+import { TourismSpot } from "@prisma/client";
 
-export function PlacesToVisit() {
+interface PlacesToVisitProps {
+    spots?: TourismSpot[];
+}
+
+export function PlacesToVisit({ spots }: PlacesToVisitProps) {
+    const displaySpots = spots && spots.length > 0 ? spots : [
+        {
+            id: 'mock-1',
+            name: "Umbrella Rocks",
+            address: "Sabangan",
+            imageUrl: "https://images.unsplash.com/photo-1542332213-31f87348057f?auto=format&fit=crop&q=80&w=1200",
+            description: "Agno's most iconic landmark, famed for mushroom-shaped rock formations sculpted by the relentless waves of the West Philippine Sea.",
+        },
+        {
+            id: 'mock-2',
+            name: "Agno River",
+            address: "Town Proper",
+            imageUrl: "https://images.unsplash.com/photo-1437482012496-100b11f2ee2d?auto=format&fit=crop&q=80&w=800",
+            description: "Explore the lifeblood of our town through breathtaking river tours.",
+        }
+    ];
+
     return (
         <section className="py-24 px-6 max-w-7xl mx-auto space-y-16">
             <div className="space-y-4">
@@ -39,7 +43,7 @@ export function PlacesToVisit() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {destinations.map((dest, idx) => (
+                {displaySpots.map((dest, idx) => (
                     <motion.div
                         key={dest.id}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -48,12 +52,12 @@ export function PlacesToVisit() {
                         viewport={{ once: true }}
                         className={cn(
                             "group relative aspect-[16/10] md:aspect-auto min-h-[400px] rounded-[2.5rem] md:rounded-[3rem] overflow-hidden shadow-2xl",
-                            dest.id === 1 ? "md:col-span-2" : "col-span-1"
+                            idx === 0 ? "md:col-span-2" : "col-span-1"
                         )}
                     >
                         <Image
-                            src={dest.image}
-                            alt={dest.title}
+                            src={dest.imageUrl || "https://images.unsplash.com/photo-1542332213-31f87348057f"}
+                            alt={dest.name}
                             fill
                             className="object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
@@ -69,10 +73,10 @@ export function PlacesToVisit() {
                                     <Camera className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">{dest.title}</h3>
+                                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">{(dest as any).name}</h3>
                                     <p className="text-blue-300 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
                                         <MapIcon className="w-3 h-3" />
-                                        {dest.location}
+                                        {dest.address}
                                     </p>
                                 </div>
                             </div>

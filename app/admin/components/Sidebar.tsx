@@ -25,6 +25,7 @@ export function Sidebar({ session }: SidebarProps) {
 
     const menuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/admin/settings", label: "Website Settings", icon: Settings, category: "Website Control" },
         { href: "/admin/news", label: "News & Updates", icon: Newspaper, category: "Content" },
         { href: "/admin/events", label: "Events", icon: Calendar },
         { href: "/admin/projects", label: "LGU Projects", icon: FolderKanban },

@@ -9,17 +9,39 @@ import { JobBoard } from "@/components/sections/landing/JobBoard";
 import { Government } from "@/components/sections/landing/Government";
 import { Services } from "@/components/sections/landing/Services";
 import { EmergencyReport } from "@/components/sections/landing/EmergencyReport";
+import prisma from "@/lib/db/prisma";
+import { getSystemSetting, isMaintenanceMode } from "@/lib/settings";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+    // 1. Check Maintenance Mode
+    const maintenance = await isMaintenanceMode();
+    if (maintenance) {
+        redirect("/maintenance");
+    }
+
+    // 2. Fetch Dynamic Content
+    const [slides, logoUrl, tourismSpots] = await Promise.all([
+        prisma.heroSlide.findMany({
+            where: { isActive: true },
+            orderBy: { order: 'asc' }
+        }),
+        getSystemSetting("site_logo", ""),
+        prisma.tourismSpot.findMany({
+            where: { isPublished: true },
+            take: 3
+        })
+    ]);
+
     return (
         <main className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-blue-600/30">
-            <Navbar />
+            <Navbar logoUrl={logoUrl} />
             
-            <Hero />
+            <Hero slides={slides} />
             
             <div className="space-y-32 pb-32">
                 <DiningLodging />
-                <PlacesToVisit />
+                <PlacesToVisit spots={tourismSpots} />
                 <NewsEvents />
                 <JobBoard />
                 <Government />
