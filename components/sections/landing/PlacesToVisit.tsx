@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Map as MapIcon, Compass, ArrowRight } from "lucide-react";
+import { Camera, Map as MapIcon, Compass, ArrowRight, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TourismSpot } from "@prisma/client";
 
@@ -12,6 +13,7 @@ interface PlacesToVisitProps {
 }
 
 export function PlacesToVisit({ spots }: PlacesToVisitProps) {
+    const router = useRouter();
     const displaySpots = spots && spots.length > 0 ? spots : [
         {
             id: 'mock-1',
@@ -64,24 +66,28 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
         return () => clearInterval(interval);
     }, [isPaused, displaySpots.length]);
 
+    const handleCardClick = (id: string, idx: number) => {
+        if (activeIndex === idx) {
+            router.push(`/user/places-to-visit/${id}`);
+        } else {
+            setActiveIndex(idx);
+        }
+    };
+
     return (
-        <section className="py-16 px-6 max-w-7xl mx-auto space-y-12">
+        <section className="py-12 px-6 max-w-7xl mx-auto space-y-10">
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-0.5 bg-blue-600" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Discover Agno</span>
+                    <div className="w-10 h-0.5 bg-blue-600" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Spotlight</span>
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                     Places to Visit
                 </h2>
-                <p className="text-slate-500 font-medium italic max-w-xl">
-                    Unveil the hidden gems and breathtaking landscapes that Agno has to offer through our rotating spotlight.
-                </p>
             </div>
 
-            {/* Horizontal Accordion Container */}
-            <div 
-                className="flex flex-col lg:flex-row gap-4 h-auto lg:h-[550px]"
+            <div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
             >
@@ -91,20 +97,19 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                     return (
                         <motion.div
                             key={spot.id}
-                            onClick={() => setActiveIndex(idx)}
+                            layout
+                            onClick={() => handleCardClick(spot.id, idx)}
                             initial={false}
-                            animate={{ 
-                                flex: isActive ? 4 : 1,
-                                height: isActive ? "550px" : "550px", // Fixed height on desktop
+                            animate={{
+                                filter: isActive ? "grayscale(0)" : "grayscale(0.4)"
                             }}
-                            transition={{ 
-                                duration: 0.8, 
-                                ease: [0.16, 1, 0.3, 1] 
+                            transition={{
+                                duration: 0.6,
+                                ease: "anticipate"
                             }}
                             className={cn(
-                                "group relative overflow-hidden rounded-[2.5rem] cursor-pointer transition-all duration-500",
-                                !isActive && "lg:opacity-80 hover:opacity-100",
-                                "h-[400px] lg:h-full w-full" // Mobile height vs Desktop full height
+                                "group relative h-[280px] rounded-[2rem] overflow-hidden shadow-xl cursor-pointer transition-all duration-700",
+                                isActive ? "md:col-span-2 ring-2 ring-blue-600 shadow-blue-500/20" : "col-span-1 ring-1 ring-slate-200 dark:ring-white/5 opacity-80 hover:opacity-100"
                             )}
                         >
                             <Image
@@ -113,84 +118,66 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                                 fill
                                 className={cn(
                                     "object-cover transition-transform duration-1000",
-                                    isActive ? "scale-105" : "scale-110 grayscale-[0.3] group-hover:scale-105 group-hover:grayscale-0"
+                                    isActive ? "scale-105" : "scale-110"
                                 )}
                             />
-                            
-                            {/* Overlay */}
+
+                            {/* Overlays */}
                             <div className={cn(
                                 "absolute inset-0 transition-opacity duration-700",
-                                isActive 
-                                    ? "bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-100" 
-                                    : "bg-black/40 opacity-100"
+                                isActive
+                                    ? "bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-100"
+                                    : "bg-black/50 opacity-100"
                             )} />
+                            <div className="absolute inset-0 bg-blue-600/5 mix-blend-overlay z-10" />
 
-                            {/* Shrunk Content (Vertical Text) */}
-                            <AnimatePresence mode="wait">
-                                {!isActive && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="absolute inset-0 flex items-center justify-center lg:items-end lg:justify-start lg:p-10 pointer-events-none"
-                                    >
-                                        <h3 className="text-xl lg:text-3xl font-black text-white/50 uppercase italic tracking-tighter lg:rotate-[-90deg] lg:origin-left whitespace-nowrap">
+                            {/* Content */}
+                            <div className="absolute bottom-6 left-6 right-6 z-20 space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center border transition-all duration-500",
+                                        isActive ? "bg-blue-600 border-blue-500 shadow-lg" : "bg-white/10 backdrop-blur-md border-white/20"
+                                    )}>
+                                        {isActive ? <Compass className="w-4 h-4 text-white animate-spin-slow" /> : <Camera className="w-4 h-4 text-white" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-xl lg:text-2xl font-black text-white uppercase italic tracking-tighter leading-tight truncate">
                                             {spot.name}
                                         </h3>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* Expanded Content */}
-                            <AnimatePresence>
-                                {isActive && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 30 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 20 }}
-                                        transition={{ delay: 0.3, duration: 0.5 }}
-                                        className="absolute bottom-10 left-10 right-10 z-20 space-y-6"
-                                    >
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/40">
-                                                    <Compass className="w-5 h-5 text-white animate-spin-slow" />
-                                                </div>
-                                                <span className="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-[8px] font-black uppercase tracking-widest text-blue-400">
-                                                    Spotlight
-                                                </span>
-                                            </div>
-                                            <h3 className="text-4xl lg:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
-                                                {spot.name}
-                                            </h3>
-                                            <p className="text-blue-400 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                                                <MapIcon className="w-3.5 h-3.5" />
-                                                {spot.address}
-                                            </p>
-                                        </div>
-
-                                        <p className="text-slate-200 text-sm lg:text-lg font-medium leading-relaxed max-w-2xl italic line-clamp-3 lg:line-clamp-none">
-                                            {spot.description}
+                                        <p className="text-blue-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                                            <MapIcon className="w-2.5 h-2.5" />
+                                            {spot.address}
                                         </p>
+                                    </div>
+                                    {isActive && (
+                                        <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ExternalLink className="w-4 h-4 text-white" />
+                                        </div>
+                                    )}
+                                </div>
 
-                                        <button className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white hover:text-blue-400 transition-colors pt-4 group/btn">
-                                            Explore Spot
-                                            <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center group-hover/btn:border-blue-400 group-hover/btn:translate-x-2 transition-all">
-                                                <ArrowRight className="w-3 h-3" />
-                                            </div>
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                                <AnimatePresence>
+                                    {isActive && (
+                                        <motion.p
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="text-slate-200 text-xs lg:text-sm font-medium leading-relaxed max-w-2xl italic line-clamp-2 md:line-clamp-none"
+                                        >
+                                            {spot.description}
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
+                            </div>
 
-                            {/* Progress Bar (Only visible for active) */}
+                            {/* Active Progress Bar */}
                             {isActive && (
-                                <motion.div 
-                                    className="absolute bottom-0 left-0 h-1.5 bg-blue-600 z-30"
+                                <motion.div
+                                    className="absolute bottom-0 left-0 h-1 bg-blue-600 z-30"
                                     initial={{ width: "0%" }}
                                     animate={{ width: "100%" }}
                                     transition={{ duration: 5, ease: "linear" }}
-                                    key={`progress-${idx}`}
+                                    key={`progress-${activeIndex}`}
                                 />
                             )}
                         </motion.div>
@@ -198,15 +185,15 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                 })}
             </div>
 
-            {/* Pagination Indicators */}
-            <div className="flex justify-center gap-3 pt-4">
+            {/* Pagination Controls */}
+            <div className="flex justify-center gap-3">
                 {displaySpots.map((_, idx) => (
                     <button
                         key={idx}
                         onClick={() => setActiveIndex(idx)}
                         className={cn(
-                            "h-1.5 transition-all duration-500 rounded-full",
-                            activeIndex === idx ? "w-12 bg-blue-600" : "w-3 bg-slate-200 dark:bg-white/10"
+                            "h-1 transition-all duration-500 rounded-full",
+                            activeIndex === idx ? "w-10 bg-blue-600" : "w-2.5 bg-slate-200 dark:bg-white/10"
                         )}
                     />
                 ))}
