@@ -72,7 +72,8 @@ export function NewsTable() {
             <Table>
                 <TableHeader>
                     <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
-                        <TableHead className="w-[350px] font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100 h-14 pl-8">Article Details</TableHead>
+                        <TableHead className="w-[80px] font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100 h-14 pl-8">Image</TableHead>
+                        <TableHead className="w-[300px] font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Article Details</TableHead>
                         <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Category</TableHead>
                         <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Author</TableHead>
                         <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Date Posted</TableHead>
@@ -83,7 +84,16 @@ export function NewsTable() {
                 <TableBody>
                     {filteredData.map((item) => (
                         <TableRow key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
-                            <TableCell className="pl-8 py-5">
+                            <TableCell className="pl-8">
+                                <div className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                                    {item.imageUrl ? (
+                                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Newspaper className="w-5 h-5 text-slate-300" />
+                                    )}
+                                </div>
+                            </TableCell>
+                            <TableCell className="py-5">
                                 <div className="flex flex-col space-y-1.5">
                                     <span className="text-slate-900 dark:text-white font-black uppercase italic tracking-tight leading-tight group-hover:text-blue-600 transition-colors">
                                         {item.title}
