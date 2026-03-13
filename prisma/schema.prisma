@@ -1,16 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -166,6 +159,20 @@ model News {
   imageUrl    String?
   publishDate DateTime @default(now())
   isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  priority    String   @default("Normal") // Low, Normal, High, Critical
+  category    String   @default("General") // Weather, Public Service, Health, Emergency
+  isPinned    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  expiryDate  DateTime?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

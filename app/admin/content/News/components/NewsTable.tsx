@@ -55,13 +55,13 @@ export function NewsTable() {
 
     if (filteredData.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 text-center border-t border-slate-200 dark:border-[#2a3040]">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                    <Newspaper className="w-8 h-8 text-slate-400" />
+            <div className="flex flex-col items-center justify-center p-20 text-center border-t border-slate-200 dark:border-[#2a3040]">
+                <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6 shadow-inner ring-1 ring-slate-200 dark:ring-white/5">
+                    <Newspaper className="w-10 h-10 text-slate-300" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Articles Found</h3>
-                <p className="text-slate-500 max-w-sm">
-                    No news articles match your search criteria. Try adjusting your filters or publish a new article.
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">No Articles Found</h3>
+                <p className="text-slate-500 font-medium italic max-w-sm mt-2">
+                    Walang lumabas na balita sa criteria mo. Try adjusting your filters or publish a new one!
                 </p>
             </div>
         );
@@ -72,37 +72,41 @@ export function NewsTable() {
             <Table>
                 <TableHeader>
                     <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
-                        <TableHead className="w-[300px] font-bold text-slate-900 dark:text-slate-100 h-12">Article</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Category</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Author</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Publish Date</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Published</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100">Actions</TableHead>
+                        <TableHead className="w-[350px] font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100 h-14 pl-8">Article Details</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Category</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Author</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100">Date Posted</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100 text-center">Published</TableHead>
+                        <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-slate-900 dark:text-slate-100 pr-8">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
-                            <TableCell className="font-medium">
-                                <div className="flex flex-col space-y-1">
-                                    <span className="text-slate-900 dark:text-white font-bold leading-tight">{item.title}</span>
-                                    <span className="text-xs text-slate-500 line-clamp-1">{item.content}</span>
+                        <TableRow key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                            <TableCell className="pl-8 py-5">
+                                <div className="flex flex-col space-y-1.5">
+                                    <span className="text-slate-900 dark:text-white font-black uppercase italic tracking-tight leading-tight group-hover:text-blue-600 transition-colors">
+                                        {item.title}
+                                    </span>
+                                    <span className="text-[11px] text-slate-500 font-medium italic line-clamp-1 max-w-[300px]">
+                                        {item.content}
+                                    </span>
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                                <span className="inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                     {item.category}
                                 </span>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm">
-                                    <User className="w-3.5 h-3.5 mr-1" />
+                                <div className="flex items-center text-slate-500 dark:text-slate-400 text-[11px] font-medium italic">
+                                    <User className="w-3.5 h-3.5 mr-2 text-blue-500" />
                                     {item.author || "Admin"}
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm">
-                                    <Calendar className="w-3.5 h-3.5 mr-1" />
+                                <div className="flex items-center text-slate-500 dark:text-slate-400 text-[11px] font-medium italic">
+                                    <Calendar className="w-3.5 h-3.5 mr-2 text-blue-500" />
                                     {format(new Date(item.publishDate), "MMM d, yyyy")}
                                 </div>
                             </TableCell>
@@ -114,7 +118,7 @@ export function NewsTable() {
                                     className="data-[state=checked]:bg-blue-600"
                                 />
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right pr-8">
                                 <div className="flex justify-end gap-2">
                                     <TooltipProvider>
                                         <Tooltip>
@@ -123,7 +127,7 @@ export function NewsTable() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
-                                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/50"
+                                                    className="h-9 w-9 rounded-xl text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-transparent hover:border-blue-200 transition-all"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>
@@ -140,7 +144,7 @@ export function NewsTable() {
                                                     size="icon"
                                                     onClick={() => handleDelete(item.id)}
                                                     disabled={deletingId === item.id}
-                                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/50"
+                                                    className="h-9 w-9 rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/40 border border-transparent hover:border-red-200 transition-all"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>

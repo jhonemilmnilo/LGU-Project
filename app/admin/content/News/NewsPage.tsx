@@ -26,19 +26,19 @@ export function NewsPage({ initialData }: NewsPageProps) {
                             <span className="opacity-50">/</span>
                             <span>Content</span>
                             <span className="opacity-50">/</span>
-                            <span className="text-blue-600 dark:text-blue-400 font-bold">News & Announcements</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">News & Updates</span>
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic flex items-center">
                             <Newspaper className="mr-3 text-blue-600 w-10 h-10" />
                             News Management
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Publish transparent municipal updates, advisories, and public announcements.</p>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Publish transparent municipal updates, advisories, and public interest stories.</p>
                     </div>
                 </div>
 
                 <NewsCards />
 
-                <div className="bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-2xl shadow-blue-500/5 overflow-hidden ring-1 ring-slate-200 dark:ring-white/5">
+                <div className="bg-white dark:bg-[#151b2b] rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl shadow-blue-500/5 overflow-hidden ring-1 ring-slate-200 dark:ring-white/5">
                     <NewsFilters />
                     <NewsTable />
                 </div>

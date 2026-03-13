@@ -16,14 +16,14 @@ export function NewsFilters() {
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
-                            placeholder="Search headlines..."
+                            placeholder="Find articles, press releases..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500"
+                            className="pl-10 h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-600 rounded-xl font-bold italic"
                         />
                     </div>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                        <SelectTrigger className="w-[180px] h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px]">
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
@@ -38,9 +38,9 @@ export function NewsFilters() {
                 </div>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full sm:w-auto h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 px-6 rounded-xl transition-all hover:-translate-y-0.5"
+                    className="w-full sm:w-auto h-12 bg-blue-600 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] px-8 rounded-xl transition-all shadow-xl shadow-blue-500/20 flex items-center gap-2"
                 >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4" />
                     Publish Article
                 </Button>
             </div>

@@ -1168,4 +1168,103 @@ export async function toggleDisasterMapStatus(id: string, isPublished: boolean) 
     }
 }
 
+// -----------------------------------------------------------------------------
+// ANNOUNCEMENTS
+// -----------------------------------------------------------------------------
+
+export async function addAnnouncement(formData: FormData) {
+    try {
+        const announcementDelegate = (prisma as any).announcement;
+        if (!announcementDelegate) throw new Error("Database model 'announcement' not found.");
+
+        const expiryDate = formData.get("expiryDate") as string;
+        
+        const newAnnouncement = await announcementDelegate.create({
+            data: {
+                title: formData.get("title") as string,
+                content: formData.get("content") as string,
+                category: formData.get("category") as string,
+                priority: formData.get("priority") as string,
+                isPinned: formData.get("isPinned") === "on",
+                isActive: formData.get("isActive") === "on",
+                expiryDate: expiryDate ? new Date(expiryDate) : null,
+            },
+        });
+
+        revalidatePath("/admin/announcements");
+        return { success: true, announcement: newAnnouncement };
+    } catch (error) {
+        console.error("Failed to add announcement:", error);
+        return { success: false, error: "Failed to create announcement entry. Make sure you restarted the server after prisma generate." };
+    }
+}
+
+export async function deleteAnnouncement(id: string) {
+    try {
+        const announcementDelegate = (prisma as any).announcement;
+        await announcementDelegate.delete({ where: { id } });
+        revalidatePath("/admin/announcements");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to delete announcement:", error);
+        return { success: false, error: "Failed to delete announcement." };
+    }
+}
+
+export async function updateAnnouncement(id: string, formData: FormData) {
+    try {
+        const announcementDelegate = (prisma as any).announcement;
+        const expiryDate = formData.get("expiryDate") as string;
+
+        const updated = await announcementDelegate.update({
+            where: { id },
+             data: {
+                title: formData.get("title") as string,
+                content: formData.get("content") as string,
+                category: formData.get("category") as string,
+                priority: formData.get("priority") as string,
+                isPinned: formData.get("isPinned") === "on",
+                isActive: formData.get("isActive") === "on",
+                expiryDate: expiryDate ? new Date(expiryDate) : null,
+            },
+        });
+
+        revalidatePath("/admin/announcements");
+        return { success: true, announcement: updated };
+    } catch (error) {
+        console.error("Failed to update announcement:", error);
+        return { success: false, error: "Failed to update announcement." };
+    }
+}
+
+export async function toggleAnnouncementStatus(id: string, isActive: boolean) {
+    try {
+        const announcementDelegate = (prisma as any).announcement;
+        await announcementDelegate.update({
+            where: { id },
+            data: { isActive }
+        });
+        revalidatePath("/admin/announcements");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update announcement status:", error);
+        return { success: false, error: "Failed to update status." };
+    }
+}
+
+export async function toggleAnnouncementPin(id: string, isPinned: boolean) {
+    try {
+        const announcementDelegate = (prisma as any).announcement;
+        await announcementDelegate.update({
+            where: { id },
+            data: { isPinned }
+        });
+        revalidatePath("/admin/announcements");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update announcement pin status:", error);
+        return { success: false, error: "Failed to update pin status." };
+    }
+}
+
 

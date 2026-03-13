@@ -1,37 +1,37 @@
 "use client";
 
-import { useNews } from "../providers/NewsProvider";
-import { Newspaper, BellRing, Navigation } from "lucide-react";
+import { useAnnouncements } from "../providers/AnnouncementProvider";
+import { Megaphone, Bell, AlertTriangle, Pin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function NewsCards() {
-    const { newsData } = useNews();
+export function AnnouncementCards() {
+    const { announcements } = useAnnouncements();
 
-    const totalNews = newsData.length;
-    const announcements = newsData.filter(n => n.category === "Announcement").length;
-    const localNews = newsData.filter(n => n.category === "Local News").length;
+    const total = announcements.length;
+    const critical = announcements.filter(a => a.priority === "Critical" && a.isActive).length;
+    const pinned = announcements.filter(a => a.isPinned && a.isActive).length;
 
     const cards = [
         {
-            title: "Total Articles",
-            value: totalNews,
-            icon: Newspaper,
+            title: "Total Notices",
+            value: total,
+            icon: Megaphone,
             color: "text-blue-600",
             bg: "bg-blue-100 dark:bg-blue-900/20",
         },
         {
-            title: "Announcements",
-            value: announcements,
-            icon: BellRing,
-            color: "text-amber-600",
-            bg: "bg-amber-100 dark:bg-amber-900/20",
+            title: "Pinned Briefs",
+            value: pinned,
+            icon: Pin,
+            color: "text-orange-600",
+            bg: "bg-orange-100 dark:bg-orange-900/20",
         },
         {
-            title: "Local News",
-            value: localNews,
-            icon: Navigation,
-            color: "text-emerald-600",
-            bg: "bg-emerald-100 dark:bg-emerald-900/20",
+            title: "Critical Alerts",
+            value: critical,
+            icon: AlertTriangle,
+            color: "text-red-600",
+            bg: "bg-red-100 dark:bg-red-900/20",
         },
     ];
 

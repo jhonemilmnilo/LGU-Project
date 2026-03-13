@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers, Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -26,7 +26,8 @@ export function Sidebar({ session }: SidebarProps) {
     const menuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/admin/settings", label: "Website Settings", icon: Settings, category: "Website Control" },
-        { href: "/admin/news", label: "News & Updates", icon: Newspaper, category: "Content" },
+        { href: "/admin/announcements", label: "Announcements", icon: Megaphone, category: "Content" },
+        { href: "/admin/news", label: "News & Updates", icon: Newspaper },
         { href: "/admin/events", label: "Events", icon: Calendar },
         { href: "/admin/projects", label: "LGU Projects", icon: FolderKanban },
         { href: "/admin/dining", label: "Kainan (Dining)", icon: UtensilsCrossed },
