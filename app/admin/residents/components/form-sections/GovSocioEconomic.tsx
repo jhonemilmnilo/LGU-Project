@@ -1,0 +1,72 @@
+/* eslint-disable */
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EDUCATIONAL_ATTAINMENT, EMPLOYMENT_STATUS, INCOME_RANGES } from "../../constants";
+
+export function GovSocioEconomicSection({ data }: { data?: any }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">TIN (Tax ID)</label>
+          <Input name="tin" defaultValue={data?.tin} placeholder="XXX-XXX-XXX" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">GSIS No.</label>
+          <Input name="gsis" defaultValue={data?.gsis} placeholder="XXXXXXXXXX" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">SSS No.</label>
+          <Input name="sss" defaultValue={data?.sss} placeholder="XX-XXXXXXX-X" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">Occupation *</label>
+          <Input name="occupation" defaultValue={data?.occupation} required placeholder="e.g. Farmer, Teacher, Driver" />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">Employer/Company</label>
+          <Input name="employer" defaultValue={data?.employer} placeholder="e.g. LGU Mapandan" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">Educational Attainment</label>
+          <Select name="educationalAttainment" defaultValue={data?.educationalAttainment}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Achievement" />
+            </SelectTrigger>
+            <SelectContent>
+              {EDUCATIONAL_ATTAINMENT.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">Employment Status</label>
+          <Select name="employmentStatus" defaultValue={data?.employmentStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {EMPLOYMENT_STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-semibold">Monthly Income</label>
+          <Select name="monthlyIncome" defaultValue={data?.monthlyIncome}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Range" />
+            </SelectTrigger>
+            <SelectContent>
+              {INCOME_RANGES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}

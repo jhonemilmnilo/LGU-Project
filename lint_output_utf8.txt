@@ -1,0 +1,106 @@
+﻿
+> agno-portal@0.1.0 lint
+> eslint
+
+
+C:\Website Project\agno-portal\app\admin\households\components\AddHouseholdModal.tsx
+  18:40  warning  'HeartPulse' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  42:33  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Website Project\agno-portal\app\admin\households\components\AddHouseholdModal.tsx:42:33
+  40 |             const newLng = editingData ? (editingData.longitude?.toString() || "") : (selectedCoords ? selectedCoords.lng.toString() : "");
+  41 |
+> 42 |             if (lat !== newLat) setLat(newLat);
+     |                                 ^^^^^^ Avoid calling setState() directly within an effect
+  43 |             if (lng !== newLng) setLng(newLng);
+  44 |             
+  45 |             if (editingData) {  react-hooks/set-state-in-effect
+
+C:\Website Project\agno-portal\app\admin\households\components\HouseholdTable.tsx
+  51:43  error  React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+  54:5   error  React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+C:\Website Project\agno-portal\app\admin\households\page.tsx
+  23:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\residents\components\AddResidentModal.tsx
+  1:20  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\admin\residents\components\HeadSearch.tsx
+   4:8   warning  'prisma' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  11:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  26:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Website Project\agno-portal\app\admin\residents\components\HeadSearch.tsx:26:13
+  24 |             return () => clearTimeout(delayDebounceFn);
+  25 |         } else {
+> 26 |             setResults([]);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |         }
+  28 |     }, [query]);
+  29 |  react-hooks/set-state-in-effect
+
+C:\Website Project\agno-portal\app\admin\residents\components\ResidentTable.tsx
+    8:39  warning  'ShieldCheck' is defined but never used    @typescript-eslint/no-unused-vars
+    8:52  warning  'UserCheck' is defined but never used      @typescript-eslint/no-unused-vars
+    8:63  warning  'Accessibility' is defined but never used  @typescript-eslint/no-unused-vars
+    8:78  warning  'HeartPulse' is defined but never used     @typescript-eslint/no-unused-vars
+   69:18  warning  'error' is defined but never used          @typescript-eslint/no-unused-vars
+  169:87  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\AddressContact.tsx
+  8:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\FamilyBackground.tsx
+   6:60   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   7:54   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  27:142  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  36:142  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\GovSocioEconomic.tsx
+  5:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\IdentityVerification.tsx
+   1:10  warning  'Input' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   4:26  warning  'FileCheck' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   7:64  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  42:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  63:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  84:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\PersonalInfo.tsx
+   6:56  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  19:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\PersonalInfo.tsx:19:13
+  17 |                 calculatedAge--;
+  18 |             }
+> 19 |             setAge(calculatedAge.toString());
+     |             ^^^^^^ Avoid calling setState() directly within an effect
+  20 |         }
+  21 |     }, [dob]);
+  22 |  react-hooks/set-state-in-effect
+
+C:\Website Project\agno-portal\app\admin\residents\components\form-sections\SectorsAndConsent.tsx
+  6:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 30 problems (17 errors, 13 warnings)
+

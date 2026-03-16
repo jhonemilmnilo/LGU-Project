@@ -33,30 +33,30 @@ export function HouseholdTable() {
         viewMode
     } = useHousehold();
 
-    // Do not render table if in map view
-    if (viewMode === "map") return null;
-
-    // Filter logic
-    const filteredHouseholds = households.filter((h) => {
-        const matchesSearch = h.headOfFamily.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            h.barangay.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesBarangay = selectedBarangay === "All" || h.barangay === selectedBarangay;
-        const matchesRisk = selectedRiskLevel === "All" || h.riskLevel === selectedRiskLevel;
-        return matchesSearch && matchesBarangay && matchesRisk;
-    });
-
     // Pagination
-// eslint-disable-next-line react-hooks/rules-of-hooks
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 30;
 
-// eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
         if (currentPage !== 1) {
             setCurrentPage(1);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, selectedBarangay, selectedRiskLevel]);
+
+    // Filter logic
+    const filteredHouseholds = households.filter((h) => {
+        const headStr = h.headOfFamily || "";
+        const barangayStr = h.barangay || "";
+        const matchesSearch = headStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            barangayStr.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesBarangay = selectedBarangay === "All" || h.barangay === selectedBarangay;
+        const matchesRisk = selectedRiskLevel === "All" || h.riskLevel === selectedRiskLevel;
+        return matchesSearch && matchesBarangay && matchesRisk;
+    });
+
+    // Do not render table if in map view
+    if (viewMode === "map") return null;
 
     const totalPages = Math.ceil(filteredHouseholds.length / itemsPerPage);
     const paginatedHouseholds = filteredHouseholds.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -236,4 +236,3 @@ export function HouseholdTable() {
         </div>
     );
 }
-

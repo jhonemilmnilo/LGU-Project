@@ -8,22 +8,38 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  password      String?
-  image         String?
-  role          UserRole  @default(USER)
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                String             @id @default(cuid())
+  name              String?
+  email             String?            @unique
+  emailVerified     DateTime?
+  password          String?
+  image             String?
+  role              UserRole           @default(USER)
+  accounts          Account[]
+  sessions          Session[]
+  
+  // Track registration progress
+  registrationStatus RegistrationStatus @default(PENDING)
+  
+  // Link to full resident profile
+  residentProfile   Resident?
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 enum UserRole {
   ADMIN
   USER
+}
+
+enum RegistrationStatus {
+  PENDING
+  EMAIL_VERIFIED
+  IDENTITY_UPLOADED
+  PROFILE_COMPLETED
+  VERIFIED
+  REJECTED
 }
 
 model Account {
@@ -61,10 +77,6 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ----------------------------------------
-// LOCAL TOURISM MODULES
-// ----------------------------------------
-
 model Dining {
   id            String   @id @default(cuid())
   name          String
@@ -76,7 +88,6 @@ model Dining {
   facebookUrl   String?
   imageUrl      String?
   
-  // Location Tracking
   latitude      Float?
   longitude     Float?
   googleMapsUrl String?  @db.Text
@@ -91,14 +102,13 @@ model Accommodation {
   name          String
   description   String?  @db.Text
   address       String
-  type          String   // e.g. Resort, Hotel, Homestay
+  type          String
   priceRange    String?
   amenities     String?  @db.Text
   contactNumber String?
   websiteUrl    String?
   imageUrl      String?
 
-  // Location Tracking
   latitude      Float?
   longitude     Float?
   googleMapsUrl String?  @db.Text
@@ -111,7 +121,7 @@ model Accommodation {
 model TourismSpot {
   id            String   @id @default(cuid())
   name          String
-  category      String   // e.g. Beach, Falls, Historical, Park
+  category      String
   description   String?  @db.Text
   address       String
   entranceFee   String?
@@ -119,7 +129,6 @@ model TourismSpot {
   contactNumber String?
   imageUrl      String?
 
-  // Location Tracking
   latitude      Float?
   longitude     Float?
   googleMapsUrl String?  @db.Text
@@ -133,7 +142,7 @@ model Event {
   id            String   @id @default(cuid())
   title         String
   description   String?  @db.Text
-  category      String   // e.g. Festival, Community, Holiday
+  category      String
   startDate     DateTime
   endDate       DateTime
   venueName     String
@@ -142,7 +151,6 @@ model Event {
   imageUrl      String?
   reminders     String[] @default([])
 
-  // Location Tracking
   latitude      Float?
   longitude     Float?
   googleMapsUrl String?  @db.Text
@@ -169,8 +177,8 @@ model Announcement {
   id          String   @id @default(cuid())
   title       String
   content     String   @db.Text
-  priority    String   @default("Normal") // Low, Normal, High, Critical
-  category    String   @default("General") // Weather, Public Service, Health, Emergency
+  priority    String   @default("Normal")
+  category    String   @default("General")
   isPinned    Boolean  @default(false)
   isActive    Boolean  @default(true)
   expiryDate  DateTime?
@@ -218,7 +226,7 @@ model Hotline {
   telephone    String?
   address      String?
   order        Int       @default(0)
-  isActive     Boolean   @default(true)
+  isActive      Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -243,39 +251,115 @@ model Project {
 
 model Household {
   id             String    @id @default(cuid())
-  headOfFamily   String
+  headId         String?   @unique
+  head           Resident? @relation("HouseholdHead", fields: [headId], references: [id])
+  
   barangay       String
-  latitude       Float
-  longitude      Float
-  householdSize  Int
+  latitude       Float?
+  longitude      Float?
+  householdSize  Int       @default(1)
   contactNumber  String?
   riskLevel      String    @default("Safe")
-  specialSectors String?
   notes          String?   @db.Text
+  
+  members        Resident[] @relation("HouseholdMembers")
+  
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
 
 model Resident {
   id                     String    @id @default(cuid())
+  userId                 String?   @unique
+  user                   User?     @relation(fields: [userId], references: [id])
+  
   firstName              String
   lastName               String
   middleName             String?
-  dateOfBirth            DateTime
+  suffix                 String?
   gender                 String
+  dateOfBirth            DateTime
+  age                    Int?
+  placeOfBirth           String?
   civilStatus            String
+  citizenship            String    @default("Filipino")
+  height                 String?
+  weight                 String?
+  religion               String?
   bloodType              String?
+
+  houseNumber            String?
+  street                 String?
+  sitio                  String?
+  purok                  String?
+  barangay               String
+  municipality           String    @default("Mapandan")
+  province               String    @default("Pangasinan")
   contactNumber          String?
   email                  String?
-  barangay               String
-  address                String    @db.Text
+
+  isHead                 Boolean   @default(false)
+  relationshipToHead     String?
+  
+  householdId            String?
+  household              Household? @relation("HouseholdMembers", fields: [householdId], references: [id])
+  ownedHousehold         Household? @relation("HouseholdHead")
+
+  tin                    String?
+  gsis                   String?
+  sss                    String?
   occupation             String?
-  emergencyContactName   String?
-  emergencyContactNumber String?
+  employer               String?
+
+  motherFirstName        String?
+  motherMiddleName       String?
+  motherLastName         String?
+  fatherFirstName        String?
+  fatherMiddleName       String?
+  fatherLastName         String?
+  
+  familyMembers          FamilyMember[]
+
+  idType                 String?
+  idFrontUrl             String?
+  idBackUrl              String?
+  livenessUrl            String?
+
+  educationalAttainment  String?
+  employmentStatus       String?
+  monthlyIncome          String?
+
+  isSenior               Boolean   @default(false)
+  isPWD                  Boolean   @default(false)
+  isSoloParent           Boolean   @default(false)
+  isIndigenous           Boolean   @default(false)
+  is4Ps                  Boolean   @default(false)
+  otherSector            String?
+
+  dataPrivacyConsent     Boolean   @default(false)
+  consentTimestamp       DateTime?
+  receivedBy             String?
+  officialPosition       String?
+  dateReceived           DateTime?
+
   imageUrl               String?
   registeredAt           DateTime  @default(now())
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
+}
+
+model FamilyMember {
+  id          String   @id @default(cuid())
+  residentId  String
+  resident    Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  
+  fullName    String
+  relationship String
+  age         Int?
+  birthDate   DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model DisasterMap {
@@ -298,25 +382,20 @@ model DisasterZone {
   disasterMapId String?
   disasterMap   DisasterMap? @relation(fields: [disasterMapId], references: [id])
   
-  type        String   // e.g. "Flood", "Landslide", "Storm Surge"
-  typeColor   String   // The identifying color for the disaster type (Hex)
-  riskLevel   String   // e.g. "Low", "Medium", "High"
-  riskColor   String   // The severity color (Hex)
+  type        String
+  typeColor   String
+  riskLevel   String
+  riskColor   String
   
-  // Multi-Polygon Geometry (Array of coordinate arrays)
   shapes      Json     @default("[]")
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-// ----------------------------------------
-// SYSTEM & WEBSITE CONFIGURATION
-// ----------------------------------------
-
 model SystemSetting {
   id          String   @id @default(cuid())
-  key         String   @unique // e.g. "site_logo", "maintenance_mode", "site_name"
+  key         String   @unique
   value       String   @db.Text
   description String?
   updatedAt   DateTime @updatedAt
@@ -326,7 +405,7 @@ model HeroSlide {
   id          String   @id @default(cuid())
   title       String
   subtitle    String?  @db.Text
-  tagline     String?  // e.g. "The Home of the Umbrella Rocks"
+  tagline     String?
   imageUrl    String
   order       Int      @default(0)
   isActive    Boolean  @default(true)

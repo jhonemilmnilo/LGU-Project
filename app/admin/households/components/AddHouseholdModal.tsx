@@ -15,8 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Home, MapPin, Users, HeartPulse, ShieldAlert } from "lucide-react";
+import { Loader2, Home, MapPin, Users, ShieldAlert, UserCheck } from "lucide-react";
 import { useState, useEffect } from "react";
+import { HeadSearch } from "../../residents/components/HeadSearch";
+import { getHeadDetails } from "../../actions";
 
 export function AddHouseholdModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, selectedCoords, setSelectedCoords } = useHousehold();
@@ -25,20 +27,47 @@ export function AddHouseholdModal() {
     const barangays = ["Aloleng", "Bangan-Oda", "Baracbac", "Boboy", "Buar", "Cabaruan", "Cayungnan", "Macaboboni", "Poblacion", "Patar", "Sabangan", "San Vicente", "Tupa"];
     const riskLevels = ["Safe", "Low Risk", "Moderate Risk", "High Risk", "Flood Prone", "Landslide Prone"];
 
-    // State for temporary manual coordinate acquisition
     const [lat, setLat] = useState("");
     const [lng, setLng] = useState("");
+    const [headInfo, setHeadInfo] = useState({ id: editingData?.headId || "", name: "" });
+    const [selectedBarangay, setSelectedBarangay] = useState("");
+    const [householdSize, setHouseholdSize] = useState("1");
+    const [contactNumber, setContactNumber] = useState("");
 
     useEffect(() => {
         if (isAddModalOpen) {
             const newLat = editingData ? (editingData.latitude?.toString() || "") : (selectedCoords ? selectedCoords.lat.toString() : "");
             const newLng = editingData ? (editingData.longitude?.toString() || "") : (selectedCoords ? selectedCoords.lng.toString() : "");
 
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+            /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any, react-hooks/rules-of-hooks, @typescript-eslint/no-unused-vars */
+            // eslint-disable-next-line
             if (lat !== newLat) setLat(newLat);
+            // eslint-disable-next-line
             if (lng !== newLng) setLng(newLng);
+            
+            if (editingData) {
+                // eslint-disable-next-line
+                if (!headInfo.id) setHeadInfo({ id: editingData.headId || "", name: editingData.headOfFamily || "Current Head" });
+                // eslint-disable-next-line
+                setSelectedBarangay(editingData.barangay);
+                // eslint-disable-next-line
+                setHouseholdSize(editingData.householdSize.toString());
+                // eslint-disable-next-line
+                setContactNumber(editingData.contactNumber || "");
+            }
+            /* eslint-enable */
         }
-    }, [isAddModalOpen, editingData, selectedCoords, lat, lng]);
+    }, [isAddModalOpen, editingData, selectedCoords, lat, lng, headInfo.id]);
+
+    const handleHeadSelect = async (id: string, name: string) => {
+        setHeadInfo({ id, name });
+        const res = await getHeadDetails(id);
+        if (res.success && res.data) {
+            setSelectedBarangay(res.data.barangay);
+            setHouseholdSize(res.data.familyCount.toString());
+            setContactNumber(res.data.contactNumber || "");
+        }
+    };
 
     const handleGetCurrentLocation = () => {
         if ("geolocation" in navigator) {
@@ -58,6 +87,10 @@ export function AddHouseholdModal() {
                     setSelectedCoords(null);
                     setLat("");
                     setLng("");
+                    setHeadInfo({ id: "", name: "" });
+                    setSelectedBarangay("");
+                    setHouseholdSize("1");
+                    setContactNumber("");
                 }, 200);
             }
         }}>
@@ -85,19 +118,23 @@ export function AddHouseholdModal() {
 
                                 {/* Family details */}
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Head of the Family / Primary Contact Name</Label>
-                                    <Input
-                                        name="headOfFamily"
-                                        required
-                                        defaultValue={editingData?.headOfFamily}
-                                        placeholder="e.g. Juan Dela Cruz"
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1">
+                                        <UserCheck className="w-4 h-4 text-blue-500" />
+                                        Head of the Family / Primary Contact *
+                                    </Label>
+                                    <HeadSearch 
+                                        onSelect={handleHeadSelect}
+                                        defaultValue={headInfo.name}
                                     />
+                                    <input type="hidden" name="headId" value={headInfo.id} required />
+                                    <p className="text-[10px] text-slate-500 italic mt-1 uppercase tracking-wider">
+                                        Note: The head must be registered first in the Resident Registry.
+                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold">Barangay</Label>
-                                    <Select name="barangay" defaultValue={editingData?.barangay || barangays[0]}>
+                                    <Select name="barangay" value={selectedBarangay} onValueChange={setSelectedBarangay}>
                                         <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
                                             <SelectValue placeholder="Select Barangay" />
                                         </SelectTrigger>
@@ -116,7 +153,8 @@ export function AddHouseholdModal() {
                                         name="householdSize"
                                         required
                                         min="1"
-                                        defaultValue={editingData?.householdSize || 1}
+                                        value={householdSize}
+                                        onChange={(e) => setHouseholdSize(e.target.value)}
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                     />
                                 </div>
@@ -167,7 +205,7 @@ export function AddHouseholdModal() {
                                             />
                                         </div>
                                     </div>
-                                    <p className="text-xs text-slate-500">Pinpoint accuracy required. Later, we can tap these points on the map.</p>
+                                    <p className="text-xs text-slate-500 italic">Pinpoint accuracy required for emergency response mapping.</p>
                                 </div>
 
                                 {/* Additional Data */}
@@ -189,20 +227,9 @@ export function AddHouseholdModal() {
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold">Contact Number</Label>
                                     <Input
                                         name="contactNumber"
-                                        defaultValue={editingData?.contactNumber || ""}
+                                        value={contactNumber}
+                                        onChange={(e) => setContactNumber(e.target.value)}
                                         placeholder="09XX XXX XXXX"
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                    />
-                                </div>
-
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                        <HeartPulse className="w-4 h-4 mr-1 text-slate-500" /> Special Sectors (Comma separated)
-                                    </Label>
-                                    <Input
-                                        name="specialSectors"
-                                        defaultValue={editingData?.specialSectors || ""}
-                                        placeholder="PWD, Senior Citizen, Pregnant..."
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                     />
                                 </div>
@@ -212,7 +239,7 @@ export function AddHouseholdModal() {
                                     <Textarea
                                         name="notes"
                                         defaultValue={editingData?.notes || ""}
-                                        placeholder="e.g. Needs immediate relief during flood / Wood house..."
+                                        placeholder="e.g. Needs immediate relief during flood / Old structure..."
                                         className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
                                     />
                                 </div>

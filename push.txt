@@ -1,0 +1,21 @@
+﻿node.exe : Loaded Prisma config 
+from prisma.config.ts.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSp 
+   ecified: (Loaded Prisma c...ism  
+  a.config.ts.:String) [], Remote   
+ Exception
+    + FullyQualifiedErrorId : Nativ 
+   eCommandError
+ 
+
+Prisma schema loaded from 
+prisma\schema.prisma.
+Error: The datasource.url property 
+is required in your Prisma config 
+file when using prisma db push.

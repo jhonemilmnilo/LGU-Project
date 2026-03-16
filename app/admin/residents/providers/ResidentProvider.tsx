@@ -6,22 +6,68 @@ export type Resident = {
     id: string;
     firstName: string;
     lastName: string;
-    middleName: string | null;
-    dateOfBirth: Date;
+    middleName?: string | null;
+    suffix?: string | null;
     gender: string;
+    dateOfBirth: Date;
+    age?: number | null;
+    placeOfBirth?: string | null;
     civilStatus: string;
-    bloodType: string | null;
-    contactNumber: string | null;
-    email: string | null;
+    citizenship?: string | null;
+    height?: string | null;
+    weight?: string | null;
+    religion?: string | null;
+    bloodType?: string | null;
+    
+    // Address
+    houseNumber?: string | null;
+    street?: string | null;
+    sitio?: string | null;
+    purok?: string | null;
     barangay: string;
-    address: string;
-    occupation: string | null;
-    emergencyContactName: string | null;
-    emergencyContactNumber: string | null;
-    imageUrl: string | null;
-    registeredAt: Date;
-    createdAt: Date;
-    updatedAt: Date;
+    municipality?: string | null;
+    province?: string | null;
+    
+    // Contact
+    contactNumber?: string | null;
+    email?: string | null;
+    
+    // Household Status
+    isHead?: boolean;
+    relationshipToHead?: string | null;
+    householdId?: string | null;
+    headId?: string | null; // For non-heads
+    headName?: string | null; // Virtual for display
+    
+    // Socio-Gov
+    tin?: string | null;
+    gsis?: string | null;
+    sss?: string | null;
+    occupation?: string | null;
+    employer?: string | null;
+    educationalAttainment?: string | null;
+    employmentStatus?: string | null;
+    monthlyIncome?: string | null;
+    
+    // Sectors
+    isSenior?: boolean;
+    isPWD?: boolean;
+    isSoloParent?: boolean;
+    isIndigenous?: boolean;
+    is4Ps?: boolean;
+    otherSector?: string | null;
+    
+    // Identity
+    idType?: string | null;
+    imageUrl?: string | null;
+    idFrontUrl?: string | null;
+    idBackUrl?: string | null;
+    livenessUrl?: string | null;
+    
+    registeredAt?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+    familyMembers?: { fullName: string; relationship: string; age: number | null }[];
 };
 
 type ViewMode = "table" | "cards";

@@ -5,7 +5,6 @@ import { useResident } from "../providers";
 
 export function useResidentForm() {
     const [loading, setLoading] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
     const { setIsAddModalOpen, editingData, setResidents } = useResident();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -13,12 +12,9 @@ export function useResidentForm() {
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
-
-        if (imageFile) {
-            formData.append("imageFile", imageFile);
-        } else if (editingData?.imageUrl) {
-            formData.append("imageUrl", editingData.imageUrl);
-        }
+        
+        // The FormData constructor captures file inputs if they have a 'name' attribute.
+        // But we need to handle specific IDs from the multi-step form.
 
         try {
             if (editingData) {
@@ -53,7 +49,5 @@ export function useResidentForm() {
     return {
         handleSubmit,
         loading,
-        imageFile,
-        setImageFile,
     };
 }

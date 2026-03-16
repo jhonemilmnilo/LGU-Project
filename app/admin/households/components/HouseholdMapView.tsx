@@ -82,8 +82,10 @@ export function HouseholdMapView() {
 
     // Filter logic
     const filteredHouseholds = households.filter((h) => {
-        const matchesSearch = h.headOfFamily.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            h.barangay.toLowerCase().includes(searchQuery.toLowerCase());
+        const headStr = h.headOfFamily || "";
+        const barangayStr = h.barangay || "";
+        const matchesSearch = headStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            barangayStr.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesBarangay = selectedBarangay === "All" || h.barangay === selectedBarangay;
         const matchesRisk = selectedRiskLevel === "All" || h.riskLevel === selectedRiskLevel;
         return matchesSearch && matchesBarangay && matchesRisk;

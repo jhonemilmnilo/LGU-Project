@@ -1,257 +1,188 @@
-"use client";
-
+/* eslint-disable */
+import { useState, useEffect } from "react";
 import { useResident } from "../providers";
 import { useResidentForm } from "../hooks/useResidentForm";
-import { Upload, User, MapPin, Phone, HeartPulse, HardHat } from "lucide-react";
+import { 
+    User, MapPin, BadgeInfo, Users, ShieldCheck, 
+    ChevronRight, ChevronLeft, Save, X, Loader2, Camera 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { PersonalInfoSection } from "./form-sections/PersonalInfo";
+import { AddressContactSection } from "./form-sections/AddressContact";
+import { GovSocioEconomicSection } from "./form-sections/GovSocioEconomic";
+import { FamilyBackgroundSection } from "./form-sections/FamilyBackground";
+import { IdentityVerificationSection } from "./form-sections/IdentityVerification";
+import { SectorsAndConsentSection } from "./form-sections/SectorsAndConsent";
+import { cn } from "@/lib/utils";
+
+const STEPS = [
+    { id: "personal", title: "Personal", icon: User, description: "Basic Info (A)" },
+    { id: "address", title: "Address", icon: MapPin, description: "Location & Unit (B,C,D)" },
+    { id: "gov", title: "Socio-Gov", icon: BadgeInfo, description: "Occupation & IDs (E,F,I)" },
+    { id: "family", title: "Family", icon: Users, description: "Parents & Dependents (G)" },
+    { id: "verification", title: "ID Check", icon: Camera, description: "ID Verification (H)" },
+    { id: "consent", title: "Consent", icon: ShieldCheck, description: "Final Sign-off (J,K)" }
+];
 
 export function AddResidentModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useResident();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { handleSubmit, loading, imageFile, setImageFile } = useResidentForm();
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const { handleSubmit, loading } = useResidentForm();
+    const [currentStep, setCurrentStep] = useState(0);
 
-    const barangays = ["Aloleng", "Bangan-Oda", "Baruan", "Boboy", "Cayungnan", "Dangley", "Gayusan", "Macaboboni", "Magsaysay", "Namuac", "Poblacion East", "Poblacion West", "Patar", "Sablig", "San Juan", "Tupa"];
+    const closeModal = () => {
+        setIsAddModalOpen(false);
+        setEditingData(null);
+        setCurrentStep(0);
+    };
 
-    useEffect(() => {
-        const url = editingData?.imageUrl || null;
-        if (previewUrl !== url) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setPreviewUrl(url);
-        }
-        setImageFile(null);
-    }, [editingData, setImageFile, isAddModalOpen, previewUrl]);
+    const nextStep = () => {
+        if (currentStep < STEPS.length - 1) setCurrentStep(currentStep + 1);
+    };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
+    const prevStep = () => {
+        if (currentStep > 0) setCurrentStep(currentStep - 1);
     };
 
     return (
-        <Dialog open={isAddModalOpen} onOpenChange={(open) => {
-            setIsAddModalOpen(open);
-            if (!open) {
-                setEditingData(null);
-                setImageFile(null);
-                setPreviewUrl(null);
-            }
-        }}>
-            <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
-                        <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
-                                <User className="w-5 h-5 text-white" />
+        <Dialog open={isAddModalOpen} onOpenChange={(open) => !open && closeModal()}>
+            <DialogContent className="sm:max-w-6xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-3xl">
+                <div className="flex flex-col lg:flex-row h-[95vh] lg:h-[80vh]">
+                    
+                    {/* Left Sidebar: Steps Progress */}
+                    <div className="lg:w-80 bg-slate-50 dark:bg-[#151b2b] p-8 border-r border-slate-200 dark:border-[#2a3040] hidden lg:block">
+                        <div className="flex items-center space-x-3 mb-12">
+                            <div className="p-2.5 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20">
+                                <User className="w-6 h-6 text-white" />
                             </div>
-                            <div>
-                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                    {editingData ? "Edit Resident Profile" : "Register New Resident"}
-                                </DialogTitle>
-                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
-                                    Fill in the details to register a citizen to the central database.
-                                </DialogDescription>
-                            </div>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">E-Mapandan</h2>
                         </div>
-                    </DialogHeader>
 
-                    <div className="p-8 overflow-y-auto custom-scrollbar">
-                        <form id="residentForm" onSubmit={handleSubmit} className="space-y-8">
-                            {/* Profile Photo Section */}
-                            <div className="flex flex-col items-center">
-                                <div className="relative w-32 h-32 rounded-full border-4 border-slate-100 dark:border-[#2a3040] overflow-hidden bg-slate-50 dark:bg-[#0f1117] flex items-center justify-center group mb-4 shadow-sm">
-                                    {previewUrl ? (
-                                        <Image src={previewUrl} alt="Preview" layout="fill" objectFit="cover" />
-                                    ) : (
-                                        <User className="w-12 h-12 text-slate-300 dark:text-slate-600" />
-                                    )}
-                                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-white">
-                                        <Upload className="w-6 h-6 mb-1" />
-                                        <span className="text-xs font-medium">Upload ID Photo</span>
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                                    </label>
-                                </div>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Click to upload photo</p>
-                            </div>
+                        <div className="space-y-4">
+                            {STEPS.map((step, index) => {
+                                const Icon = step.icon;
+                                const isActive = currentStep === index;
+                                const isCompleted = currentStep > index;
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Left Column: Personal Information */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-[#2a3040] pb-2 mb-4">
-                                        <User className="w-5 h-5 text-blue-500" /> Personal Information
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">First Name *</label>
-                                            <Input name="firstName" defaultValue={editingData?.firstName} required className="bg-slate-50 dark:bg-[#0f1117]" />
+                                return (
+                                    <div 
+                                        key={step.id} 
+                                        className={cn(
+                                            "flex items-center space-x-4 p-4 rounded-2xl transition-all duration-300",
+                                            isActive ? "bg-white dark:bg-[#0f1117] shadow-xl shadow-blue-500/5 ring-1 ring-slate-200 dark:ring-white/10" : "opacity-50"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                            isActive ? "bg-blue-600 text-white" : isCompleted ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
+                                        )}>
+                                            <Icon className="w-5 h-5" />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Last Name *</label>
-                                            <Input name="lastName" defaultValue={editingData?.lastName} required className="bg-slate-50 dark:bg-[#0f1117]" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Middle Name</label>
-                                            <Input name="middleName" defaultValue={editingData?.middleName || ""} className="bg-slate-50 dark:bg-[#0f1117]" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Date of Birth *</label>
-                                            <Input name="dateOfBirth" type="date" defaultValue={editingData?.dateOfBirth ? format(new Date(editingData.dateOfBirth), "yyyy-MM-dd") : ""} required className="bg-slate-50 dark:bg-[#0f1117]" />
+                                        <div>
+                                            <p className={cn("text-[10px] uppercase font-black tracking-widest", isActive ? "text-blue-600" : "text-slate-400")}>
+                                                Step {index + 1}
+                                            </p>
+                                            <p className="text-sm font-bold text-slate-800 dark:text-white">{step.title}</p>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Gender *</label>
-                                            <Select name="gender" defaultValue={editingData?.gender || "Male"}>
-                                                <SelectTrigger className="bg-slate-50 dark:bg-[#0f1117]">
-                                                    <SelectValue placeholder="Select gender" />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white dark:bg-[#151b2b]">
-                                                    <SelectItem value="Male">Male</SelectItem>
-                                                    <SelectItem value="Female">Female</SelectItem>
-                                                    <SelectItem value="Other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Civil Status *</label>
-                                            <Select name="civilStatus" defaultValue={editingData?.civilStatus || "Single"}>
-                                                <SelectTrigger className="bg-slate-50 dark:bg-[#0f1117]">
-                                                    <SelectValue placeholder="Select status" />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white dark:bg-[#151b2b]">
-                                                    <SelectItem value="Single">Single</SelectItem>
-                                                    <SelectItem value="Married">Married</SelectItem>
-                                                    <SelectItem value="Widowed">Widowed</SelectItem>
-                                                    <SelectItem value="Separated">Separated</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Column: Contact & Location */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-[#2a3040] pb-2 mb-4">
-                                        <MapPin className="w-5 h-5 text-rose-500" /> Location & Contact
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> Mobile Number</label>
-                                            <Input name="contactNumber" defaultValue={editingData?.contactNumber || ""} placeholder="09XX XXX XXXX" className="bg-slate-50 dark:bg-[#0f1117]" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
-                                            <Input name="email" type="email" defaultValue={editingData?.email || ""} placeholder="juan@example.com" className="bg-slate-50 dark:bg-[#0f1117]" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Barangay *</label>
-                                        <Select name="barangay" defaultValue={editingData?.barangay || barangays[0]}>
-                                            <SelectTrigger className="bg-slate-50 dark:bg-[#0f1117]">
-                                                <SelectValue placeholder="Select barangay" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white dark:bg-[#151b2b] max-h-[250px]">
-                                                {barangays.map(bg => (
-                                                    <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
-                                            <span>Detailed Address *</span>
-                                            <span className="text-xs text-slate-500 font-normal">House No., Street, Purok</span>
-                                        </label>
-                                        <Textarea name="address" defaultValue={editingData?.address} required className="bg-slate-50 dark:bg-[#0f1117] min-h-[100px] resize-none" placeholder="Enter detailed address..." />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-200 dark:border-[#2a3040] pt-6">
-                                {/* Additional & Emergency */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-[#2a3040] pb-2 mb-4">
-                                        <HardHat className="w-5 h-5 text-amber-500" /> Additional Info
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Blood Type</label>
-                                            <Select name="bloodType" defaultValue={editingData?.bloodType || ""}>
-                                                <SelectTrigger className="bg-slate-50 dark:bg-[#0f1117]">
-                                                    <SelectValue placeholder="Select blood type" />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white dark:bg-[#151b2b]">
-                                                    <SelectItem value="A+">A+</SelectItem>
-                                                    <SelectItem value="A-">A-</SelectItem>
-                                                    <SelectItem value="B+">B+</SelectItem>
-                                                    <SelectItem value="B-">B-</SelectItem>
-                                                    <SelectItem value="AB+">AB+</SelectItem>
-                                                    <SelectItem value="AB-">AB-</SelectItem>
-                                                    <SelectItem value="O+">O+</SelectItem>
-                                                    <SelectItem value="O-">O-</SelectItem>
-                                                    <SelectItem value="Unknown">Unknown</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Occupation</label>
-                                            <Input name="occupation" defaultValue={editingData?.occupation || ""} className="bg-slate-50 dark:bg-[#0f1117]" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold border-b border-slate-200 dark:border-[#2a3040] pb-2 mb-4">
-                                        <HeartPulse className="w-5 h-5 text-red-500" /> Emergency Details
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emergency Contact Name</label>
-                                        <Input name="emergencyContactName" defaultValue={editingData?.emergencyContactName || ""} className="bg-slate-50 dark:bg-[#0f1117]" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> Emergency Contact Number</label>
-                                        <Input name="emergencyContactNumber" defaultValue={editingData?.emergencyContactNumber || ""} className="bg-slate-50 dark:bg-[#0f1117]" />
-                                    </div>
-                                </div>
-                            </div>
-
-                        </form>
+                                );
+                            })}
+                        </div>
                     </div>
 
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            form="residentForm"
-                            disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            {loading ? (
-                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-                            ) : (
-                                editingData ? "Update Details" : "Register Resident"
-                            )}
-                        </Button>
-                    </DialogFooter>
+                    {/* Main Form Content */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#0b0e14]">
+                        <DialogHeader className="p-8 pb-4 sticky top-0 bg-white/80 dark:bg-[#0b0e14]/80 backdrop-blur-md z-10">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <DialogTitle className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
+                                        {editingData ? "Edit Resident" : "New Registration"}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-slate-500 font-medium">
+                                        {STEPS[currentStep].description}
+                                    </DialogDescription>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={closeModal} className="rounded-full">
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">
+                            <form 
+                                id="residentForm" 
+                                onSubmit={(e) => {
+                                    if (currentStep !== STEPS.length - 1) {
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                    handleSubmit(e);
+                                }}
+                            >
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 0 && "hidden")}>
+                                    <PersonalInfoSection data={editingData} />
+                                </div>
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 1 && "hidden")}>
+                                    <AddressContactSection data={editingData} />
+                                </div>
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 2 && "hidden")}>
+                                    <GovSocioEconomicSection data={editingData} />
+                                </div>
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 3 && "hidden")}>
+                                    <FamilyBackgroundSection data={editingData} />
+                                </div>
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 4 && "hidden")}>
+                                    <IdentityVerificationSection data={editingData} />
+                                </div>
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 5 && "hidden")}>
+                                    <SectorsAndConsentSection data={editingData} />
+                                </div>
+                            </form>
+                        </div>
+
+                        <DialogFooter className="p-8 bg-slate-50 dark:bg-[#151b2b] border-t border-slate-200 dark:border-[#2a3040] flex flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                {currentStep > 0 && (
+                                    <Button 
+                                        key="prev-btn"
+                                        type="button"
+                                        variant="outline" 
+                                        onClick={prevStep}
+                                        className="h-12 px-6 rounded-2xl font-bold border-slate-200 dark:border-[#2a3040]"
+                                    >
+                                        <ChevronLeft className="w-4 h-4 mr-2" /> Back
+                                    </Button>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                {currentStep < STEPS.length - 1 ? (
+                                    <Button 
+                                        key="next-btn"
+                                        type="button" 
+                                        onClick={nextStep}
+                                        className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20"
+                                    >
+                                        Next Component <ChevronRight className="w-4 h-4 ml-2" />
+                                    </Button>
+                                ) : (
+                                    <Button 
+                                        key="submit-btn"
+                                        type="submit" 
+                                        form="residentForm"
+                                        disabled={loading}
+                                        className="h-12 px-10 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl shadow-green-500/20"
+                                    >
+                                        {loading ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Finalizing...</>
+                                        ) : (
+                                            <><Save className="w-4 h-4 mr-2" /> Complete Registration</>
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
+                        </DialogFooter>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

@@ -4,14 +4,15 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export type Household = {
     id: string;
-    headOfFamily: string;
+    headId: string | null;
+    headOfFamily?: string | null; // Virtual for display
     barangay: string;
     latitude: number;
     longitude: number;
     householdSize: number;
     contactNumber: string | null;
     riskLevel: string;
-    specialSectors: string | null;
+    specialSectors?: string | null;
     notes: string | null;
     createdAt: Date;
     updatedAt: Date;
