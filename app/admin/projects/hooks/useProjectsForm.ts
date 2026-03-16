@@ -30,6 +30,7 @@ export function useProjectsForm() {
             }
             setIsAddModalOpen(false);
             setEditingData(null);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error("Error saving project:", error);
             toast.error(error.message || "Failed to save project. Please try again.");

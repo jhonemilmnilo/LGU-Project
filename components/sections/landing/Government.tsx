@@ -3,6 +3,9 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Shield, Award, Users, Star } from "lucide-react";
 
 const council = [

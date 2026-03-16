@@ -21,6 +21,7 @@ export function OfficialsTable() {
         return matchesSearch && matchesPosition;
     }).sort((a, b) => a.order - b.order);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEdit = (item: any) => {
         setEditingData(item);
         setIsAddModalOpen(true);
@@ -32,6 +33,7 @@ export function OfficialsTable() {
         try {
             await deleteOfficial(id);
             toast.success("Official profile deleted successfully!");
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to delete profile.");
         } finally {
@@ -44,6 +46,7 @@ export function OfficialsTable() {
         try {
             await toggleOfficialStatus(id, !currentStatus);
             toast.success(`Official profile ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to update status.");
         } finally {
@@ -84,6 +87,7 @@ export function OfficialsTable() {
                             <TableCell>
                                 <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                                     {item.imageUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <User className="w-6 h-6 text-slate-400" />

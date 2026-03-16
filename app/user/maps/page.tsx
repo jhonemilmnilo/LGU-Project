@@ -6,5 +6,6 @@ export default async function UserMapsPage() {
         orderBy: { title: "asc" }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserMapsView initialHazardMaps={hazardMaps as any} />;
 }

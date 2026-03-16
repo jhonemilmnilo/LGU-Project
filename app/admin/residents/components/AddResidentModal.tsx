@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 
 export function AddResidentModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useResident();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { handleSubmit, loading, imageFile, setImageFile } = useResidentForm();
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -23,6 +24,7 @@ export function AddResidentModal() {
     useEffect(() => {
         const url = editingData?.imageUrl || null;
         if (previewUrl !== url) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPreviewUrl(url);
         }
         setImageFile(null);

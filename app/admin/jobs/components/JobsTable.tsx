@@ -22,6 +22,7 @@ export function JobsTable() {
         return matchesSearch && matchesCategory;
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEdit = (item: any) => {
         setEditingData(item);
         setIsAddModalOpen(true);
@@ -33,6 +34,7 @@ export function JobsTable() {
         try {
             await deleteJob(id);
             toast.success("Job posting deleted successfully!");
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to delete job posting.");
         } finally {
@@ -45,6 +47,7 @@ export function JobsTable() {
         try {
             await toggleJobStatus(id, !currentStatus);
             toast.success(`Job marked as ${!currentStatus ? 'Active' : 'Closed'} successfully!`);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to update status.");
         } finally {

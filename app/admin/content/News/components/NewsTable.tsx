@@ -4,6 +4,7 @@ import { useNews, News } from "../providers/NewsProvider";
 import { deleteNews, toggleNewsStatus } from "@/app/admin/actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
@@ -87,6 +88,7 @@ export function NewsTable() {
                             <TableCell className="pl-8">
                                 <div className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                                     {item.imageUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                                     ) : (
                                         <Newspaper className="w-5 h-5 text-slate-300" />

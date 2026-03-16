@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -139,6 +140,7 @@ model Event {
   address       String
   contactNumber String?
   imageUrl      String?
+  reminders     String[] @default([])
 
   // Location Tracking
   latitude      Float?

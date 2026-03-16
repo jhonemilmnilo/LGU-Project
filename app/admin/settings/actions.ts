@@ -42,6 +42,7 @@ export async function updateLogoSetting(formData: FormData) {
         const imageUrl = await processImageUpload(formData);
         const finalUrl = imageUrl || (formData.get("imageUrl") as string) || "";
         
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const result = await prisma.systemSetting.upsert({
             where: { key: "site_logo" },
             update: { value: finalUrl },

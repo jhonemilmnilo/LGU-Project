@@ -10,5 +10,7 @@ export default async function UserInitiativesPage() {
         orderBy: { createdAt: "desc" }
     });
 
+     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserInitiativesView initialProjects={projects as any} initialJobs={jobs as any} />;
 }

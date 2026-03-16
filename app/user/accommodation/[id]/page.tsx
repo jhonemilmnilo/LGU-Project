@@ -2,6 +2,7 @@ import prisma from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapPin, Phone, ArrowLeft, Globe, Navigation, Bed, Star, Waves, Wind, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

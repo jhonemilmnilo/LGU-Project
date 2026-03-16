@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Camera, Map as MapIcon, Compass, ArrowRight, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TourismSpot } from "@prisma/client";

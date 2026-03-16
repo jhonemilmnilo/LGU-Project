@@ -11,6 +11,7 @@ export function formatDate(dateInput: Date | string | null | undefined): string 
             month: 'short',
             day: 'numeric'
         }).format(date);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
         return "Invalid Date";
     }

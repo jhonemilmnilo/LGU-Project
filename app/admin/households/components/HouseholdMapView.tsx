@@ -23,6 +23,7 @@ function MapLoading() {
 }
 
 // Leaflet icon fix for Next.js - handled inside a useEffect
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let DefaultIcon: import("leaflet").Icon | null = null;
 let SafeIcon: import("leaflet").Icon | null = null;
 let RiskIcon: import("leaflet").Icon | null = null;
@@ -44,6 +45,7 @@ export function HouseholdMapView() {
         // We only require leaflet dynamically on the client side
         import("leaflet").then(L => {
             // Fix default icon path issues
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             delete (L.Icon.Default.prototype as any)._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',

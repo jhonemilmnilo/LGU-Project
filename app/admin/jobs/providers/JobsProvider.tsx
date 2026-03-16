@@ -35,6 +35,7 @@ export function JobsProvider({ children, initialData }: { children: ReactNode; i
     const [jobsData, setJobsData] = useState<Job[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedDepartment, setSelectedDepartment] = useState("All");
 

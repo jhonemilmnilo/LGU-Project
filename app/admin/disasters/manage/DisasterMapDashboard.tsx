@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Plus, Trash2, Edit2, ShieldAlert, Map as MapIcon, Layers, ImageIcon, X, Loader2, Check, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

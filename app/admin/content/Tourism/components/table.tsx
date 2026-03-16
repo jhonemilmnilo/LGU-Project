@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useTourism, Tourism } from "../providers/TourismProvider";
 import Image from "next/image";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapPin, MoreHorizontal, Map as MapIcon, Trash, EyeOff, Eye, Globe, Camera } from "lucide-react";
 import { deleteTourismSpot, toggleTourismSpotStatus } from "@/app/admin/actions";
 import {

@@ -40,7 +40,16 @@ export default function MaintenancePage() {
                 </motion.div>
 
                 <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed italic max-w-lg mx-auto">
+{ }
+{ }
+                    {/* eslint-disable-next-line react/no-unescaped-entities */}
                     We're currently fine-tuning the Agno Portal to better serve our community. 
+{ }
+{ }
+{ }
+{ }
+
+                    {/* eslint-disable-next-line react/no-unescaped-entities */}
                     Rest assured, the Umbrella Rocks aren't going anywhere—we'll be back shortly.
                 </p>
 

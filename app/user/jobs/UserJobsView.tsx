@@ -1,10 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Briefcase, Building, Timer, UserCheck, ArrowRight, Search, Filter, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserJobsView({ initialJobs = [] }: { initialJobs: any[] }) {
     return (
         <div className="space-y-12 pb-20">

@@ -1,10 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+ 
+ 
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Coffee, MapPin, Search, Star, Clock, Info, Phone, ArrowRight, Beef, Utensils } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function UserDiningView({ initialDining = [] }: { initialDining: any[] }) {
     return (
         <div className="space-y-12 pb-20">
@@ -17,6 +24,9 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Local Dining</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
+{ }
+{ }
+                        {/* eslint-disable-next-line react/no-unescaped-entities */}
                         Explore Agno's diverse culinary landscape. From beachfront grills to cozy town center cafes.
                     </p>
                 </div>

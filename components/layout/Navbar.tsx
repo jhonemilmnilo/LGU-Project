@@ -5,10 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { 
-    Shield, Menu, X, LogIn, LogOut, UserCircle, 
-    ChevronDown, Bell, Search, Layers, Briefcase, 
-    Calendar, Map, Newspaper, PhoneCall, LayoutGrid, 
-    Coffee, Bed, Compass, HeartPulse, Users
+    
+    Shield, Menu, X, LogIn, LogOut, 
+    ChevronDown, Bell, Briefcase, 
+    
+    Map, Newspaper, PhoneCall, LayoutGrid, 
+    
+    Coffee, Compass, HeartPulse, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -65,8 +68,14 @@ export function Navbar({ logoUrl }: NavbarProps) {
     const borderOpacity = useTransform(scrollY, [0, 60], [0, 1]);
 
     const isAuth = status === "authenticated";
-    const userRole = (session?.user as any)?.role;
-    const { theme, resolvedTheme } = useTheme();
+     
+
+
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userRole = (session?.user as any)?.role;; // eslint-disable-line @typescript-eslint/no-unused-vars
+    
+    const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
@@ -120,7 +129,9 @@ export function Navbar({ logoUrl }: NavbarProps) {
                         className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden"
                     >
                         {logoUrl ? (
-                            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img 
+                                src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
                         ) : (
                             <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                         )}

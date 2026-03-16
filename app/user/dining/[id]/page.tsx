@@ -2,6 +2,7 @@ import prisma from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MapPin, Clock, Phone, Facebook, Utensils, ArrowLeft, Globe, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +20,7 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
     const mapQuery = item.latitude && item.longitude 
         ? `${item.latitude},${item.longitude}`
         : `${item.name}, ${item.address}, Agno, Pangasinan`;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const mapEmbedUrl = `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY_PLACEHOLDER || ''}&q=${encodeURIComponent(mapQuery)}`;
     // Fallback public embed if no key:
     const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;

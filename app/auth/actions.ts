@@ -25,6 +25,7 @@ export async function registerUser(formData: z.infer<typeof signupSchema>) {
 
         const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const user = await prisma.user.create({
             data: {
                 name: validatedData.fullName,

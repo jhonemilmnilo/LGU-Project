@@ -60,6 +60,7 @@ export function SignupForm() {
 
     const onSubmit = async (data: SignupFormValues) => {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const formData = new FormData();
 
             const result = await registerUser(data);

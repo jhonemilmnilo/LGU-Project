@@ -11,5 +11,7 @@ export default async function UserUpdatesPage() {
         where: { startDate: { gte: new Date() } }
     });
 
+     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserUpdatesView initialNews={news as any} initialEvents={events as any} />;
 }

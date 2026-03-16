@@ -13,6 +13,7 @@ export interface Event {
     address: string;
     contactNumber: string | null;
     imageUrl: string | null;
+    reminders: string[];
     latitude: number | null;
     longitude: number | null;
     googleMapsUrl: string | null;
@@ -40,6 +41,7 @@ export function EventsProvider({ children, initialData }: { children: ReactNode;
     const [events, setEvents] = useState<Event[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
 

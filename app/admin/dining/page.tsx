@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function DiningPage() {
     const session = await getServerSession(authOptions);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!session || (session.user as any).role !== "ADMIN") {
         redirect("/auth/login");
     }

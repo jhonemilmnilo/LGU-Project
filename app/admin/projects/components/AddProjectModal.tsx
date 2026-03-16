@@ -34,6 +34,7 @@ export function AddProjectModal() {
 
     useEffect(() => {
         if (editingData?.imageUrl) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setImagePreview(editingData.imageUrl);
         } else {
             setImagePreview(null);

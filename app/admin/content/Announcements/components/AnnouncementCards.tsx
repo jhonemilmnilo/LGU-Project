@@ -1,6 +1,7 @@
 "use client";
 
 import { useAnnouncements } from "../providers/AnnouncementProvider";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Megaphone, Bell, AlertTriangle, Pin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 

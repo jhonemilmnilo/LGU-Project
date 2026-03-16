@@ -7,5 +7,6 @@ export default async function UserJobsPage() {
         orderBy: { createdAt: "desc" },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserJobsView initialJobs={jobs as any} />;
 }

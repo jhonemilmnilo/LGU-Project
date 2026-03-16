@@ -1,5 +1,6 @@
 import { AuthLayout } from "@/components/shared/AuthLayout";
 import { SignupForm } from "@/components/auth/SignupForm";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Image from "next/image";
 
 export default function SignupPage() {
@@ -16,6 +17,8 @@ export default function SignupPage() {
                                 key={i}
                                 className="h-8 w-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center overflow-hidden"
                             >
+                                { }
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={`https://i.pravatar.cc/100?u=${i}`}
                                     alt="User"

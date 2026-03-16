@@ -34,6 +34,7 @@ export function AddHouseholdModal() {
             const newLat = editingData ? (editingData.latitude?.toString() || "") : (selectedCoords ? selectedCoords.lat.toString() : "");
             const newLng = editingData ? (editingData.longitude?.toString() || "") : (selectedCoords ? selectedCoords.lng.toString() : "");
 
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             if (lat !== newLat) setLat(newLat);
             if (lng !== newLng) setLng(newLng);
         }

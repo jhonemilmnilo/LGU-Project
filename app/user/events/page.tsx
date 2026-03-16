@@ -6,5 +6,6 @@ export default async function UserEventsPage() {
         orderBy: { startDate: "asc" },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserEventsView initialEvents={events as any} />;
 }

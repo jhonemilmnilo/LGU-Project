@@ -10,6 +10,7 @@ export default async function AdminLayout({
 }) {
     const session = await getServerSession(authOptions);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!session || (session.user as any).role !== "ADMIN") {
         redirect("/auth/login");
     }

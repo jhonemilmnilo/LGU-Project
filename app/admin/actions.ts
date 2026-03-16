@@ -308,6 +308,7 @@ export async function addEvent(formData: FormData) {
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
+                reminders: (formData.get("reminders") as string)?.split("\n").map(r => r.trim()).filter(r => r !== "") || [],
                 isPublished: true,
             },
         });
@@ -1013,6 +1014,7 @@ export async function addDisasterZone(data: {
                 typeColor: data.typeColor,
                 riskLevel: data.riskLevel,
                 riskColor: data.riskColor,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 shapes: data.shapes as any,
             }
         });
@@ -1041,6 +1043,7 @@ export async function updateDisasterZone(id: string, data: {
             typeColor?: string;
             riskLevel?: string;
             riskColor?: string;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             shapes?: any;
         } = {};
         if (data.type) updateData.type = data.type;
@@ -1085,6 +1088,7 @@ export async function deleteDisasterZone(id: string) {
 export async function addDisasterMap(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapDelegate = (prisma as any).disasterMap;
         
         // If not found, it might be due to server cache. We'll try to access it via general prisma call
@@ -1113,6 +1117,7 @@ export async function addDisasterMap(formData: FormData) {
 export async function updateDisasterMap(id: string, formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapDelegate = (prisma as any).disasterMap;
         if (!mapDelegate) throw new Error("Database model 'disasterMap' not found. Please restart your dev server.");
 
@@ -1137,6 +1142,7 @@ export async function updateDisasterMap(id: string, formData: FormData) {
 
 export async function deleteDisasterMap(id: string) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapDelegate = (prisma as any).disasterMap;
         if (!mapDelegate) throw new Error("Database model 'disasterMap' not found.");
 
@@ -1153,6 +1159,7 @@ export async function deleteDisasterMap(id: string) {
 
 export async function toggleDisasterMapStatus(id: string, isPublished: boolean) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapDelegate = (prisma as any).disasterMap;
         if (!mapDelegate) throw new Error("Database model 'disasterMap' not found.");
 
@@ -1174,6 +1181,7 @@ export async function toggleDisasterMapStatus(id: string, isPublished: boolean) 
 
 export async function addAnnouncement(formData: FormData) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const announcementDelegate = (prisma as any).announcement;
         if (!announcementDelegate) throw new Error("Database model 'announcement' not found.");
 
@@ -1201,6 +1209,7 @@ export async function addAnnouncement(formData: FormData) {
 
 export async function deleteAnnouncement(id: string) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const announcementDelegate = (prisma as any).announcement;
         await announcementDelegate.delete({ where: { id } });
         revalidatePath("/admin/announcements");
@@ -1213,6 +1222,7 @@ export async function deleteAnnouncement(id: string) {
 
 export async function updateAnnouncement(id: string, formData: FormData) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const announcementDelegate = (prisma as any).announcement;
         const expiryDate = formData.get("expiryDate") as string;
 
@@ -1239,6 +1249,7 @@ export async function updateAnnouncement(id: string, formData: FormData) {
 
 export async function toggleAnnouncementStatus(id: string, isActive: boolean) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const announcementDelegate = (prisma as any).announcement;
         await announcementDelegate.update({
             where: { id },
@@ -1254,6 +1265,7 @@ export async function toggleAnnouncementStatus(id: string, isActive: boolean) {
 
 export async function toggleAnnouncementPin(id: string, isPinned: boolean) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const announcementDelegate = (prisma as any).announcement;
         await announcementDelegate.update({
             where: { id },

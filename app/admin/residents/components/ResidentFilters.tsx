@@ -18,6 +18,7 @@ export function ResidentFilters() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
         if (!mounted) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMounted(true);
         }
     }, [mounted]);

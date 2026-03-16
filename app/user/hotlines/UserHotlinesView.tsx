@@ -1,9 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+ 
+ 
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PhoneCall, Shield, Activity, Flame, Wind, Waves, ArrowRight, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserHotlinesView({ initialHotlines = [] }: { initialHotlines: any[] }) {
     return (
         <div className="space-y-12 pb-20">

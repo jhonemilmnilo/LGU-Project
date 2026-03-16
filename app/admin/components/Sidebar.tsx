@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers, Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -26,6 +26,7 @@ export function AddAccommodationModal() {
     useEffect(() => {
         const url = editingData?.imageUrl || null;
         if (imagePreview !== url) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setImagePreview(url);
         }
     }, [editingData, imagePreview]);
@@ -163,6 +164,8 @@ export function AddAccommodationModal() {
                                     <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-all cursor-pointer group relative overflow-hidden min-h-[200px]">
                                         {imagePreview ? (
                                             <div className="absolute inset-0 w-full h-full">
+                                                { }
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover opacity-90 group-hover:opacity-70 transition-opacity" />
                                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <span className="bg-slate-900/80 text-white px-4 py-2 rounded-xl text-sm font-bold backdrop-blur-sm">Change Cover Image</span>

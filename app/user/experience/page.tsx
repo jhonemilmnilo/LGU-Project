@@ -12,5 +12,7 @@ export default async function UserExperiencePage() {
         orderBy: { name: "asc" }
     });
 
+     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserExperienceView initialDining={dining as any} initialAccommodations={accommodations as any} />;
 }

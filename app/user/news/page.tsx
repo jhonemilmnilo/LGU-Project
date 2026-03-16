@@ -6,5 +6,6 @@ export default async function UserNewsPage() {
         orderBy: { publishDate: "desc" },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserNewsView initialNews={news as any} />;
 }

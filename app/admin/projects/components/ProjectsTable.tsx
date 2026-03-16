@@ -25,6 +25,7 @@ export function ProjectsTable() {
         return matchesSearch && matchesCategory && matchesStatus;
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEdit = (item: any) => {
         setEditingData(item);
         setIsAddModalOpen(true);
@@ -36,6 +37,7 @@ export function ProjectsTable() {
         try {
             await deleteProject(id);
             toast.success("Project deleted successfully!");
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to delete project.");
         } finally {
@@ -48,6 +50,7 @@ export function ProjectsTable() {
         try {
             await toggleProjectStatus(id, !currentStatus);
             toast.success(`Project ${!currentStatus ? 'published' : 'hidden'} successfully!`);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to update status.");
         } finally {

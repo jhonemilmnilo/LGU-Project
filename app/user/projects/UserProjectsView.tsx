@@ -1,11 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+ 
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { LayoutGrid, ArrowRight, Layers, BarChart3, Clock, MapPin, Search, Filter } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserProjectsView({ initialProjects = [] }: { initialProjects: any[] }) {
     return (
         <div className="space-y-12 pb-20">

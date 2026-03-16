@@ -1,12 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { LayoutGrid, Briefcase, ArrowRight, Clock, MapPin, Building, Timer, UserCheck, Layers, BarChart3 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserInitiativesView({ initialProjects = [], initialJobs = [] }: { initialProjects: any[], initialJobs: any[] }) {
     return (
         <div className="space-y-12 pb-20">

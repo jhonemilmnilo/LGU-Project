@@ -4,7 +4,8 @@ import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/landing/Hero";
 import { DiningLodging } from "@/components/sections/landing/DiningLodging";
 import { PlacesToVisit } from "@/components/sections/landing/PlacesToVisit";
-import { NewsEvents } from "@/components/sections/landing/NewsEvents";
+import { EventsCalendarSection } from "@/components/sections/landing/EventsCalendarSection";
+import { AnnouncementsNews } from "@/components/sections/landing/AnnouncementsNews";
 import { JobBoard } from "@/components/sections/landing/JobBoard";
 import { Government } from "@/components/sections/landing/Government";
 import { Services } from "@/components/sections/landing/Services";
@@ -21,7 +22,7 @@ export default async function Home() {
     }
 
     // 2. Fetch Dynamic Content
-    const [slides, logoUrl, tourismSpots, dining, lodging] = await Promise.all([
+    const [slides, logoUrl, tourismSpots, dining, lodging, announcements, events, news] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
             orderBy: { order: 'asc' }
@@ -38,22 +39,43 @@ export default async function Home() {
         prisma.accommodation.findMany({
             where: { isPublished: true },
             take: 4
+        }),
+        // Fetch real data for News & Announcements
+        prisma.announcement.findMany({
+            where: { isActive: true },
+            orderBy: [
+                { isPinned: 'desc' },
+                { createdAt: 'desc' }
+            ],
+            take: 3
+        }),
+        prisma.event.findMany({
+            where: { isPublished: true },
+            orderBy: { startDate: 'asc' }
+        }),
+        prisma.news.findMany({
+            where: { isPublished: true },
+            orderBy: { publishDate: 'desc' },
+            take: 4
         })
     ]);
 
-    // Merge and shuffle or simply combine discovery items
+    // Merge and shuffle discovery items
     const discoveryItems = [
-        ...dining.map(d => ({ 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...dining.map((d: any) => ({ 
             ...d, 
             itemType: "kainan" as const,
             cuisineType: d.cuisineType || undefined 
         })),
-        ...lodging.map(l => ({ 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...lodging.map((l: any) => ({ 
             ...l, 
             itemType: "tuluyan" as const,
             type: l.type || undefined 
         }))
-    ].sort(() => Math.random() - 0.5); // Shuffle for that organic field
+// eslint-disable-next-line react-hooks/purity
+    ].sort(() => Math.random() - 0.5);
 
     return (
         <main className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-blue-600/30">
@@ -64,7 +86,13 @@ export default async function Home() {
             <div className="space-y-16 pb-32">
                 <DiningLodging items={discoveryItems} />
                 <PlacesToVisit spots={tourismSpots} />
-                <NewsEvents />
+                
+                {/* Major Updates: Events with Calendar */}
+                <EventsCalendarSection events={events} />
+                
+                {/* Announcements & News Section */}
+                <AnnouncementsNews announcements={announcements} news={news} />
+                
                 <JobBoard />
                 <Government />
                 <Services />

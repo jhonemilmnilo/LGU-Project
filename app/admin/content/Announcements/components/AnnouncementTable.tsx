@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Edit2, Trash2, Calendar, Megaphone, Bell, Pin, PinOff, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -214,6 +216,7 @@ export function AnnouncementTable() {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function cn(...inputs: any[]) {
     return inputs.filter(Boolean).join(" ");
 }

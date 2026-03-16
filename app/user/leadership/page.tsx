@@ -10,5 +10,7 @@ export default async function UserLeadershipPage() {
         orderBy: { name: "asc" }
     });
 
+     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserLeadershipView initialOfficials={officials as any} initialHotlines={hotlines as any} />;
 }

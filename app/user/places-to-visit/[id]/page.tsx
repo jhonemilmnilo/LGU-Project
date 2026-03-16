@@ -75,6 +75,7 @@ export default async function PlaceDetail({ params }: { params: Promise<{ id: st
         ];
         const spot = mockSpots.find(s => s.id === id);
         if (!spot) notFound();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return <DetailContent item={spot as any} />;
     }
 
@@ -89,6 +90,7 @@ export default async function PlaceDetail({ params }: { params: Promise<{ id: st
     return <DetailContent item={item} />;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DetailContent({ item }: { item: any }) {
     const mapQuery = item.latitude && item.longitude 
         ? `${item.latitude},${item.longitude}`

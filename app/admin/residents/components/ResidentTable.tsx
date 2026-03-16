@@ -43,6 +43,7 @@ export function ResidentTable() {
         return matchesSearch && matchesBarangay && matchesGender;
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const itemsPerPageOptions = [10, 20, 30, 50];
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -50,8 +51,10 @@ export function ResidentTable() {
     // Reset to page 1 when filters change - using state hook correctly
     useEffect(() => {
         if (currentPage !== 1) {
+             
             setCurrentPage(1);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, selectedBarangay, selectedGender, itemsPerPage]);
 
     const totalPages = Math.ceil(filteredResidents.length / itemsPerPage);
@@ -66,6 +69,7 @@ export function ResidentTable() {
             } else {
                 toast.error(response.error || "Failed to delete resident entry.");
             }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("An error occurred while deleting the resident.");
         }

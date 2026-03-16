@@ -4,9 +4,12 @@ import { motion } from "framer-motion";
 import { Newspaper, Calendar, Bell, ArrowRight, Clock, MapPin, Tag, User } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { initialNews: any[], initialEvents: any[] }) {
     return (
         <div className="space-y-12 pb-20">

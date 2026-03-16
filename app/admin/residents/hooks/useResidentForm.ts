@@ -24,6 +24,7 @@ export function useResidentForm() {
             if (editingData) {
                 const response = await updateResident(editingData.id, formData);
                 if (response.success && response.data) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     setResidents(prev => prev.map(r => r.id === editingData.id ? response.data as any : r));
                     toast.success("Resident profile updated successfully!");
                     setIsAddModalOpen(false);
@@ -33,6 +34,7 @@ export function useResidentForm() {
             } else {
                 const response = await addResident(formData);
                 if (response.success && response.data) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     setResidents(prev => [response.data as any, ...prev]);
                     toast.success("New resident registered successfully!");
                     setIsAddModalOpen(false);

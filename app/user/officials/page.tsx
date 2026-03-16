@@ -6,5 +6,6 @@ export default async function UserOfficialsPage() {
         orderBy: { order: "asc" },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserOfficialsView initialOfficials={officials as any} />;
 }

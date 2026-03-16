@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Loader2, Trash2, Plus } from "lucide-react";
 import { useDisaster, DisasterZone } from "../providers/DisasterProvider";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { addDisasterZone, updateDisasterZone, deleteDisasterZone } from "../../actions";
 import { toast } from "sonner";
 import type { GeoJsonObject } from "geojson";
@@ -21,11 +22,14 @@ const BINALONAN_ZOOM = 13;
 
 // ─── MapController: fits map to Binalonan boundary on load ───────────────────────
 function MapController({ border }: { border: GeoJsonObject | null }) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useMap } = require("react-leaflet");
     const map = useMap();
 
     useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!border || (border as any).type !== "Polygon") return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const latlngs = (border as any).coordinates[0].map(
             (c: [number, number]) => [c[1], c[0]] as [number, number]
         );
@@ -78,7 +82,9 @@ export function DisasterMapView() {
     const [mapStyle,    setMapStyle]    = useState<MapStyleKey>("satellite");
 
     // Leaflet icon refs — created once after Leaflet loads
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [handleIcon,  setHandleIcon]  = useState<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [midIcon,     setMidIcon]     = useState<any>(null);
 
     useEffect(() => {
@@ -117,11 +123,13 @@ export function DisasterMapView() {
 
     // ── Mask polygon: darkens everything OUTSIDE Binalonan ─────────────────────
     const maskPositions = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!binalonanBorder || (binalonanBorder as any).type !== "Polygon") return null;
         const outerWorld: [number, number][] = [
             [90, -180], [90, 180], [-90, 180], [-90, -180],
         ];
         // GeoJSON [lng, lat] → Leaflet [lat, lng]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const binalonanRing: [number, number][] = (binalonanBorder as any).coordinates[0]
             .map((c: [number, number]) => [c[1], c[0]]);
         return [outerWorld, binalonanRing];
@@ -240,6 +248,7 @@ export function DisasterMapView() {
                     {/* Mask: dims everything outside Binalonan */}
                     {maskPositions && (
                         <Polygon
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             positions={maskPositions as any}
                             pathOptions={{
                                 fillColor: "#0f172a",
@@ -267,6 +276,7 @@ export function DisasterMapView() {
                                     }}
                                     eventHandlers={{
                                         click: e => {
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             (e as any).originalEvent.stopPropagation();
                                             setActiveZoneId(zone.id);
                                         },

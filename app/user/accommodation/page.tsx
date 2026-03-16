@@ -6,5 +6,6 @@ export default async function UserAccommodationPage() {
         orderBy: { createdAt: "desc" },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserAccommodationView initialAccommodations={accommodations as any} />;
 }

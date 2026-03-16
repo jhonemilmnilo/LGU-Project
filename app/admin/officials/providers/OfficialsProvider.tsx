@@ -34,6 +34,7 @@ export function OfficialsProvider({ children, initialData }: { children: ReactNo
     const [officialsData, setOfficialsData] = useState<Official[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedPosition, setSelectedPosition] = useState("All");
 

@@ -47,6 +47,7 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token.role = (user as any).role;
                 token.id = user.id;
             }
@@ -54,7 +55,9 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (session.user as any).role = token.role;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (session.user as any).id = token.id;
             }
             return session;

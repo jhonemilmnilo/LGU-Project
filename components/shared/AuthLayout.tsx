@@ -76,7 +76,7 @@ export function AuthLayout({
                     >
                         {quote && (
                             <blockquote className="text-xl font-semibold text-white leading-relaxed mb-4">
-                                "{quote}"
+                                &quot;{quote}&quot;
                             </blockquote>
                         )}
                         {description && (

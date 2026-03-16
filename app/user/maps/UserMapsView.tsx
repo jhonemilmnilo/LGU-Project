@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SimpleDisasterView } from "../../admin/disasters/components/SimpleDisasterView";
 import { cn } from "@/lib/utils";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserMapsView({ initialHazardMaps = [] }: { initialHazardMaps: any[] }) {
     const [selectedHazardMap, setSelectedHazardMap] = useState(initialHazardMaps[0] || null);
 
@@ -21,6 +22,9 @@ export function UserMapsView({ initialHazardMaps = [] }: { initialHazardMaps: an
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Strategic Maps</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
+{ }
+{ }
+                        {/* eslint-disable-next-line react/no-unescaped-entities */}
                         Explore Agno through our interactive spatial hubs. Monitor environmental risks or view the municipality's residential pulse.
                     </p>
                 </div>

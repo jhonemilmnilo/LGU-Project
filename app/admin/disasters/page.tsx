@@ -8,6 +8,7 @@ export default async function DisastersPage() {
     });
 
     // Fetch published disaster maps
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mapDelegate = (prisma as any).disasterMap;
     const publishedMaps = mapDelegate 
         ? await mapDelegate.findMany({
@@ -16,5 +17,7 @@ export default async function DisastersPage() {
         })
         : [];
 
+     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <DisasterWorkspace initialHouseholds={households as any} initialMaps={publishedMaps as any} />;
 }

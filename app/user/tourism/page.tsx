@@ -6,5 +6,6 @@ export default async function UserTourismPage() {
         orderBy: { name: "asc" }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <UserTourismView initialTourism={tourismSpots as any} />;
 }

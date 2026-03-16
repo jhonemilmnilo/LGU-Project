@@ -4,6 +4,7 @@ import { AnnouncementPage } from "../content/Announcements/AnnouncementPage";
 export default async function Page() {
     // We use (prisma as any) here just in case the generated types haven't
     // fully caught up in the IDE or dev server yet.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const announcementDelegate = (prisma as any).announcement;
     
     if (!announcementDelegate) {

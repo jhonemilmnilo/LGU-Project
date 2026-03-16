@@ -147,6 +147,8 @@ export function AddDiningModal() {
                                     <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-colors cursor-pointer group relative overflow-hidden">
                                         {imagePreview ? (
                                             <div className="absolute inset-0 w-full h-full">
+                                                { }
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity" />
                                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <span className="bg-slate-900/70 text-white px-3 py-1 rounded-md text-sm font-medium">Change Image</span>

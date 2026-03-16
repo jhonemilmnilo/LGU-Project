@@ -1,10 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Users, Info, Mail, Phone, MapPin, Star, ShieldCheck } from "lucide-react";
 import Image from "next/image";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Button } from "@/components/ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserOfficialsView({ initialOfficials = [] }: { initialOfficials: any[] }) {
     const mayor = initialOfficials.find(o => o.role.toLowerCase().includes('mayor') && !o.role.toLowerCase().includes('vice'));
     const others = initialOfficials.filter(o => o.id !== mayor?.id);

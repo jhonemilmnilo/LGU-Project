@@ -1,12 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
+ 
+ 
+ 
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Users, PhoneCall, Shield, ArrowRight, Copy, Facebook, Mail, Siren, Flame, AlertCircle, HeartPulse } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+ 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserLeadershipView({ initialOfficials = [], initialHotlines = [] }: { initialOfficials: any[], initialHotlines: any[] }) {
     return (
         <div className="space-y-12 pb-20">

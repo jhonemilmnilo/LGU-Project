@@ -27,6 +27,7 @@ export function AddEventModal() {
     useEffect(() => {
         const url = editingData?.imageUrl || null;
         if (imagePreview !== url) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setImagePreview(url);
         }
     }, [editingData, imagePreview]);
@@ -161,6 +162,18 @@ export function AddEventModal() {
                                             className="min-h-[120px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-none"
                                         />
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center justify-between">
+                                            <span>Event Reminders</span>
+                                            <span className="text-[9px] font-medium text-slate-400 normal-case">(One reminder per line)</span>
+                                        </Label>
+                                        <Textarea
+                                            name="reminders"
+                                            defaultValue={editingData?.reminders?.join("\n") || ""}
+                                            placeholder="e.g.&#10;Bring your own water bottle&#10;Wear comfortable shoes&#10;Arrive 15 mins early"
+                                            className="min-h-[120px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-none text-xs leading-relaxed"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Right Column: Location & Image */}
@@ -235,6 +248,8 @@ export function AddEventModal() {
                                         >
                                             {imagePreview ? (
                                                 <>
+                                                    { }
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                                     <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                         <Button type="button" variant="secondary" size="sm" className="font-bold">Change Image</Button>

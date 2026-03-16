@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Briefcase, Building, MapPin, ArrowRight, UserCheck, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

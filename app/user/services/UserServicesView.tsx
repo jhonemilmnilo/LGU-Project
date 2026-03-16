@@ -49,6 +49,9 @@ export function UserServicesView() {
                             <div className="space-y-4">
                                 <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter italic">Community Watch</h2>
                                 <p className="text-slate-500 font-medium italic leading-relaxed">
+{ }
+{ }
+                                    {/* eslint-disable-next-line react/no-unescaped-entities */}
                                     Spotted an issue in your neighborhood? Help us maintain Agno's excellence by reporting road damage, waste management issues, or street lighting concerns.
                                 </p>
                             </div>

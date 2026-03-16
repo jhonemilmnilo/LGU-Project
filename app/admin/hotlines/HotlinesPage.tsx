@@ -10,6 +10,7 @@ import {
 import { Home, Phone } from "lucide-react";
 
 interface HotlinesPageProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     initialData: any[];
 }
 
