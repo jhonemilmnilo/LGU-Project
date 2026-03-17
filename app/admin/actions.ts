@@ -1217,7 +1217,9 @@ export async function addResident(formData: FormData) {
             }
 
             const name = `${formData.get("firstName")} ${formData.get("lastName")}`;
-            const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+            // Use provided password or default to email
+            const rawPassword = password || email;
+            const hashedPassword = await bcrypt.hash(rawPassword, 10);
             
             console.log(`[AccountSync] Creating user account for ${email}...`);
             const user = await prisma.user.create({
@@ -1227,7 +1229,8 @@ export async function addResident(formData: FormData) {
                     name,
                     role: "USER",
                     emailVerified: new Date(),
-                    isEmailVerified: true
+                    isEmailVerified: true,
+                    isPasswordChanged: false // Residents added by admin must change password on first login
                 } as any
             });
             createdUserId = user.id;
@@ -1464,6 +1467,7 @@ export async function updateResident(id: string, formData: FormData) {
                 const userUpdateData: any = { email, name };
                 if (password) {
                     userUpdateData.password = await bcrypt.hash(password, 10);
+                    userUpdateData.isPasswordChanged = true; // Admin manually set a password
                 }
 
                 if (dataToUpdate.registrationStatus === "APPROVED") {
@@ -1481,7 +1485,8 @@ export async function updateResident(id: string, formData: FormData) {
                 const existingUser = await prisma.user.findUnique({ where: { email } });
                 if (existingUser) return { success: false, error: "Email already taken." };
 
-                const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+                const rawPassword = password || email;
+                const hashedPassword = await bcrypt.hash(rawPassword, 10);
                 
                 console.log(`[AccountSync] Creating new account for ${email}...`);
                 const user = await prisma.user.create({
@@ -1491,7 +1496,8 @@ export async function updateResident(id: string, formData: FormData) {
                         name,
                         role: "USER",
                         emailVerified: dataToUpdate.registrationStatus === "APPROVED" ? new Date() : null,
-                        isEmailVerified: dataToUpdate.registrationStatus === "APPROVED"
+                        isEmailVerified: dataToUpdate.registrationStatus === "APPROVED",
+                        isPasswordChanged: password ? true : false
                     } as any
                 });
                 dataToUpdate.userId = user.id;

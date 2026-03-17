@@ -21,6 +21,8 @@ model User {
   // Link to full resident profile
   residentProfile   Resident?
   
+  isPasswordChanged Boolean            @default(false)
+  
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 }
