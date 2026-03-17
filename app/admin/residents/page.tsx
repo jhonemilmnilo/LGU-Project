@@ -12,7 +12,8 @@ export default async function Page() {
                     head: true
                 }
             },
-            familyHead: true
+            familyHead: true,
+            category: true
         },
         orderBy: {
             createdAt: 'desc'

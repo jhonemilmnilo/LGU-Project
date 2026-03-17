@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import * as faceapi from "face-api.js";
 import Webcam from "react-webcam";
-import { CheckCircle2, Circle, AlertCircle, Loader2, Camera, RefreshCw, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -22,7 +22,6 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [step, setStep] = useState<VerificationStep>("INITIALIZING");
     const [modelsLoaded, setModelsLoaded] = useState(false);
-    const [progress, setProgress] = useState(0);
     const [hint, setHint] = useState<string>("Face the camera");
     const [showGuide, setShowGuide] = useState(true);
     const [lightingDetail, setLightingDetail] = useState<{ score: number; status: 'GOOD' | 'POOR' }>({ score: 0, status: 'GOOD' });
@@ -117,10 +116,6 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
             // We check the variance between eye points and the bridge of the nose.
             // If the landmark confidence for the bridge (nose[0-3]) is low or if we detect
             // specific occlusion patterns, we warn the user.
-            const eyeBridge = landmarks.getNose().slice(0, 4);
-            const leftEyeInner = leftEye[3];
-            const rightEyeInner = rightEye[0];
-            const bridgeDistance = Math.abs(rightEyeInner.x - leftEyeInner.x);
             
             // If the inner eye corners are too far or blocked, it often means heavy glasses
             if (detections.detection.score < 0.85) { // Strict confidence check

@@ -35,6 +35,29 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
 // SEARCH & DISCOVERY ACTIONS
 // ----------------------------------------
 
+export async function getResidentCategories() {
+    try {
+        let categories = await (prisma as any).residentCategory.findMany({
+            orderBy: { name: "asc" }
+        });
+        
+        if (categories.length === 0) {
+            const defaults = ["Citizen", "Business Owner", "Guests"];
+            for (const name of defaults) {
+                await (prisma as any).residentCategory.create({
+                    data: { name }
+                }).catch(() => {});
+            }
+            categories = await (prisma as any).residentCategory.findMany({ orderBy: { name: "asc" } });
+        }
+
+        return { success: true, categories };
+    } catch (error) {
+        console.error("Failed to fetch resident categories:", error);
+        return { success: false, error: "Failed to fetch categories" };
+    }
+}
+
 export async function checkDuplicateFace(descriptor: number[]) {
     try {
         const residents = await (prisma.resident as any).findMany({
@@ -1011,6 +1034,8 @@ export async function toggleProjectStatus(id: string, isPublished: boolean) {
 export async function addHousehold(formData: FormData) {
     try {
         const headId = formData.get("headId") as string;
+        const lat = formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null;
+        const lng = formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null;
         
         if (headId) {
             const existing = await (prisma as any).household.findUnique({
@@ -1028,11 +1053,25 @@ export async function addHousehold(formData: FormData) {
             data: {
                 headId: headId || null,
                 barangay: formData.get("barangay") as string,
-                latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
-                longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
+                latitude: lat,
+                longitude: lng,
                 householdSize: parseInt(formData.get("householdSize") as string || "1", 10),
                 contactNumber: (formData.get("contactNumber") as string) || null,
-            } as any
+            } as any,
+            include: {
+                head: true
+            }
+        });
+
+        // Cascade coordinates to all associated residents (Head + Members)
+        await (prisma as any).resident.updateMany({
+            where: {
+                OR: [
+                    { id: headId || "none" },
+                    { householdId: household.id }
+                ]
+            },
+            data: { latitude: lat, longitude: lng }
         });
 
         revalidatePath("/admin/households");
@@ -1063,21 +1102,39 @@ export async function updateHousehold(id: string, formData: FormData) {
             }
         }
 
+        const lat = formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null;
+        const lng = formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null;
+
         const household = await (prisma as any).household.update({
             where: { id },
             data: {
                 headId: headId || null,
                 barangay: formData.get("barangay") as string,
-                latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
-                longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
+                latitude: lat,
+                longitude: lng,
                 householdSize: parseInt(formData.get("householdSize") as string || "1", 10),
                 contactNumber: (formData.get("contactNumber") as string) || null,
                 riskLevel: (formData.get("riskLevel") as string) || "Safe",
                 notes: (formData.get("notes") as string) || null,
-            } as any
+            } as any,
+            include: {
+                head: true
+            }
+        });
+
+        // Cascade coordinates to all associated residents
+        await (prisma as any).resident.updateMany({
+            where: {
+                OR: [
+                    { id: headId || "none" },
+                    { householdId: household.id }
+                ]
+            },
+            data: { latitude: lat, longitude: lng }
         });
 
         revalidatePath("/admin/households");
+        revalidatePath("/admin/residents");
         return { success: true, household };
     } catch (error) {
         console.error("Failed to update household:", error);
@@ -1176,6 +1233,8 @@ export async function addResident(formData: FormData) {
             createdUserId = user.id;
         }
 
+        const categoryIds = formData.getAll("categories") as string[];
+
         const resident = await (prisma as any).resident.create({
             data: {
                 firstName: formData.get("firstName") as string,
@@ -1243,6 +1302,7 @@ export async function addResident(formData: FormData) {
                     : null,
                 userId: createdUserId,
                 email: email,
+                categoryId: categoryIds.length > 0 ? categoryIds[0] : null
             } as any
         });
 
@@ -1290,6 +1350,7 @@ export async function addResident(formData: FormData) {
         const finalResidentAdd = await (prisma.resident as any).findUnique({
             where: { id: resident.id },
             include: {
+                category: true,
                 household: {
                     include: {
                         members: true,
@@ -1330,6 +1391,8 @@ export async function updateResident(id: string, formData: FormData) {
             where: { id },
             select: { userId: true }
         });
+
+        const categoryIds = formData.getAll("categories") as string[];
 
         const dataToUpdate: any = {
             firstName: formData.get("firstName") as string,
@@ -1385,6 +1448,7 @@ export async function updateResident(id: string, formData: FormData) {
                 ? JSON.parse(formData.get("facialRecognition") as string) 
                 : undefined,
             registrationStatus: formData.get("registrationStatus") as string || undefined,
+            categoryId: categoryIds.length > 0 ? categoryIds[0] : null
         };
 
         if (email) {
@@ -1566,6 +1630,7 @@ export async function updateResident(id: string, formData: FormData) {
         const finalResidentUpdate = await (prisma.resident as any).findUnique({
             where: { id: resident.id },
             include: {
+                category: true,
                 household: {
                     include: {
                         members: true,
@@ -1621,6 +1686,43 @@ export async function deleteResident(id: string) {
     } catch (error) {
         console.error("Error deleting resident:", error);
         return { success: false, error: "Failed to delete resident" };
+    }
+}
+
+export async function toggleResidentDeathStatus(id: string, isDead: boolean) {
+    try {
+        await (prisma as any).resident.update({
+            where: { id },
+            data: { isDead }
+        });
+        revalidatePath("/admin/residents");
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling death status:", error);
+        return { success: false, error: "Failed to update status" };
+    }
+}
+
+export async function updateResidentRFID(id: string, rfid: string) {
+    try {
+        // Check if RFID already exists for another resident
+        const existing = await (prisma as any).resident.findUnique({
+            where: { rfid }
+        });
+
+        if (existing && existing.id !== id) {
+            return { success: false, error: "RFID already assigned to another resident." };
+        }
+
+        await (prisma as any).resident.update({
+            where: { id },
+            data: { rfid: rfid.trim() }
+        });
+        revalidatePath("/admin/residents");
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating RFID:", error);
+        return { success: false, error: "Failed to update RFID" };
     }
 }
 

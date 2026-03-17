@@ -11,6 +11,12 @@ export type FamilyMember = {
     age: string | number | null;
 };
 
+export type ResidentCategory = {
+    id: string;
+    name: string;
+    description?: string | null;
+};
+
 export type Resident = {
     id: string;
     firstName: string;
@@ -81,7 +87,7 @@ export type Resident = {
     // New Fields
     registrationStatus: ResidentStatus;
     registrationType?: string | null;
-    facialRecognition?: any;
+    facialRecognition?: unknown;
     isDead: boolean;
     rfid?: string | null;
 
@@ -89,6 +95,8 @@ export type Resident = {
         members: Resident[];
     } | null;
     familyMembers?: FamilyMember[];
+    categoryId?: string | null;
+    category?: ResidentCategory | null;
 };
 
 type ViewMode = "table" | "cards";
@@ -102,6 +110,8 @@ type ResidentContextType = {
     setSelectedBarangay: (barangay: string) => void;
     selectedGender: string;
     setSelectedGender: (gender: string) => void;
+    selectedCategory: string;
+    setSelectedCategory: (category: string) => void;
     isAddModalOpen: boolean;
     setIsAddModalOpen: (isOpen: boolean) => void;
     editingData: Resident | null;
@@ -125,6 +135,7 @@ export function ResidentProvider({
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedBarangay, setSelectedBarangay] = useState("All");
     const [selectedGender, setSelectedGender] = useState("All");
+    const [selectedCategory, setSelectedCategory] = useState("All");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingData, setEditingData] = useState<Resident | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>("table");
@@ -140,6 +151,8 @@ export function ResidentProvider({
             setSelectedBarangay,
             selectedGender,
             setSelectedGender,
+            selectedCategory,
+            setSelectedCategory,
             isAddModalOpen,
             setIsAddModalOpen,
             editingData,

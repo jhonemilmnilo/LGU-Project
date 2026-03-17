@@ -19,7 +19,7 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
   });
   const [facialVerifyOpen, setFacialVerifyOpen] = useState(false);
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(
-    data?.facialRecognition ? (data.facialRecognition as any).descriptor || null : null
+    data?.facialRecognition ? (data.facialRecognition as { descriptor?: number[] }).descriptor || null : null
   );
 
   const idFrontInputRef = useRef<HTMLInputElement>(null);
@@ -29,11 +29,19 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
   // Sync previews when data changes (e.g. during edit)
   useEffect(() => {
     if (data) {
-      setPreviews({
-        idFront: data.idFrontUrl || null,
-        idBack: data.idBackUrl || null,
-        liveness: data.livenessUrl || null
-      });
+      const timer = setTimeout(() => {
+        setPreviews(prev => {
+          if (prev.idFront === data.idFrontUrl && prev.idBack === data.idBackUrl && prev.liveness === data.livenessUrl) {
+            return prev;
+          }
+          return {
+            idFront: data.idFrontUrl || null,
+            idBack: data.idBackUrl || null,
+            liveness: data.livenessUrl || null
+          };
+        });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [data?.idFrontUrl, data?.idBackUrl, data?.livenessUrl, data]);
 

@@ -5,8 +5,18 @@ import { Resident } from "../providers/ResidentProvider";
 import { deleteResident } from "../../actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, Phone, BadgeCheck } from "lucide-react";
+import { Edit, Trash2, Search, Phone, BadgeCheck, MoreVertical, Skull, Radio } from "lucide-react";
 import { toast } from "sonner";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toggleResidentDeathStatus } from "../../actions";
+import { RFIDCaptureModal } from "./RFIDCaptureModal";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,6 +40,7 @@ export function ResidentTable() {
         searchQuery,
         selectedBarangay,
         selectedGender,
+        selectedCategory,
         setEditingData,
         setIsAddModalOpen,
     } = useResident();
@@ -41,18 +52,23 @@ export function ResidentTable() {
             r.barangay.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesBarangay = selectedBarangay === "All" || r.barangay === selectedBarangay;
         const matchesGender = selectedGender === "All" || r.gender === selectedGender;
-        return matchesSearch && matchesBarangay && matchesGender;
+        const matchesCategory = selectedCategory === "All" || 
+            (r.category && (r.category.id === selectedCategory || r.category.name === selectedCategory));
+            
+        return matchesSearch && matchesBarangay && matchesGender && matchesCategory;
     });
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [isRFIDModalOpen, setIsRFIDModalOpen] = useState(false);
+    const [selectedResident, setSelectedResident] = useState<{id: string, name: string} | null>(null);
 
     useEffect(() => {
         if (currentPage !== 1) {
             setCurrentPage(1);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery, selectedBarangay, selectedGender, itemsPerPage]);
+    }, [searchQuery, selectedBarangay, selectedGender, selectedCategory, itemsPerPage]);
 
     const totalPages = Math.ceil(filteredResidents.length / itemsPerPage);
     const paginatedResidents = filteredResidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -66,7 +82,7 @@ export function ResidentTable() {
             } else {
                 toast.error(response.error || "Failed to delete resident entry.");
             }
-        } catch (_error) {
+        } catch {
             toast.error("An error occurred while deleting the resident.");
         }
     };
@@ -74,6 +90,26 @@ export function ResidentTable() {
     const handleEdit = (resident: Resident) => {
         setEditingData(resident);
         setIsAddModalOpen(true);
+    };
+
+    const handleToggleIsDead = async (id: string, currentStatus: boolean, name: string) => {
+        const newStatus = !currentStatus;
+        try {
+            const res = await toggleResidentDeathStatus(id, newStatus);
+            if (res.success) {
+                setResidents(prev => prev.map(r => r.id === id ? { ...r, isDead: newStatus } : r));
+                toast.success(`${name} marked as ${newStatus ? 'Deceased' : 'Alive'}.`);
+            } else {
+                toast.error(res.error || "Failed to update status.");
+            }
+        } catch {
+            toast.error("An error occurred.");
+        }
+    };
+
+    const openRFIDModal = (id: string, name: string) => {
+        setSelectedResident({ id, name });
+        setIsRFIDModalOpen(true);
     };
 
     return (
@@ -84,6 +120,7 @@ export function ResidentTable() {
                         <TableRow className="hover:bg-transparent">
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">Profile</TableHead>
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Name</TableHead>
+                            <TableHead className="font-bold text-slate-700 dark:text-slate-300">Category</TableHead>
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Info & Status</TableHead>
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Location</TableHead>
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">Contact</TableHead>
@@ -93,7 +130,7 @@ export function ResidentTable() {
                     <TableBody>
                         {filteredResidents.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-[400px] text-center">
+                                <TableCell colSpan={7} className="h-[400px] text-center">
                                     <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
                                         <Search className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
                                         <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No residents found</p>
@@ -154,6 +191,17 @@ export function ResidentTable() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
+                                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                                            {resident.category ? (
+                                                <Badge variant="secondary" className="text-[10px] h-4 px-2 font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-transparent">
+                                                    {resident.category.name}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-400 italic">No Category</span>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
                                         <div className="flex flex-col text-xs text-slate-500">
                                             <span className="font-semibold text-slate-700 dark:text-slate-300">{resident.gender} • {resident.civilStatus}</span>
                                             <span>DOB: {new Date(resident.dateOfBirth).toLocaleDateString()}</span>
@@ -182,39 +230,81 @@ export function ResidentTable() {
                                     </TableCell>
                                     <TableCell className="text-right pr-6">
                                         <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-9 w-9 rounded-xl border-slate-200 dark:border-[#2a3040] hover:bg-slate-100 dark:hover:bg-[#2a3040] p-0"
-                                                onClick={() => handleEdit(resident as any)}
-                                            >
-                                                <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                            </Button>
-
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="outline" size="sm" className="h-9 w-9 rounded-xl border-slate-200 dark:border-[#2a3040] hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:border-red-900/30 p-0">
-                                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-all">
+                                                        <MoreVertical className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                                                     </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] rounded-3xl">
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle className="text-slate-900 dark:text-white font-black uppercase text-xl italic tracking-tighter">Remove Resident</AlertDialogTitle>
-                                                        <AlertDialogDescription className="text-slate-500 font-medium">
-                                                            Are you sure you want to delete the resident record for {resident.firstName} {resident.lastName}? This action cannot be undone and will affect census data.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter className="gap-3">
-                                                        <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl h-11 px-6 font-bold">Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction
-                                                            onClick={() => handleDelete(resident.id)}
-                                                            className="bg-red-600 hover:bg-red-700 text-white rounded-2xl h-11 px-6 font-bold"
-                                                        >
-                                                            Delete Record
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                                                    <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Management Options</DropdownMenuLabel>
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleEdit(resident)}
+                                                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300 font-bold transition-colors group"
+                                                    >
+                                                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
+                                                            <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                        </div>
+                                                        Edit Profile
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuItem 
+                                                        onClick={() => openRFIDModal(resident.id, `${resident.firstName} ${resident.lastName}`)}
+                                                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-slate-700 dark:text-slate-300 font-bold transition-colors group"
+                                                    >
+                                                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:scale-110 transition-transform">
+                                                            <Radio className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                                        </div>
+                                                        Assign RFID Tag
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleToggleIsDead(resident.id, resident.isDead, `${resident.firstName} ${resident.lastName}`)}
+                                                        className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl font-bold transition-colors group ${
+                                                            resident.isDead 
+                                                            ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600' 
+                                                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300'
+                                                        }`}
+                                                    >
+                                                        <div className={`p-1.5 rounded-lg group-hover:scale-110 transition-transform ${
+                                                            resident.isDead ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-slate-100 dark:bg-slate-800'
+                                                        }`}>
+                                                            <Skull className={`w-4 h-4 ${resident.isDead ? 'text-emerald-600' : 'text-slate-500'}`} />
+                                                        </div>
+                                                        {resident.isDead ? 'Mark as Alive' : 'Mark as Deceased'}
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800 my-1" />
+
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <div className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 font-bold transition-colors group">
+                                                                <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg group-hover:scale-110 transition-transform">
+                                                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                                                </div>
+                                                                Delete Record
+                                                            </div>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] rounded-3xl">
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle className="text-slate-900 dark:text-white font-black uppercase text-xl italic tracking-tighter">Remove Resident</AlertDialogTitle>
+                                                                <AlertDialogDescription className="text-slate-500 font-medium">
+                                                                    Are you sure you want to delete the resident record for {resident.firstName} {resident.lastName}? This action cannot be undone and will affect census data.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter className="gap-3">
+                                                                <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl h-11 px-6 font-bold">Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    onClick={() => handleDelete(resident.id)}
+                                                                    className="bg-red-600 hover:bg-red-700 text-white rounded-2xl h-11 px-6 font-bold"
+                                                                >
+                                                                    Delete Record
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -266,6 +356,12 @@ export function ResidentTable() {
                     </div>
                 </div>
             </div>
+            <RFIDCaptureModal 
+                isOpen={isRFIDModalOpen}
+                onClose={() => setIsRFIDModalOpen(false)}
+                residentId={selectedResident?.id || ""}
+                residentName={selectedResident?.name || ""}
+            />
         </div>
     );
 }

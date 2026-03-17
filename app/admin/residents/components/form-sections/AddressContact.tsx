@@ -10,9 +10,9 @@ import { BARANGAYS } from "../../constants";
 import { HeadSearch } from "../HeadSearch";
 import { ResidentSearch } from "../ResidentSearch";
 import { toast } from "sonner";
-import { useResident } from "../../providers";
+import { useResident, Resident } from "../../providers/ResidentProvider";
 
-export function AddressContactSection({ data }: { data?: Record<string, any> }) {
+export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
     const { 
         currentFamilyMembers: familyMembers, 
         setCurrentFamilyMembers: setFamilyMembers 
@@ -29,19 +29,19 @@ export function AddressContactSection({ data }: { data?: Record<string, any> }) 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">House Number</label>
-                    <Input name="houseNumber" defaultValue={data?.houseNumber} placeholder="e.g. 123" className="uppercase" />
+                    <Input name="houseNumber" defaultValue={data?.houseNumber || ""} placeholder="e.g. 123" className="uppercase" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Street</label>
-                    <Input name="street" defaultValue={data?.street} placeholder="e.g. RIZAL ST." className="uppercase" />
+                    <Input name="street" defaultValue={data?.street || ""} placeholder="e.g. RIZAL ST." className="uppercase" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Sitio</label>
-                    <Input name="sitio" defaultValue={data?.sitio} placeholder="e.g. MALIGAYA" className="uppercase" />
+                    <Input name="sitio" defaultValue={data?.sitio || ""} placeholder="e.g. MALIGAYA" className="uppercase" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Purok</label>
-                    <Input name="purok" defaultValue={data?.purok} placeholder="e.g. 1" className="uppercase" />
+                    <Input name="purok" defaultValue={data?.purok || ""} placeholder="e.g. 1" className="uppercase" />
                 </div>
             </div>
 
@@ -72,7 +72,7 @@ export function AddressContactSection({ data }: { data?: Record<string, any> }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Mobile Number</label>
-                    <Input name="contactNumber" defaultValue={data?.contactNumber} placeholder="09XX XXX XXXX" />
+                    <Input name="contactNumber" defaultValue={data?.contactNumber || ""} placeholder="09XX XXX XXXX" />
                 </div>
             </div>
 
@@ -94,7 +94,7 @@ export function AddressContactSection({ data }: { data?: Record<string, any> }) 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Relationship to Head</label>
-                            <Input name="relationshipToHead" defaultValue={data?.relationshipToHead} placeholder="e.g. SPOUSE, SON, DAUGHTER" className="uppercase" />
+                            <Input name="relationshipToHead" defaultValue={data?.relationshipToHead || ""} placeholder="e.g. SPOUSE, SON, DAUGHTER" className="uppercase" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Search Household Head</label>

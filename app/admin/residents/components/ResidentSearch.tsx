@@ -34,7 +34,10 @@ export function ResidentSearch({ onSelect, placeholder = "Search resident...", e
             }, 300);
             return () => clearTimeout(delayDebounceFn);
         } else {
-            setResults([]);
+            const timer = setTimeout(() => {
+                setResults(prev => prev.length > 0 ? [] : prev);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [query, excludeIds]);
 

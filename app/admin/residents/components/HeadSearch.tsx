@@ -17,6 +17,12 @@ export function HeadSearch({ onSelect, defaultValue }: { onSelect: (id: string, 
     const [results, setResults] = useState<SearchResult[]>([]);
     const [selectedName, setSelectedName] = useState(defaultValue || "");
 
+    const [prevDefault, setPrevDefault] = useState(defaultValue);
+    if (defaultValue !== prevDefault) {
+        setPrevDefault(defaultValue);
+        setSelectedName(defaultValue || "");
+    }
+
     useEffect(() => {
         if (query.length > 2) {
             const delayDebounceFn = setTimeout(async () => {
@@ -29,8 +35,10 @@ export function HeadSearch({ onSelect, defaultValue }: { onSelect: (id: string, 
             }, 300);
             return () => clearTimeout(delayDebounceFn);
         } else {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setResults([]);
+            const timer = setTimeout(() => {
+                setResults(prev => prev.length > 0 ? [] : prev);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [query]);
 

@@ -288,8 +288,14 @@ model Resident {
   contactNumber          String?
   email                  String?
 
+  latitude               Float?
+  longitude              Float?
+
   isHead                 Boolean   @default(false)
   relationshipToHead     String?
+  
+  categoryId             String?
+  category               ResidentCategory? @relation("ResidentCategory", fields: [categoryId], references: [id])
   
   householdId            String?
   household              Household? @relation("HouseholdMembers", fields: [householdId], references: [id])
@@ -408,4 +414,13 @@ model HeroSlide {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ResidentCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  residents   Resident[] @relation("ResidentCategory")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useResident, Resident } from "../providers";
+import { useResident } from "../providers";
 import { useResidentForm } from "../hooks/useResidentForm";
 import { 
     User, MapPin, BadgeInfo, Users, ShieldCheck, 
@@ -52,9 +52,6 @@ export function AddResidentModal() {
             } else {
                 setCurrentFamilyMembers([]);
             }
-        } else {
-            // Reset step when modal closes
-            setCurrentStep(0);
         }
     }, [isAddModalOpen, editingData, setCurrentFamilyMembers]);
 

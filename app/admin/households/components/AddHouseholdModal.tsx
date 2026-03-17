@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useHousehold } from "../providers/HouseholdProvider";
 import { useHouseholdForm } from "../hooks/useHouseholdForm";
 import {
@@ -16,9 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Home, MapPin, Users, ShieldAlert, UserCheck } from "lucide-react";
-import { useState, useEffect } from "react";
 import { HeadSearch } from "../../residents/components/HeadSearch";
 import { getHeadDetails } from "../../actions";
+import LocationPicker from "./LocationPicker";
 
 export function AddHouseholdModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, selectedCoords, setSelectedCoords } = useHousehold();
@@ -27,40 +28,51 @@ export function AddHouseholdModal() {
     const barangays = ["Aloleng", "Bangan-Oda", "Baracbac", "Boboy", "Buar", "Cabaruan", "Cayungnan", "Macaboboni", "Poblacion", "Patar", "Sabangan", "San Vicente", "Tupa"];
     const riskLevels = ["Safe", "Low Risk", "Moderate Risk", "High Risk", "Flood Prone", "Landslide Prone"];
 
+    // Form State
     const [lat, setLat] = useState("");
     const [lng, setLng] = useState("");
-    const [headInfo, setHeadInfo] = useState({ id: editingData?.headId || "", name: "" });
+    const [headId, setHeadId] = useState("");
+    const [headName, setHeadName] = useState("");
     const [selectedBarangay, setSelectedBarangay] = useState("");
     const [householdSize, setHouseholdSize] = useState("1");
     const [contactNumber, setContactNumber] = useState("");
+    const [isPickingLocation, setIsPickingLocation] = useState(false);
 
+    // Effect to initialize/reset form
     useEffect(() => {
         if (isAddModalOpen) {
-            const newLat = editingData ? (editingData.latitude?.toString() || "") : (selectedCoords ? selectedCoords.lat.toString() : "");
-            const newLng = editingData ? (editingData.longitude?.toString() || "") : (selectedCoords ? selectedCoords.lng.toString() : "");
-
-            /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any, react-hooks/rules-of-hooks, @typescript-eslint/no-unused-vars */
-            // eslint-disable-next-line
-            if (lat !== newLat) setLat(newLat);
-            // eslint-disable-next-line
-            if (lng !== newLng) setLng(newLng);
-            
-            if (editingData) {
-                // eslint-disable-next-line
-                if (!headInfo.id) setHeadInfo({ id: editingData.headId || "", name: editingData.headOfFamily || "Current Head" });
-                // eslint-disable-next-line
-                setSelectedBarangay(editingData.barangay);
-                // eslint-disable-next-line
-                setHouseholdSize(editingData.householdSize.toString());
-                // eslint-disable-next-line
-                setContactNumber(editingData.contactNumber || "");
-            }
-            /* eslint-enable */
+            const timer = setTimeout(() => {
+                if (editingData) {
+                    setLat(editingData.latitude?.toString() || "");
+                    setLng(editingData.longitude?.toString() || "");
+                    setHeadId(editingData.headId || "");
+                    setHeadName(editingData.headOfFamily || "");
+                    setSelectedBarangay(editingData.barangay || "");
+                    setHouseholdSize(editingData.householdSize?.toString() || "1");
+                    setContactNumber(editingData.contactNumber || "");
+                } else if (selectedCoords) {
+                    setLat(selectedCoords.lat.toString());
+                    setLng(selectedCoords.lng.toString());
+                    setHeadId("");
+                    setHeadName("");
+                } else {
+                    setLat("");
+                    setLng("");
+                    setHeadId("");
+                    setHeadName("");
+                    setSelectedBarangay("");
+                    setHouseholdSize("1");
+                    setContactNumber("");
+                }
+                setIsPickingLocation(false);
+            }, 0);
+            return () => clearTimeout(timer);
         }
-    }, [isAddModalOpen, editingData, selectedCoords, lat, lng, headInfo.id]);
+    }, [isAddModalOpen, editingData, selectedCoords]);
 
     const handleHeadSelect = async (id: string, name: string) => {
-        setHeadInfo({ id, name });
+        setHeadId(id);
+        setHeadName(name);
         const res = await getHeadDetails(id);
         if (res.success && res.data) {
             setSelectedBarangay(res.data.barangay);
@@ -82,15 +94,10 @@ export function AddHouseholdModal() {
         <Dialog open={isAddModalOpen} onOpenChange={(open) => {
             setIsAddModalOpen(open);
             if (!open) {
+                // Short delay to allow animation to finish before clearing
                 setTimeout(() => {
                     setEditingData(null);
                     setSelectedCoords(null);
-                    setLat("");
-                    setLng("");
-                    setHeadInfo({ id: "", name: "" });
-                    setSelectedBarangay("");
-                    setHouseholdSize("1");
-                    setContactNumber("");
                 }, 200);
             }
         }}>
@@ -105,7 +112,7 @@ export function AddHouseholdModal() {
                                 <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                     {editingData ? "Edit Household Data" : "Add New Household"}
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
+                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">
                                     Map and log a household entry for DRRM and census tracking.
                                 </DialogDescription>
                             </div>
@@ -114,8 +121,12 @@ export function AddHouseholdModal() {
 
                     <div className="p-8 overflow-y-auto custom-scrollbar">
                         <form id="householdForm" onSubmit={handleSubmit} className="space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* HIDDEN INPUTS - These bridge the React state to the native FormData submission */}
+                            <input type="hidden" name="headId" value={headId} />
+                            <input type="hidden" name="latitude" value={lat} />
+                            <input type="hidden" name="longitude" value={lng} />
 
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Family details */}
                                 <div className="space-y-2 md:col-span-2">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1">
@@ -124,28 +135,27 @@ export function AddHouseholdModal() {
                                     </Label>
                                     <HeadSearch 
                                         onSelect={handleHeadSelect}
-                                        defaultValue={headInfo.name}
+                                        defaultValue={headName}
                                     />
-                                    <input type="hidden" name="headId" value={headInfo.id} required />
-                                    <p className="text-[10px] text-slate-500 italic mt-1 uppercase tracking-wider">
-                                        Note: The head must be registered first in the Resident Registry.
+                                    <p className="text-[10px] text-slate-500 italic mt-1 uppercase tracking-wider font-bold">
+                                        Selected ID: <span className="text-blue-500">{headId || "None"}</span>
                                     </p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Barangay</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Barangay</Label>
                                     <Select name="barangay" value={selectedBarangay} onValueChange={setSelectedBarangay}>
-                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold">
                                             <SelectValue placeholder="Select Barangay" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {barangays.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                                            {barangays.map(b => <SelectItem key={b} value={b} className="font-bold">{b}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest flex items-center">
                                         <Users className="w-4 h-4 mr-1 text-slate-500" /> Household Size
                                     </Label>
                                     <Input
@@ -155,106 +165,129 @@ export function AddHouseholdModal() {
                                         min="1"
                                         value={householdSize}
                                         onChange={(e) => setHouseholdSize(e.target.value)}
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
                                     />
                                 </div>
 
-                                {/* Coordinates */}
-                                <div className="space-y-4 md:col-span-2 p-5 bg-slate-50 dark:bg-[#151b2b] rounded-xl border border-slate-200 dark:border-[#2a3040]">
-                                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-[#2a3040]">
-                                        <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center">
-                                            <MapPin className="w-4 h-4 mr-2" />
-                                            Exact GPS Coordinates
-                                        </Label>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleGetCurrentLocation}
-                                            className="h-8 text-xs font-bold"
-                                        >
-                                            Use My Location
-                                        </Button>
+                                {/* Coordinates Section */}
+                                <div className="space-y-4 md:col-span-2 p-6 bg-slate-100/50 dark:bg-[#1a1f2e] rounded-3xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] transition-all duration-500">
+                                    <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#2a3040]">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/20">
+                                                <MapPin className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Geographic Data</Label>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Precision Plotting</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleGetCurrentLocation}
+                                                className="h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-full"
+                                            >
+                                                GPS
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="default"
+                                                size="sm"
+                                                onClick={() => setIsPickingLocation(!isPickingLocation)}
+                                                className={`h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg transition-all ${isPickingLocation ? 'bg-red-500' : 'bg-blue-600'}`}
+                                            >
+                                                {isPickingLocation ? "Close Map" : "Pinpoint"}
+                                            </Button>
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 pt-2">
-                                        <div className="space-y-2">
-                                            <Label className="text-slate-600 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Latitude</Label>
-                                            <Input
-                                                name="latitude"
-                                                type="number"
-                                                step="any"
-                                                required
-                                                value={lat}
-                                                onChange={(e) => setLat(e.target.value)}
-                                                placeholder="16.12345"
-                                                className="font-mono h-11 bg-white dark:bg-[#0f1117]"
+                                    {isPickingLocation ? (
+                                        <div className="pt-2 animate-in zoom-in-95 duration-300">
+                                            <LocationPicker 
+                                                initialLat={parseFloat(lat) || 16.1158}
+                                                initialLng={parseFloat(lng) || 119.7997}
+                                                onSelect={(selectedLat, selectedLng) => {
+                                                    setLat(selectedLat.toString());
+                                                    setLng(selectedLng.toString());
+                                                    setIsPickingLocation(false);
+                                                }}
+                                                onClose={() => setIsPickingLocation(false)}
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-slate-600 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Longitude</Label>
-                                            <Input
-                                                name="longitude"
-                                                type="number"
-                                                step="any"
-                                                required
-                                                value={lng}
-                                                onChange={(e) => setLng(e.target.value)}
-                                                placeholder="119.87654"
-                                                className="font-mono h-11 bg-white dark:bg-[#0f1117]"
-                                            />
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-4 pt-2">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Latitude</Label>
+                                                <Input
+                                                    type="number"
+                                                    step="any"
+                                                    value={lat}
+                                                    onChange={(e) => setLat(e.target.value)}
+                                                    placeholder="0.000000"
+                                                    className="font-mono h-12 bg-white dark:bg-[#0f1117] border-2 border-slate-200 dark:border-[#2a3040] rounded-xl text-lg font-bold"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Longitude</Label>
+                                                <Input
+                                                    type="number"
+                                                    step="any"
+                                                    value={lng}
+                                                    onChange={(e) => setLng(e.target.value)}
+                                                    placeholder="0.000000"
+                                                    className="font-mono h-12 bg-white dark:bg-[#0f1117] border-2 border-slate-200 dark:border-[#2a3040] rounded-xl text-lg font-bold"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <p className="text-xs text-slate-500 italic">Pinpoint accuracy required for emergency response mapping.</p>
+                                    )}
                                 </div>
 
-                                {/* Additional Data */}
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                        <ShieldAlert className="w-4 h-4 mr-1 text-slate-500" /> Risk Assessment
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest flex items-center">
+                                        <ShieldAlert className="w-4 h-4 mr-1 text-slate-500" /> Risk Level
                                     </Label>
                                     <Select name="riskLevel" defaultValue={editingData?.riskLevel || "Safe"}>
-                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
-                                            <SelectValue placeholder="Assess Risk Level" />
+                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold">
+                                            <SelectValue placeholder="Assess Risk" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {riskLevels.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                                            {riskLevels.map(r => <SelectItem key={r} value={r} className="font-bold">{r}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Contact Number</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Contact Number</Label>
                                     <Input
                                         name="contactNumber"
                                         value={contactNumber}
                                         onChange={(e) => setContactNumber(e.target.value)}
                                         placeholder="09XX XXX XXXX"
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
                                     />
                                 </div>
 
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Additional Notes / Remarks</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Additional Notes</Label>
                                     <Textarea
                                         name="notes"
                                         defaultValue={editingData?.notes || ""}
-                                        placeholder="e.g. Needs immediate relief during flood / Old structure..."
-                                        className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
+                                        placeholder="Add any specific observations..."
+                                        className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-medium"
                                     />
                                 </div>
-
                             </div>
-
                         </form>
                     </div>
 
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
+                    <DialogFooter className="p-8 bg-slate-50 dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
                         <Button
                             type="button"
                             variant="ghost"
                             onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                            className="h-12 px-8 font-black uppercase text-xs tracking-widest text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl"
                         >
                             Cancel
                         </Button>
@@ -262,12 +295,12 @@ export function AddHouseholdModal() {
                             type="submit"
                             form="householdForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-blue-500/30 rounded-xl transition-all hover:scale-105 active:scale-95"
                         >
                             {loading ? (
-                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Syncing...</>
                             ) : (
-                                editingData ? "Update Household" : "Plot on Map"
+                                editingData ? "Update Registry" : "Plot Household"
                             )}
                         </Button>
                     </DialogFooter>

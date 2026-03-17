@@ -4,7 +4,7 @@ import { HouseholdsPage } from "./HouseholdsPage";
 import { Household } from "./providers/HouseholdProvider";
 
 export default async function Page() {
-    const data = await (prisma as any).household.findMany({
+    const data = await prisma.household.findMany({
         include: {
             head: true
         },
@@ -13,7 +13,7 @@ export default async function Page() {
         }
     });
 
-    const households: Household[] = (data as any[]).map(h => ({
+    const households: Household[] = data.map(h => ({
         id: h.id,
         headId: h.headId,
         headOfFamily: h.head ? `${h.head.firstName} ${h.head.lastName}` : "No Head Assigned",

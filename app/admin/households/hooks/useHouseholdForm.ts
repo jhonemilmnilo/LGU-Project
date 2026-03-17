@@ -33,11 +33,13 @@ export function useHouseholdForm() {
             }
 
             if (response.success && response.household) {
-                const updatedHousehold = {
-                    ...response.household,
-                    createdAt: new Date(response.household.createdAt),
-                    updatedAt: new Date(response.household.updatedAt),
-                } as Household;
+                const h = response.household as Household & { head?: { firstName: string, lastName: string } | null; createdAt: Date | string; updatedAt: Date | string };
+                const updatedHousehold: Household = {
+                    ...h,
+                    headOfFamily: h.head ? `${h.head.firstName} ${h.head.lastName}` : "No Head Assigned",
+                    createdAt: new Date(h.createdAt),
+                    updatedAt: new Date(h.updatedAt),
+                };
 
                 if (editingData) {
                     setHouseholds(prev => prev.map(h => h.id === updatedHousehold.id ? updatedHousehold : h));

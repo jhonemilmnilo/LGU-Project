@@ -58,6 +58,7 @@ export function CameraCapture({ isOpen, onClose, onCapture, title = "Capture Pho
 
                 <div className="relative aspect-video bg-black flex items-center justify-center mt-12">
                     {capturedImage ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
                     ) : (
                         <Webcam
