@@ -1,10 +1,10 @@
-/* eslint-disable */
+
 import { useState, useEffect } from "react";
-import { useResident } from "../providers";
+import { useResident, Resident } from "../providers";
 import { useResidentForm } from "../hooks/useResidentForm";
 import { 
     User, MapPin, BadgeInfo, Users, ShieldCheck, 
-    ChevronRight, ChevronLeft, Save, X, Loader2, Camera 
+    ChevronRight, ChevronLeft, Save, X, Loader2, Camera, UserCheck 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { AddressContactSection } from "./form-sections/AddressContact";
 import { GovSocioEconomicSection } from "./form-sections/GovSocioEconomic";
 import { FamilyBackgroundSection } from "./form-sections/FamilyBackground";
 import { IdentityVerificationSection } from "./form-sections/IdentityVerification";
+import { AccountSetupSection } from "./form-sections/AccountSetup";
 import { SectorsAndConsentSection } from "./form-sections/SectorsAndConsent";
 import { cn } from "@/lib/utils";
 
@@ -22,18 +23,43 @@ const STEPS = [
     { id: "gov", title: "Socio-Gov", icon: BadgeInfo, description: "Occupation & IDs (E,F,I)" },
     { id: "family", title: "Family", icon: Users, description: "Parents & Dependents (G)" },
     { id: "verification", title: "ID Check", icon: Camera, description: "ID Verification (H)" },
+    { id: "account", title: "Account", icon: UserCheck, description: "Account Setup" },
     { id: "consent", title: "Consent", icon: ShieldCheck, description: "Final Sign-off (J,K)" }
 ];
 
 export function AddResidentModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useResident();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, setCurrentFamilyMembers } = useResident();
     const { handleSubmit, loading } = useResidentForm();
     const [currentStep, setCurrentStep] = useState(0);
+
+    useEffect(() => {
+        if (isAddModalOpen) {
+            if (editingData) {
+                // Combine manual family members and linked household members
+                const manual = editingData.familyMembers || [];
+                const linked = (editingData.isHead && editingData.household?.members)
+                    ? editingData.household.members
+                        .filter(m => m.id !== editingData.id)
+                        .map(m => ({
+                            id: m.id,
+                            fullName: `${m.firstName} ${m.lastName}`,
+                            relationship: m.relationshipToHead || "Member",
+                            age: m.age || ""
+                        }))
+                    : [];
+                
+                setCurrentFamilyMembers([...manual, ...linked]);
+            } else {
+                setCurrentFamilyMembers([]);
+            }
+        }
+    }, [isAddModalOpen, editingData, setCurrentFamilyMembers]);
 
     const closeModal = () => {
         setIsAddModalOpen(false);
         setEditingData(null);
         setCurrentStep(0);
+        setCurrentFamilyMembers([]);
     };
 
     const nextStep = () => {
@@ -119,23 +145,26 @@ export function AddResidentModal() {
                                     handleSubmit(e);
                                 }}
                             >
-                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 0 && "hidden")}>
-                                    <PersonalInfoSection data={editingData} />
+                                 <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 0 && "hidden")}>
+                                    <PersonalInfoSection data={editingData || undefined} />
                                 </div>
                                 <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 1 && "hidden")}>
-                                    <AddressContactSection data={editingData} />
+                                    <AddressContactSection data={editingData || undefined} />
                                 </div>
                                 <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 2 && "hidden")}>
-                                    <GovSocioEconomicSection data={editingData} />
+                                    <GovSocioEconomicSection data={editingData || undefined} />
                                 </div>
                                 <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 3 && "hidden")}>
-                                    <FamilyBackgroundSection data={editingData} />
+                                    <FamilyBackgroundSection data={editingData || undefined} />
                                 </div>
                                 <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 4 && "hidden")}>
-                                    <IdentityVerificationSection data={editingData} />
+                                    <IdentityVerificationSection data={editingData || undefined} />
                                 </div>
                                 <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 5 && "hidden")}>
-                                    <SectorsAndConsentSection data={editingData} />
+                                    <AccountSetupSection data={editingData || undefined} />
+                                </div>
+                                <div className={cn("animate-in fade-in slide-in-from-bottom-4 duration-500", currentStep !== 6 && "hidden")}>
+                                    <SectorsAndConsentSection data={editingData || undefined} />
                                 </div>
                             </form>
                         </div>

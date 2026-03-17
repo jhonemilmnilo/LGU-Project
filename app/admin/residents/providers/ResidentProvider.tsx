@@ -2,6 +2,15 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 
+export type ResidentStatus = "PENDING" | "APPROVED" | "DRAFT" | "REJECTED";
+
+export type FamilyMember = {
+    id?: string;
+    fullName: string;
+    relationship: string;
+    age: string | number | null;
+};
+
 export type Resident = {
     id: string;
     firstName: string;
@@ -35,7 +44,8 @@ export type Resident = {
     // Household Status
     isHead?: boolean;
     relationshipToHead?: string | null;
-    householdId?: string | null;
+    familyHeadId?: string | null;
+    familyHead?: Resident | null;
     headId?: string | null; // For non-heads
     headName?: string | null; // Virtual for display
     
@@ -67,7 +77,18 @@ export type Resident = {
     registeredAt?: Date;
     createdAt?: Date;
     updatedAt?: Date;
-    familyMembers?: { fullName: string; relationship: string; age: number | null }[];
+    
+    // New Fields
+    registrationStatus: ResidentStatus;
+    registrationType?: string | null;
+    facialRecognition?: any;
+    isDead: boolean;
+    rfid?: string | null;
+
+    household?: {
+        members: Resident[];
+    } | null;
+    familyMembers?: FamilyMember[];
 };
 
 type ViewMode = "table" | "cards";
@@ -87,6 +108,8 @@ type ResidentContextType = {
     setEditingData: (data: Resident | null) => void;
     viewMode: ViewMode;
     setViewMode: (mode: ViewMode) => void;
+    currentFamilyMembers: FamilyMember[];
+    setCurrentFamilyMembers: React.Dispatch<React.SetStateAction<FamilyMember[]>>;
 };
 
 const ResidentContext = createContext<ResidentContextType | undefined>(undefined);
@@ -105,6 +128,7 @@ export function ResidentProvider({
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingData, setEditingData] = useState<Resident | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>("table");
+    const [currentFamilyMembers, setCurrentFamilyMembers] = useState<FamilyMember[]>([]);
 
     return (
         <ResidentContext.Provider value={{
@@ -121,7 +145,9 @@ export function ResidentProvider({
             editingData,
             setEditingData,
             viewMode,
-            setViewMode
+            setViewMode,
+            currentFamilyMembers,
+            setCurrentFamilyMembers
         }}>
             {children}
         </ResidentContext.Provider>

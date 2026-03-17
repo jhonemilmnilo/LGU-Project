@@ -124,6 +124,11 @@ export function ResidentTable() {
                                                 {resident.isHead && (
                                                     <Badge variant="outline" className="text-[9px] h-4 bg-blue-50 text-blue-600 dark:bg-blue-900/20 border-blue-200 px-1 font-black">HEAD</Badge>
                                                 )}
+                                                {!resident.isHead && resident.headName && (
+                                                    <Badge variant="outline" className="text-[9px] h-4 bg-slate-50 text-slate-500 dark:bg-slate-900/20 border-slate-200 px-1 font-black uppercase">
+                                                        {resident.relationshipToHead || 'MEMBER'} OF {resident.headName}
+                                                    </Badge>
+                                                )}
                                                 {resident.isSenior && (
                                                     <Badge variant="outline" className="text-[9px] h-4 bg-amber-50 text-amber-600 dark:bg-amber-900/20 border-amber-200 px-1 font-black">SENIOR</Badge>
                                                 )}

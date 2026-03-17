@@ -2,9 +2,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GENDERS, CIVIL_STATUSES } from "../../constants";
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
-export function PersonalInfoSection({ data }: { data?: any }) {
+export function PersonalInfoSection({ data }: { data?: Record<string, any> }) {
     const [dob, setDob] = useState(data?.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : "");
+    // const [isDead, setIsDead] = useState(data?.isDead || false); // Removed to fix lint warning
 
     const calculateAge = (birthDateStr: string) => {
         if (!birthDateStr) return "";
@@ -107,10 +109,6 @@ export function PersonalInfoSection({ data }: { data?: any }) {
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Weight (kg)</label>
                     <Input name="weight" type="number" defaultValue={data?.weight} placeholder="e.g. 65" />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-sm font-semibold">Registered At</label>
-                    <Input type="text" value={new Date().toLocaleDateString()} readOnly className="bg-slate-50" />
                 </div>
             </div>
         </div>

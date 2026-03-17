@@ -24,23 +24,28 @@ export function SectorsAndConsentSection({ data }: { data?: any }) {
                     <div className="grid grid-cols-1 gap-4 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-semibold">Senior Citizen</label>
-                            <Switch name="isSenior" value="true" checked={sectors.isSenior} onCheckedChange={(v) => setSectors({...sectors, isSenior: v})} />
+                            <Switch checked={sectors.isSenior} onCheckedChange={(v) => setSectors({...sectors, isSenior: v})} />
+                            <input type="hidden" name="isSenior" value={sectors.isSenior ? "true" : "false"} />
                         </div>
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-semibold">Person with Disability (PWD)</label>
-                            <Switch name="isPWD" value="true" checked={sectors.isPWD} onCheckedChange={(v) => setSectors({...sectors, isPWD: v})} />
+                            <Switch checked={sectors.isPWD} onCheckedChange={(v) => setSectors({...sectors, isPWD: v})} />
+                            <input type="hidden" name="isPWD" value={sectors.isPWD ? "true" : "false"} />
                         </div>
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-semibold">Solo Parent</label>
-                            <Switch name="isSoloParent" value="true" checked={sectors.isSoloParent} onCheckedChange={(v) => setSectors({...sectors, isSoloParent: v})} />
+                            <Switch checked={sectors.isSoloParent} onCheckedChange={(v) => setSectors({...sectors, isSoloParent: v})} />
+                            <input type="hidden" name="isSoloParent" value={sectors.isSoloParent ? "true" : "false"} />
                         </div>
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-semibold">Indigenous People</label>
-                            <Switch name="isIndigenous" value="true" checked={sectors.isIndigenous} onCheckedChange={(v) => setSectors({...sectors, isIndigenous: v})} />
+                            <Switch checked={sectors.isIndigenous} onCheckedChange={(v) => setSectors({...sectors, isIndigenous: v})} />
+                            <input type="hidden" name="isIndigenous" value={sectors.isIndigenous ? "true" : "false"} />
                         </div>
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-semibold">4Ps Beneficiary</label>
-                            <Switch name="is4Ps" value="true" checked={sectors.is4Ps} onCheckedChange={(v) => setSectors({...sectors, is4Ps: v})} />
+                            <Switch checked={sectors.is4Ps} onCheckedChange={(v) => setSectors({...sectors, is4Ps: v})} />
+                            <input type="hidden" name="is4Ps" value={sectors.is4Ps ? "true" : "false"} />
                         </div>
                         <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[#2a3040]">
                             <label className="text-xs font-semibold text-slate-500 uppercase">Other Sector</label>
@@ -61,6 +66,18 @@ export function SectorsAndConsentSection({ data }: { data?: any }) {
                             <Input name="officialPosition" defaultValue={data?.officialPosition} placeholder="e.g. Barangay Secretary" />
                         </div>
                         <div className="space-y-2">
+                            <label className="text-sm font-semibold italic text-blue-600 uppercase tracking-tighter">Registration Status</label>
+                            <select 
+                                name="registrationStatus" 
+                                defaultValue={data?.registrationStatus || "PENDING"}
+                                className="w-full h-10 px-3 py-2 bg-white dark:bg-[#0f1117] rounded-xl border border-slate-200 dark:border-[#2a3040] text-sm font-bold uppercase"
+                            >
+                                <option value="PENDING">PENDING</option>
+                                <option value="APPROVED">APPROVED</option>
+                                <option value="REJECTED">REJECTED</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
                             <label className="text-sm font-semibold">Date Received</label>
                             <Input name="dateReceived" type="date" defaultValue={data?.dateReceived ? new Date(data.dateReceived).toISOString().split('T')[0] : ""} />
                         </div>
@@ -72,12 +89,11 @@ export function SectorsAndConsentSection({ data }: { data?: any }) {
                 <div className="flex items-start space-x-3">
                     <Checkbox 
                         id="dataPrivacyConsent" 
-                        name="dataPrivacyConsent" 
-                        value="true"
                         checked={consent}
                         onCheckedChange={(v) => setConsent(!!v)}
                         className="bg-white"
                     />
+                    <input type="hidden" name="dataPrivacyConsent" value={consent ? "true" : "false"} />
                     <div className="space-y-1">
                         <label htmlFor="dataPrivacyConsent" className="text-sm font-black uppercase italic leading-none cursor-pointer">
                             Data Privacy Consent

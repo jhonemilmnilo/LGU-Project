@@ -4,7 +4,7 @@ import { HouseholdsPage } from "./HouseholdsPage";
 import { Household } from "./providers/HouseholdProvider";
 
 export default async function Page() {
-    const data = await prisma.household.findMany({
+    const data = await (prisma as any).household.findMany({
         include: {
             head: true
         },
