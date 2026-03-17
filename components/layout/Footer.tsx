@@ -15,11 +15,11 @@ export function Footer() {
                             <Shield className="w-6 h-6 text-white" />
                         </div>
                         <span className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white italic">
-                            Agno<span className="text-blue-600">Portal</span>
+                            Mapandan<span className="text-blue-600">Portal</span>
                         </span>
                     </Link>
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">
-                        Official website of the Municipality of Agno. Dedicated to transparent governance and sustainable tourism.
+                        Official website of the Municipality of Mapandan. Dedicated to transparent governance and sustainable growth.
                     </p>
                     <div className="flex items-center gap-4">
                         {[Facebook, Twitter, Instagram].map((Icon, idx) => (
@@ -46,7 +46,7 @@ export function Footer() {
 
                 {/* Tourism & Hubs */}
                 <div className="space-y-6">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Explore Agno</h4>
+                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Explore Mapandan</h4>
                     <ul className="space-y-4">
                         <li>
                             <Link href="/user/accommodation" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
@@ -60,7 +60,7 @@ export function Footer() {
                         </li>
                         <li>
                             <Link href="/user/tourism" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
-                                Tourism Spots
+                                Gallery
                             </Link>
                         </li>
                     </ul>
@@ -72,11 +72,11 @@ export function Footer() {
                     <ul className="space-y-4">
                         <li className="flex items-start gap-3">
                             <MapPin className="w-5 h-5 text-blue-600 shrink-0" />
-                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">Municipal Hall, Poblacion, Agno</span>
+                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">Municipal Hall, Poblacion, Mapandan</span>
                         </li>
                         <li className="flex items-center gap-3">
                             <Mail className="w-5 h-5 text-blue-600" />
-                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">info@agnomun.gov.ph</span>
+                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">info@mapandanmun.gov.ph</span>
                         </li>
                         <li className="flex items-center gap-3">
                             <Phone className="w-5 h-5 text-blue-600" />
@@ -87,7 +87,7 @@ export function Footer() {
             </div>
 
             <div className="pt-10 flex flex-col md:flex-row items-center justify-between gap-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
-                <p>© 2026 Municipality of Agno. All rights reserved.</p>
+                <p>© 2026 Municipality of Mapandan. All rights reserved.</p>
                 <div className="flex items-center gap-8">
                     <Link href="#" className="hover:text-blue-600">Privacy</Link>
                     <Link href="#" className="hover:text-blue-600">Terms</Link>

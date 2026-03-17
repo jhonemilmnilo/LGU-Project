@@ -50,7 +50,7 @@ export function UserDisasterWorkspace({
 { }
 { }
                         {/* eslint-disable-next-line react/no-unescaped-entities */}
-                        Explore Agno's interactive hazard maps to understand geological risks, 
+                        Explore Mapandan's interactive hazard maps to understand geological risks, 
                         flood zones, and environmental safety data in your vicinity.
                     </p>
                 </div>

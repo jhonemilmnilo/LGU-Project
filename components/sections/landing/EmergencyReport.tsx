@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 
 const hotlines = [
-    { name: "PNP Agno", number: "0912-345-6789", icon: Siren },
+    { name: "PNP Mapandan", number: "0912-345-6789", icon: Siren },
     { name: "Fire Station", number: "0912-345-6788", icon: Flame },
     { name: "MDRRMO", number: "0912-345-6787", icon: AlertCircle },
     { name: "Rural Health Unit", number: "0912-345-6786", icon: HeartPulse },
@@ -83,7 +83,7 @@ export function EmergencyReport() {
                     <div className="space-y-8">
                         <div className="space-y-2">
                             <h3 className="text-3xl font-black uppercase italic tracking-tighter">Report an Issue</h3>
-                            <p className="text-slate-400 text-sm font-medium italic">Help us maintain a better Agno for everyone.</p>
+                            <p className="text-slate-400 text-sm font-medium italic">Help us maintain a better Mapandan for everyone.</p>
                         </div>
 
                         <form className="space-y-6">

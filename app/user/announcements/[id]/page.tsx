@@ -114,7 +114,7 @@ export default async function AnnouncementDetailPage({ params }: { params: { id:
                         <div className="space-y-2">
                             <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Public Safety & Information</h4>
                             <p className="text-xs text-slate-500 font-medium italic leading-relaxed">
-                                This announcement is for public information purposes. If you require immediate assistance or have specific questions regarding this notice, please contact the relevant department or message the Agno Public Information Office directly.
+                                This announcement is for public information purposes. If you require immediate assistance or have specific questions regarding this notice, please contact the relevant department or message the Mapandan Public Information Office directly.
                             </p>
                         </div>
                     </div>

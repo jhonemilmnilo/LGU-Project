@@ -26,10 +26,10 @@ export function TourismPage({ initialData }: TourismPageProps) {
                             <span className="opacity-50">/</span>
                             <span>Content</span>
                             <span className="opacity-50">/</span>
-                            <span className="text-blue-600 dark:text-blue-400 font-bold">Place to Visit</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">Gallery</span>
                         </div>
-                        <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">Tourism Management</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Curate the most amazing landmarks and hidden gems of Agno.</p>
+                        <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">Gallery Management</h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Curate the most amazing landmarks and hidden gems of Mapandan.</p>
                     </div>
                 </div>
 

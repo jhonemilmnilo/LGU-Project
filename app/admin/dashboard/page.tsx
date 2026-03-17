@@ -7,7 +7,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-1 transition-colors">Dashboard Overview</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Welcome back, Administrator. Here is what&apos;s happening in Agno today.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Welcome back, Administrator. Here is what&apos;s happening in Mapandan today.</p>
                 </div>
                 <div className="flex items-center space-x-3">
                     <button className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-[#2a3040] hover:bg-slate-100 dark:hover:bg-[#343b4f] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#3a4155] rounded-lg text-sm font-medium transition-colors shadow-sm dark:shadow-none">
@@ -28,7 +28,7 @@ export default function AdminDashboard() {
                     <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-700 opacity-20 transform group-hover:scale-110 transition-transform">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 transition-colors">Total Tourism Visitors (Est)</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 transition-colors">Total Gallery Visitors (Est)</p>
                     <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 transition-colors">12,450</h2>
                     <div className="flex items-center text-xs">
                         <span className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded flex items-center font-medium transition-colors">
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
                                     <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 </div>
                                 <div>
-                                    <h4 className="text-slate-900 dark:text-white font-medium mb-1 transition-colors">Tourism Highlights</h4>
+                                    <h4 className="text-slate-900 dark:text-white font-medium mb-1 transition-colors">Gallery Highlights</h4>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Feature a new local business or scenic spot on the homepage.</p>
                                 </div>
                             </div>
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
                             </li>
                             <li className="relative pl-8">
                                 <span className="absolute left-[8px] top-1.5 w-2 h-2 rounded-full bg-orange-500 ring-4 ring-white dark:ring-[#1e2330] transition-colors"></span>
-                                <p className="text-slate-700 dark:text-slate-300 text-sm transition-colors">Updated <strong className="text-slate-900 dark:text-white">Sabangan Beach</strong> details in Tourism module.</p>
+                                <p className="text-slate-700 dark:text-slate-300 text-sm transition-colors">Updated <strong className="text-slate-900 dark:text-white">Sabangan Beach</strong> details in Gallery module.</p>
                                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors">1 day ago</p>
                             </li>
                         </ul>

@@ -37,7 +37,7 @@ interface AnnouncementsNewsProps {
 
 export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProps) {
     return (
-        <section id="news" className="py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <section id="news" className="py-12 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
             
             {/* Left Column: Public Announcements */}
             <div className="space-y-12">

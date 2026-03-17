@@ -7,6 +7,7 @@ import { PlacesToVisit } from "@/components/sections/landing/PlacesToVisit";
 import { EventsCalendarSection } from "@/components/sections/landing/EventsCalendarSection";
 import { AnnouncementsNews } from "@/components/sections/landing/AnnouncementsNews";
 import { JobBoard } from "@/components/sections/landing/JobBoard";
+import { LGUProjects } from "@/components/sections/landing/LGUProjects";
 import { Government } from "@/components/sections/landing/Government";
 import { Services } from "@/components/sections/landing/Services";
 import { EmergencyReport } from "@/components/sections/landing/EmergencyReport";
@@ -22,7 +23,7 @@ export default async function Home() {
     }
 
     // 2. Fetch Dynamic Content
-    const [slides, logoUrl, tourismSpots, dining, lodging, announcements, events, news] = await Promise.all([
+    const [slides, logoUrl, tourismSpots, dining, lodging, announcements, events, news, projects] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
             orderBy: { order: 'asc' }
@@ -57,6 +58,11 @@ export default async function Home() {
             where: { isPublished: true },
             orderBy: { publishDate: 'desc' },
             take: 4
+        }),
+        prisma.project.findMany({
+            where: { isPublished: true },
+            orderBy: { createdAt: 'desc' },
+            take: 3
         })
     ]);
 
@@ -83,7 +89,7 @@ export default async function Home() {
             
             <Hero slides={slides} />
             
-            <div className="space-y-16 pb-32">
+            <div className="space-y-4 pb-32">
                 <DiningLodging items={discoveryItems} />
                 <PlacesToVisit spots={tourismSpots} />
                 
@@ -92,6 +98,9 @@ export default async function Home() {
                 
                 {/* Announcements & News Section */}
                 <AnnouncementsNews announcements={announcements} news={news} />
+
+                {/* Infrastructure Projects Section */}
+                <LGUProjects projects={projects} />
                 
                 <JobBoard />
                 <Government />

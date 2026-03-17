@@ -45,7 +45,7 @@ export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] })
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Community Pulse</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        Explore upcoming festivals, municipal celebrations, and community gatherings. Join the vibrant spirit of Agno.
+                        Explore upcoming festivals, municipal celebrations, and community gatherings. Join the vibrant spirit of Mapandan.
                     </p>
                 </div>
             </div>

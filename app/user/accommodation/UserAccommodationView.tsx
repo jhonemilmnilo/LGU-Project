@@ -4,15 +4,9 @@ import { motion } from "framer-motion";
 import { 
     Bed, 
     MapPin, 
-    Clock, 
     Home, 
-    ArrowRight, 
-    Wind, 
-    Waves, 
-    Coffee,
-    Star,
-    ShieldCheck,
-    Search
+    Search,
+    ArrowRight
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -25,6 +19,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +39,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Agno / Tuluyan & Resorts</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Mapandan / Tuluyan & Resorts</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -62,7 +57,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        From beachfront resorts to hillside villas. Find your home away from home in the coastal breeze of Agno. Enjoy world-class hospitality and breathtaking views.
+                        From beachfront resorts to hillside villas. Find your home away from home in the coastal breeze of Mapandan. Enjoy world-class hospitality and breathtaking views.
                     </p>
                 </div>
             </div>

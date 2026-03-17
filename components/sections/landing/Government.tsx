@@ -22,7 +22,7 @@ export function Government() {
     const rest = council.slice(1);
 
     return (
-        <section className="py-24 px-6 max-w-7xl mx-auto space-y-20">
+        <section className="py-16 px-6 max-w-7xl mx-auto space-y-20">
             <div className="text-center space-y-6">
                 <div className="flex items-center justify-center gap-4">
                     <div className="h-px w-12 bg-blue-600/20" />
@@ -33,7 +33,7 @@ export function Government() {
                     Municipal Government
                 </h2>
                 <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
-                    A dedicated team working together for a sustainable and prosperous Agno.
+                    A dedicated team working together for a sustainable and prosperous Mapandan.
                 </p>
             </div>
 

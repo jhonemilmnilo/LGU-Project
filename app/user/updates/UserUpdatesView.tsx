@@ -22,7 +22,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Civic Updates</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        Stay informed with the latest official bulletins, community stories, and upcoming celebrations in Agno.
+                        Stay informed with the latest official bulletins, community stories, and upcoming celebrations in Mapandan.
                     </p>
                 </div>
             </div>

@@ -22,7 +22,7 @@ export function UserNewsView({ initialNews = [] }: { initialNews: any[] }) {
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Municipal News</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        Official updates, press releases, and community stories directly from the Agno Municipal Information Office.
+                        Official updates, press releases, and community stories directly from the Mapandan Municipal Information Office.
                     </p>
                 </div>
             </div>

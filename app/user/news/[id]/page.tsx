@@ -103,7 +103,7 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Official Statement</h3>
                             </div>
                             <p className="text-base text-slate-500 font-medium italic leading-relaxed">
-                                This article is an official publication of the Municipality of Agno. For verification or media inquiries, please visit the Municipal Information Office during office hours.
+                                This article is an official publication of the Municipality of Mapandan. For verification or media inquiries, please visit the Municipal Information Office during office hours.
                             </p>
                         </div>
                     </div>
@@ -132,7 +132,7 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
                             <div className="relative z-10 space-y-4">
                                 <Tag className="w-8 h-8 text-blue-300" />
                                 <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-tight">Stay Informed,<br/>Stay Connected.</h4>
-                                <p className="text-xs font-medium italic text-blue-100">Subscribe to our newsletter for real-time updates from Agno.</p>
+                                <p className="text-xs font-medium italic text-blue-100">Subscribe to our newsletter for real-time updates from Mapandan.</p>
                                 <Button className="w-full h-12 bg-white text-blue-600 rounded-xl font-black uppercase tracking-widest text-[10px] mt-4 hover:bg-blue-50 transition-colors">
                                     Sign Up Now
                                 </Button>

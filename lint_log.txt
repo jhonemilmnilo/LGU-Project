@@ -1,0 +1,40 @@
+
+> agno-portal@0.1.0 lint
+> eslint
+
+
+C:\Website Project\agno-portal\app\admin\residents\components\FacialVerification.tsx
+  258:8  warning  React Hook useCallback has a missing dependency: 'eyeBaseline'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Website Project\agno-portal\app\user\accommodation\UserAccommodationView.tsx
+   7:5   warning  'Clock' is defined but never used        @typescript-eslint/no-unused-vars
+  10:5   warning  'Wind' is defined but never used         @typescript-eslint/no-unused-vars
+  11:5   warning  'Waves' is defined but never used        @typescript-eslint/no-unused-vars
+  12:5   warning  'Coffee' is defined but never used       @typescript-eslint/no-unused-vars
+  13:5   warning  'Star' is defined but never used         @typescript-eslint/no-unused-vars
+  14:5   warning  'ShieldCheck' is defined but never used  @typescript-eslint/no-unused-vars
+  28:10  warning  'cn' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\user\dining\UserDiningView.tsx
+  11:5   warning  'Filter' is defined but never used  @typescript-eslint/no-unused-vars
+  24:10  warning  'cn' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\user\events\[id]\page.tsx
+  182:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\tourism\UserTourismView.tsx
+  4:35  warning  'ArrowRight' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\components\auth\ChangePasswordModal.tsx
+  13:5  warning  'ArrowLeft' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\components\layout\Navbar.tsx
+  14:5  warning  'Coffee' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\components\sections\landing\PlacesToVisit.tsx
+  23:43  error  React Hook "React.useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  24:37  error  React Hook "React.useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  27:5   error  React Hook "React.useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+??? 17 problems (4 errors, 13 warnings)
+

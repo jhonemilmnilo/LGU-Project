@@ -33,7 +33,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                         Kainan at Tuluyan
                     </h2>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        Discover the authentic flavors and premium retreats of Agno in one mixed experience.
+                        Discover the authentic flavors and premium retreats of Mapandan in one mixed experience.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

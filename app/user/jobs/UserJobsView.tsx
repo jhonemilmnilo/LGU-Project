@@ -23,7 +23,7 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: any[] }) {
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Economic Hub</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        Build your career within the Agno Municipal Government. Explore current openings and join our mission to serve.
+                        Build your career within the Mapandan Municipal Government. Explore current openings and join our mission to serve.
                     </p>
                 </div>
             </div>

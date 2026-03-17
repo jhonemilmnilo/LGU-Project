@@ -24,7 +24,7 @@ export function UserOfficialsView({ initialOfficials = [] }: { initialOfficials:
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Town Officials</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        The dedicated leaders of Agno, committed to serving the community with transparency and integrity.
+                        The dedicated leaders of Mapandan, committed to serving the community with transparency and integrity.
                     </p>
                 </div>
             </div>

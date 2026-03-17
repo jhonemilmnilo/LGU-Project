@@ -33,7 +33,7 @@ export function Sidebar({ session }: SidebarProps) {
         { href: "/admin/projects", label: "LGU Projects", icon: FolderKanban },
         { href: "/admin/dining", label: "Kainan (Dining)", icon: UtensilsCrossed },
         { href: "/admin/accommodation", label: "Tuluyan (Stay)", icon: BedDouble },
-        { href: "/admin/tourism", label: "Tourism Spots", icon: Map },
+        { href: "/admin/tourism", label: "Gallery", icon: Map },
         { href: "/admin/reports", label: "Public Reports", icon: AlertTriangle, category: "Management", badge: 3 },
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
@@ -53,8 +53,8 @@ export function Sidebar({ session }: SidebarProps) {
                         <Map className="text-teal-600 w-5 h-5" />
                     </div>
                     <div>
-                        <h2 className="text-slate-900 dark:text-slate-100 font-bold text-lg leading-tight">Agno Admin</h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs">Municipality of Agno</p>
+                        <h2 className="text-slate-900 dark:text-slate-100 font-bold text-lg leading-tight">Mapandan Admin</h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs">Municipality of Mapandan</p>
                     </div>
                 </div>
 

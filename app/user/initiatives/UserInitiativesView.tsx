@@ -24,7 +24,7 @@ export function UserInitiativesView({ initialProjects = [], initialJobs = [] }: 
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Municipal Initiatives</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
-                        Monitor the infrastructure and economic development projects shaping the future of Agno. Transparency and opportunity in one hub.
+                        Monitor the infrastructure and economic development projects shaping the future of Mapandan. Transparency and opportunity in one hub.
                     </p>
                 </div>
             </div>

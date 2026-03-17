@@ -7,8 +7,7 @@ import {
     Utensils, 
     Home, 
     ArrowRight, 
-    Search,
-    Filter
+    Search
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function UserDiningView({ initialDining = [] }: { initialDining: any[] }) {
@@ -40,7 +38,7 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Agno / Dining Hub</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Mapandan / Dining Hub</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -58,7 +56,7 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        Explore Agno&apos;s diverse culinary landscape. From beachfront grills to cozy town center cafes, discover the true taste of our municipality.
+                        Explore Mapandan&apos;s diverse culinary landscape. From beachfront grills to cozy town center cafes, discover the true taste of our municipality.
                     </p>
                 </div>
             </div>

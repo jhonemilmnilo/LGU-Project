@@ -38,7 +38,7 @@ export function AuthLayout({
                         </svg>
                     </div>
                     <span className="text-sm font-bold text-slate-800 dark:text-white tracking-tight">
-                        Agno
+                        Mapandan
                     </span>
                 </div>
 
@@ -48,7 +48,7 @@ export function AuthLayout({
 
                 {/* Bottom footer */}
                 <p className="absolute bottom-8 left-8 xl:left-12 text-xs text-slate-400 dark:text-slate-600 font-medium">
-                    © {new Date().getFullYear()} Agno. All rights reserved.
+                    © {new Date().getFullYear()} Mapandan. All rights reserved.
                 </p>
             </motion.div>
 

@@ -15,50 +15,15 @@ interface PlacesToVisitProps {
 
 export function PlacesToVisit({ spots }: PlacesToVisitProps) {
     const router = useRouter();
-    const displaySpots = spots && spots.length > 0 ? spots : [
-        {
-            id: 'mock-1',
-            name: "Umbrella Rocks",
-            address: "Sabangan, Agno",
-            imageUrl: "/place_to_visits/umbrella_rocks.png",
-            description: "Agno's most iconic landmark, famed for mushroom-shaped rock formations sculpted by the relentless waves of the West Philippine Sea.",
-        },
-        {
-            id: 'mock-2',
-            name: "Sabangan Beach",
-            address: "Sabangan, Agno",
-            imageUrl: "/place_to_visits/sabangan_beach.png",
-            description: "Boasts a diverse marine ecosystem with beautiful corals and crystal-clear blue waters, ideal for snorkeling and diving.",
-        },
-        {
-            id: 'mock-3',
-            name: "Abagatanen Beach",
-            address: "Abagatanen, Agno",
-            imageUrl: "/place_to_visits/abagatanen_beach.png",
-            description: "A serene beach known for its clear waters and fine sand, offering a peaceful escape for swimming and camping.",
-        },
-        {
-            id: 'mock-4',
-            name: "Death Pool",
-            address: "Sabangan, Agno",
-            imageUrl: "/place_to_visits/death_pool.png",
-            description: "Isang natural rock pool na bilog at talagang maganda tignan sa personal, matatagpuan malapit sa Umbrella Rocks.",
-        },
-        {
-            id: 'mock-5',
-            name: "Payad Beach",
-            address: "Payad, Agno",
-            imageUrl: "/place_to_visits/payad_beach.png",
-            description: "Rustic and charming destination offering a tranquil environment for relaxation by the sea.",
-        }
-    ];
-
+    
     const [activeIndex, setActiveIndex] = React.useState(0);
     const [isPaused, setIsPaused] = React.useState(false);
 
+    const displaySpots = spots || [];
+
     // Auto-cycle logic
     React.useEffect(() => {
-        if (isPaused) return;
+        if (!displaySpots.length || isPaused) return;
 
         const interval = setInterval(() => {
             setActiveIndex((prev) => (prev + 1) % displaySpots.length);
@@ -66,6 +31,8 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
         return () => clearInterval(interval);
     }, [isPaused, displaySpots.length]);
+
+    if (!spots || spots.length === 0) return null;
 
     const handleCardClick = (id: string, idx: number) => {
         if (activeIndex === idx) {
@@ -77,14 +44,24 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
     return (
         <section className="py-12 px-6 max-w-7xl mx-auto space-y-10">
-            <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-0.5 bg-blue-600" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Spotlight</span>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-0.5 bg-blue-600" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Spotlight</span>
+                    </div>
+                    <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                        Gallery
+                    </h2>
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                    Places to Visit
-                </h2>
+
+                <div
+                    onClick={() => router.push("/user/tourism")}
+                    className="flex items-center gap-3 px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 rounded-[2rem] font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 dark:hover:bg-blue-600 dark:hover:text-white transition-all cursor-pointer shadow-xl active:scale-95 group"
+                >
+                    <Compass className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+                    Explore Entire Gallery
+                </div>
             </div>
 
             <div

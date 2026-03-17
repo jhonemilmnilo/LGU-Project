@@ -25,7 +25,7 @@ export function UserMapsView({ initialHazardMaps = [] }: { initialHazardMaps: an
 { }
 { }
                         {/* eslint-disable-next-line react/no-unescaped-entities */}
-                        Explore Agno through our interactive spatial hubs. Monitor environmental risks or view the municipality's residential pulse.
+                        Explore Mapandan through our interactive spatial hubs. Monitor environmental risks or view the municipality's residential pulse.
                     </p>
                 </div>
             </div>
@@ -132,7 +132,7 @@ export function UserMapsView({ initialHazardMaps = [] }: { initialHazardMaps: an
                          <Users className="w-16 h-16 text-slate-200 dark:text-white/5 mb-6" />
                          <h3 className="text-2xl font-black text-slate-400 uppercase italic tracking-tighter italic">Residential Mapping Portal</h3>
                          <p className="text-sm text-slate-400 mt-2 font-medium italic max-w-lg">
-                            Visualizing the community density and demographic distribution of Agno. 
+                            Visualizing the community density and demographic distribution of Mapandan. 
                             Secure access to residential spatial data is currently limited to official planning.
                          </p>
                          <div className="mt-8 flex gap-4">

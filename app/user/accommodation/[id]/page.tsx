@@ -21,7 +21,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
     // Map implementation without API key
     const mapQuery = item.latitude && item.longitude 
         ? `${item.latitude},${item.longitude}`
-        : `${item.name}, ${item.address}, Agno, Pangasinan`;
+        : `${item.name}, ${item.address}, Mapandan, Pangasinan`;
     const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
     return (

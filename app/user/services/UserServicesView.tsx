@@ -52,7 +52,7 @@ export function UserServicesView() {
 { }
 { }
                                     {/* eslint-disable-next-line react/no-unescaped-entities */}
-                                    Spotted an issue in your neighborhood? Help us maintain Agno's excellence by reporting road damage, waste management issues, or street lighting concerns.
+                                    Spotted an issue in your neighborhood? Help us maintain Mapandan's excellence by reporting road damage, waste management issues, or street lighting concerns.
                                 </p>
                             </div>
 

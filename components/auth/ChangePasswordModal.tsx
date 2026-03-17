@@ -10,7 +10,6 @@ import {
     Check, 
     Loader2, 
     ArrowRight, 
-    ArrowLeft, 
     Eye, 
     EyeOff,
     ShieldAlert

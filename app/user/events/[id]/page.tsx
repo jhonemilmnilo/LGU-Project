@@ -121,7 +121,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
                                     height="100%"
                                     frameBorder="0"
                                     style={{ border: 0 }}
-                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(event.latitude && event.longitude ? `${event.latitude},${event.longitude}` : `${event.venueName}, ${event.address}, Agno, Pangasinan`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(event.latitude && event.longitude ? `${event.latitude},${event.longitude}` : `${event.venueName}, ${event.address}, Mapandan, Pangasinan`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                                     allowFullScreen
                                     loading="lazy"
                                 ></iframe>
@@ -179,6 +179,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
                                 <div className="space-y-3">
                                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                     {((event as any).reminders && (event as any).reminders.length > 0) ? (
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         (event as any).reminders.map((reminder: string, rIdx: number) => (
                                             <div key={rIdx} className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500 fill-mode-both" style={{ animationDelay: `${rIdx * 100}ms` }}>
                                                 <BellRing className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />

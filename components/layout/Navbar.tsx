@@ -11,8 +11,8 @@ import {
     
     Map, Newspaper, PhoneCall, LayoutGrid, 
     
-    Coffee, Compass, HeartPulse, Users,
-    Utensils, Bed
+    Compass, HeartPulse, Users,
+    Utensils, Bed, FolderKanban
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -86,7 +86,7 @@ export function Navbar({ logoUrl }: NavbarProps) {
     // Standard public links
     const publicLinks = [
         { name: "Services", href: "/#services", icon: Briefcase },
-        { name: "Tourism", href: "/#tourism", icon: Compass },
+        { name: "Gallery", href: "/#tourism", icon: Compass },
         { name: "Updates", href: "/#news", icon: Newspaper },
         { name: "Careers", href: "/#careers", icon: Briefcase },
         { name: "Safety", href: "/#hotlines", icon: PhoneCall },
@@ -98,8 +98,8 @@ export function Navbar({ logoUrl }: NavbarProps) {
         { name: "Updates", href: "/#updates", icon: Bell },
         { name: "Dining Hub", href: "/user/dining", icon: Utensils },
         { name: "Accommodations", href: "/user/accommodation", icon: Bed },
-        { name: "Tourism", href: "/user/tourism", icon: Compass },
-        { name: "Initiatives", href: "/user/initiatives", icon: LayoutGrid },
+        { name: "Gallery", href: "/user/tourism", icon: Compass },
+        { name: "Projects", href: "/user/projects", icon: FolderKanban },
         { name: "Services", href: "/user/services", icon: HeartPulse },
         { name: "Leadership", href: "/user/leadership", icon: Users },
     ];
@@ -143,7 +143,7 @@ export function Navbar({ logoUrl }: NavbarProps) {
                             style={{ color: activeTheme === "dark" ? darkColor : color }}
                             className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic leading-none"
                         >
-                            Agno<span className="text-blue-600">Portal</span>
+                            Mapandan<span className="text-blue-600">Portal</span>
                         </motion.span>
                         <motion.span 
                             style={{ opacity: useTransform(scrollY, [0, 80], [0.7, 0.4]) }}

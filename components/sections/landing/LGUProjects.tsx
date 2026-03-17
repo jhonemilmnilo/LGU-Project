@@ -1,75 +1,71 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { FolderKanban, Home, LayoutGrid, Clock, MapPin, ArrowRight, Gauge } from "lucide-react";
+import * as React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { motion } from "framer-motion";
+import { FolderKanban, MapPin, ArrowRight, Gauge, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserProjectsView({ initialProjects = [] }: { initialProjects: any[] }) {
-    return (
-        <div className="space-y-10 pb-20">
-            {/* Breadcrumb section */}
-            <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                <Home className="w-3.5 h-3.5 mb-0.5" />
-                                Home
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Municipal Initiatives / Projects</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+interface Project {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    status: string;
+    location: string;
+    progress: number;
+    imageUrl: string | null;
+    startDate: Date | null;
+}
 
-            {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+interface LGUProjectsProps {
+    projects: Project[];
+}
+
+export function LGUProjects({ projects }: LGUProjectsProps) {
+    if (!projects || projects.length === 0) return null;
+
+    return (
+        <section id="projects" className="py-12 px-6 max-w-7xl mx-auto space-y-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform -rotate-3 hover:rotate-0 transition-transform">
-                            <FolderKanban className="w-7 h-7 text-white" />
-                        </div>
-                        <div className="space-y-0.5">
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Growth Engine</h1>
-                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] ml-1">LGU Infrastructure</p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-0.5 bg-blue-600" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Infrastructure</span>
                     </div>
-                    <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        Monitor the infrastructure and social development projects shaping the future of Mapandan. Transparency and progress in every brick laid.
-                    </p>
+                    <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                        LGU Projects
+                    </h2>
                 </div>
+
+                <Link href="/user/projects">
+                    <Button 
+                        className="px-8 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 group"
+                    >
+                        <FolderKanban className="w-4 h-4 transition-transform mr-2" />
+                        View All Projects
+                    </Button>
+                </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {initialProjects.map((project, idx) => (
+                {projects.map((project, idx) => (
                     <motion.div
                         key={project.id}
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
                         transition={{ delay: idx * 0.1 }}
                     >
                         <Link 
                             href={`/user/projects/${project.id}`}
-                            className="group block bg-white dark:bg-[#0f1117] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] overflow-hidden hover:border-blue-500 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full active:scale-[0.98]"
+                            className="group block bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] overflow-hidden hover:border-blue-500 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full active:scale-[0.98]"
                         >
                             {/* Image Header */}
-                            <div className="relative h-64 w-full overflow-hidden">
+                            <div className="relative h-56 w-full overflow-hidden">
                                 <Image
                                     src={project.imageUrl || "/projects/default.png"}
                                     alt={project.title}
@@ -80,12 +76,12 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                                 
                                 <div className="absolute top-6 left-6">
                                     <span className={cn(
-                                        "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest backdrop-blur-sm border shadow-lg",
+                                        "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest backdrop-blur-md border shadow-lg",
                                         project.status === "Completed" 
                                             ? "bg-emerald-500/90 text-white border-emerald-400/30"
                                             : "bg-blue-600/90 text-white border-blue-400/30"
                                     )}>
-                                        {project.status || "Planned"}
+                                        {project.status}
                                     </span>
                                 </div>
 
@@ -107,22 +103,22 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                             <div className="p-8 space-y-4 flex-1 flex flex-col">
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-1.5 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-500/20">
-                                        <Clock className="w-2.5 h-2.5" />
-                                        {project.updatedAt ? `Updated ${format(new Date(project.updatedAt), "MMM d, yyyy")}` : "Recently Added"}
+                                        <Calendar className="w-2.5 h-2.5" />
+                                        {project.startDate ? format(new Date(project.startDate), "MMM yyyy") : "TBA"}
                                     </div>
                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{project.category}</span>
                                 </div>
 
                                 <div className="space-y-2 flex-1">
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-colors">
+                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-colors">
                                         {project.title}
                                     </h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed">
                                         {project.description}
                                     </p>
                                 </div>
 
-                                <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                                <div className="pt-6">
                                     <div className="w-full bg-slate-100 dark:bg-white/5 h-2 rounded-full overflow-hidden shadow-inner">
                                         <motion.div 
                                             initial={{ width: 0 }}
@@ -138,15 +134,6 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                     </motion.div>
                 ))}
             </div>
-
-            {initialProjects.length === 0 && (
-                <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-white dark:bg-black/10">
-                    <FolderKanban className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-400 font-black uppercase tracking-[0.2em] italic">Infrastructure roadmap is being updated...</p>
-                </div>
-            )}
-        </div>
+        </section>
     );
 }
-
-

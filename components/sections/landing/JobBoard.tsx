@@ -36,14 +36,14 @@ const jobs = [
 
 export function JobBoard() {
     return (
-        <section id="careers" className="py-24 px-6 bg-slate-50 dark:bg-white/5 border-y border-slate-100 dark:border-white/5">
+        <section id="careers" className="py-16 px-6 bg-slate-50 dark:bg-white/5 border-y border-slate-100 dark:border-white/5">
             <div className="max-w-7xl mx-auto space-y-16">
                 <div className="text-center space-y-4">
                     <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                         Job Opportunities
                     </h2>
                     <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
-                        Join the municipal team and serve the people of Agno.
+                        Join the municipal team and serve the people of Mapandan.
                     </p>
                 </div>
 
