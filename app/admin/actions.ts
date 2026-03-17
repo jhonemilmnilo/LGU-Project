@@ -51,7 +51,7 @@ export async function checkDuplicateFace(descriptor: number[]) {
 
         console.log(`[BioCheck] Comparing against ${residents.length} records...`);
 
-        const threshold = 0.6; 
+        const threshold = 0.45; 
         let match = null;
 
         for (const resident of residents) {
@@ -1012,6 +1012,18 @@ export async function addHousehold(formData: FormData) {
     try {
         const headId = formData.get("headId") as string;
         
+        if (headId) {
+            const existing = await (prisma as any).household.findUnique({
+                where: { headId }
+            });
+            if (existing) {
+                return { 
+                    success: false, 
+                    error: "This person is already a head of another household." 
+                };
+            }
+        }
+        
         const household = await (prisma as any).household.create({
             data: {
                 headId: headId || null,
@@ -1035,6 +1047,21 @@ export async function addHousehold(formData: FormData) {
 export async function updateHousehold(id: string, formData: FormData) {
     try {
         const headId = formData.get("headId") as string;
+        
+        if (headId) {
+            const existing = await (prisma as any).household.findFirst({
+                where: { 
+                    headId,
+                    id: { not: id }
+                }
+            });
+            if (existing) {
+                return { 
+                    success: false, 
+                    error: "This person is already a head of another household." 
+                };
+            }
+        }
 
         const household = await (prisma as any).household.update({
             where: { id },
@@ -1443,19 +1470,29 @@ export async function updateResident(id: string, formData: FormData) {
 
         // If newly marked as head and no householdId, create one
         if (isHead && !householdId) {
-            try {
-                const newHousehold = await (prisma as any).household.create({
-                    data: {
-                        barangay: formData.get("barangay") as string,
-                        householdSize: 1,
-                        headId: id,
-                        contactNumber: formData.get("contactNumber") as string || null,
-                    } as any
-                });
-                householdId = newHousehold.id;
+            // Check if they are already a head of any household to avoid unique constraint error
+            const existingAsHead = await (prisma as any).household.findUnique({
+                where: { headId: id }
+            });
+
+            if (existingAsHead) {
+                householdId = existingAsHead.id;
                 dataToUpdate.householdId = householdId;
-            } catch (err) {
-                console.error("Automatic household creation failed during update:", err);
+            } else {
+                try {
+                    const newHousehold = await (prisma as any).household.create({
+                        data: {
+                            barangay: formData.get("barangay") as string,
+                            householdSize: 1,
+                            headId: id,
+                            contactNumber: formData.get("contactNumber") as string || null,
+                        } as any
+                    });
+                    householdId = newHousehold.id;
+                    dataToUpdate.householdId = householdId;
+                } catch (err) {
+                    console.error("Automatic household creation failed during update:", err);
+                }
             }
         }
 

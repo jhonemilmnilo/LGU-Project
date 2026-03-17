@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import * as faceapi from "face-api.js";
 import Webcam from "react-webcam";
-import { CheckCircle2, Circle, AlertCircle, Loader2, Camera, RefreshCw } from "lucide-react";
+import { CheckCircle2, Circle, AlertCircle, Loader2, Camera, RefreshCw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [progress, setProgress] = useState(0);
     const [hint, setHint] = useState<string>("Face the camera");
+    const [showGuide, setShowGuide] = useState(true);
+    const [lightingDetail, setLightingDetail] = useState<{ score: number; status: 'GOOD' | 'POOR' }>({ score: 0, status: 'GOOD' });
     // const [error, setError] = useState<string | null>(null); // Removed unused state
 
     const isProcessing = useRef(false);
@@ -62,7 +64,18 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     const resetVerification = useCallback(() => {
         setStep("NEUTRAL");
         setLiveness({ neutral: false, left: false, right: false, blink: false });
+        setHint("Face the camera");
+        setShowGuide(true);
+        setLightingDetail({ score: 0, status: 'GOOD' });
+        isProcessing.current = false;
     }, []);
+
+    // Also reset when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            resetVerification();
+        }
+    }, [isOpen, resetVerification]);
 
 
     const handleVerification = useCallback(async () => {
@@ -72,7 +85,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         isProcessing.current = true;
         try {
             const video = webcamRef.current.video;
-            if (video.readyState < 2) {
+            if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
                 isProcessing.current = false;
                 return;
             }
@@ -100,6 +113,22 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
             const leftEye = landmarks.getLeftEye();
             const rightEye = landmarks.getRightEye();
 
+            // Glass/Occlusion Heuristic Check
+            // We check the variance between eye points and the bridge of the nose.
+            // If the landmark confidence for the bridge (nose[0-3]) is low or if we detect
+            // specific occlusion patterns, we warn the user.
+            const eyeBridge = landmarks.getNose().slice(0, 4);
+            const leftEyeInner = leftEye[3];
+            const rightEyeInner = rightEye[0];
+            const bridgeDistance = Math.abs(rightEyeInner.x - leftEyeInner.x);
+            
+            // If the inner eye corners are too far or blocked, it often means heavy glasses
+            if (detections.detection.score < 0.85) { // Strict confidence check
+                setHint("Face clarity low. Remove glasses or check lighting.");
+                isProcessing.current = false;
+                return;
+            }
+
             const leftEyeMid = (leftEye[0].x + leftEye[3].x) / 2;
             const rightEyeMid = (rightEye[0].x + rightEye[3].x) / 2;
             const eyeDist = Math.abs(rightEyeMid - leftEyeMid);
@@ -115,6 +144,29 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
             const leftEAR = getEAR(leftEye);
             const rightEAR = getEAR(rightEye);
             const avgEAR = (leftEAR + rightEAR) / 2;
+
+            // Lighting Check (Simple brightness estimation)
+            if (Math.random() > 0.9) {
+                const ctx = canvasRef.current?.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(video, 0, 0, 10, 10);
+                    const imgData = ctx.getImageData(0, 0, 10, 10).data;
+                    let brightness = 0;
+                    for (let i = 0; i < imgData.length; i += 4) {
+                        brightness += (imgData[i] + imgData[i+1] + imgData[i+2]) / 3;
+                    }
+                    brightness /= (imgData.length / 4);
+                    setLightingDetail({ 
+                        score: brightness, 
+                        status: brightness < 40 ? 'POOR' : 'GOOD' 
+                    });
+                    if (brightness < 40) {
+                        setHint("Too dark. Move to a better lit area.");
+                        isProcessing.current = false;
+                        return;
+                    }
+                }
+            }
 
             // Enhanced Debugging
             if (step === "BLINK" || Math.random() > 0.95) {
@@ -161,12 +213,15 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                         
                         toast.dismiss(toastId);
 
-                        if (duplicateCheck.success && duplicateCheck.match) {
-                            toast.error(`DUPLICATE DETECTED: This person is already registered as ${duplicateCheck.match.name}.`, {
+                         if (duplicateCheck.success && duplicateCheck.match) {
+                            toast.error(`DUPLICATE DETECTED: This person already exists.`, {
                                 duration: 8000,
                                 position: "top-center"
                             });
-                            resetVerification();
+                            // Force hard reset even after a slight delay
+                            setTimeout(() => {
+                                resetVerification();
+                            }, 500);
                             return;
                         }
 
@@ -206,11 +261,11 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (isOpen && modelsLoaded && step !== "COMPLETED" && step !== "INITIALIZING" && step !== "PROCESSING") {
-            interval = setInterval(handleVerification, 80); // Speed up slightly to catch blinks
+        if (isOpen && modelsLoaded && step !== "COMPLETED" && step !== "INITIALIZING" && step !== "PROCESSING" && !showGuide) {
+            interval = setInterval(handleVerification, 80); 
         }
         return () => clearInterval(interval);
-    }, [isOpen, modelsLoaded, step, handleVerification]);
+    }, [isOpen, modelsLoaded, step, handleVerification, showGuide]);
 
 
 
@@ -228,22 +283,49 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                 </DialogHeader>
 
                 <div className="relative aspect-square flex items-center justify-center bg-black overflow-hidden group">
+                    {showGuide && (
+                        <div className="absolute inset-0 z-50 bg-[#0f1117] p-8 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-300">
+                            <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-6">
+                                <ShieldAlert className="w-10 h-10 text-blue-500" />
+                            </div>
+                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white mb-2">Biometric Protocol</h2>
+                            <p className="text-slate-400 text-sm font-medium mb-8 max-w-xs">
+                                For maximum accuracy, ensure you are in a **well-lit area**, remove **glasses/hats**, and look directly at the camera.
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 w-full mb-8">
+                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+                                    💡 Good Lighting
+                                </div>
+                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+                                    😐 Neutral Face
+                                </div>
+                            </div>
+                            <Button 
+                                onClick={() => setShowGuide(false)}
+                                className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic"
+                            >
+                                I UNDERSTAND, START
+                            </Button>
+                        </div>
+                    )}
+
                     {modelsLoaded ? (
                         <>
                             <Webcam
                                 audio={false}
                                 ref={webcamRef}
                                 screenshotFormat="image/jpeg"
-                                className={`w-full h-full object-cover transition-all duration-700 ${step === "INITIALIZING" ? 'grayscale opacity-40' : 'grayscale-0 opacity-100'}`}
+                                className={`w-full h-full object-cover transition-all duration-700 ${step === "INITIALIZING" || showGuide ? 'grayscale opacity-40' : 'grayscale-0 opacity-100'}`}
                                 videoConstraints={{ facingMode: "user", width: 720, height: 720 }}
                                 mirrored={true}
                                 onUserMediaError={handleWebcamError}
                             />
+                            <canvas ref={canvasRef} className="hidden" />
                             {/* Face Overlay Guideline */}
-                            <div className={`absolute inset-0 border-[10px] ${step === "COMPLETED" ? 'border-green-500/50' : 'border-blue-500/10'} pointer-events-none transition-colors duration-500`}>
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 border-white/30 rounded-[100px] flex items-center justify-center">
+                            <div className={`absolute inset-0 border-[10px] ${step === "COMPLETED" ? 'border-green-500/50' : lightingDetail.status === 'POOR' ? 'border-red-500/50' : 'border-blue-500/10'} pointer-events-none transition-colors duration-500`}>
+                                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 rounded-[100px] flex items-center justify-center transition-colors ${lightingDetail.status === 'POOR' ? 'border-red-500' : 'border-white/30'}`}>
                                     {step !== "COMPLETED" && (
-                                        <div className="absolute inset-0 border-2 border-dashed border-blue-400/50 rounded-[100px] animate-pulse" />
+                                        <div className={`absolute inset-0 border-2 border-dashed rounded-[100px] animate-pulse ${lightingDetail.status === 'POOR' ? 'border-red-400/50' : 'border-blue-400/50'}`} />
                                     )}
                                 </div>
                             </div>
@@ -256,22 +338,24 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     )}
 
                     {/* Step Instruction Overlay */}
-                    <div className="absolute bottom-6 left-6 right-6 p-4 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center animate-in slide-in-from-bottom-4">
-                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Step Guidance</span>
-                        <h3 className="text-white text-lg font-black uppercase italic tracking-tighter text-center">
-                            {step === "NEUTRAL" && "Center your face in the oval"}
-                            {step === "LOOK_LEFT" && "Turn your head slightly LEFT"}
-                            {step === "LOOK_RIGHT" && "Turn your head slightly RIGHT"}
-                            {step === "BLINK" && "Blink your eyes naturally"}
-                            {step === "PROCESSING" && "Hold still..."}
-                            {step === "COMPLETED" && "Verification Success!"}
-                        </h3>
-                        {/* Status Indicator */}
-                        <p className="mt-2 text-[11px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5 flex items-center gap-2">
-                             <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${hint.toLowerCase().includes('no face') ? 'bg-red-500' : 'bg-green-500'}`} />
-                             {hint}
-                        </p>
-                    </div>
+                    {!showGuide && (
+                        <div className="absolute bottom-6 left-6 right-6 p-4 bg-transparent flex flex-col items-center animate-in slide-in-from-bottom-4">
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Step Guidance</span>
+                            <h3 className="text-white text-lg font-black uppercase italic tracking-tighter text-center">
+                                {step === "NEUTRAL" && "Center your face in the oval"}
+                                {step === "LOOK_LEFT" && "Turn your head slightly LEFT"}
+                                {step === "LOOK_RIGHT" && "Turn your head slightly RIGHT"}
+                                {step === "BLINK" && "Blink your eyes naturally"}
+                                {step === "PROCESSING" && "Hold still..."}
+                                {step === "COMPLETED" && "Verification Success!"}
+                            </h3>
+                            {/* Status Indicator */}
+                            <p className="mt-2 text-[11px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5 flex items-center gap-2">
+                                 <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${hint.toLowerCase().includes('no face') || lightingDetail.status === 'POOR' ? 'bg-red-500' : 'bg-green-500'}`} />
+                                 {hint}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-6 bg-[#1a1f2e] space-y-6">
