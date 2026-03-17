@@ -1,26 +1,56 @@
 "use client";
 
 import { motion } from "framer-motion";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Camera, MapPin, Compass, ArrowRight, Map as MapIcon, Star, Info } from "lucide-react";
+import { Camera, MapPin, Compass, ArrowRight, Map as MapIcon, Star, Info, Home } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserTourismView({ initialTourism = [] }: { initialTourism: any[] }) {
     return (
-        <div className="space-y-12 pb-20">
+        <div className="space-y-10 pb-20">
+            {/* Breadcrumb section */}
+            <Breadcrumb>
+                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <Home className="w-3.5 h-3.5 mb-0.5" />
+                                Home
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Agno / Tourism Portal</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
+
+            {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
-                            <Compass className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                            <Compass className="w-7 h-7 text-white" />
                         </div>
-                        <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Tourism Portal</h1>
+                        <div className="space-y-0.5">
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Tourism Portal</h1>
+                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] ml-1">The natural wonders</p>
+                        </div>
                     </div>
-                    <p className="text-slate-500 font-medium italic max-w-xl">
+                    <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
                         Explore the natural wonders and cultural landmarks of Agno. From the iconic Umbrella Rocks to pristine river views.
                     </p>
                 </div>

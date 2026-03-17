@@ -36,12 +36,22 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                         Discover the authentic flavors and premium retreats of Agno in one mixed experience.
                     </p>
                 </div>
-                <Link href="/user/experience">
-                    <Button variant="ghost" className="group font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 flex items-center gap-2">
-                        Explore More
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link href="/user/dining">
+                        <Button className="h-12 px-6 bg-slate-100 dark:bg-white/5 hover:bg-orange-500 hover:text-white text-slate-900 dark:text-white rounded-2xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 group/btn transition-all shadow-sm">
+                            <Utensils className="w-4 h-4" />
+                            Kainan Hub
+                            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                        </Button>
+                    </Link>
+                    <Link href="/user/accommodation">
+                        <Button className="h-12 px-6 bg-slate-100 dark:bg-white/5 hover:bg-blue-600 hover:text-white text-slate-900 dark:text-white rounded-2xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 group/btn transition-all shadow-sm">
+                            <Bed className="w-4 h-4" />
+                            Tuluyan & Resorts
+                            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

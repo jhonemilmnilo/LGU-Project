@@ -11,7 +11,8 @@ import {
     
     Map, Newspaper, PhoneCall, LayoutGrid, 
     
-    Coffee, Compass, HeartPulse, Users
+    Coffee, Compass, HeartPulse, Users,
+    Utensils, Bed
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -95,7 +96,8 @@ export function Navbar({ logoUrl }: NavbarProps) {
     const hubLinks = [
         { name: "Maps", href: "/user/maps", icon: Map },
         { name: "Updates", href: "/#updates", icon: Bell },
-        { name: "Lifestyle", href: "/user/experience", icon: Coffee },
+        { name: "Dining Hub", href: "/user/dining", icon: Utensils },
+        { name: "Accommodations", href: "/user/accommodation", icon: Bed },
         { name: "Tourism", href: "/user/tourism", icon: Compass },
         { name: "Initiatives", href: "/user/initiatives", icon: LayoutGrid },
         { name: "Services", href: "/user/services", icon: HeartPulse },

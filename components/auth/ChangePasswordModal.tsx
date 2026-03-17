@@ -7,7 +7,6 @@ import * as z from "zod";
 import { 
     Mail, 
     ShieldCheck, 
-    Lock, 
     Check, 
     Loader2, 
     ArrowRight, 

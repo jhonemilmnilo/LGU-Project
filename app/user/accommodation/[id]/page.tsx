@@ -28,10 +28,10 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
         <div className="min-h-screen pb-20 space-y-10">
             {/* Header / Nav */}
             <div className="flex items-center justify-between">
-                <Link href="/user/experience">
+                <Link href="/user/accommodation">
                     <Button variant="ghost" className="group flex items-center gap-2 font-black uppercase tracking-widest text-[9px] text-slate-500 hover:text-blue-600 transition-colors">
                         <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                        Back
+                        Back to Hub
                     </Button>
                 </Link>
                 <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">

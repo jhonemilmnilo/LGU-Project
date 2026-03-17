@@ -44,17 +44,25 @@ export function Footer() {
                     </ul>
                 </div>
 
-                {/* Tourism */}
+                {/* Tourism & Hubs */}
                 <div className="space-y-6">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Tourism</h4>
+                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Explore Agno</h4>
                     <ul className="space-y-4">
-                        {["Umbrella Rocks", "Agno River", "Local Festivals", "Where to Stay"].map((link) => (
-                            <li key={link}>
-                                <Link href="#" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
-                                    {link}
-                                </Link>
-                            </li>
-                        ))}
+                        <li>
+                            <Link href="/user/accommodation" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
+                                Where to Stay
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/user/dining" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
+                                Dining Hub
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/user/tourism" className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none">
+                                Tourism Spots
+                            </Link>
+                        </li>
                     </ul>
                 </div>
 

@@ -74,7 +74,7 @@ export async function checkDuplicateFace(descriptor: number[]) {
 
         console.log(`[BioCheck] Comparing against ${residents.length} records...`);
 
-        const threshold = 0.45; 
+        const threshold = 0.38; // Lowered from 0.45 - more strict to prevent false duplicates
         let match = null;
 
         for (const resident of residents) {

@@ -23,7 +23,8 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     const [step, setStep] = useState<VerificationStep>("INITIALIZING");
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [hint, setHint] = useState<string>("Face the camera");
-    const [showGuide, setShowGuide] = useState(true);
+    const [showGuide, setShowGuide] = useState(false); // Default to false for better UX
+    const [eyeBaseline, setEyeBaseline] = useState<number | null>(null); // To store "normal" eye state
     const [lightingDetail, setLightingDetail] = useState<{ score: number; status: 'GOOD' | 'POOR' }>({ score: 0, status: 'GOOD' });
     // const [error, setError] = useState<string | null>(null); // Removed unused state
 
@@ -64,7 +65,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         setStep("NEUTRAL");
         setLiveness({ neutral: false, left: false, right: false, blink: false });
         setHint("Face the camera");
-        setShowGuide(true);
+        setEyeBaseline(null);
         setLightingDetail({ score: 0, status: 'GOOD' });
         isProcessing.current = false;
     }, []);
@@ -169,16 +170,22 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
             }
 
             if (step === "NEUTRAL") {
-                if (nosePos > 0.35 && nosePos < 0.65) { // Slightly wider precise center
-                    setHint("Perfect! Now turn your head slightly LEFT...");
-                    setLiveness(prev => ({ ...prev, neutral: true }));
-                    setStep("PROCESSING");
-                    setTimeout(() => setStep("LOOK_LEFT"), 400);
+                if (nosePos > 0.35 && nosePos < 0.65) {
+                    setHint("Hold still... setting eye baseline");
+                    // Take 3 snapshots of EAR to get a reliable baseline
+                    setEyeBaseline(prev => prev ? (prev + avgEAR) / 2 : avgEAR);
+                    
+                    if (eyeBaseline && Math.abs(avgEAR - eyeBaseline) < 0.05) {
+                        setHint("Perfect! Now turn your head slightly LEFT...");
+                        setLiveness(prev => ({ ...prev, neutral: true }));
+                        setStep("PROCESSING");
+                        setTimeout(() => setStep("LOOK_LEFT"), 400);
+                    }
                 } else {
                     setHint("Center your face directly at the camera.");
                 }
             } else if (step === "LOOK_LEFT") {
-                if (nosePos > 0.65) { // Nose closer to anatomical left eye (image right)
+                if (nosePos > 0.65) { 
                     setHint("Good! Now turn your head slightly RIGHT...");
                     setLiveness(prev => ({ ...prev, left: true }));
                     setStep("PROCESSING");
@@ -187,7 +194,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     setHint("Look to your LEFT (towards your left shoulder)...");
                 }
             } else if (step === "LOOK_RIGHT") {
-                if (nosePos < 0.35) { // Nose closer to anatomical right eye (image left)
+                if (nosePos < 0.35) { 
                     setHint("Great! Now look center and blink naturally...");
                     setLiveness(prev => ({ ...prev, right: true }));
                     setStep("PROCESSING");
@@ -196,11 +203,15 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     setHint("Look to your RIGHT (towards your right shoulder)...");
                 }
             } else if (step === "BLINK") {
-                if (avgEAR < 0.26) { // Increased from 0.22 to be more lenient based on logs
-                    setHint("Verifying identity...");
+                // ADAPTIVE BLINK DETECTION
+                // We trigger a blink if the current EAR is 25% lower than the user's neutral baseline
+                const isBlinking = eyeBaseline ? (avgEAR < eyeBaseline * 0.75) : (avgEAR < 0.24);
+                
+                if (isBlinking) { 
+                    setHint("Identity verified! Processing...");
                     setStep("PROCESSING"); 
                     
-                    const toastId = toast.loading("Verifying identity against database...");
+                    const toastId = toast.loading("Finalizing biometric capture...");
                     
                     try {
                         const descriptor = Array.from(detections.descriptor);
@@ -208,25 +219,22 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                         
                         toast.dismiss(toastId);
 
-                         if (duplicateCheck.success && duplicateCheck.match) {
-                            toast.error(`DUPLICATE DETECTED: This person already exists.`, {
-                                duration: 8000,
-                                position: "top-center"
-                            });
-                            // Force hard reset even after a slight delay
-                            setTimeout(() => {
-                                resetVerification();
-                            }, 500);
-                            return;
+                        if (duplicateCheck.success && duplicateCheck.match) {
+                           toast.error(`DUPLICATE DETECTED: This person matches ${duplicateCheck.match.name}.`, {
+                               duration: 8000,
+                               position: "bottom-right"
+                           });
+                           setTimeout(() => resetVerification(), 1000);
+                           return;
                         }
 
                         if (!duplicateCheck.success) {
-                            toast.error(duplicateCheck.error || "Database verification failed. Please try again.");
+                            toast.error(duplicateCheck.error || "Verification error. Please try again.");
                             setStep("BLINK");
                             return;
                         }
 
-                        toast.success("No duplicate found. Identity verified!");
+                        toast.success("Identity verified successfully!");
                         setLiveness(prev => ({ ...prev, blink: true }));
                         setStep("COMPLETED");
 
@@ -237,7 +245,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     } catch (dupErr) {
                         toast.dismiss();
                         console.error("Duplicate check error:", dupErr);
-                        setHint("Database error. Please blink again.");
+                        setHint("Connection error. Please blink again.");
                         setStep("BLINK");
                     }
                 }
@@ -257,7 +265,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isOpen && modelsLoaded && step !== "COMPLETED" && step !== "INITIALIZING" && step !== "PROCESSING" && !showGuide) {
-            interval = setInterval(handleVerification, 80); 
+            interval = setInterval(handleVerification, 40); // Faster scan: 80ms -> 40ms for snappier blinks
         }
         return () => clearInterval(interval);
     }, [isOpen, modelsLoaded, step, handleVerification, showGuide]);
