@@ -5,7 +5,7 @@ import { Resident } from "../providers/ResidentProvider";
 import { deleteResident } from "../../actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, Phone } from "lucide-react";
+import { Edit, Trash2, Search, Phone, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import {
     AlertDialog,
@@ -120,20 +120,35 @@ export function ResidentTable() {
                                             <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
                                                 {resident.lastName}, {resident.firstName} {resident.middleName ? `${resident.middleName[0]}.` : ''} {resident.suffix}
                                             </span>
+                                            
+                                            {/* Family Relationship Subtext */}
+                                            {resident.isHead ? (
+                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase italic mt-0.5 flex items-center gap-1">
+                                                    <BadgeCheck className="w-2.5 h-2.5" /> Family Head
+                                                </span>
+                                            ) : resident.headName ? (
+                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
+                                                    {resident.relationshipToHead || 'Member'} of {resident.headName}
+                                                </span>
+                                            ) : null}
+
                                             <div className="flex items-center gap-1 mt-1">
-                                                {resident.isHead && (
-                                                    <Badge variant="outline" className="text-[9px] h-4 bg-blue-50 text-blue-600 dark:bg-blue-900/20 border-blue-200 px-1 font-black">HEAD</Badge>
-                                                )}
-                                                {!resident.isHead && resident.headName && (
-                                                    <Badge variant="outline" className="text-[9px] h-4 bg-slate-50 text-slate-500 dark:bg-slate-900/20 border-slate-200 px-1 font-black uppercase">
-                                                        {resident.relationshipToHead || 'MEMBER'} OF {resident.headName}
-                                                    </Badge>
-                                                )}
                                                 {resident.isSenior && (
                                                     <Badge variant="outline" className="text-[9px] h-4 bg-amber-50 text-amber-600 dark:bg-amber-900/20 border-amber-200 px-1 font-black">SENIOR</Badge>
                                                 )}
                                                 {resident.isPWD && (
                                                     <Badge variant="outline" className="text-[9px] h-4 bg-purple-50 text-purple-600 dark:bg-purple-900/20 border-purple-200 px-1 font-black">PWD</Badge>
+                                                )}
+                                                {resident.registrationStatus && (
+                                                    <Badge variant="outline" className={`text-[9px] h-4 px-1 font-black uppercase tracking-tighter italic ${
+                                                        resident.registrationStatus === 'APPROVED' 
+                                                        ? 'bg-green-50 text-green-600 border-green-200' 
+                                                        : resident.registrationStatus === 'REJECTED'
+                                                        ? 'bg-red-50 text-red-600 border-red-200'
+                                                        : 'bg-amber-50 text-amber-600 border-amber-200'
+                                                    }`}>
+                                                        {resident.registrationStatus}
+                                                    </Badge>
                                                 )}
                                             </div>
                                         </div>

@@ -6,7 +6,7 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers, Megaphone
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers, Megaphone, UserCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -41,6 +41,7 @@ export function Sidebar({ session }: SidebarProps) {
         { href: "/admin/residents", label: "Resident Registry", icon: Users, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
         { href: "/admin/disasters/manage", label: "Disaster Maps", icon: Layers },
+        { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
     return (

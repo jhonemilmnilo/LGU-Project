@@ -52,6 +52,9 @@ export function AddResidentModal() {
             } else {
                 setCurrentFamilyMembers([]);
             }
+        } else {
+            // Reset step when modal closes
+            setCurrentStep(0);
         }
     }, [isAddModalOpen, editingData, setCurrentFamilyMembers]);
 
