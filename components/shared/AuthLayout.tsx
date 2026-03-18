@@ -1,107 +1,177 @@
 "use client";
 
-import * as React from "react";
-import { motion } from "framer-motion";
+import React from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield } from "lucide-react";
+
+interface HeroSlide {
+    id: string;
+    imageUrl: string;
+    title: string;
+    subtitle?: string | null;
+}
 
 interface AuthLayoutProps {
     children: React.ReactNode;
-    imageSrc: string;
-    quote?: string;
-    author?: string;
-    description?: string;
-    badges?: React.ReactNode;
-    bgColor?: string;
+    slides?: HeroSlide[] | null;
+    logoSrc?: string;
+    brandWord1?: string;
+    brandWord2?: string;
+    themeColor?: string;
 }
 
-export function AuthLayout({
-    children,
-    imageSrc,
-    quote,
-    author,
-    description,
-    badges,
-    bgColor = "white",
-}: AuthLayoutProps) {
+export const AuthLayout = ({ 
+    children, 
+    slides = [],
+    logoSrc,
+    brandWord1 = "E",
+    brandWord2 = "Mapandan",
+    themeColor = "#2563eb" // Default blue-600
+}: AuthLayoutProps) => {
+    const [currentIndex, setCurrentIndex] = React.useState(0);
+    const hasSlides = slides && slides.length > 0;
+
+    React.useEffect(() => {
+        if (!hasSlides) return;
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % slides.length);
+        }, 6000); // 6 seconds per slide
+        return () => clearInterval(interval);
+    }, [hasSlides, slides?.length]);
+
+    // Fallback data if no slides exist
+    const currentSlide = hasSlides ? slides[currentIndex] : {
+        imageUrl: "/images/umbrella-rocks.png",
+        title: "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage.",
+        subtitle: "LOCAL TOURISM OFFICE"
+    };
+
     return (
-        <div className="flex min-h-screen w-full bg-white dark:bg-[#0a0c10]" style={{ backgroundColor: bgColor }}>
-            {/* Left Side: Form */}
-            <motion.div
-                initial={{ opacity: 0, x: -24 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="flex w-full flex-col justify-center px-8 lg:w-1/2 xl:px-20 relative"
-            >
-                {/* Subtle top-left brand mark */}
-                <div className="absolute top-8 left-8 xl:left-12 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/30">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                            <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" fill="white" fillOpacity="0.9" />
-                        </svg>
-                    </div>
-                    <span className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic leading-none">
-                        E<span className="text-blue-600">Mapandan</span>
-                    </span>
-                </div>
-
-                <div className="mx-auto w-full max-w-md">
-                    {children}
-                </div>
-
-                {/* Bottom footer */}
-                <p className="absolute bottom-8 left-8 xl:left-12 text-xs text-slate-400 dark:text-slate-600 font-medium">
-                    © {new Date().getFullYear()} Mapandan. All rights reserved.
-                </p>
-            </motion.div>
-
-            {/* Right Side: Image & Quote */}
-            <div className="relative hidden w-1/2 lg:block overflow-hidden">
-                {/* Background image */}
-                <Image
-                    src={imageSrc}
-                    alt="Auth Background"
-                    fill
-                    className="object-cover"
-                    priority
-                />
-
-                {/* Gradient overlay — darker at bottom for legibility */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
-
-                {/* Floating glass card with quote */}
-                <div className="absolute bottom-10 left-10 right-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: 24 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-                        className="rounded-2xl backdrop-blur-md bg-white/10 border border-white/20 p-7 shadow-2xl"
+        <div 
+            className="flex min-h-screen w-full bg-white dark:bg-slate-950 transition-colors duration-500 font-sans text-slate-950 dark:text-white relative"
+            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+        >
+            {/* Fixed Branding Block - High-End Professional Spacing */}
+            <div className="absolute top-24 left-16 xl:top-36 xl:left-32 z-50 flex flex-col gap-8 pointer-events-none">
+                <div className="flex items-center gap-5 group pointer-events-auto">
+                    <div 
+                        className="w-14 h-14 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-500 relative overflow-hidden group-hover:scale-110 group-hover:rotate-3 shadow-blue-500/30"
+                        style={{ backgroundColor: themeColor }}
                     >
-                        {quote && (
-                            <blockquote className="text-xl font-semibold text-white leading-relaxed mb-4">
-                                &quot;{quote}&quot;
-                            </blockquote>
+                        {logoSrc ? (
+                            <Image src={logoSrc} alt="Logo" fill className="object-cover p-2" />
+                        ) : (
+                            <Shield className="w-8 h-8 text-white relative z-10" />
                         )}
-                        {description && (
-                            <p className="text-sm text-white/70 leading-relaxed mb-5">
-                                {description}
-                            </p>
-                        )}
-                        {author && (
-                            <div className="flex items-center gap-3">
-                                <span className="h-px w-6 bg-indigo-400 rounded-full" />
-                                <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">
-                                    {author}
-                                </p>
-                            </div>
-                        )}
-                        {badges && (
-                            <div className="mt-5 pt-5 border-t border-white/10">
-                                {badges}
-                            </div>
-                        )}
-                    </motion.div>
+                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <div className="flex flex-col drop-shadow-xl translate-y-1">
+                        <span className="text-3xl font-black uppercase tracking-tighter italic leading-none text-slate-900 dark:text-white">
+                            {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
+                        </span>
+                        <span className="text-[11px] uppercase font-black tracking-[0.4em] mt-2 text-slate-400 dark:text-slate-500/60">
+                            Smart Municipality
+                        </span>
+                    </div>
                 </div>
+                <div 
+                    className="h-0.5 w-40"
+                    style={{ background: `linear-gradient(to right, ${themeColor}33, transparent)` }} 
+                />
+            </div>
+
+            {/* Left Side: Form Area */}
+            <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 xl:px-24 relative z-10 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-white/5 min-h-screen">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="mx-auto w-full max-w-md"
+                >
+                    {children}
+                </motion.div>
+
+                {/* Footer Credits */}
+                <div className="absolute bottom-10 left-10 xl:left-14">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-300 dark:text-slate-600">
+                        © {new Date().getFullYear()} Agno Integrated Portal
+                    </p>
+                </div>
+            </div>
+
+            {/* Right Side: Immersive Visual Carousel (Hidden on Mobile) */}
+            <div className="relative hidden w-1/2 lg:block overflow-hidden bg-slate-900">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentSlide.imageUrl}
+                        initial={{ opacity: 0, scale: 1.1 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 1.5, ease: "easeInOut" }}
+                        className="absolute inset-0"
+                    >
+                        <div className="absolute inset-0 bg-blue-950/20 z-10 mix-blend-overlay" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent z-10" />
+                        <Image
+                            src={currentSlide.imageUrl}
+                            alt="Auth Background"
+                            fill
+                            className="object-cover"
+                            priority
+                        />
+                    </motion.div>
+                </AnimatePresence>
+                
+                {/* Quote Section Overlay with Animations */}
+                <div className="absolute inset-0 z-20 flex flex-col justify-end p-20 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentSlide.title}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="max-w-xl"
+                        >
+                            <blockquote className="space-y-6">
+                                <p className="text-4xl font-black italic tracking-tighter text-white leading-[1.1] uppercase drop-shadow-2xl">
+                                    &quot;{currentSlide.title}&quot;
+                                </p>
+                                {currentSlide.subtitle && (
+                                    <footer className="flex items-center gap-4">
+                                        <div className="h-[2px] w-16 bg-blue-500 shadow-lg shadow-blue-500/50" />
+                                        <cite className="text-xs font-black uppercase tracking-[0.5em] text-blue-400 italic">
+                                            {currentSlide.subtitle}
+                                        </cite>
+                                    </footer>
+                                )}
+                            </blockquote>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+
+                {/* Decorative Corner Accents */}
+                <div className="absolute top-0 right-0 p-16 z-20 opacity-20">
+                    <div className="w-40 h-40 border-t-2 border-r-2 border-white rounded-tr-[4rem]" />
+                </div>
+                <div className="absolute bottom-0 left-0 p-16 z-20 opacity-20">
+                    <div className="w-40 h-40 border-b-2 border-l-2 border-white rounded-bl-[4rem]" />
+                </div>
+
+                {/* Slide Indicators */}
+                {hasSlides && slides.length > 1 && (
+                    <div className="absolute bottom-10 right-20 z-30 flex gap-2">
+                        {slides.map((_, idx) => (
+                            <div 
+                                key={idx} 
+                                className={`h-1 transition-all duration-500 rounded-full ${idx === currentIndex ? 'w-8 bg-blue-500' : 'w-2 bg-white/20'}`}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
-}
+};
+;

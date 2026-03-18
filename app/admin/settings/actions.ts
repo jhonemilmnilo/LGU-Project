@@ -63,51 +63,6 @@ export async function updateLogoSetting(formData: FormData) {
     }
 }
 
-export async function updateLoginBranding(formData: FormData) {
-    try {
-        const imageUrl = await processImageUpload(formData);
-        const finalImageUrl = imageUrl || (formData.get("login_bg_image") as string) || "";
-        
-        const bgColor = (formData.get("login_bg_color") as string) || "#ffffff";
-        const motto = (formData.get("login_quote") as string) || "";
-        const mottoAuthor = (formData.get("login_quote_author") as string) || "";
-
-        // Find current active branding or create first one
-        const current = await prisma.loginBranding.findFirst({
-            where: { isActive: true }
-        });
-
-        if (current) {
-            await prisma.loginBranding.update({
-                where: { id: current.id },
-                data: {
-                    bgImage: finalImageUrl,
-                    bgColor,
-                    motto,
-                    mottoAuthor
-                }
-            });
-        } else {
-            await prisma.loginBranding.create({
-                data: {
-                    bgImage: finalImageUrl,
-                    bgColor,
-                    motto,
-                    mottoAuthor,
-                    isActive: true
-                }
-            });
-        }
-        
-        revalidatePath("/auth/login");
-        revalidatePath("/admin/settings");
-        return { success: true, imageUrl: finalImageUrl };
-    } catch (error) {
-        console.error("Error updating login branding:", error);
-        return { success: false, error: "Failed to update login branding" };
-    }
-}
-
 export async function createHeroSlide(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);

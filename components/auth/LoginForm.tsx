@@ -24,7 +24,12 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export function LoginForm() {
+interface LoginFormProps {
+    onSuccess?: () => void;
+    themeColor?: string;
+}
+
+export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps) {
     const [showPassword, setShowPassword] = React.useState(false);
     const [showChangeModal, setShowChangeModal] = React.useState(false);
     const [userEmail, setUserEmail] = React.useState("");
@@ -89,24 +94,24 @@ export function LoginForm() {
 
     return (
         <>
-            <div className="space-y-6">
+            <div className="space-y-8">
                 <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-                    <p className="text-slate-500">
+                    <h1 className="text-4xl font-black tracking-tighter italic text-slate-900 dark:text-white uppercase leading-none">Welcome back</h1>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                         Please enter your details to access your account.
                     </p>
                 </div>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="space-y-2">
-                        <Label htmlFor="login-email">Email Address</Label>
+                        <Label htmlFor="login-email" className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Email Address</Label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Mail className="absolute left-3 top-4 h-4 w-4 text-slate-400 dark:text-slate-600" />
                             <Input
                                 id="login-email"
                                 type="email"
                                 placeholder="name@example.com"
-                                className="pl-10 h-11"
+                                className="pl-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                                 {...form.register("email")}
                             />
                         </div>
@@ -119,27 +124,27 @@ export function LoginForm() {
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="login-password">Password</Label>
+                            <Label htmlFor="login-password" className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Password</Label>
                             <Link
                                 href="/auth/forgot-password"
-                                className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 transition-colors"
                             >
                                 Forgot password?
                             </Link>
                         </div>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Lock className="absolute left-3 top-4 h-4 w-4 text-slate-400 dark:text-slate-600" />
                             <Input
                                 id="login-password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
-                                className="pl-10 pr-10 h-11"
+                                className="pl-10 pr-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                                 {...form.register("password")}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                className="absolute right-3 top-4 opacity-40 hover:opacity-100 focus:outline-none"
                             >
                                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
@@ -151,11 +156,11 @@ export function LoginForm() {
                         )}
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                        <Checkbox id="rememberMe" {...form.register("rememberMe")} />
+                    <div className="flex items-center space-x-3">
+                        <Checkbox id="rememberMe" {...form.register("rememberMe")} className="w-5 h-5 border-slate-300 dark:border-white/10" />
                         <Label
                             htmlFor="rememberMe"
-                            className="text-sm font-medium leading-none cursor-pointer select-none"
+                            className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 cursor-pointer select-none"
                         >
                             Remember me
                         </Label>
@@ -163,12 +168,25 @@ export function LoginForm() {
 
                     <Button
                         type="submit"
-                        className="w-full bg-blue-600 text-white hover:bg-blue-700 h-11 font-bold shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+                        className="w-full text-white h-14 rounded-2xl font-black uppercase tracking-tighter italic text-xl shadow-2xl active:scale-[0.97] transition-all duration-300"
+                        style={{ backgroundColor: themeColor, boxShadow: `0 25px 50px -12px ${themeColor}33` }}
                         disabled={form.formState.isSubmitting}
                     >
-                        {form.formState.isSubmitting ? "Signing in..." : "Sign in to Account"}
+                        {form.formState.isSubmitting ? "Authenticating..." : "Sign in"}
                     </Button>
                 </form>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                    <Link 
+                        href="/" 
+                        className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-blue-600 transition-colors group"
+                    >
+                        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to landing page
+                    </Link>
+                </div>
             </div>
 
             <ChangePasswordModal

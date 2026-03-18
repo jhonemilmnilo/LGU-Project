@@ -3,23 +3,26 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import prisma from "@/lib/db/prisma";
 
 export default async function LoginPage() {
-    const branding = await prisma.loginBranding.findFirst({
-        where: { isActive: true }
+    const slides = await prisma.heroSlide.findMany({
+        where: { isActive: true },
+        orderBy: { order: 'asc' }
     });
 
-    const bgImage = branding?.bgImage || "/images/umbrella-rocks.png";
-    const bgColor = branding?.bgColor || "#ffffff";
-    const quote = branding?.motto || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.";
-    const author = branding?.mottoAuthor || "LOCAL TOURISM OFFICE";
+    const settingsList = await prisma.systemSetting.findMany();
+    const settings = settingsList.reduce((acc: any, curr: { key: string; value: string }) => {
+        acc[curr.key] = curr.value;
+        return acc;
+    }, {});
 
     return (
-        <AuthLayout
-            imageSrc={bgImage}
-            bgColor={bgColor}
-            quote={quote}
-            author={author}
+        <AuthLayout 
+            slides={slides}
+            logoSrc={settings.site_logo}
+            brandWord1={settings.brand_word_1}
+            brandWord2={settings.brand_word_2}
+            themeColor={settings.theme_color}
         >
-            <LoginForm />
+            <LoginForm themeColor={settings.theme_color} />
         </AuthLayout>
     );
 }

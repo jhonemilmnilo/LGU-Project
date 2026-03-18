@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon } from "lucide-react";
-import { processImageUpload, updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting, updateLoginBranding } from "./actions";
+import { processImageUpload, updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -19,26 +19,19 @@ interface SettingsClientProps {
     settings: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     slides: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    branding: any;
 }
 
-export function SettingsClient({ settings, slides, branding }: SettingsClientProps) {
+export function SettingsClient({ settings, slides }: SettingsClientProps) {
     const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenance_mode === "true");
     const [logoUrl, setLogoUrl] = useState(settings.site_logo || "");
     const [portalName, setPortalName] = useState(settings.portal_name || "Municipality of Agno");
     const [emergencyPhone, setEmergencyPhone] = useState(settings.emergency_phone || "911");
+    const [brandWord1, setBrandWord1] = useState(settings.brand_word_1 || "E");
+    const [brandWord2, setBrandWord2] = useState(settings.brand_word_2 || "Mapandan");
+    const [themeColor, setThemeColor] = useState(settings.theme_color || "#2563eb");
     const [isSaving, setIsSaving] = useState(false);
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
-
-    // Login Branding States
-    const [loginBgImage, setLoginBgImage] = useState(branding?.bgImage || "/images/umbrella-rocks.png");
-    const [loginBgColor, setLoginBgColor] = useState(branding?.bgColor || "#ffffff");
-    const [loginQuote, setLoginQuote] = useState(branding?.motto || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.");
-    const [loginQuoteAuthor, setLoginQuoteAuthor] = useState(branding?.mottoAuthor || "LOCAL TOURISM OFFICE");
-    const [loginImageFile, setLoginImageFile] = useState<File | null>(null);
-    const [loginImagePreview, setLoginImagePreview] = useState<string | null>(null);
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -86,40 +79,13 @@ export function SettingsClient({ settings, slides, branding }: SettingsClientPro
 
             await updateSystemSetting("portal_name", portalName);
             await updateSystemSetting("emergency_phone", emergencyPhone);
-            toast.success("General settings saved!");
+            await updateSystemSetting("brand_word_1", brandWord1);
+            await updateSystemSetting("brand_word_2", brandWord2);
+            await updateSystemSetting("theme_color", themeColor);
+            toast.success("Settings updated successfully!");
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to save settings");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleSaveLoginBranding = async () => {
-        setIsSaving(true);
-        try {
-            const formData = new FormData();
-            formData.append("login_bg_color", loginBgColor);
-            formData.append("login_quote", loginQuote);
-            formData.append("login_quote_author", loginQuoteAuthor);
-            formData.append("login_bg_image", loginBgImage);
-
-            if (loginImageFile) {
-                formData.append("imageFile", loginImageFile);
-            }
-
-            const result = await updateLoginBranding(formData);
-            if (result.success) {
-                if (result.imageUrl) setLoginBgImage(result.imageUrl);
-                setLoginImageFile(null);
-                setLoginImagePreview(null);
-                toast.success("Login branding updated!");
-            } else {
-                toast.error("Failed to update login branding");
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("An error occurred");
         } finally {
             setIsSaving(false);
         }
@@ -191,144 +157,80 @@ export function SettingsClient({ settings, slides, branding }: SettingsClientPro
                                             />
                                         </div>
                                     </div>
-                                    <div className="pt-2">
-                                        <Button 
-                                            onClick={handleSaveSettings} 
-                                            disabled={isSaving}
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 px-8"
-                                        >
-                                            {isSaving ? "Saving..." : "Save Settings"}
-                                        </Button>
-                                    </div>
                                     <p className="text-[10px] text-slate-400 italic">Leave empty to use the default municipal shield icon.</p>
                                 </div>
+
+                                {/* Global Branding */}
+                                <div className="pt-8 border-t border-slate-100 dark:border-slate-800 space-y-6">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                            <Layout className="w-4 h-4" />
+                                            Branding & Identity
+                                        </Label>
+                                        <p className="text-xs text-slate-400 italic">Configure the text and color scheme for the portal.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400">Branding First Word</Label>
+                                            <Input 
+                                                value={brandWord1} 
+                                                onChange={(e) => setBrandWord1(e.target.value)}
+                                                placeholder="E"
+                                                className="rounded-xl"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400">Branding Second Word</Label>
+                                            <Input 
+                                                value={brandWord2} 
+                                                onChange={(e) => setBrandWord2(e.target.value)}
+                                                placeholder="Mapandan"
+                                                className="rounded-xl"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase text-slate-400">Primary Theme Color</Label>
+                                            <div className="flex gap-2">
+                                                <Input 
+                                                    type="color"
+                                                    value={themeColor} 
+                                                    onChange={(e) => setThemeColor(e.target.value)}
+                                                    className="w-12 h-10 p-1 rounded-lg cursor-pointer"
+                                                />
+                                                <Input 
+                                                    value={themeColor} 
+                                                    onChange={(e) => setThemeColor(e.target.value)}
+                                                    placeholder="#2563eb"
+                                                    className="rounded-xl font-mono uppercase"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-4">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Preview</span>
+                                        <div className="flex flex-col items-center">
+                                            <div className="text-3xl font-black uppercase tracking-tighter italic leading-none text-slate-900 dark:text-white">
+                                                {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
+                                            </div>
+                                            <div 
+                                                className="h-1 w-24 mt-2 rounded-full"
+                                                style={{ background: `linear-gradient(to right, ${themeColor}, transparent)` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                                 
-                                {(logoPreview || logoUrl) && (
-                                    <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center gap-2">
-                                        <span className="text-[10px] font-black uppercase tracking-tighter text-slate-400">Preview</span>
-                                        { }
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={logoPreview || logoUrl} alt="Logo Preview" className="h-20 w-auto object-contain" />
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="login" className="space-y-6">
-                    <Card className="border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-                        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-                            <CardTitle className="flex items-center gap-2">
-                                <ImageIcon className="w-5 h-5 text-indigo-600" />
-                                Login Branding
-                            </CardTitle>
-                            <CardDescription>Customize the login page visuals and messaging.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-6 space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Left Side: Image & Meta */}
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Image</Label>
-                                        <div className="flex flex-col gap-4">
-                                            <div className="relative aspect-video rounded-3xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-2xl bg-slate-50 dark:bg-slate-900 group">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img 
-                                                    src={loginImagePreview || loginBgImage} 
-                                                    alt="Login BG" 
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                                                />
-                                                <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px]">
-                                                    <Input 
-                                                        type="file" 
-                                                        accept="image/*" 
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                setLoginImageFile(file);
-                                                                setLoginImagePreview(URL.createObjectURL(file));
-                                                            }
-                                                        }}
-                                                        className="hidden"
-                                                    />
-                                                    <div className="p-4 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 text-white mb-2 shadow-2xl">
-                                                        <ImageIcon className="w-6 h-6" />
-                                                    </div>
-                                                    <span className="text-white font-black uppercase italic tracking-tighter text-xs">Uplaod New Image</span>
-                                                </label>
-                                            </div>
-                                            <div className="relative">
-                                                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <Input 
-                                                    value={loginBgImage} 
-                                                    onChange={(e) => setLoginBgImage(e.target.value)} 
-                                                    placeholder="Or enter Image URL..." 
-                                                    className="pl-12 text-xs font-mono rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Color (Form Side)</Label>
-                                        <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex items-center gap-6">
-                                            <div className="relative group">
-                                                <div 
-                                                    className="w-14 h-14 rounded-2xl shadow-xl border-4 border-white dark:border-slate-700 transition-transform group-hover:scale-105"
-                                                    style={{ backgroundColor: loginBgColor }}
-                                                />
-                                                <Input 
-                                                    type="color" 
-                                                    value={loginBgColor} 
-                                                    onChange={(e) => setLoginBgColor(e.target.value)} 
-                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                                />
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selected Hex</p>
-                                                <Input 
-                                                    value={loginBgColor} 
-                                                    onChange={(e) => setLoginBgColor(e.target.value)} 
-                                                    className="font-mono text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 uppercase font-black tracking-tighter"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="pt-4">
+                                    <Button 
+                                        onClick={handleSaveSettings} 
+                                        disabled={isSaving}
+                                        className="w-full h-14 bg-slate-900 dark:bg-white dark:text-slate-950 text-white hover:opacity-90 rounded-2xl font-black uppercase tracking-widest shadow-xl transition-all active:scale-[0.98]"
+                                    >
+                                        {isSaving ? "Applying Changes..." : "Save Global Identity"}
+                                    </Button>
                                 </div>
-
-                                {/* Right Side: Quote Editor */}
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Login Quote (Motto)</Label>
-                                        <textarea 
-                                            value={loginQuote}
-                                            onChange={(e) => setLoginQuote(e.target.value)}
-                                            className="w-full h-32 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm italic font-medium resize-none outline-none focus:ring-2 focus:ring-blue-600/20"
-                                            placeholder="Enter an inspiring motto..."
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quote Author</Label>
-                                        <Input 
-                                            value={loginQuoteAuthor} 
-                                            onChange={(e) => setLoginQuoteAuthor(e.target.value)} 
-                                            placeholder="e.g. MUNICIPAL OFFICE"
-                                            className="font-black italic uppercase tracking-tighter"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
-                                <Button 
-                                    onClick={handleSaveLoginBranding} 
-                                    disabled={isSaving}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-6 shadow-xl shadow-indigo-500/20"
-                                >
-                                    {isSaving ? "Upgrading Visuals..." : "Save Login Branding"}
-                                </Button>
                             </div>
                         </CardContent>
                     </Card>
