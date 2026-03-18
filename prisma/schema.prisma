@@ -24,6 +24,8 @@ model User {
   isPasswordChanged Boolean            @default(false)
   
   createdAt         DateTime           @default(now())
+  reports           Report[]
+  
   updatedAt         DateTime           @updatedAt
 }
 
@@ -433,4 +435,33 @@ model ResidentCategory {
   residents   Resident[] @relation("ResidentCategory")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+}
+
+enum ReportStatus {
+  PENDING
+  SEEN
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+model Report {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  
+  category     String
+  description  String       @db.Text
+  status       ReportStatus @default(PENDING)
+  
+  images       String[]     @default([]) // Array of storage URLs
+  
+  latitude     Float?
+  longitude    Float?
+  address      String?      @db.Text
+  
+  adminComment String?      @db.Text // Feedback from LGU
+  
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }

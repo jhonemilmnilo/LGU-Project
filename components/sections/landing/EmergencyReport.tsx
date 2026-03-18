@@ -15,6 +15,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
+import { ReportForm } from "./ReportForm";
+
 interface InitialHotline {
     id: string;
     name: string;
@@ -56,7 +58,7 @@ export function EmergencyReport({ initialHotlines = [] }: { initialHotlines?: In
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
                             <Siren className="w-6 h-6 md:w-8 md:h-8 text-red-500 animate-pulse" />
-                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter">Emergency Hotlines</h2>
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white">Emergency Hotlines</h2>
                         </div>
                         <p className="text-slate-400 font-medium italic max-w-lg">
                             In case of emergency, please contact the appropriate department immediately. 
@@ -142,56 +144,21 @@ export function EmergencyReport({ initialHotlines = [] }: { initialHotlines?: In
 
                     <div className="p-8 bg-primary/10 border border-primary/20 rounded-[2.5rem] flex items-start gap-4">
                         <Info className="w-6 h-6 text-primary shrink-0 mt-1" />
-                        <p className="text-sm text-primary/80 font-medium italic">
+                        <p className="text-sm text-primary/80 font-medium italic text-primary/80">
                             Non-emergency reports can be submitted using the form on the right. 
                             For life-threatening situations, always call the hotlines first.
                         </p>
                     </div>
                 </div>
 
-                {/* Report Form */}
+                {/* Report Form Component */}
                 <motion.div
                     initial={{ opacity: 0, x: 24 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
-                    className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl relative"
+                    className="relative"
                 >
-                    <div className="space-y-8">
-                        <div className="space-y-2">
-                            <h3 className="text-3xl font-black uppercase italic tracking-tighter">Report an Issue</h3>
-                            <p className="text-slate-400 text-sm font-medium italic">Help us maintain a better Mapandan for everyone.</p>
-                        </div>
-
-                        <form className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Issue Category</label>
-                                <Select>
-                                    <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl font-bold transition-all focus:ring-primary">
-                                        <SelectValue placeholder="Select Category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-slate-900 border-white/10 rounded-2xl text-white">
-                                        <SelectItem value="waste" className="py-3 font-bold hover:bg-white/5 transition-colors">Waste Management</SelectItem>
-                                        <SelectItem value="road" className="py-3 font-bold hover:bg-white/5 transition-colors">Road Repair</SelectItem>
-                                        <SelectItem value="lighting" className="py-3 font-bold hover:bg-white/5 transition-colors">Street Lighting</SelectItem>
-                                        <SelectItem value="other" className="py-3 font-bold hover:bg-white/5 transition-colors">Other Concerns</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Detail Description</label>
-                                <Textarea 
-                                    placeholder="Describe the issue in detail..." 
-                                    className="min-h-[140px] bg-white/5 border-white/10 rounded-3xl p-5 font-bold transition-all focus:ring-primary focus:border-primary"
-                                />
-                            </div>
-
-                            <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] italic shadow-xl shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-3">
-                                <Send className="w-4 h-4" />
-                                Submit Report
-                            </Button>
-                        </form>
-                    </div>
+                    <ReportForm />
                 </motion.div>
             </div>
         </section>

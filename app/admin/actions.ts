@@ -9,6 +9,8 @@ import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
 import { unlink } from "fs/promises";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 async function deleteUploadedFile(imageUrl: string | null | undefined) {
     if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
@@ -57,12 +59,43 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
             await writeFile(filepath, buffer);
             return `/uploads/${filename}`;
         } catch (error) {
-            console.error("Image upload failed:", error);
-            return existingUrl;
+            console.error("Error writing file:", error);
+            return null;
+        }
+    }
+    return existingUrl;
+}
+
+/**
+ * Enhanced image processing for multiple files
+ */
+async function processMultipleImages(formData: FormData, fieldName: string = "images"): Promise<string[]> {
+    const files = formData.getAll(fieldName);
+    const uploadedPaths: string[] = [];
+
+    const uploadsDir = path.join(process.cwd(), "public/uploads");
+    if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    for (const fileItem of files) {
+        if (fileItem instanceof File && fileItem.size > 0 && fileItem.name !== "undefined") {
+            try {
+                const buffer = Buffer.from(await fileItem.arrayBuffer());
+                const filename = Date.now() + "_" + (fileItem.name || "upload").replaceAll(" ", "_");
+                const filepath = path.join(uploadsDir, filename);
+                await writeFile(filepath, buffer as any);
+                uploadedPaths.push(`/uploads/${filename}`);
+            } catch (error) {
+                console.error("Error processing file in multiple upload:", error);
+            }
+        } else if (typeof fileItem === "string" && fileItem.startsWith("/uploads/")) {
+            // Keep existing paths
+            uploadedPaths.push(fileItem);
         }
     }
 
-    return existingUrl || null;
+    return uploadedPaths;
 }
 
 // ----------------------------------------
@@ -2091,5 +2124,144 @@ export async function toggleAnnouncementPin(id: string, isPinned: boolean) {
         return { success: true };
     } catch (error) {
         return { success: false, error: "Failed to update pin status." };
+    }
+}
+
+// -----------------------------------------------------------------------------
+// COMMUNITY REPORTING ACTIONS
+// -----------------------------------------------------------------------------
+
+export async function addCommunityReport(formData: FormData) {
+    try {
+        const session = await getServerSession(authOptions);
+        
+        // DEBUG: Check who is actually submitting
+        console.log("[Reporting] Submission Debug:", {
+            sessionId: (session?.user as any)?.id,
+            sessionName: session?.user?.name,
+            sessionEmail: session?.user?.email,
+            sessionRole: (session?.user as any)?.role
+        });
+
+        if (!session?.user?.id) {
+            return { success: false, error: "Unauthorized. Please sign in to report an issue." };
+        }
+
+        const images = await processMultipleImages(formData, "images");
+        
+        const latRaw = formData.get("latitude");
+        const lngRaw = formData.get("longitude");
+
+        const report = await (prisma as any).report.create({
+            data: {
+                userId: (session.user as any).id,
+                category: formData.get("category") as string,
+                description: formData.get("description") as string,
+                images: images,
+                latitude: latRaw ? parseFloat(latRaw as string) : null,
+                longitude: lngRaw ? parseFloat(lngRaw as string) : null,
+                address: formData.get("address") as string || null,
+                status: "PENDING",
+            } as any
+        });
+
+        revalidatePath("/");
+        revalidatePath("/user/reports");
+        revalidatePath("/admin/reports");
+        return { success: true, report };
+    } catch (error) {
+        console.error("Failed to submit report:", error);
+        return { success: false, error: "Failed to submit report. Please try again." };
+    }
+}
+
+export async function getUserReports() {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const reports = await (prisma as any).report.findMany({
+            where: { userId: (session.user as any).id },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return { success: true, reports };
+    } catch (error) {
+        return { success: false, error: "Failed to fetch your reports." };
+    }
+}
+
+export async function getAdminReports() {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id || (session.user as any).role !== "ADMIN") {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        const reports = await (prisma as any).report.findMany({
+            include: { user: true },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return { success: true, reports };
+    } catch (error) {
+        return { success: false, error: "Failed to fetch reports." };
+    }
+}
+
+export async function updateReportStatus(id: string, status: string, adminComment?: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id || (session.user as any).role !== "ADMIN") {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        await (prisma as any).report.update({
+            where: { id },
+            data: { 
+                status: status as any,
+                adminComment: adminComment || undefined
+            } as any
+        });
+
+        revalidatePath("/user/reports");
+        revalidatePath("/admin/reports");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: "Failed to update report status." };
+    }
+}
+
+export async function getReportById(id: string) {
+    try {
+        console.log(`[Reporting] Fetching report details for ID: ${id}`);
+        const session = await getServerSession(authOptions);
+        
+        if (!session?.user?.id) {
+            console.error("[Reporting] Unauthorized access attempt - No session ID found");
+            return { success: false, error: "Unauthorized" };
+        }
+
+        const report = await (prisma as any).report.findUnique({
+            where: { id },
+            include: { user: true }
+        });
+
+        if (!report) {
+            console.error(`[Reporting] Report not found: ${id}`);
+            return { success: false, error: "Report not found" };
+        }
+        
+        // Ensure user can only see their own report unless admin
+        const userId = (session.user as any).id;
+        if ((session.user as any).role !== "ADMIN" && report.userId !== userId) {
+            console.error(`[Reporting] Permission denied for User ${userId} on Report ${id}`);
+            return { success: false, error: "Unauthorized" };
+        }
+
+        return { success: true, report };
+    } catch (error) {
+        console.error("[Reporting] Detailed fetch error:", error);
+        return { success: false, error: "Failed to fetch report." };
     }
 }

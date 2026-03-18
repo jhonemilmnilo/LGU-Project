@@ -24,6 +24,7 @@ interface SidebarProps {
     brandWord1?: string;
     brandWord2?: string;
     themeColor?: string;
+    pendingReportsCount?: number;
 }
 
 export function Sidebar({ 
@@ -31,7 +32,8 @@ export function Sidebar({
     logoUrl, 
     brandWord1 = "E", 
     brandWord2 = "Mapandan", 
-    themeColor = "#2563eb" 
+    themeColor = "#2563eb",
+    pendingReportsCount = 0
 }: SidebarProps) {
     const pathname = usePathname();
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
@@ -59,7 +61,7 @@ export function Sidebar({
         { href: "/admin/dining", label: "Kainan (Dining)", icon: UtensilsCrossed },
         { href: "/admin/accommodation", label: "Tuluyan (Stay)", icon: BedDouble },
         { href: "/admin/tourism", label: "Gallery", icon: Map },
-        { href: "/admin/reports", label: "Public Reports", icon: AlertTriangle, category: "Management", badge: 3 },
+        { href: "/admin/reports", label: "Public Reports", icon: AlertTriangle, category: "Management", badge: pendingReportsCount },
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
         { href: "/admin/hotlines", label: "Hotlines", icon: Phone },
