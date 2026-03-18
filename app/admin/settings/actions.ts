@@ -68,18 +68,34 @@ export async function updateLoginBranding(formData: FormData) {
         const imageUrl = await processImageUpload(formData);
         const finalImageUrl = imageUrl || (formData.get("login_bg_image") as string) || "";
         
-        const settings = [
-            { key: "login_bg_image", value: finalImageUrl },
-            { key: "login_bg_color", value: (formData.get("login_bg_color") as string) || "#ffffff" },
-            { key: "login_quote", value: (formData.get("login_quote") as string) || "" },
-            { key: "login_quote_author", value: (formData.get("login_quote_author") as string) || "" },
-        ];
+        const bgColor = (formData.get("login_bg_color") as string) || "#ffffff";
+        const motto = (formData.get("login_quote") as string) || "";
+        const mottoAuthor = (formData.get("login_quote_author") as string) || "";
 
-        for (const setting of settings) {
-            await prisma.systemSetting.upsert({
-                where: { key: setting.key },
-                update: { value: setting.value },
-                create: { key: setting.key, value: setting.value }
+        // Find current active branding or create first one
+        const current = await prisma.loginBranding.findFirst({
+            where: { isActive: true }
+        });
+
+        if (current) {
+            await prisma.loginBranding.update({
+                where: { id: current.id },
+                data: {
+                    bgImage: finalImageUrl,
+                    bgColor,
+                    motto,
+                    mottoAuthor
+                }
+            });
+        } else {
+            await prisma.loginBranding.create({
+                data: {
+                    bgImage: finalImageUrl,
+                    bgColor,
+                    motto,
+                    mottoAuthor,
+                    isActive: true
+                }
             });
         }
         

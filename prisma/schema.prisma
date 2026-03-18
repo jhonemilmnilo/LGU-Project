@@ -401,6 +401,19 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 }
 
+model LoginBranding {
+  id          String   @id @default(cuid())
+  name        String?  // Optional theme name
+  bgImage     String?
+  bgColor     String   @default("#ffffff")
+  motto       String?  @db.Text
+  mottoAuthor String?
+  isActive    Boolean  @default(true) // Ensure only one is active at a time via logic
+  
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
 model HeroSlide {
   id          String   @id @default(cuid())
   title       String

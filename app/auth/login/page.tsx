@@ -1,19 +1,16 @@
 import { AuthLayout } from "@/components/shared/AuthLayout";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { getMultipleSystemSettings } from "@/lib/settings";
+import prisma from "@/lib/db/prisma";
 
 export default async function LoginPage() {
-    const settings = await getMultipleSystemSettings([
-        "login_bg_image",
-        "login_bg_color", 
-        "login_quote",
-        "login_quote_author"
-    ]);
+    const branding = await prisma.loginBranding.findFirst({
+        where: { isActive: true }
+    });
 
-    const bgImage = settings.get("login_bg_image") || "/images/umbrella-rocks.png";
-    const bgColor = settings.get("login_bg_color") || "#ffffff";
-    const quote = settings.get("login_quote") || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.";
-    const author = settings.get("login_quote_author") || "LOCAL TOURISM OFFICE";
+    const bgImage = branding?.bgImage || "/images/umbrella-rocks.png";
+    const bgColor = branding?.bgColor || "#ffffff";
+    const quote = branding?.motto || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.";
+    const author = branding?.mottoAuthor || "LOCAL TOURISM OFFICE";
 
     return (
         <AuthLayout

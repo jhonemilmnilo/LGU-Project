@@ -19,9 +19,11 @@ interface SettingsClientProps {
     settings: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     slides: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    branding: any;
 }
 
-export function SettingsClient({ settings, slides }: SettingsClientProps) {
+export function SettingsClient({ settings, slides, branding }: SettingsClientProps) {
     const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenance_mode === "true");
     const [logoUrl, setLogoUrl] = useState(settings.site_logo || "");
     const [portalName, setPortalName] = useState(settings.portal_name || "Municipality of Agno");
@@ -31,10 +33,10 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     // Login Branding States
-    const [loginBgImage, setLoginBgImage] = useState(settings.login_bg_image || "/images/umbrella-rocks.png");
-    const [loginBgColor, setLoginBgColor] = useState(settings.login_bg_color || "#ffffff");
-    const [loginQuote, setLoginQuote] = useState(settings.login_quote || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.");
-    const [loginQuoteAuthor, setLoginQuoteAuthor] = useState(settings.login_quote_author || "LOCAL TOURISM OFFICE");
+    const [loginBgImage, setLoginBgImage] = useState(branding?.bgImage || "/images/umbrella-rocks.png");
+    const [loginBgColor, setLoginBgColor] = useState(branding?.bgColor || "#ffffff");
+    const [loginQuote, setLoginQuote] = useState(branding?.motto || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.");
+    const [loginQuoteAuthor, setLoginQuoteAuthor] = useState(branding?.mottoAuthor || "LOCAL TOURISM OFFICE");
     const [loginImageFile, setLoginImageFile] = useState<File | null>(null);
     const [loginImagePreview, setLoginImagePreview] = useState<string | null>(null);
 
@@ -230,10 +232,14 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Image</Label>
                                         <div className="flex flex-col gap-4">
-                                            <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 group">
+                                            <div className="relative aspect-video rounded-3xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-2xl bg-slate-50 dark:bg-slate-900 group">
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={loginImagePreview || loginBgImage} alt="Login BG" className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                                <img 
+                                                    src={loginImagePreview || loginBgImage} 
+                                                    alt="Login BG" 
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                                />
+                                                <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer backdrop-blur-[2px]">
                                                     <Input 
                                                         type="file" 
                                                         accept="image/*" 
@@ -244,36 +250,49 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                                                 setLoginImagePreview(URL.createObjectURL(file));
                                                             }
                                                         }}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                                        className="hidden"
                                                     />
-                                                    <Button variant="outline" className="bg-white/10 backdrop-blur-md border-white/20 text-white pointer-events-none">
-                                                        Change Image
-                                                    </Button>
-                                                </div>
+                                                    <div className="p-4 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 text-white mb-2 shadow-2xl">
+                                                        <ImageIcon className="w-6 h-6" />
+                                                    </div>
+                                                    <span className="text-white font-black uppercase italic tracking-tighter text-xs">Uplaod New Image</span>
+                                                </label>
                                             </div>
-                                            <Input 
-                                                value={loginBgImage} 
-                                                onChange={(e) => setLoginBgImage(e.target.value)} 
-                                                placeholder="Or enter Image URL..." 
-                                                className="text-xs font-mono"
-                                            />
+                                            <div className="relative">
+                                                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <Input 
+                                                    value={loginBgImage} 
+                                                    onChange={(e) => setLoginBgImage(e.target.value)} 
+                                                    placeholder="Or enter Image URL..." 
+                                                    className="pl-12 text-xs font-mono rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Color (Left Side)</Label>
-                                        <div className="flex gap-4 items-center">
-                                            <Input 
-                                                type="color" 
-                                                value={loginBgColor} 
-                                                onChange={(e) => setLoginBgColor(e.target.value)} 
-                                                className="w-16 h-12 p-1 rounded-xl cursor-pointer"
-                                            />
-                                            <Input 
-                                                value={loginBgColor} 
-                                                onChange={(e) => setLoginBgColor(e.target.value)} 
-                                                className="font-mono text-sm"
-                                            />
+                                    <div className="space-y-3">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Color (Form Side)</Label>
+                                        <div className="p-4 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex items-center gap-6">
+                                            <div className="relative group">
+                                                <div 
+                                                    className="w-14 h-14 rounded-2xl shadow-xl border-4 border-white dark:border-slate-700 transition-transform group-hover:scale-105"
+                                                    style={{ backgroundColor: loginBgColor }}
+                                                />
+                                                <Input 
+                                                    type="color" 
+                                                    value={loginBgColor} 
+                                                    onChange={(e) => setLoginBgColor(e.target.value)} 
+                                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                                />
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selected Hex</p>
+                                                <Input 
+                                                    value={loginBgColor} 
+                                                    onChange={(e) => setLoginBgColor(e.target.value)} 
+                                                    className="font-mono text-sm border-none bg-transparent p-0 h-auto focus-visible:ring-0 uppercase font-black tracking-tighter"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

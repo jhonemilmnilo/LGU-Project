@@ -3,13 +3,14 @@ import { SettingsClient } from "./SettingsClient";
 import { Suspense } from "react";
 
 export default async function SettingsPage() {
-    // Fetch all system settings and Slides
-    const [settingsList, slides] = await Promise.all([
-        prisma.systemSetting.findMany(),
-        prisma.heroSlide.findMany({
-            orderBy: { order: 'asc' }
-        })
-    ]);
+    // Sequential fetch to avoid "MaxClientsInSessionMode" error on some DB providers
+    const settingsList = await prisma.systemSetting.findMany();
+    const slides = await prisma.heroSlide.findMany({
+        orderBy: { order: 'asc' }
+    });
+    const actualBranding = await prisma.loginBranding.findFirst({
+        where: { isActive: true }
+    });
 
     // Convert settings list to a key-value object
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,6 +25,7 @@ export default async function SettingsPage() {
                 <SettingsClient 
                     settings={settings} 
                     slides={slides} 
+                    branding={actualBranding}
                 />
             </Suspense>
         </div>
