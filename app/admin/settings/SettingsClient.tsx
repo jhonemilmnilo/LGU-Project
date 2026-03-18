@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon } from "lucide-react";
-import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
+import { processImageUpload, updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting, updateLoginBranding } from "./actions";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface SettingsClientProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,6 +29,30 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+    // Login Branding States
+    const [loginBgImage, setLoginBgImage] = useState(settings.login_bg_image || "/images/umbrella-rocks.png");
+    const [loginBgColor, setLoginBgColor] = useState(settings.login_bg_color || "#ffffff");
+    const [loginQuote, setLoginQuote] = useState(settings.login_quote || "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage. A true marvel of nature.");
+    const [loginQuoteAuthor, setLoginQuoteAuthor] = useState(settings.login_quote_author || "LOCAL TOURISM OFFICE");
+    const [loginImageFile, setLoginImageFile] = useState<File | null>(null);
+    const [loginImagePreview, setLoginImagePreview] = useState<string | null>(null);
+
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const tabParam = searchParams.get("tab") || "general";
+    const [activeTab, setActiveTab] = useState(tabParam);
+
+    useEffect(() => {
+        if (tabParam !== activeTab) {
+            setActiveTab(tabParam);
+        }
+    }, [tabParam, activeTab]);
+
+    const handleTabChange = (value: string) => {
+        setActiveTab(value);
+        router.push(`/admin/settings?tab=${value}`);
+    };
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -57,7 +84,7 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
 
             await updateSystemSetting("portal_name", portalName);
             await updateSystemSetting("emergency_phone", emergencyPhone);
-            toast.success("Settings saved successfully!");
+            toast.success("General settings saved!");
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to save settings");
@@ -66,31 +93,46 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
         }
     };
 
+    const handleSaveLoginBranding = async () => {
+        setIsSaving(true);
+        try {
+            const formData = new FormData();
+            formData.append("login_bg_color", loginBgColor);
+            formData.append("login_quote", loginQuote);
+            formData.append("login_quote_author", loginQuoteAuthor);
+            formData.append("login_bg_image", loginBgImage);
+
+            if (loginImageFile) {
+                formData.append("imageFile", loginImageFile);
+            }
+
+            const result = await updateLoginBranding(formData);
+            if (result.success) {
+                if (result.imageUrl) setLoginBgImage(result.imageUrl);
+                setLoginImageFile(null);
+                setLoginImagePreview(null);
+                toast.success("Login branding updated!");
+            } else {
+                toast.error("Failed to update login branding");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("An error occurred");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="space-y-8 pb-12">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Website Management</h1>
-{ }
-{ }
-                {/* eslint-disable-next-line react/no-unescaped-entities */}
-                <p className="text-slate-500 dark:text-slate-400">Configure your portal's global settings and landing page content.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-slate-800 pb-8">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Website Management</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic">Configure your portal&apos;s global settings and landing page content.</p>
+                </div>
             </div>
 
-            <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[600px] mb-8">
-                    <TabsTrigger value="general" className="gap-2">
-                        <Globe className="w-4 h-4" />
-                        General
-                    </TabsTrigger>
-                    <TabsTrigger value="hero" className="gap-2">
-                        <Layout className="w-4 h-4" />
-                        Hero Carousel
-                    </TabsTrigger>
-                    <TabsTrigger value="credentials" className="gap-2">
-                        <Save className="w-4 h-4" />
-                        Credentials
-                    </TabsTrigger>
-                </TabsList>
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
 
                 <TabsContent value="general" className="space-y-6">
                     <Card className="border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
@@ -167,6 +209,107 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                         <img src={logoPreview || logoUrl} alt="Logo Preview" className="h-20 w-auto object-contain" />
                                     </div>
                                 )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="login" className="space-y-6">
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                            <CardTitle className="flex items-center gap-2">
+                                <ImageIcon className="w-5 h-5 text-indigo-600" />
+                                Login Branding
+                            </CardTitle>
+                            <CardDescription>Customize the login page visuals and messaging.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Left Side: Image & Meta */}
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Image</Label>
+                                        <div className="flex flex-col gap-4">
+                                            <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 group">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={loginImagePreview || loginBgImage} alt="Login BG" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                                    <Input 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                setLoginImageFile(file);
+                                                                setLoginImagePreview(URL.createObjectURL(file));
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    />
+                                                    <Button variant="outline" className="bg-white/10 backdrop-blur-md border-white/20 text-white pointer-events-none">
+                                                        Change Image
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <Input 
+                                                value={loginBgImage} 
+                                                onChange={(e) => setLoginBgImage(e.target.value)} 
+                                                placeholder="Or enter Image URL..." 
+                                                className="text-xs font-mono"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Background Color (Left Side)</Label>
+                                        <div className="flex gap-4 items-center">
+                                            <Input 
+                                                type="color" 
+                                                value={loginBgColor} 
+                                                onChange={(e) => setLoginBgColor(e.target.value)} 
+                                                className="w-16 h-12 p-1 rounded-xl cursor-pointer"
+                                            />
+                                            <Input 
+                                                value={loginBgColor} 
+                                                onChange={(e) => setLoginBgColor(e.target.value)} 
+                                                className="font-mono text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Side: Quote Editor */}
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Login Quote (Motto)</Label>
+                                        <textarea 
+                                            value={loginQuote}
+                                            onChange={(e) => setLoginQuote(e.target.value)}
+                                            className="w-full h-32 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm italic font-medium resize-none outline-none focus:ring-2 focus:ring-blue-600/20"
+                                            placeholder="Enter an inspiring motto..."
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quote Author</Label>
+                                        <Input 
+                                            value={loginQuoteAuthor} 
+                                            onChange={(e) => setLoginQuoteAuthor(e.target.value)} 
+                                            placeholder="e.g. MUNICIPAL OFFICE"
+                                            className="font-black italic uppercase tracking-tighter"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
+                                <Button 
+                                    onClick={handleSaveLoginBranding} 
+                                    disabled={isSaving}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-6 shadow-xl shadow-indigo-500/20"
+                                >
+                                    {isSaving ? "Upgrading Visuals..." : "Save Login Branding"}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

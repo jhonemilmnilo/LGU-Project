@@ -3,7 +3,7 @@
 import * as React from "react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, ArrowRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -107,10 +107,10 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                                 {format(currentDate, "MMMM yyyy")}
                             </h3>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="icon" onClick={prevMonth} className="rounded-xl border-slate-200 dark:border-[#2a3040] hover:bg-blue-50">
+                                <Button variant="outline" size="icon" onClick={prevMonth} className="rounded-xl border-slate-200 dark:border-[#2a3040]">
                                     <ChevronLeft className="w-4 h-4" />
                                 </Button>
-                                <Button variant="outline" size="icon" onClick={nextMonth} className="rounded-xl border-slate-200 dark:border-[#2a3040] hover:bg-blue-50">
+                                <Button variant="outline" size="icon" onClick={nextMonth} className="rounded-xl border-slate-200 dark:border-[#2a3040]">
                                     <ChevronRight className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -208,9 +208,9 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                     </ScrollArea>
                     
                     <Link href="/user/events">
-                        <Button className="w-full py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 flex items-center justify-center gap-2 group">
+                        <Button className="w-full py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 flex items-center justify-center gap-3 group">
+                            <CalendarIcon className="w-4 h-4" />
                             View Full Calendar
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </Button>
                     </Link>
                 </div>

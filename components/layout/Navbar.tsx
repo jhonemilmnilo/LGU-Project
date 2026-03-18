@@ -143,7 +143,7 @@ export function Navbar({ logoUrl }: NavbarProps) {
                             style={{ color: activeTheme === "dark" ? darkColor : color }}
                             className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic leading-none"
                         >
-                            Mapandan<span className="text-blue-600">Portal</span>
+                            E<span className="text-blue-600">Mapandan</span>
                         </motion.span>
                         <motion.span 
                             style={{ opacity: useTransform(scrollY, [0, 80], [0.7, 0.4]) }}
@@ -208,7 +208,7 @@ export function Navbar({ logoUrl }: NavbarProps) {
                         <Link href="/auth/login">
                             <Button 
                                 style={{ backgroundColor: pathname === "/auth/login" ? "rgba(37, 99, 235, 1)" : undefined }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
+                                className="bg-blue-600 text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
                             >
                                 <LogIn className="w-4 h-4" />
                                 Access Hub

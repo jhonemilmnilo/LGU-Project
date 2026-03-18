@@ -1,8 +1,9 @@
 import prisma from "@/lib/db/prisma";
 import { SettingsClient } from "./SettingsClient";
+import { Suspense } from "react";
 
 export default async function SettingsPage() {
-    // Fetch all system settings andSlides
+    // Fetch all system settings and Slides
     const [settingsList, slides] = await Promise.all([
         prisma.systemSetting.findMany(),
         prisma.heroSlide.findMany({
@@ -19,10 +20,12 @@ export default async function SettingsPage() {
 
     return (
         <div className="p-8">
-            <SettingsClient 
-                settings={settings} 
-                slides={slides} 
-            />
+            <Suspense fallback={<div>Loading Settings...</div>}>
+                <SettingsClient 
+                    settings={settings} 
+                    slides={slides} 
+                />
+            </Suspense>
         </div>
     );
 }

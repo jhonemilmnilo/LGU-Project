@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { FolderKanban, MapPin, ArrowRight, Gauge, Calendar } from "lucide-react";
+import { FolderKanban, MapPin, Gauge, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -43,9 +43,9 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
 
                 <Link href="/user/projects">
                     <Button 
-                        className="px-8 py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 group"
+                        className="px-8 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 group flex items-center gap-3"
                     >
-                        <FolderKanban className="w-4 h-4 transition-transform mr-2" />
+                        <FolderKanban className="w-4 h-4" />
                         View All Projects
                     </Button>
                 </Link>

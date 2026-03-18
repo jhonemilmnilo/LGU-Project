@@ -11,6 +11,7 @@ interface AuthLayoutProps {
     author?: string;
     description?: string;
     badges?: React.ReactNode;
+    bgColor?: string;
 }
 
 export function AuthLayout({
@@ -20,9 +21,10 @@ export function AuthLayout({
     author,
     description,
     badges,
+    bgColor = "white",
 }: AuthLayoutProps) {
     return (
-        <div className="flex min-h-screen w-full bg-white dark:bg-[#0a0c10]">
+        <div className="flex min-h-screen w-full bg-white dark:bg-[#0a0c10]" style={{ backgroundColor: bgColor }}>
             {/* Left Side: Form */}
             <motion.div
                 initial={{ opacity: 0, x: -24 }}
@@ -32,13 +34,13 @@ export function AuthLayout({
             >
                 {/* Subtle top-left brand mark */}
                 <div className="absolute top-8 left-8 xl:left-12 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/30">
+                    <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/30">
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                             <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" fill="white" fillOpacity="0.9" />
                         </svg>
                     </div>
-                    <span className="text-sm font-bold text-slate-800 dark:text-white tracking-tight">
-                        Mapandan
+                    <span className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic leading-none">
+                        E<span className="text-blue-600">Mapandan</span>
                     </span>
                 </div>
 

@@ -2,17 +2,22 @@
 
 import prisma from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
-async function processImageUpload(formData: FormData): Promise<string | null> {
+export async function processImageUpload(formData: FormData): Promise<string | null> {
     const file = formData.get("imageFile") as File | null;
     let imageUrl = formData.get("imageUrl") as string | null;
 
     if (file && file.size > 0 && file.name !== "undefined") {
         const buffer = Buffer.from(await file.arrayBuffer());
         const filename = Date.now() + "_" + file.name.replaceAll(" ", "_");
-        const filepath = path.join(process.cwd(), "public/uploads", filename);
+        const uploadsDir = path.join(process.cwd(), "public/uploads");
+        
+        // Ensure directory exists
+        await mkdir(uploadsDir, { recursive: true });
+        
+        const filepath = path.join(uploadsDir, filename);
         await writeFile(filepath, buffer);
         imageUrl = `/uploads/${filename}`;
     }
@@ -55,6 +60,35 @@ export async function updateLogoSetting(formData: FormData) {
     } catch (error) {
         console.error("Error updating logo:", error);
         return { success: false, error: "Failed to update logo" };
+    }
+}
+
+export async function updateLoginBranding(formData: FormData) {
+    try {
+        const imageUrl = await processImageUpload(formData);
+        const finalImageUrl = imageUrl || (formData.get("login_bg_image") as string) || "";
+        
+        const settings = [
+            { key: "login_bg_image", value: finalImageUrl },
+            { key: "login_bg_color", value: (formData.get("login_bg_color") as string) || "#ffffff" },
+            { key: "login_quote", value: (formData.get("login_quote") as string) || "" },
+            { key: "login_quote_author", value: (formData.get("login_quote_author") as string) || "" },
+        ];
+
+        for (const setting of settings) {
+            await prisma.systemSetting.upsert({
+                where: { key: setting.key },
+                update: { value: setting.value },
+                create: { key: setting.key, value: setting.value }
+            });
+        }
+        
+        revalidatePath("/auth/login");
+        revalidatePath("/admin/settings");
+        return { success: true, imageUrl: finalImageUrl };
+    } catch (error) {
+        console.error("Error updating login branding:", error);
+        return { success: false, error: "Failed to update login branding" };
     }
 }
 

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
  
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Megaphone, Newspaper, ArrowUpRight, Clock, Tag, Pin, AlertCircle, Calendar } from "lucide-react";
+import { Megaphone, Newspaper, Clock, Tag, Pin, AlertCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -110,7 +110,8 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
                 
                 <Link href="/user/updates">
-                    <Button className="w-full py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 mt-6">
+                    <Button className="w-full py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 mt-6 flex items-center justify-center gap-3">
+                        <Megaphone className="w-4 h-4" />
                         Archived Broadcasts
                     </Button>
                 </Link>
@@ -172,7 +173,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                                 {item.content}
                                             </p>
                                             <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                <ArrowUpRight className="w-5 h-5" />
+                                                <Megaphone className="w-5 h-5" />
                                             </div>
                                         </div>
                                     </div>
@@ -184,9 +185,9 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
 
                 <Link href="/user/news">
-                    <Button className="w-full py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-xl shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2 group">
+                    <Button className="w-full py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-xl shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-3 group">
+                        <Newspaper className="w-4 h-4" />
                         Explore All Stories
-                        <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
                     </Button>
                 </Link>
             </div>

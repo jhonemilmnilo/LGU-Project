@@ -89,7 +89,7 @@ export function Hero({ slides }: HeroProps) {
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                             {activeSlide.primaryBtnText && (
                                 <Link href={activeSlide.primaryBtnLink || "#"}>
-                                    <Button className="px-10 py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-95 flex items-center gap-3">
+                                    <Button className="px-10 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 flex items-center gap-3">
                                         <Compass className="w-5 h-5" />
                                         {activeSlide.primaryBtnText}
                                     </Button>
@@ -97,7 +97,7 @@ export function Hero({ slides }: HeroProps) {
                             )}
                             {activeSlide.secondaryBtnText && (
                                 <Link href={activeSlide.secondaryBtnLink || "#"}>
-                                    <Button className="px-10 py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/40 active:scale-95 flex items-center gap-3">
+                                    <Button className="px-10 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 flex items-center gap-3">
                                         <ShieldCheck className="w-5 h-5 text-white" />
                                         {activeSlide.secondaryBtnText}
                                     </Button>
@@ -113,13 +113,13 @@ export function Hero({ slides }: HeroProps) {
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-30 flex justify-between px-4 md:px-10 pointer-events-none">
                     <button 
                         onClick={prev}
-                        className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white backdrop-blur-md hover:bg-white/10 transition-all pointer-events-auto active:scale-90"
+                        className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-all pointer-events-auto active:scale-90"
                     >
                         <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button 
                         onClick={next}
-                        className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white backdrop-blur-md hover:bg-white/10 transition-all pointer-events-auto active:scale-90"
+                        className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-all pointer-events-auto active:scale-90"
                     >
                         <ChevronRight className="w-6 h-6" />
                     </button>
@@ -135,7 +135,7 @@ export function Hero({ slides }: HeroProps) {
                             onClick={() => setCurrent(i)}
                             className={cn(
                                 "h-1.5 transition-all rounded-full",
-                                current === i ? "w-10 bg-blue-600" : "w-3 bg-white/30 hover:bg-white/50"
+                                current === i ? "w-10 bg-blue-600" : "w-3 bg-white/30"
                             )}
                         />
                     ))}

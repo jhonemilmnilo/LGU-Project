@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { MapPin, ArrowRight, Utensils, Bed } from "lucide-react";
+import { MapPin, Utensils, Bed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -38,17 +38,15 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                 </div>
                 <div className="flex items-center gap-3">
                     <Link href="/user/dining">
-                        <Button className="px-8 py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-2 group/btn transition-all shadow-xl shadow-blue-500/25 active:scale-95">
+                        <Button className="px-8 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-3 group/btn transition-all shadow-xl shadow-blue-500/25 active:scale-95">
                             <Utensils className="w-4 h-4" />
                             Kainan Hub
-                            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                         </Button>
                     </Link>
                     <Link href="/user/accommodation">
-                        <Button className="px-8 py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-2 group/btn transition-all shadow-xl shadow-blue-500/25 active:scale-95">
+                        <Button className="px-8 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-3 group/btn transition-all shadow-xl shadow-blue-500/25 active:scale-95">
                             <Bed className="w-4 h-4" />
                             Tuluyan & Resorts
-                            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                         </Button>
                     </Link>
                 </div>
