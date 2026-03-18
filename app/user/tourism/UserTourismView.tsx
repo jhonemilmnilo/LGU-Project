@@ -32,7 +32,7 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Mapandan / Gallery</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Explore Mapandan / Gallery</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -41,12 +41,12 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                        <div className="w-14 h-14 bg-primary rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform -rotate-3 hover:rotate-0 transition-transform">
                             <Compass className="w-7 h-7 text-white" />
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Gallery</h1>
-                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] ml-1">The natural wonders</p>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">The natural wonders</p>
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
@@ -76,11 +76,11 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
                             
                             {/* Content */}
                             <div className="absolute inset-x-0 bottom-0 p-8 sm:p-10 space-y-2 sm:space-y-3 z-20">
-                                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
+                                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
                                     {spot.name}
                                 </h3>
                                 <div className="space-y-3">
-                                    <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                                    <p className="text-primary text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
                                         {spot.address}
                                     </p>
                                     <p className="text-sm text-slate-300 font-medium italic line-clamp-3 leading-relaxed">

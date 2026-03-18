@@ -110,8 +110,8 @@ export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps)
                             <Input
                                 id="login-email"
                                 type="email"
-                                placeholder="name@example.com"
-                                className="pl-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                 placeholder="name@example.com"
+                                className="pl-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary"
                                 {...form.register("email")}
                             />
                         </div>
@@ -127,7 +127,7 @@ export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps)
                             <Label htmlFor="login-password" className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Password</Label>
                             <Link
                                 href="/auth/forgot-password"
-                                className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 transition-colors"
+                                className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-colors"
                             >
                                 Forgot password?
                             </Link>
@@ -138,7 +138,7 @@ export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps)
                                 id="login-password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
-                                className="pl-10 pr-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                className="pl-10 pr-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary"
                                 {...form.register("password")}
                             />
                             <button
@@ -179,7 +179,7 @@ export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps)
                 <div className="pt-4 border-t border-slate-100 dark:border-white/5">
                     <Link 
                         href="/" 
-                        className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-blue-600 transition-colors group"
+                        className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-primary transition-colors group"
                     >
                         <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />

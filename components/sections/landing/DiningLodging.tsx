@@ -38,13 +38,13 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                 </div>
                 <div className="flex items-center gap-3">
                     <Link href="/user/dining">
-                        <Button className="px-8 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-3 group/btn transition-all shadow-xl shadow-blue-500/25 active:scale-95">
+                        <Button className="px-8 py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-3 group/btn transition-all shadow-xl shadow-primary/25 active:scale-95">
                             <Utensils className="w-4 h-4" />
                             Kainan Hub
                         </Button>
                     </Link>
                     <Link href="/user/accommodation">
-                        <Button className="px-8 py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-3 group/btn transition-all shadow-xl shadow-blue-500/25 active:scale-95">
+                        <Button className="px-8 py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center gap-3 group/btn transition-all shadow-xl shadow-primary/25 active:scale-95">
                             <Bed className="w-4 h-4" />
                             Tuluyan & Resorts
                         </Button>
@@ -68,7 +68,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                                 viewport={{ once: true }}
                                 className="group relative flex flex-col space-y-4 cursor-pointer"
                             >
-                                <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-xl ring-1 ring-slate-200 dark:ring-white/5 transition-transform duration-500 group-hover:scale-[1.02]">
+                                <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden shadow-xl ring-1 ring-slate-200 dark:ring-white/5 transition-transform duration-500 group-hover:scale-[1.02] group-hover:ring-primary/40">
                                     {item.imageUrl ? (
                                         <Image
                                             src={item.imageUrl}
@@ -82,7 +82,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                                         </div>
                                     )}
                                     <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 ${isDining ? 'bg-orange-500 text-white' : 'bg-blue-600 text-white'} rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg`}>
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 ${isDining ? 'bg-orange-500 text-white' : 'bg-primary text-white'} rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg`}>
                                             <CategoryIcon className="w-3 h-3" />
                                             {item.itemType}
                                         </span>
@@ -95,7 +95,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                                 </div>
 
                                 <div className="space-y-2 px-1">
-                                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight truncate group-hover:text-blue-600 transition-colors">
+                                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight truncate group-hover:text-primary transition-colors">
                                         {item.name}
                                     </h3>
                                     <div className="flex items-center gap-1 text-slate-400">

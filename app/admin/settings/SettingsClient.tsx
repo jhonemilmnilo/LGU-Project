@@ -9,7 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon } from "lucide-react";
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogDescription, 
+    DialogFooter, 
+    DialogHeader, 
+    DialogTitle, 
+} from "@/components/ui/dialog";
+import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send } from "lucide-react";
 import { processImageUpload, updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -268,7 +276,7 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                 </TabsContent>
 
                 <TabsContent value="hero" className="space-y-6">
-                    <HeroSlidesManager initialSlides={slides} />
+                    <HeroSlidesManager initialSlides={slides} themeColor={themeColor} />
                 </TabsContent>
             </Tabs>
         </div>
@@ -276,31 +284,9 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function HeroSlidesManager({ initialSlides }: { initialSlides: any[] }) {
+function HeroSlidesManager({ initialSlides, themeColor }: { initialSlides: any[], themeColor: string }) {
     const [slides, setSlides] = useState(initialSlides);
-    const [isAdding, setIsAdding] = useState(false);
-
-    const handleAddSlide = async () => {
-        const formData = new FormData();
-        formData.append("title", "New Epic Title");
-        formData.append("subtitle", "Enter a descriptive subtitle for this slide.");
-        formData.append("tagline", "The Home of the Umbrella Rocks");
-        formData.append("imageUrl", "https://images.unsplash.com/photo-1542332213-31f87348057f");
-        formData.append("order", (slides.length).toString());
-        formData.append("isActive", "true");
-        formData.append("primaryBtnText", "Learn More");
-        formData.append("primaryBtnLink", "#");
-        
-        setIsAdding(true);
-        const result = await createHeroSlide(formData);
-        if (result.success) {
-            toast.success("New slide added!");
-            window.location.reload();
-        } else {
-            toast.error("Failed to add slide");
-        }
-        setIsAdding(false);
-    };
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this slide?")) return;
@@ -327,7 +313,7 @@ function HeroSlidesManager({ initialSlides }: { initialSlides: any[] }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Active Slides</h3>
-                <Button onClick={handleAddSlide} disabled={isAdding} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 gap-2 shadow-lg shadow-emerald-500/20">
+                <Button onClick={() => setShowAddModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 gap-2 shadow-lg shadow-emerald-500/20">
                     <Plus className="w-4 h-4" />
                     Add Slide
                 </Button>
@@ -338,7 +324,251 @@ function HeroSlidesManager({ initialSlides }: { initialSlides: any[] }) {
                     <SlideEditor key={slide.id} slide={slide} onSave={handleUpdate} onDelete={handleDelete} />
                 ))}
             </div>
+
+            <AddHeroSlideModal 
+                isOpen={showAddModal} 
+                onClose={() => setShowAddModal(false)} 
+                order={slides.length}
+                themeColor={themeColor}
+            />
         </div>
+    );
+}
+
+interface AddHeroSlideModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    order: number;
+    themeColor: string;
+}
+
+function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideModalProps) {
+    const [isSaving, setIsSaving] = useState(false);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [formData, setFormData] = useState({
+        title: "",
+        subtitle: "",
+        tagline: "",
+        imageUrl: "",
+        primaryBtnText: "",
+        primaryBtnLink: "",
+        secondaryBtnText: "",
+        secondaryBtnLink: "",
+    });
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const handleSave = async () => {
+        const data = new FormData();
+        data.append("title", formData.title);
+        data.append("subtitle", formData.subtitle);
+        data.append("tagline", formData.tagline);
+        data.append("imageUrl", formData.imageUrl);
+        data.append("order", order.toString());
+        data.append("isActive", "true");
+        data.append("primaryBtnText", formData.primaryBtnText);
+        data.append("primaryBtnLink", formData.primaryBtnLink);
+        data.append("secondaryBtnText", formData.secondaryBtnText);
+        data.append("secondaryBtnLink", formData.secondaryBtnLink);
+
+        if (imageFile) {
+            data.append("imageFile", imageFile);
+        }
+
+        setIsSaving(true);
+        try {
+            const result = await createHeroSlide(data);
+            if (result.success) {
+                toast.success("New slide added successfully!");
+                onClose();
+                window.location.reload();
+            } else {
+                toast.error("Failed to add slide");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("An error occurred");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-950 p-0 border-none shadow-2xl">
+                <DialogHeader className="p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
+                    <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">Add New Hero Slide</DialogTitle>
+                    <DialogDescription className="text-slate-500 font-medium italic">Create a stunning first impression for your landing page.</DialogDescription>
+                </DialogHeader>
+
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Left Column: Form Fields */}
+                    <div className="space-y-6">
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Main Title</Label>
+                                    <Input 
+                                        placeholder="e.g. Welcome to Mapandan" 
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                        className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tagline</Label>
+                                    <Input 
+                                        placeholder="e.g. The Home of Umbrella Rocks" 
+                                        value={formData.tagline}
+                                        onChange={(e) => setFormData({...formData, tagline: e.target.value})}
+                                        className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium italic"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Subtitle / Description</Label>
+                                <Input 
+                                    placeholder="Enter a brief description of this slide..." 
+                                    value={formData.subtitle}
+                                    onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
+                                    className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Buttons section */}
+                        <div className="pt-4 space-y-4 border-t border-slate-100 dark:border-slate-800">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                                <Layout className="w-3.5 h-3.5" />
+                                Action Buttons
+                            </Label>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-bold text-slate-400">Primary Text</Label>
+                                    <Input 
+                                        placeholder="Explore" 
+                                        value={formData.primaryBtnText}
+                                        onChange={(e) => setFormData({...formData, primaryBtnText: e.target.value})}
+                                        className="rounded-xl h-10 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-bold text-slate-400">Primary Link</Label>
+                                    <Input 
+                                        placeholder="/explore" 
+                                        value={formData.primaryBtnLink}
+                                        onChange={(e) => setFormData({...formData, primaryBtnLink: e.target.value})}
+                                        className="rounded-xl h-10 text-xs font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-bold text-slate-400">Secondary Text</Label>
+                                    <Input 
+                                        placeholder="Learn More" 
+                                        value={formData.secondaryBtnText}
+                                        onChange={(e) => setFormData({...formData, secondaryBtnText: e.target.value})}
+                                        className="rounded-xl h-10 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-bold text-slate-400">Secondary Link</Label>
+                                    <Input 
+                                        placeholder="/about" 
+                                        value={formData.secondaryBtnLink}
+                                        onChange={(e) => setFormData({...formData, secondaryBtnLink: e.target.value})}
+                                        className="rounded-xl h-10 text-xs font-mono"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Image Selection & Preview */}
+                    <div className="space-y-6">
+                        <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-1 flex items-center gap-2">
+                                <ImageIcon className="w-3.5 h-3.5" />
+                                Slide Imagery
+                            </Label>
+                            
+                            <div className="aspect-video rounded-[2rem] bg-slate-100 dark:bg-slate-900 overflow-hidden relative border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center group">
+                                {previewUrl || formData.imageUrl ? (
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={previewUrl || formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <p className="text-white text-[10px] font-black uppercase tracking-widest">Image Loaded</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-slate-300">
+                                        <ImageIcon className="w-8 h-8 opacity-20" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Blank Canvas</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400">Upload High-Res Image</Label>
+                                    <Input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        onChange={handleFileChange}
+                                        className="rounded-xl h-12 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 file:border-none file:bg-slate-200 dark:file:bg-slate-800 file:text-[10px] file:font-black file:uppercase file:mr-4 file:h-full file:px-4 cursor-pointer"
+                                    />
+                                </div>
+                                <div className="relative py-2">
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100 dark:border-slate-800"></div></div>
+                                    <div className="relative flex justify-center"><span className="bg-white dark:bg-slate-950 px-3 text-[8px] font-black text-slate-300 uppercase tracking-widest">OR</span></div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400">External Image URL</Label>
+                                    <Input 
+                                        placeholder="https://images.unsplash.com/..." 
+                                        value={formData.imageUrl}
+                                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-mono text-[10px]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter className="p-8 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <Button 
+                        variant="ghost" 
+                        onClick={onClose}
+                        className="rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]"
+                    >
+                        Cancel
+                    </Button>
+                    <Button 
+                        onClick={handleSave} 
+                        disabled={isSaving}
+                        className="bg-slate-900 dark:bg-white dark:text-slate-950 text-white rounded-2xl px-12 h-14 font-black uppercase tracking-widest text-[10px] shadow-2xl transition-all active:scale-[0.98] flex items-center gap-3"
+                        style={{ backgroundColor: themeColor }}
+                    >
+                        {isSaving ? "Publishing..." : (
+                            <>
+                                <Send className="w-4 h-4" />
+                                Publish Slide
+                            </>
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -386,14 +616,24 @@ function SlideEditor({ slide, onSave, onDelete }: { slide: any, onSave: (id: str
         <Card className="border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden group">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
                 {/* Image Preview Side */}
-                <div className="relative aspect-video md:aspect-auto bg-slate-100 dark:bg-slate-900">
-                    { }
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewUrl || data.imageUrl} alt="Slide Preview" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
+                <div className="relative aspect-video md:aspect-auto bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                    {(previewUrl || data.imageUrl) ? (
+                        <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={previewUrl || data.imageUrl} alt="Slide Preview" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center gap-2 text-slate-400">
+                            <ImageIcon className="w-8 h-8 opacity-20" />
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">No Image Set</span>
+                        </div>
+                    )}
                     <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/80">Order: {data.order}</span>
-                        <span className="text-white font-black uppercase italic tracking-tighter text-lg truncate">{data.title}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/80 drop-shadow-md">Order: {data.order}</span>
+                        <span className="text-white font-black uppercase italic tracking-tighter text-lg truncate drop-shadow-lg">
+                            {data.title || "UNNAMED SLIDE"}
+                        </span>
                     </div>
                 </div>
 

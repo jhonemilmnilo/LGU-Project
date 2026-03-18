@@ -4,8 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
  
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Megaphone, Newspaper, Clock, Tag, Pin, AlertCircle, Calendar } from "lucide-react";
+import { Megaphone, Newspaper, Tag, Pin, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -37,7 +36,7 @@ interface AnnouncementsNewsProps {
 
 export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProps) {
     return (
-        <section id="news" className="py-12 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <section id="news" className="py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
             
             {/* Left Column: Public Announcements */}
             <div className="space-y-12">
@@ -66,7 +65,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    className="group bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                                    className="group bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
                                 >
                                     <div className="space-y-4 relative z-10">
                                         <div className="flex items-center justify-between">
@@ -80,7 +79,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                                 <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
                                                     item.priority === 'Critical' ? 'bg-red-50 text-red-600 border-red-100' :
                                                     item.priority === 'High' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                                                    'bg-blue-50 text-blue-600 border-blue-100'
+                                                    'bg-primary/10 text-primary border-primary/20'
                                                 }`}>
                                                     {item.priority} Priority
                                                 </span>
@@ -90,7 +89,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                             </span>
                                         </div>
                                         <div className="space-y-2">
-                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-orange-600 transition-colors">
+                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
                                                 {item.title}
                                             </h3>
                                             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2">
@@ -102,7 +101,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                             {item.category}
                                         </div>
                                     </div>
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-orange-600/10 transition-colors" />
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
                                 </motion.div>
                             </Link>
                         ))
@@ -110,7 +109,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
                 
                 <Link href="/user/updates">
-                    <Button className="w-full py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 mt-6 flex items-center justify-center gap-3">
+                    <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-primary/25 active:scale-95 mt-6 flex items-center justify-center gap-3">
                         <Megaphone className="w-4 h-4" />
                         Archived Broadcasts
                     </Button>
@@ -121,8 +120,8 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
             <div className="space-y-12">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/10">
-                            <Newspaper className="w-6 h-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10">
+                            <Newspaper className="w-6 h-6 text-primary" />
                         </div>
                         <div className="space-y-0.5">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Municipality News</span>
@@ -143,20 +142,20 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                     initial={{ opacity: 0, x: 20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    className="flex flex-col md:flex-row items-center gap-8 group cursor-pointer bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] hover:border-blue-500 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden"
+                                    className="flex flex-col md:flex-row items-center gap-8 group cursor-pointer bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] hover:border-primary transition-all shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden"
                                 >
-                                    <div className="relative min-w-[140px] w-full md:w-auto h-40 md:h-32 rounded-2xl overflow-hidden shadow-2xl shadow-blue-500/10 border border-slate-200 dark:border-white/10 shrink-0 ring-1 ring-slate-200 dark:ring-white/5">
+                                    <div className="relative min-w-[140px] w-full md:w-auto h-40 md:h-32 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border border-slate-200 dark:border-white/10 shrink-0 ring-1 ring-slate-200 dark:ring-white/5">
                                         <Image
                                             src={item.imageUrl || "/news/default.png"}
                                             alt={item.title}
                                             fill
                                             className="object-cover group-hover:scale-110 transition-transform duration-700"
                                         />
-                                        <div className="absolute inset-0 bg-blue-600/10 group-hover:bg-transparent transition-colors" />
+                                        <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors" />
                                     </div>
                                     <div className="space-y-3 relative z-10">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-500/20">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                                                 <Calendar className="w-2.5 h-2.5" />
                                                 {format(new Date(item.publishDate), "MMM d, yyyy")}
                                             </div>
@@ -165,19 +164,19 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                                 {item.category}
                                             </div>
                                         </div>
-                                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-colors">
+                                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
                                             {item.title}
                                         </h3>
                                         <div className="flex items-center justify-between gap-4">
                                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2">
                                                 {item.content}
                                             </p>
-                                            <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
                                                 <Megaphone className="w-5 h-5" />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-600/10 transition-colors" />
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
                                 </motion.div>
                             </Link>
                         ))
@@ -185,7 +184,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
 
                 <Link href="/user/news">
-                    <Button className="w-full py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-xl shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-3 group">
+                    <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-xl shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-3 group">
                         <Newspaper className="w-4 h-4" />
                         Explore All Stories
                     </Button>

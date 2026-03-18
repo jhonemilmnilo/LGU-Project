@@ -22,9 +22,17 @@ import { useTheme } from "next-themes";
 
 interface NavbarProps {
     logoUrl?: string;
+    brandWord1?: string;
+    brandWord2?: string;
+    themeColor?: string;
 }
 
-export function Navbar({ logoUrl }: NavbarProps) {
+export function Navbar({ 
+    logoUrl, 
+    brandWord1 = "E", 
+    brandWord2 = "Mapandan", 
+    themeColor = "#2563eb" 
+}: NavbarProps) {
     const { data: session, status } = useSession();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = React.useState(false);
@@ -73,8 +81,8 @@ export function Navbar({ logoUrl }: NavbarProps) {
 
 
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userRole = (session?.user as any)?.role;; // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const userRole = (session?.user as { role?: string })?.role;
     
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
@@ -128,28 +136,30 @@ export function Navbar({ logoUrl }: NavbarProps) {
                     <motion.div 
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden relative"
+                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
                     >
                         {logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img 
-                                src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                                src={logoUrl} alt="Logo" className="w-full h-full object-cover p-2" />
                         ) : (
                             <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                         )}
+                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </motion.div>
                     <div className="flex flex-col">
                         <motion.span 
                             style={{ color: activeTheme === "dark" ? darkColor : color }}
                             className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic leading-none"
                         >
-                            E<span className="text-blue-600">Mapandan</span>
+                            {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
                         </motion.span>
                         <motion.span 
                             style={{ opacity: useTransform(scrollY, [0, 80], [0.7, 0.4]) }}
-                            className="text-[8px] sm:text-[10px] uppercase font-bold tracking-[0.2em] mt-1 hidden sm:block text-white"
+                            className="text-[8px] sm:text-[10px] uppercase font-bold tracking-[0.2em] mt-1 hidden sm:block text-slate-400 dark:text-slate-500"
                         >
-                            Digital Municipality
+                            Smart Municipality
                         </motion.span>
                     </div>
                 </Link>
@@ -165,23 +175,26 @@ export function Navbar({ logoUrl }: NavbarProps) {
                                 className="relative px-4 py-2 group overflow-hidden"
                             >
                                 <motion.div 
-                                    style={{ color: activeTheme === "dark" ? darkColor : color }}
-                                    className={cn(
-                                        "relative z-10 text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 transition-colors group-hover:text-blue-600",
-                                        isActive && "text-blue-600 font-extrabold italic"
-                                    )}
-                                >
-                                    <link.icon className={cn("w-3.5 h-3.5", isActive ? "text-blue-600" : "opacity-70 group-hover:opacity-100")} />
-                                    <span>{link.name}</span>
-                                </motion.div>
-                                {isActive && (
-                                    <motion.div 
-                                        layoutId="activeTab"
-                                        className="absolute inset-0 bg-blue-50 dark:bg-blue-500/10 rounded-full -z-0"
-                                        initial={false}
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
-                                )}
+                                     style={{ color: activeTheme === "dark" ? darkColor : color }}
+                                     className={cn(
+                                         "relative z-10 text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 transition-colors group-hover:text-[var(--primary-theme)]",
+                                     )}
+                                 >
+                                     <link.icon 
+                                         className={cn("w-3.5 h-3.5", isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100")} 
+                                         style={{ color: isActive ? themeColor : undefined }}
+                                     />
+                                     <span style={{ color: isActive ? themeColor : undefined }}>{link.name}</span>
+                                 </motion.div>
+                                 {isActive && (
+                                     <motion.div 
+                                         layoutId="activeTab"
+                                         className="absolute inset-0 rounded-full -z-0"
+                                         style={{ backgroundColor: `${themeColor}15` }}
+                                         initial={false}
+                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                     />
+                                 )}
                             </Link>
                         );
                     })}
@@ -207,8 +220,8 @@ export function Navbar({ logoUrl }: NavbarProps) {
                     ) : (
                         <Link href="/auth/login">
                             <Button 
-                                style={{ backgroundColor: pathname === "/auth/login" ? "rgba(37, 99, 235, 1)" : undefined }}
-                                className="bg-blue-600 text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
+                                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                className="text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
                             >
                                 <LogIn className="w-4 h-4" />
                                 Access Hub
@@ -249,22 +262,22 @@ export function Navbar({ logoUrl }: NavbarProps) {
                                         <Link 
                                             key={link.name} 
                                             href={link.href}
-                                            onClick={() => setIsOpen(false)}
+                                             onClick={() => setIsOpen(false)}
                                             className={cn(
                                                 "p-5 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-between group h-20 transition-all active:scale-[0.98]",
-                                                pathname === link.href && "bg-blue-600/10 border border-blue-600/20"
+                                                pathname === link.href && "bg-primary/10 border border-primary/20"
                                             )}
                                         >
                                             <div className="flex items-center gap-5">
                                                 <div className={cn(
                                                     "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                                                    pathname === link.href ? "bg-blue-600 text-white" : "bg-white dark:bg-white/10 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"
+                                                    pathname === link.href ? "bg-primary text-white" : "bg-white dark:bg-white/10 text-primary group-hover:bg-primary group-hover:text-white"
                                                 )}>
                                                     <link.icon className="w-6 h-6" />
                                                 </div>
                                                 <span className={cn(
                                                     "text-lg font-black uppercase italic tracking-tight transition-colors",
-                                                    pathname === link.href ? "text-blue-600" : "text-slate-900 dark:text-white"
+                                                    pathname === link.href ? "text-primary" : "text-slate-900 dark:text-white"
                                                 )}>{link.name}</span>
                                             </div>
                                             <div className="w-10 h-10 rounded-full flex items-center justify-center text-slate-300">
@@ -289,7 +302,10 @@ export function Navbar({ logoUrl }: NavbarProps) {
                                 </div>
                             ) : (
                                 <Link href="/auth/login" onClick={() => setIsOpen(false)}>
-                                    <Button className="w-full bg-blue-600 h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all">
+                                    <Button 
+                                        style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}33` }}
+                                        className="w-full text-white h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl active:scale-95 transition-all"
+                                    >
                                         Access Member Hub
                                     </Button>
                                 </Link>

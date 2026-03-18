@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FolderKanban, Home, LayoutGrid, Clock, MapPin, ArrowRight, Gauge } from "lucide-react";
+import { FolderKanban, Home, Clock, MapPin, Gauge } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -33,7 +33,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Municipal Initiatives / Projects</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Municipal Initiatives / Projects</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -42,12 +42,12 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform -rotate-3 hover:rotate-0 transition-transform">
                             <FolderKanban className="w-7 h-7 text-white" />
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Growth Engine</h1>
-                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] ml-1">LGU Infrastructure</p>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">LGU Infrastructure</p>
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
@@ -66,7 +66,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                     >
                         <Link 
                             href={`/user/projects/${project.id}`}
-                            className="group block bg-white dark:bg-[#0f1117] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] overflow-hidden hover:border-blue-500 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full active:scale-[0.98]"
+                            className="group block bg-white dark:bg-[#0f1117] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] overflow-hidden hover:border-primary/40 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full active:scale-[0.98]"
                         >
                             {/* Image Header */}
                             <div className="relative h-64 w-full overflow-hidden">
@@ -83,7 +83,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                                         "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest backdrop-blur-sm border shadow-lg",
                                         project.status === "Completed" 
                                             ? "bg-emerald-500/90 text-white border-emerald-400/30"
-                                            : "bg-blue-600/90 text-white border-blue-400/30"
+                                            : "bg-primary/90 text-white border-white/20"
                                     )}>
                                         {project.status || "Planned"}
                                     </span>
@@ -91,13 +91,13 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
 
                                 <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-white/90">
-                                        <MapPin className="w-3.5 h-3.5 text-blue-400" />
+                                        <MapPin className="w-3.5 h-3.5 text-primary" />
                                         <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[150px]">
                                             {project.location}
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20">
-                                        <Gauge className="w-3 h-3 text-blue-400" />
+                                        <Gauge className="w-3 h-3 text-primary" />
                                         <span className="text-[10px] font-black text-white">{project.progress}%</span>
                                     </div>
                                 </div>
@@ -106,7 +106,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                             {/* Content */}
                             <div className="p-8 space-y-4 flex-1 flex flex-col">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1.5 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-500/20">
+                                    <div className="flex items-center gap-1.5 text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                                         <Clock className="w-2.5 h-2.5" />
                                         {project.updatedAt ? `Updated ${format(new Date(project.updatedAt), "MMM d, yyyy")}` : "Recently Added"}
                                     </div>
@@ -114,7 +114,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                                 </div>
 
                                 <div className="space-y-2 flex-1">
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-colors">
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
                                         {project.title}
                                     </h3>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed">
@@ -129,7 +129,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                                             whileInView={{ width: `${project.progress}%` }}
                                             viewport={{ once: true }}
                                             transition={{ duration: 1, ease: "easeOut" }}
-                                            className="h-full bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.4)]"
+                                            className="h-full bg-primary rounded-full shadow-[0_0_10px_var(--primary-theme)] opacity-80"
                                         />
                                     </div>
                                 </div>

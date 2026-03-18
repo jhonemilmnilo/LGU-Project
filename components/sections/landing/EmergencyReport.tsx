@@ -2,11 +2,8 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Phone, Siren, Flame, HeartPulse, Send, AlertCircle, Info } from "lucide-react";
+import { Siren, Flame, HeartPulse, Send, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
@@ -27,7 +24,7 @@ export function EmergencyReport() {
     return (
         <section id="hotlines" className="py-24 px-6 bg-slate-950 text-white relative overflow-hidden">
             {/* Ambient Background Effects */}
-            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
+            <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
             <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-red-600/5 blur-[100px] rounded-full" />
 
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 relative z-10">
@@ -53,20 +50,20 @@ export function EmergencyReport() {
                                 transition={{ delay: idx * 0.1 }}
                                 className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center gap-4 hover:bg-white/10 transition-all group cursor-pointer"
                             >
-                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center group-hover:bg-primary transition-colors">
                                     <hotline.icon className="w-6 h-6 text-slate-300 group-hover:text-white" />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-blue-300 transition-colors">{hotline.name}</p>
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-primary transition-colors">{hotline.name}</p>
                                     <p className="text-lg font-black tracking-tighter text-white">{hotline.number}</p>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
 
-                    <div className="p-8 bg-blue-600/10 border border-blue-500/20 rounded-[2.5rem] flex items-start gap-4">
-                        <Info className="w-6 h-6 text-blue-400 shrink-0 mt-1" />
-                        <p className="text-sm text-blue-200 font-medium italic">
+                    <div className="p-8 bg-primary/10 border border-primary/20 rounded-[2.5rem] flex items-start gap-4">
+                        <Info className="w-6 h-6 text-primary shrink-0 mt-1" />
+                        <p className="text-sm text-primary/80 font-medium italic">
                             Non-emergency reports can be submitted using the form on the right. 
                             For life-threatening situations, always call the hotlines first.
                         </p>
@@ -90,7 +87,7 @@ export function EmergencyReport() {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Issue Category</label>
                                 <Select>
-                                    <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl font-bold transition-all focus:ring-blue-600">
+                                    <SelectTrigger className="h-14 bg-white/5 border-white/10 rounded-2xl font-bold transition-all focus:ring-primary">
                                         <SelectValue placeholder="Select Category" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-slate-900 border-white/10 rounded-2xl text-white">
@@ -106,11 +103,11 @@ export function EmergencyReport() {
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Detail Description</label>
                                 <Textarea 
                                     placeholder="Describe the issue in detail..." 
-                                    className="min-h-[140px] bg-white/5 border-white/10 rounded-3xl p-5 font-bold transition-all focus:ring-blue-600 focus:border-blue-600"
+                                    className="min-h-[140px] bg-white/5 border-white/10 rounded-3xl p-5 font-bold transition-all focus:ring-primary focus:border-primary"
                                 />
                             </div>
 
-                            <Button className="w-full py-4 h-auto bg-blue-600 hover:bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] italic shadow-xl shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-3">
+                            <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] italic shadow-xl shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-3">
                                 <Send className="w-4 h-4" />
                                 Submit Report
                             </Button>

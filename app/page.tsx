@@ -17,7 +17,13 @@ import { redirect } from "next/navigation";
 
 export default async function Home() {
     // 1. Fetch all needed system settings first in one query
-    const settings = await getMultipleSystemSettings(["maintenance_mode", "site_logo"]);
+    const settings = await getMultipleSystemSettings([
+        "maintenance_mode", 
+        "site_logo",
+        "brand_word_1",
+        "brand_word_2",
+        "theme_color"
+    ]);
     
     // Check Maintenance Mode
     const maintenance = settings.get("maintenance_mode") === "true";
@@ -26,6 +32,9 @@ export default async function Home() {
     }
 
     const logoUrl = settings.get("site_logo") || "";
+    const brandWord1 = settings.get("brand_word_1") || "E";
+    const brandWord2 = settings.get("brand_word_2") || "Mapandan";
+    const themeColor = settings.get("theme_color") || "#2563eb";
 
     // 2. Fetch Content
     const [slides, tourismSpots, dining, lodging, announcements, events, news, projects] = await Promise.all([
@@ -89,10 +98,18 @@ export default async function Home() {
     ].sort(() => Math.random() - 0.5);
 
     return (
-        <main className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-blue-600/30">
-            <Navbar logoUrl={logoUrl} />
+        <main 
+            className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-primary/30"
+            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+        >
+            <Navbar 
+                logoUrl={logoUrl} 
+                brandWord1={brandWord1} 
+                brandWord2={brandWord2} 
+                themeColor={themeColor} 
+            />
             
-            <Hero slides={slides} />
+            <Hero slides={slides} themeColor={themeColor} />
             
             <div className="space-y-4 pb-32">
                 <DiningLodging items={discoveryItems} />
@@ -113,7 +130,12 @@ export default async function Home() {
             </div>
             
             <EmergencyReport />
-            <Footer />
+            <Footer 
+                logoUrl={logoUrl} 
+                brandWord1={brandWord1} 
+                brandWord2={brandWord2} 
+                themeColor={themeColor} 
+            />
         </main>
     );
 }

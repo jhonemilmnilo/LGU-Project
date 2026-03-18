@@ -56,8 +56,8 @@ export const AuthLayout = ({
             <div className="absolute top-24 left-16 xl:top-36 xl:left-32 z-50 flex flex-col gap-8 pointer-events-none">
                 <div className="flex items-center gap-5 group pointer-events-auto">
                     <div 
-                        className="w-14 h-14 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-500 relative overflow-hidden group-hover:scale-110 group-hover:rotate-3 shadow-blue-500/30"
-                        style={{ backgroundColor: themeColor }}
+                        className="w-14 h-14 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-500 relative overflow-hidden group-hover:scale-110 group-hover:rotate-3"
+                        style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}44` }}
                     >
                         {logoSrc ? (
                             <Image src={logoSrc} alt="Logo" fill className="object-cover p-2" />
@@ -95,7 +95,7 @@ export const AuthLayout = ({
                 {/* Footer Credits */}
                 <div className="absolute bottom-10 left-10 xl:left-14">
                     <p className="text-[10px] uppercase font-black tracking-widest text-slate-300 dark:text-slate-600">
-                        © {new Date().getFullYear()} Agno Integrated Portal
+                        © {new Date().getFullYear()} {brandWord1}{brandWord2} Portal
                     </p>
                 </div>
             </div>
@@ -140,8 +140,14 @@ export const AuthLayout = ({
                                 </p>
                                 {currentSlide.subtitle && (
                                     <footer className="flex items-center gap-4">
-                                        <div className="h-[2px] w-16 bg-blue-500 shadow-lg shadow-blue-500/50" />
-                                        <cite className="text-xs font-black uppercase tracking-[0.5em] text-blue-400 italic">
+                                        <div 
+                                            className="h-[2px] w-16 shadow-lg" 
+                                            style={{ backgroundColor: themeColor, boxShadow: `0 0 15px ${themeColor}88` }}
+                                        />
+                                        <cite 
+                                            className="text-xs font-black uppercase tracking-[0.5em] italic"
+                                            style={{ color: themeColor }}
+                                        >
                                             {currentSlide.subtitle}
                                         </cite>
                                     </footer>
@@ -165,7 +171,11 @@ export const AuthLayout = ({
                         {slides.map((_, idx) => (
                             <div 
                                 key={idx} 
-                                className={`h-1 transition-all duration-500 rounded-full ${idx === currentIndex ? 'w-8 bg-blue-500' : 'w-2 bg-white/20'}`}
+                                className="h-1 transition-all duration-500 rounded-full"
+                                style={{ 
+                                    width: idx === currentIndex ? '2rem' : '0.5rem',
+                                    backgroundColor: idx === currentIndex ? themeColor : 'rgba(255,255,255,0.2)'
+                                }}
                             />
                         ))}
                     </div>

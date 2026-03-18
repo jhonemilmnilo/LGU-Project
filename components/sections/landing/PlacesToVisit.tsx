@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Camera, Map as MapIcon, Compass, ArrowRight, ExternalLink } from "lucide-react";
+import { Camera, Map as MapIcon, Compass, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TourismSpot } from "@prisma/client";
 
@@ -43,12 +43,12 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
     };
 
     return (
-        <section className="py-12 px-6 max-w-7xl mx-auto space-y-10">
+        <section id="tourism" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-0.5 bg-blue-600" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Spotlight</span>
+                        <div className="w-10 h-0.5 bg-primary" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Spotlight</span>
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                         Gallery
@@ -57,7 +57,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
                 <div
                     onClick={() => router.push("/user/tourism")}
-                    className="px-8 py-4 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all cursor-pointer shadow-xl shadow-blue-500/25 active:scale-95 group flex items-center gap-3"
+                    className="px-8 py-4 bg-primary text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all cursor-pointer shadow-xl shadow-primary/25 active:scale-95 group flex items-center gap-3"
                 >
                     <Compass className="w-4 h-4 group-hover:rotate-45 transition-transform" />
                     Explore Entire Gallery
@@ -87,7 +87,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                             }}
                             className={cn(
                                 "group relative h-[280px] rounded-[2rem] overflow-hidden shadow-xl cursor-pointer transition-all duration-700",
-                                isActive ? "md:col-span-2 ring-2 ring-blue-600 shadow-blue-500/20" : "col-span-1 ring-1 ring-slate-200 dark:ring-white/5 opacity-80 hover:opacity-100"
+                                isActive ? "md:col-span-2 ring-2 ring-primary shadow-primary/20" : "col-span-1 ring-1 ring-slate-200 dark:ring-white/5 opacity-80 hover:opacity-100"
                             )}
                         >
                             <Image
@@ -107,14 +107,14 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                                     ? "bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-100"
                                     : "bg-black/50 opacity-100"
                             )} />
-                            <div className="absolute inset-0 bg-blue-600/5 mix-blend-overlay z-10" />
+                            <div className="absolute inset-0 bg-primary/10 mix-blend-overlay z-10" />
 
                             {/* Content */}
                             <div className="absolute bottom-6 left-6 right-6 z-20 space-y-3">
                                 <div className="flex items-center gap-3">
                                     <div className={cn(
                                         "w-8 h-8 rounded-lg flex items-center justify-center border transition-all duration-500",
-                                        isActive ? "bg-blue-600 border-blue-500 shadow-lg" : "bg-white/10 backdrop-blur-md border-white/20"
+                                        isActive ? "bg-primary border-primary/50 shadow-lg" : "bg-white/10 backdrop-blur-md border-white/20"
                                     )}>
                                         {isActive ? <Compass className="w-4 h-4 text-white animate-spin-slow" /> : <Camera className="w-4 h-4 text-white" />}
                                     </div>
@@ -122,7 +122,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                                         <h3 className="text-xl lg:text-2xl font-black text-white uppercase italic tracking-tighter leading-tight truncate">
                                             {spot.name}
                                         </h3>
-                                        <p className="text-blue-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                                        <p className="text-primary/90 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
                                             <MapIcon className="w-2.5 h-2.5" />
                                             {spot.address}
                                         </p>
@@ -151,7 +151,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                             {/* Active Progress Bar */}
                             {isActive && (
                                 <motion.div
-                                    className="absolute bottom-0 left-0 h-1 bg-blue-600 z-30"
+                                    className="absolute bottom-0 left-0 h-1 bg-primary z-30"
                                     initial={{ width: "0%" }}
                                     animate={{ width: "100%" }}
                                     transition={{ duration: 5, ease: "linear" }}
@@ -171,7 +171,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                         onClick={() => setActiveIndex(idx)}
                         className={cn(
                             "h-1 transition-all duration-500 rounded-full",
-                            activeIndex === idx ? "w-10 bg-blue-600" : "w-2.5 bg-slate-200 dark:bg-white/10"
+                            activeIndex === idx ? "w-10 bg-primary" : "w-2.5 bg-slate-200 dark:bg-white/10"
                         )}
                     />
                 ))}
