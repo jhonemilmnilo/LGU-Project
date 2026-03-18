@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Image as ImageIcon, X, Loader2, Users, Phone, Facebook, Calendar, Hash } from "lucide-react";
+import { Image as ImageIcon, X, Loader2, Users, Phone, Mail, Facebook, Calendar, Hash, GraduationCap, Trophy, Quote, Globe, Plus, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 
 // -----------------------------------------------------------------------
 // Inner form component — given a unique `key` by the parent so that it
@@ -27,10 +28,22 @@ import { Image as ImageIcon, X, Loader2, Users, Phone, Facebook, Calendar, Hash 
 function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
     // Initialise directly from editingData — safe because the component is
     // remounted with a fresh key each time the modal context changes.
+    const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
     const [imagePreview, setImagePreview] = useState<string | null>(
         editingData?.imageUrl ?? null
     );
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editingData?.links && Array.isArray(editingData.links)) {
+            setLinks([...editingData.links]);
+        } else if (editingData?.facebookUrl) {
+            // Migration: if they had a facebookUrl, put it in links
+            setLinks([{ label: "Facebook", url: editingData.facebookUrl }]);
+        } else {
+            setLinks([]);
+        }
+    }, [editingData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -43,6 +56,14 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
         }
     };
 
+    const addLink = () => setLinks([...links, { label: "", url: "" }]);
+    const removeLink = (index: number) => setLinks(links.filter((_, i) => i !== index));
+    const updateLink = (index: number, field: "label" | "url", value: string) => {
+        const newLinks = [...links];
+        newLinks[index][field] = value;
+        setLinks(newLinks);
+    };
+
     const formatDateForInput = (dateString: string | undefined) => {
         if (!dateString) return "";
         const date = new Date(dateString);
@@ -51,6 +72,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
 
     return (
         <form id="officialForm" onSubmit={handleSubmit} className="space-y-8">
+            <input type="hidden" name="links" value={JSON.stringify(links)} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* Profile Photo Upload */}
                 <div className="lg:col-span-1 space-y-6">
@@ -107,10 +129,10 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                         <Input
                             type="number"
                             name="order"
-                            defaultValue={editingData?.order || 0}
+                            defaultValue={editingData?.order ?? 99}
                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                         />
-                        <p className="text-xs text-slate-500">Lower numbers appear first (e.g. Mayor = 1)</p>
+                        <p className="text-xs text-slate-500">Rank: 1 is the highest (Mayor). Defaults to 99 (Last).</p>
                     </div>
                 </div>
 
@@ -152,13 +174,51 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                <Facebook className="w-3.5 h-3.5 mr-1 text-blue-600" /> Facebook Profile Link
+                                <Mail className="w-3.5 h-3.5 mr-1 text-blue-500" /> Professional Email
                             </Label>
                             <Input
-                                name="facebookUrl"
-                                defaultValue={editingData?.facebookUrl}
-                                placeholder="https://facebook.com/..."
+                                name="email"
+                                type="email"
+                                defaultValue={editingData?.email}
+                                placeholder="official@mapandan.gov.ph"
                                 className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                            <Quote className="w-3.5 h-3.5 mr-1 text-primary" /> Official Motto / Vision Quote
+                        </Label>
+                        <Input
+                            name="motto"
+                            defaultValue={editingData?.motto}
+                            placeholder="e.g. Service with Integrity..."
+                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] italic"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                                <GraduationCap className="w-4 h-4 mr-1 text-primary" /> Educational Background
+                            </Label>
+                            <Textarea
+                                name="education"
+                                defaultValue={editingData?.education}
+                                placeholder="Degrees, schools, and academic honors..."
+                                className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y text-sm"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                                <Trophy className="w-4 h-4 mr-1 text-amber-500" /> Key Achievements
+                            </Label>
+                            <Textarea
+                                name="achievements"
+                                defaultValue={editingData?.achievements}
+                                placeholder="Notable awards, projects, and recognitions..."
+                                className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y text-sm"
                             />
                         </div>
                     </div>
@@ -196,6 +256,68 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                             placeholder="Write a short background or public message..."
                             className="min-h-[120px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
                         />
+                    </div>
+
+                    {/* Dynamic Social Links */}
+                    <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                                    <Globe className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Social & Profile Links</h3>
+                            </div>
+                            <Button 
+                                type="button" 
+                                onClick={addLink}
+                                variant="outline"
+                                className="h-8 px-3 border-blue-200 text-blue-600 hover:bg-blue-50 font-bold rounded-lg flex items-center gap-2 text-[10px] uppercase tracking-tighter"
+                            >
+                                <Plus className="w-3 h-3" /> Add Link
+                            </Button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {links.length === 0 ? (
+                                <div className="p-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center">
+                                    <p className="text-slate-400 text-xs font-medium italic">No social links added yet.</p>
+                                </div>
+                            ) : (
+                                links.map((link, index) => (
+                                    <div key={index} className="flex gap-3 items-start group">
+                                        <div className="flex-1 grid grid-cols-2 gap-3 p-3 bg-slate-50/50 dark:bg-[#1a1f2e]/50 rounded-xl border border-slate-100 dark:border-[#2a3040]">
+                                            <div className="space-y-1">
+                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Platform Label</Label>
+                                                <Input
+                                                    value={link.label}
+                                                    onChange={(e) => updateLink(index, "label", e.target.value)}
+                                                    placeholder="e.g. Facebook"
+                                                    className="h-9 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] text-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">URL</Label>
+                                                <Input
+                                                    value={link.url}
+                                                    onChange={(e) => updateLink(index, "url", e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="h-9 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            onClick={() => removeLink(index)}
+                                            className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 mt-5"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

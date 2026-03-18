@@ -30,29 +30,36 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
     let file: File | null = null;
     let existingUrl: string | null = null;
 
-    if (fileItem instanceof File) {
+    // Determine if we have a new file upload
+    if (fileItem instanceof File && fileItem.size > 0) {
         file = fileItem;
-        existingUrl = formData.get(`${fieldName}Url`) as string | null || formData.get(fieldName) as string | null;
-    } else if (fileItemAlt instanceof File) {
+    } else if (fileItemAlt instanceof File && fileItemAlt.size > 0) {
         file = fileItemAlt;
-        existingUrl = formData.get(fieldName) as string | null;
-    } else {
-        existingUrl = fileItem as string | null;
+    }
+
+    // Determine existing URL (if any)
+    const urlValue = formData.get(`${fieldName}Url`) || formData.get(fieldName);
+    if (typeof urlValue === "string" && urlValue.trim() !== "" && !urlValue.startsWith("[object")) {
+        existingUrl = urlValue;
     }
 
     if (file && file.size > 0 && file.name !== "undefined") {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = Date.now() + "_" + (file.name || "upload").replaceAll(" ", "_");
-        const uploadsDir = path.join(process.cwd(), "public/uploads");
-        const filepath = path.join(uploadsDir, filename);
-        
-        // Ensure directory exists
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
+        try {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const filename = Date.now() + "_" + (file.name || "upload").replaceAll(" ", "_");
+            const uploadsDir = path.join(process.cwd(), "public/uploads");
+            const filepath = path.join(uploadsDir, filename);
+            
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+            
+            await writeFile(filepath, buffer);
+            return `/uploads/${filename}`;
+        } catch (error) {
+            console.error("Image upload failed:", error);
+            return existingUrl;
         }
-        
-        await writeFile(filepath, buffer);
-        existingUrl = `/uploads/${filename}`;
     }
 
     return existingUrl || null;
@@ -873,6 +880,8 @@ export async function toggleJobStatus(id: string, isActive: boolean) {
 export async function addOfficial(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        const linksJson = formData.get("links") as string;
+        const links = linksJson ? JSON.parse(linksJson) : [];
 
         const orderValue = formData.get("order") as string;
         const parsedOrder = orderValue ? parseInt(orderValue, 10) : 0;
@@ -881,17 +890,22 @@ export async function addOfficial(formData: FormData) {
             data: {
                 name: formData.get("name") as string,
                 position: formData.get("position") as string,
+                email: formData.get("email") as string | null,
                 contactNumber: formData.get("contactNumber") as string | null,
-                facebookUrl: formData.get("facebookUrl") as string | null,
+                links: links,
                 bio: formData.get("bio") as string | null,
+                education: formData.get("education") as string | null,
+                motto: formData.get("motto") as string | null,
+                achievements: formData.get("achievements") as string | null,
                 termStart: formData.get("termStart") ? new Date(formData.get("termStart") as string) : null,
                 termEnd: formData.get("termEnd") ? new Date(formData.get("termEnd") as string) : null,
-                order: isNaN(parsedOrder) ? 0 : parsedOrder,
+                order: isNaN(parsedOrder) ? 99 : parsedOrder,
                 imageUrl: imageUrl,
                 isActive: true,
             } as any,
         });
 
+        revalidatePath("/");
         revalidatePath("/admin/officials");
         return { success: true, official: newOfficial };
     } catch (error) {
@@ -909,6 +923,9 @@ export async function updateOfficial(id: string, formData: FormData) {
             await deleteUploadedFile(oldItem.imageUrl);
         }
 
+        const linksJson = formData.get("links") as string;
+        const links = linksJson ? JSON.parse(linksJson) : [];
+
         const orderValue = formData.get("order") as string;
         const parsedOrder = orderValue ? parseInt(orderValue, 10) : 0;
 
@@ -917,16 +934,21 @@ export async function updateOfficial(id: string, formData: FormData) {
             data: {
                 name: formData.get("name") as string,
                 position: formData.get("position") as string,
+                email: formData.get("email") as string | null,
                 contactNumber: formData.get("contactNumber") as string | null,
-                facebookUrl: formData.get("facebookUrl") as string | null,
+                links: links,
                 bio: formData.get("bio") as string | null,
+                education: formData.get("education") as string | null,
+                motto: formData.get("motto") as string | null,
+                achievements: formData.get("achievements") as string | null,
                 termStart: formData.get("termStart") ? new Date(formData.get("termStart") as string) : null,
                 termEnd: formData.get("termEnd") ? new Date(formData.get("termEnd") as string) : null,
-                order: isNaN(parsedOrder) ? 0 : parsedOrder,
+                order: isNaN(parsedOrder) ? 99 : parsedOrder,
                 imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
             } as any,
         });
 
+        revalidatePath("/");
         revalidatePath("/admin/officials");
         return { success: true, official: updatedOfficial };
     } catch (error) {

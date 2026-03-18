@@ -202,12 +202,16 @@ model Official {
   name          String
   position      String
   contactNumber String?
-  facebookUrl   String?
+  email         String?
+  links         Json?     @default("[]")
   bio           String?   @db.Text
+  education     String?   @db.Text
+  motto         String?
+  achievements  String?   @db.Text
   imageUrl      String?
   termStart     DateTime?
   termEnd       DateTime?
-  order         Int       @default(0)
+  order         Int       @default(99)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
