@@ -1,6 +1,6 @@
 export const BARANGAYS = ["Aloleng", "Bangan-Oda", "Baruan", "Boboy", "Cayungnan", "Dangley", "Gayusan", "Macaboboni", "Magsaysay", "Namuac", "Poblacion East", "Poblacion West", "Patar", "Sablig", "San Juan", "Tupa"];
 
-export const CIVIL_STATUSES = ["Single", "Married", "Widowed", "Separated", "Annulled", "Live-in"];
+export const CIVIL_STATUSES = ["Single", "Married", "Widowed", "Separated", "Annulled", "Live-in", "Other"];
 
 export const GENDERS = ["Male", "Female", "Other"];
 
@@ -13,7 +13,8 @@ export const EDUCATIONAL_ATTAINMENT = [
   "Vocational/Short Course",
   "College Level",
   "College Graduate",
-  "Post Graduate Studies"
+  "Post Graduate Studies",
+  "Other"
 ];
 
 export const EMPLOYMENT_STATUS = [
@@ -23,7 +24,8 @@ export const EMPLOYMENT_STATUS = [
   "Unemployed",
   "Student",
   "Retired",
-  "OFW"
+  "OFW",
+  "Other"
 ];
 
 export const INCOME_RANGES = [
@@ -49,5 +51,6 @@ export const ID_TYPES = [
   "Barangay ID/Certificate",
   "NBI Clearance",
   "Police Clearance",
-  "TIN ID"
+  "TIN ID",
+  "Other"
 ];

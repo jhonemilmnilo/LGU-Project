@@ -24,10 +24,12 @@ export type Resident = {
     middleName?: string | null;
     suffix?: string | null;
     gender: string;
+    otherGender?: string | null;
     dateOfBirth: Date;
     age?: number | null;
     placeOfBirth?: string | null;
     civilStatus: string;
+    otherCivilStatus?: string | null;
     citizenship?: string | null;
     height?: string | null;
     weight?: string | null;
@@ -62,7 +64,9 @@ export type Resident = {
     occupation?: string | null;
     employer?: string | null;
     educationalAttainment?: string | null;
+    otherEducationalAttainment?: string | null;
     employmentStatus?: string | null;
+    otherEmploymentStatus?: string | null;
     monthlyIncome?: string | null;
     
     // Sectors
@@ -75,10 +79,10 @@ export type Resident = {
     
     // Identity
     idType?: string | null;
+    otherIdType?: string | null;
     imageUrl?: string | null;
     idFrontUrl?: string | null;
     idBackUrl?: string | null;
-    livenessUrl?: string | null;
     
     registeredAt?: Date;
     createdAt?: Date;

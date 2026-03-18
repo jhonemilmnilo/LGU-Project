@@ -12,7 +12,7 @@ import { checkDuplicateFace } from "../../actions";
 interface FacialVerificationProps {
     isOpen: boolean;
     onClose: () => void;
-    onVerified: (descriptor: number[], imageBase64: string) => void;
+    onVerified: (descriptor: number[]) => void; 
 }
 
 type VerificationStep = "INITIALIZING" | "NEUTRAL" | "LOOK_LEFT" | "LOOK_RIGHT" | "BLINK" | "COMPLETED" | "PROCESSING";
@@ -23,10 +23,10 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     const [step, setStep] = useState<VerificationStep>("INITIALIZING");
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [hint, setHint] = useState<string>("Face the camera");
-    const [showGuide, setShowGuide] = useState(false); // Default to false for better UX
-    const [eyeBaseline, setEyeBaseline] = useState<number | null>(null); // To store "normal" eye state
+    const [showGuide, setShowGuide] = useState(false); 
+    const isBlinkProcessing = useRef(false);
+    const [eyeBaseline, setEyeBaseline] = useState<number | null>(null); 
     const [lightingDetail, setLightingDetail] = useState<{ score: number; status: 'GOOD' | 'POOR' }>({ score: 0, status: 'GOOD' });
-    // const [error, setError] = useState<string | null>(null); // Removed unused state
 
     const isProcessing = useRef(false);
 
@@ -45,7 +45,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                 console.log("Loading face-api models...");
                 const MODEL_URL = "/models";
                 await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
@@ -61,6 +61,12 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
             loadModels();
         }
     }, [isOpen, modelsLoaded]);
+
+    const blinkFrameCounter = useRef(0);
+    const eyeWasClosed = useRef(false);
+    const baselineEAR = useRef(0);
+    const baselineFrames = useRef(0);
+
     const resetVerification = useCallback(() => {
         setStep("NEUTRAL");
         setLiveness({ neutral: false, left: false, right: false, blink: false });
@@ -68,6 +74,13 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         setEyeBaseline(null);
         setLightingDetail({ score: 0, status: 'GOOD' });
         isProcessing.current = false;
+        isBlinkProcessing.current = false;
+        
+        // Reset blink detection counters
+        baselineEAR.current = 0;
+        baselineFrames.current = 0;
+        blinkFrameCounter.current = 0;
+        eyeWasClosed.current = false;
     }, []);
 
     // Also reset when modal closes
@@ -77,185 +90,192 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         }
     }, [isOpen, resetVerification]);
 
+    const euclidean = (p1: faceapi.Point, p2: faceapi.Point) => {
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    };
+
+    const getEAR = (p: faceapi.Point[]) => {
+        const v1 = euclidean(p[1], p[5]);
+        const v2 = euclidean(p[2], p[4]);
+        const h = euclidean(p[0], p[3]);
+        return (v1 + v2) / (2.0 * h);
+    };
 
     const handleVerification = useCallback(async () => {
         if (!webcamRef.current || !webcamRef.current.video || !modelsLoaded) return;
-        if (isProcessing.current || step === "COMPLETED" || step === "PROCESSING") return;
+        const isBlinkStep = step === "BLINK" && !liveness.blink;
+        if (!isBlinkStep && isProcessing.current) return;
+        if (step === "COMPLETED" || step === "PROCESSING") return;
 
-        isProcessing.current = true;
+        if (!isBlinkStep) isProcessing.current = true;
+        
         try {
             const video = webcamRef.current.video;
             if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
-                isProcessing.current = false;
+                if (!isBlinkStep) isProcessing.current = false;
                 return;
             }
 
-            const detections = await faceapi.detectSingleFace(
+            const detection = await faceapi.detectSingleFace(
                 video,
-                new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
-            ).withFaceLandmarks().withFaceDescriptor();
+                new faceapi.TinyFaceDetectorOptions({ 
+                    inputSize: isBlinkStep ? 160 : 224, 
+                    scoreThreshold: isBlinkStep ? 0.25 : 0.5 
+                })
+            ).withFaceLandmarks();
 
-            if (!detections) {
-                setHint("No face detected. Align your face to the frame.");
-                return;
-            }
-
-            const score = detections.detection.score;
-            if (score < 0.4) {
-                setHint("Face unclear. Check lighting or move closer.");
+            if (!detection) {
+                setHint("Align your face to the frame.");
+                if (!isBlinkStep) isProcessing.current = false;
                 return;
             }
             
             setHint("Face detected. Follow the instructions.");
 
-            const landmarks = detections.landmarks;
-            const nose = landmarks.getNose();
-            const leftEye = landmarks.getLeftEye();
-            const rightEye = landmarks.getRightEye();
+            const landmarks = detection.landmarks;
+            const box = detection.detection.box;
+            const frameWidth = video.videoWidth;
+            const frameHeight = video.videoHeight;
 
-            // Glass/Occlusion Heuristic Check
-            // We check the variance between eye points and the bridge of the nose.
-            // If the landmark confidence for the bridge (nose[0-3]) is low or if we detect
-            // specific occlusion patterns, we warn the user.
-            
-            // If the inner eye corners are too far or blocked, it often means heavy glasses
-            if (detections.detection.score < 0.85) { // Strict confidence check
-                setHint("Face clarity low. Remove glasses or check lighting.");
+            // STEP 1 — CENTER
+            if (!liveness.neutral) {
+                const boxCenterX = box.x + box.width / 2;
+                const boxCenterY = box.y + box.height / 2;
+                const isCentered = 
+                    Math.abs(boxCenterX - frameWidth / 2) < frameWidth * 0.15 &&
+                    Math.abs(boxCenterY - frameHeight / 2) < frameHeight * 0.15;
+
+                if (isCentered) {
+                    setLiveness(prev => ({ ...prev, neutral: true }));
+                    setStep("BLINK");
+                } else {
+                    setHint("Center your face directly at the camera.");
+                }
                 isProcessing.current = false;
                 return;
             }
 
-            const leftEyeMid = (leftEye[0].x + leftEye[3].x) / 2;
-            const rightEyeMid = (rightEye[0].x + rightEye[3].x) / 2;
-            const eyeDist = Math.abs(rightEyeMid - leftEyeMid);
-            const nosePos = (nose[6].x - Math.min(leftEyeMid, rightEyeMid)) / eyeDist;
+            // --- FIX 1: SURGICAL BLINK UPDATE ---
+            if (liveness.neutral && !liveness.blink) {
+                if (isBlinkProcessing.current) {
+                  isProcessing.current = false;
+                  return;
+                }
+                isBlinkProcessing.current = true;
 
-            const getEAR = (eye: faceapi.Point[]) => {
-                const v1 = Math.sqrt(Math.pow(eye[1].x - eye[5].x, 2) + Math.pow(eye[1].y - eye[5].y, 2));
-                const v2 = Math.sqrt(Math.pow(eye[2].x - eye[4].x, 2) + Math.pow(eye[2].y - eye[4].y, 2));
-                const h = Math.sqrt(Math.pow(eye[0].x - eye[3].x, 2) + Math.pow(eye[0].y - eye[3].y, 2));
-                return (v1 + v2) / (2 * h);
-            };
+                const leftEye = landmarks.getLeftEye();
+                const rightEye = landmarks.getRightEye();
+                const avgEAR = (getEAR(leftEye) + getEAR(rightEye)) / 2;
 
-            const leftEAR = getEAR(leftEye);
-            const rightEAR = getEAR(rightEye);
-            const avgEAR = (leftEAR + rightEAR) / 2;
+                // Calibration phase
+                if (baselineFrames.current < 6) {
+                    baselineEAR.current += avgEAR;
+                    baselineFrames.current++;
+                    setHint(`Calibrating... ${baselineFrames.current}/6`);
+                    isBlinkProcessing.current = false;  // RELEASE HERE
+                    isProcessing.current = false;
+                    return;
+                }
+                if (baselineFrames.current === 6) {
+                    baselineEAR.current = baselineEAR.current / 6;
+                    baselineFrames.current = 7;
+                }
 
-            // Lighting Check (Simple brightness estimation)
-            if (Math.random() > 0.9) {
-                const ctx = canvasRef.current?.getContext('2d');
-                if (ctx) {
-                    ctx.drawImage(video, 0, 0, 10, 10);
-                    const imgData = ctx.getImageData(0, 0, 10, 10).data;
-                    let brightness = 0;
-                    for (let i = 0; i < imgData.length; i += 4) {
-                        brightness += (imgData[i] + imgData[i+1] + imgData[i+2]) / 3;
-                    }
-                    brightness /= (imgData.length / 4);
-                    setLightingDetail({ 
-                        score: brightness, 
-                        status: brightness < 40 ? 'POOR' : 'GOOD' 
-                    });
-                    if (brightness < 40) {
-                        setHint("Too dark. Move to a better lit area.");
-                        isProcessing.current = false;
-                        return;
+                const dynamicThreshold = baselineEAR.current * 0.82; 
+
+                if (avgEAR < dynamicThreshold) {
+                    blinkFrameCounter.current++;
+                    eyeWasClosed.current = true;
+                    setHint("Blinking detected...");
+                } else {
+                    if (eyeWasClosed.current && blinkFrameCounter.current >= 1) {
+                        setLiveness(prev => ({ ...prev, blink: true }));
+                        setStep("LOOK_LEFT");
+                    } else {
+                        blinkFrameCounter.current = 0;
+                        eyeWasClosed.current = false;
+                        // FIX 4: DEBUG HINT
+                        setHint(`Blink naturally... (EAR: ${avgEAR.toFixed(3)} / T: ${dynamicThreshold.toFixed(3)})`);
                     }
                 }
+
+                isBlinkProcessing.current = false; // RELEASE AT END
+                isProcessing.current = false;
+                return;
             }
 
-            // Enhanced Debugging
-            if (step === "BLINK" || Math.random() > 0.95) {
-                console.log(`[BioCheck] Step: ${step} | NosePos: ${nosePos.toFixed(3)} | EAR: ${avgEAR.toFixed(3)}`);
-            }
-
-            if (step === "NEUTRAL") {
-                if (nosePos > 0.35 && nosePos < 0.65) {
-                    setHint("Hold still... setting eye baseline");
-                    // Take 3 snapshots of EAR to get a reliable baseline
-                    setEyeBaseline(prev => prev ? (prev + avgEAR) / 2 : avgEAR);
-                    
-                    if (eyeBaseline && Math.abs(avgEAR - eyeBaseline) < 0.05) {
-                        setHint("Perfect! Now turn your head slightly LEFT...");
-                        setLiveness(prev => ({ ...prev, neutral: true }));
-                        setStep("PROCESSING");
-                        setTimeout(() => setStep("LOOK_LEFT"), 400);
-                    }
-                } else {
-                    setHint("Center your face directly at the camera.");
-                }
-            } else if (step === "LOOK_LEFT") {
-                if (nosePos > 0.65) { 
-                    setHint("Good! Now turn your head slightly RIGHT...");
-                    setLiveness(prev => ({ ...prev, left: true }));
-                    setStep("PROCESSING");
-                    setTimeout(() => setStep("LOOK_RIGHT"), 400);
-                } else {
-                    setHint("Look to your LEFT (towards your left shoulder)...");
-                }
-            } else if (step === "LOOK_RIGHT") {
-                if (nosePos < 0.35) { 
-                    setHint("Great! Now look center and blink naturally...");
-                    setLiveness(prev => ({ ...prev, right: true }));
-                    setStep("PROCESSING");
-                    setTimeout(() => setStep("BLINK"), 400);
-                } else {
-                    setHint("Look to your RIGHT (towards your right shoulder)...");
-                }
-            } else if (step === "BLINK") {
-                // ADAPTIVE BLINK DETECTION
-                // We trigger a blink if the current EAR is 25% lower than the user's neutral baseline
-                const isBlinking = eyeBaseline ? (avgEAR < eyeBaseline * 0.75) : (avgEAR < 0.24);
+            // STEP 3 — TURN LEFT
+            if (liveness.blink && !liveness.left) {
+                const jawPoints = landmarks.getJawOutline();
+                const nosePoints = landmarks.getNose();
+                const noseTip = nosePoints[6]; 
+                const jawMid = jawPoints[8];
                 
-                if (isBlinking) { 
-                    setHint("Identity verified! Processing...");
-                    setStep("PROCESSING"); 
-                    
-                    const toastId = toast.loading("Finalizing biometric capture...");
-                    
-                    try {
-                        const descriptor = Array.from(detections.descriptor);
-                        const duplicateCheck = await checkDuplicateFace(descriptor);
-                        
-                        toast.dismiss(toastId);
+                if (noseTip.x - jawMid.x > 12) {
+                    setLiveness(prev => ({ ...prev, left: true }));
+                    setStep("LOOK_RIGHT");
+                } else {
+                    setHint("Turn your head slightly LEFT...");
+                }
+                isProcessing.current = false;
+                return;
+            }
 
-                        if (duplicateCheck.success && duplicateCheck.match) {
-                           toast.error(`DUPLICATE DETECTED: This person matches ${duplicateCheck.match.name}.`, {
-                               duration: 8000,
-                               position: "bottom-right"
-                           });
-                           setTimeout(() => resetVerification(), 1000);
+            // STEP 4 — TURN RIGHT
+            if (liveness.left && !liveness.right) {
+                const jawPoints = landmarks.getJawOutline();
+                const nosePoints = landmarks.getNose();
+                const noseTip = nosePoints[6];
+                const jawMid = jawPoints[8];
+
+                if (jawMid.x - noseTip.x > 12) {
+                    setLiveness(prev => ({ ...prev, right: true }));
+                    setHint("Identity verified! Processing...");
+                    setStep("PROCESSING");
+
+                    // EXTRACTION: AT THE FINAL STEP (LOOK_RIGHT)
+                    try {
+                        const fullDetections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 })).withFaceLandmarks().withFaceDescriptor();
+                        
+                        if (!fullDetections) {
+                           toast.error("Extraction failed. Resetting.");
+                           resetVerification();
                            return;
                         }
 
-                        if (!duplicateCheck.success) {
-                            toast.error(duplicateCheck.error || "Verification error. Please try again.");
-                            setStep("BLINK");
-                            return;
+                        const descriptor = Array.from(fullDetections.descriptor);
+                        const duplicateCheck = await checkDuplicateFace(descriptor);
+                        
+                        if (duplicateCheck.success && duplicateCheck.match) {
+                           toast.error(`DUPLICATE DETECTED: Matches ${duplicateCheck.match.name}.`, { duration: 6000 });
+                           resetVerification();
+                           onClose(); // Kill the modal
+                           return;
                         }
 
-                        toast.success("Identity verified successfully!");
-                        setLiveness(prev => ({ ...prev, blink: true }));
+                        toast.success("Ready!");
                         setStep("COMPLETED");
-
-                        const imageBase64 = webcamRef.current.getScreenshot();
-                        if (imageBase64) {
-                            onVerified(descriptor, imageBase64);
-                        }
-                    } catch (dupErr) {
-                        toast.dismiss();
-                        console.error("Duplicate check error:", dupErr);
-                        setHint("Connection error. Please blink again.");
-                        setStep("BLINK");
+                        onVerified(descriptor);
+                    } catch (e) {
+                        toast.error("Cap error.");
+                        resetVerification();
                     }
+                } else {
+                    setHint("Turn your head slightly RIGHT...");
                 }
+                isProcessing.current = false;
+                return;
             }
         } catch (err) {
-            console.error("Verification error:", err);
-        } finally {
+            console.error("Liveness system fail:", err);
             isProcessing.current = false;
         }
-    }, [step, modelsLoaded, onVerified, resetVerification]);
+    }, [step, modelsLoaded, liveness, onVerified, resetVerification, onClose]);
+
+    const handleVerificationRef = useRef(handleVerification);
+    useEffect(() => {
+        handleVerificationRef.current = handleVerification;
+    }, [handleVerification]);
 
     const handleWebcamError = useCallback((err: string | DOMException) => {
         console.error("Webcam error:", err);
@@ -263,14 +283,17 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
     }, []);
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isOpen && modelsLoaded && step !== "COMPLETED" && step !== "INITIALIZING" && step !== "PROCESSING" && !showGuide) {
-            interval = setInterval(handleVerification, 40); // Faster scan: 80ms -> 40ms for snappier blinks
-        }
+        if (!isOpen || !modelsLoaded || 
+            ["COMPLETED", "INITIALIZING", "PROCESSING"].includes(step) || 
+            showGuide) return;
+        
+        const intervalSpeed = step === "BLINK" ? 40 : 150;
+        const interval = setInterval(() => {
+            handleVerificationRef.current();  // always calls latest version
+        }, intervalSpeed);
+        
         return () => clearInterval(interval);
-    }, [isOpen, modelsLoaded, step, handleVerification, showGuide]);
-
-
+    }, [isOpen, modelsLoaded, step, showGuide]); 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -365,9 +388,9 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     {/* Checklist */}
                     <div className="grid grid-cols-2 gap-3">
                         <CheckItem label="Face Centered" active={liveness.neutral} />
+                        <CheckItem label="Eye Blink" active={liveness.blink} />
                         <CheckItem label="Left Check" active={liveness.left} />
                         <CheckItem label="Right Check" active={liveness.right} />
-                        <CheckItem label="Eye Blink" active={liveness.blink} />
                     </div>
 
                     <div className="flex gap-3">

@@ -16,6 +16,7 @@ import { IdentityVerificationSection } from "./form-sections/IdentityVerificatio
 import { AccountSetupSection } from "./form-sections/AccountSetup";
 import { SectorsAndConsentSection } from "./form-sections/SectorsAndConsent";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const STEPS = [
     { id: "personal", title: "Personal", icon: User, description: "Basic Info (A)" },
@@ -34,6 +35,9 @@ export function AddResidentModal() {
 
     useEffect(() => {
         if (isAddModalOpen) {
+            // Reset to Step 1 whenever modal is opened
+            setCurrentStep(0);
+            
             if (editingData) {
                 // Combine manual family members and linked household members
                 const manual = editingData.familyMembers || [];
@@ -63,7 +67,69 @@ export function AddResidentModal() {
     };
 
     const nextStep = () => {
-        if (currentStep < STEPS.length - 1) setCurrentStep(currentStep + 1);
+        if (currentStep < STEPS.length - 1) {
+            if (validateStep(currentStep)) {
+                setCurrentStep(currentStep + 1);
+            }
+        }
+    };
+
+    const validateStep = (stepIndex: number) => {
+        const form = document.getElementById("residentForm") as HTMLFormElement;
+        if (!form) return true;
+
+        const formData = new FormData(form);
+
+        if (stepIndex === 0) { // Personal
+            if (!formData.get("lastName")) { toast.error("Last Name is required."); return false; }
+            if (!formData.get("firstName")) { toast.error("First Name is required."); return false; }
+            if (!formData.get("gender")) { toast.error("Please select a Gender."); return false; }
+            if (formData.get("gender") === "Other" && !formData.get("otherGender")) {
+                toast.error("Please specify your Gender."); return false;
+            }
+            if (!formData.get("dateOfBirth")) { toast.error("Date of Birth is required."); return false; }
+            if (!formData.get("civilStatus")) { toast.error("Civil Status is required."); return false; }
+            if (formData.get("civilStatus") === "Other" && !formData.get("otherCivilStatus")) {
+                toast.error("Please specify your Civil Status."); return false;
+            }
+        }
+
+        if (stepIndex === 1) { // Address
+            if (!formData.get("barangay")) { toast.error("Barangay is mandatory."); return false; }
+        }
+
+        if (stepIndex === 2) { // Socio-Gov
+            if (!formData.get("occupation")) { toast.error("Occupation is required."); return false; }
+            if (formData.get("educationalAttainment") === "Other" && !formData.get("otherEducationalAttainment")) {
+                toast.error("Please specify your Educational Attainment."); return false;
+            }
+            if (formData.get("employmentStatus") === "Other" && !formData.get("otherEmploymentStatus")) {
+                toast.error("Please specify your Employment Status."); return false;
+            }
+        }
+
+        if (stepIndex === 4) { // Identity Verification
+            // ID fields are now optional to accommodate registrations for kids/babies
+            const idType = formData.get("idType") as string;
+            if (idType === "Other" && !formData.get("otherIdType")) {
+                toast.error("Please specify your ID Type."); return false;
+            }
+        }
+
+        if (stepIndex === 5) { // Account
+            const email = formData.get("email") as string;
+            if (!email) { toast.error("Email Address is required for account setup."); return false; }
+            if (!email.includes("@")) { toast.error("Please enter a valid email."); return false; }
+        }
+
+        if (stepIndex === 6) { // Sectors and Consent
+            if (formData.get("dataPrivacyConsent") !== "true") {
+                toast.error("You must agree to the Data Privacy Consent.");
+                return false;
+            }
+        }
+
+        return true;
     };
 
     const prevStep = () => {
@@ -139,6 +205,10 @@ export function AddResidentModal() {
                                 id="residentForm" 
                                 onSubmit={(e) => {
                                     if (currentStep !== STEPS.length - 1) {
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                    if (!validateStep(currentStep)) {
                                         e.preventDefault();
                                         return;
                                     }

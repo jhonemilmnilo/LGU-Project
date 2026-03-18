@@ -11,6 +11,8 @@ interface ResidentCategory {
 }
 
 export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
+    const [genderVal, setGenderVal] = useState(data?.gender || "Male");
+    const [civilStatusVal, setCivilStatusVal] = useState(data?.civilStatus || "Single");
     const [dob, setDob] = useState(data?.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : "");
     // const [isDead, setIsDead] = useState(data?.isDead || false); // Removed to fix lint warning
 
@@ -67,8 +69,14 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Gender *</label>
-                    <Select name="gender" defaultValue={data?.gender || "Male"}>
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                        Gender <span className="text-red-500">*</span>
+                    </label>
+                    <Select 
+                        name="gender" 
+                        onValueChange={(val) => setGenderVal(val)}
+                        defaultValue={data?.gender || "Male"}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Select Gender" />
                         </SelectTrigger>
@@ -76,6 +84,18 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                             {GENDERS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                    
+                    {genderVal === "Other" && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+                            <Input 
+                                name="otherGender" 
+                                placeholder="Please specify gender" 
+                                defaultValue={data?.otherGender || ""}
+                                required 
+                                className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Date of Birth *</label>
@@ -95,8 +115,14 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Civil Status *</label>
-                    <Select name="civilStatus" defaultValue={data?.civilStatus || "Single"}>
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                        Civil Status <span className="text-red-500">*</span>
+                    </label>
+                    <Select 
+                        name="civilStatus" 
+                        onValueChange={(val) => setCivilStatusVal(val)}
+                        defaultValue={data?.civilStatus || "Single"}
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Select Status" />
                         </SelectTrigger>
@@ -104,6 +130,18 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                             {CIVIL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                    
+                    {civilStatusVal === "Other" && (
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+                            <Input 
+                                name="otherCivilStatus" 
+                                placeholder="Please specify status" 
+                                defaultValue={data?.otherCivilStatus || ""}
+                                required 
+                                className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Place of Birth</label>

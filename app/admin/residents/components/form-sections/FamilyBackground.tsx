@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2, Link as LinkIcon } from "lucide-react";

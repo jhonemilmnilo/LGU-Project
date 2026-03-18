@@ -16,6 +16,9 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
+    // 0. Cinematic Delay - specifically for seeing the full animation as requested
+    await new Promise(resolve => setTimeout(resolve, 6000));
+
     // 1. Fetch all needed system settings first in one query
     const settings = await getMultipleSystemSettings([
         "maintenance_mode", 

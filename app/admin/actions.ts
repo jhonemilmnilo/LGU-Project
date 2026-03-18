@@ -3,6 +3,7 @@
 "use server";
 
 import prisma from "@/lib/db/prisma";
+import * as faceapi from "face-api.js";
 import { revalidatePath } from "next/cache";
 import { writeFile } from "fs/promises";
 import bcrypt from "bcryptjs";
@@ -125,11 +126,12 @@ export async function getResidentCategories() {
     }
 }
 
-export async function checkDuplicateFace(descriptor: number[]) {
+export async function checkDuplicateFace(descriptor: number[], excludeId?: string) {
     try {
         const residents = await (prisma.resident as any).findMany({
             where: {
-                facialRecognition: { not: null }
+                facialRecognition: { not: null },
+                ...(excludeId ? { id: { not: excludeId } } : {})
             },
             select: {
                 id: true,
@@ -139,37 +141,52 @@ export async function checkDuplicateFace(descriptor: number[]) {
             }
         });
 
-        console.log(`[BioCheck] Comparing against ${residents.length} records...`);
-
-        const threshold = 0.38; // Lowered from 0.45 - more strict to prevent false duplicates
-        let match = null;
-
-        for (const resident of residents) {
-            const facialData = resident.facialRecognition;
-            // Handle possibility of facialRecognition being the descriptor array directly or an object
-            const storedDescriptor = Array.isArray(facialData) ? facialData : facialData?.descriptor;
-            
-            if (!storedDescriptor || !Array.isArray(storedDescriptor)) continue;
-
-            let sumDist = 0;
-            for (let i = 0; i < descriptor.length; i++) {
-                sumDist += Math.pow(descriptor[i] - (storedDescriptor[i] as number), 2);
-            }
-            const distance = Math.sqrt(sumDist);
-
-            if (distance < threshold) {
-                console.log(`[BioCheck] Match found: ${resident.firstName} ${resident.lastName} (Dist: ${distance.toFixed(4)})`);
-                match = {
-                    id: resident.id,
-                    name: `${resident.firstName} ${resident.lastName}`,
-                    distance
-                };
-                break;
-            }
+        // FIX 1: Before ANY match attempt, check if the descriptor store is empty.
+        if (residents.length === 0) {
+            return { success: true, match: null };
         }
 
-        if (!match) console.log("[BioCheck] No matching identity found.");
-        return { success: true, match };
+        console.log(`[BioCheck] Comparing against ${residents.length} records...`);
+
+        // FIX 1: Wrap descriptors correctly for FaceMatcher: new faceapi.LabeledFaceDescriptors(label, [Float32ArrayDescriptor])
+        const labeledDescriptors = residents.map((r: any) => {
+            const facialData = r.facialRecognition;
+            const storedDescriptor = Array.isArray(facialData) ? facialData : facialData?.descriptor;
+            if (!storedDescriptor) return null;
+
+            // FIX 1: ALWAYS convert back to Float32Array: Float32Array.from(Object.values(storedDescriptor))
+            const floatArray = Float32Array.from(Object.values(storedDescriptor));
+            
+            return new faceapi.LabeledFaceDescriptors(
+                `${r.firstName} ${r.lastName}|${r.id}`, 
+                [floatArray]
+            );
+        }).filter(Boolean) as faceapi.LabeledFaceDescriptors[];
+
+        if (labeledDescriptors.length === 0) {
+            return { success: true, match: null };
+        }
+
+        // FIX 1 & 3: Replace any existing FaceMatcher threshold with exactly 0.45
+        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
+        const queryDescriptor = new Float32Array(descriptor);
+        const bestMatch = faceMatcher.findBestMatch(queryDescriptor);
+
+        if (bestMatch.label !== "unknown") {
+            const [name, id] = bestMatch.label.split("|");
+            console.log(`[BioCheck] Match found: ${name} (Dist: ${bestMatch.distance.toFixed(4)})`);
+            return { 
+                success: true, 
+                match: {
+                    id,
+                    name,
+                    distance: bestMatch.distance
+                } 
+            };
+        }
+
+        console.log("[BioCheck] No matching identity found.");
+        return { success: true, match: null };
     } catch (error) {
         console.error("Face check error:", error);
         return { success: false, error: "System error checking facial data." };
@@ -1320,7 +1337,6 @@ export async function addResident(formData: FormData) {
         const imageUrl = await processImageUpload(formData, "imageUrl");
         const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
         const idBackUrl = await processImageUpload(formData, "idBackUrl");
-        const livenessUrl = await processImageUpload(formData, "livenessUrl");
 
         const familyMembersData = formData.get("familyMembers") as string;
         const familyMembers = familyMembersData ? JSON.parse(familyMembersData) : [];
@@ -1396,6 +1412,23 @@ export async function addResident(formData: FormData) {
 
         const categoryIds = formData.getAll("categories") as string[];
 
+        // FIX 3: REGISTRATION DUPLICATE GUARD
+        const faceDataRaw = formData.get("facialRecognition");
+        if (faceDataRaw) {
+            const faceData = JSON.parse(faceDataRaw as string);
+            const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
+            
+            if (descriptorToSave) {
+                 const duplicateCheck = await checkDuplicateFace(descriptorToSave);
+                 if (duplicateCheck.success && duplicateCheck.match) {
+                     return { 
+                         success: false, 
+                         error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}.` 
+                     };
+                 }
+            }
+        }
+
         const resident = await (prisma as any).resident.create({
             data: {
                 firstName: formData.get("firstName") as string,
@@ -1438,7 +1471,6 @@ export async function addResident(formData: FormData) {
                 idType: formData.get("idType") as string || null,
                 idFrontUrl,
                 idBackUrl,
-                livenessUrl,
                 educationalAttainment: formData.get("educationalAttainment") as string || null,
                 employmentStatus: formData.get("employmentStatus") as string || null,
                 monthlyIncome: formData.get("monthlyIncome") as string || null,
@@ -1541,7 +1573,6 @@ export async function updateResident(id: string, formData: FormData) {
         const imageUrl = await processImageUpload(formData, "imageUrl");
         const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
         const idBackUrl = await processImageUpload(formData, "idBackUrl");
-        const livenessUrl = await processImageUpload(formData, "livenessUrl");
 
         const emails = formData.getAll("email") as string[];
         const emailRaw = emails.find(e => e.trim() !== "") || null;
@@ -1554,6 +1585,23 @@ export async function updateResident(id: string, formData: FormData) {
         });
 
         const categoryIds = formData.getAll("categories") as string[];
+
+        // FIX 3: REGISTRATION DUPLICATE GUARD (UPDATE)
+        const faceDataRaw = formData.get("facialRecognition");
+        if (faceDataRaw) {
+            const faceData = JSON.parse(faceDataRaw as string);
+            const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
+            
+            if (descriptorToSave) {
+                 const duplicateCheck = await checkDuplicateFace(descriptorToSave, id);
+                 if (duplicateCheck.success && duplicateCheck.match) {
+                     return { 
+                         success: false, 
+                         error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}. Update blocked.` 
+                     };
+                 }
+            }
+        }
 
         const dataToUpdate: any = {
             firstName: formData.get("firstName") as string,
@@ -1674,9 +1722,6 @@ export async function updateResident(id: string, formData: FormData) {
         if (idBackUrl && oldResident?.idBackUrl && oldResident.idBackUrl !== idBackUrl) {
             await deleteUploadedFile(oldResident.idBackUrl);
         }
-        if (livenessUrl && oldResident?.livenessUrl && oldResident.livenessUrl !== livenessUrl) {
-            await deleteUploadedFile(oldResident.livenessUrl);
-        }
 
         if (imageUrl) dataToUpdate.imageUrl = imageUrl;
         else dataToUpdate.imageUrl = (formData.get("imageUrl") as string) || null;
@@ -1686,9 +1731,6 @@ export async function updateResident(id: string, formData: FormData) {
         
         if (idBackUrl) dataToUpdate.idBackUrl = idBackUrl;
         else dataToUpdate.idBackUrl = (formData.get("idBackUrl") as string) || null;
-        
-        if (livenessUrl) dataToUpdate.livenessUrl = livenessUrl;
-        else dataToUpdate.livenessUrl = (formData.get("livenessUrl") as string) || null;
 
         const isHead = formData.get("isHead") === "true" || formData.get("isHead") === "on";
         const headIdFromForm = formData.get("headId") as string || null;
@@ -1850,8 +1892,7 @@ export async function deleteResident(id: string) {
                 householdId: true, 
                 imageUrl: true, 
                 idFrontUrl: true, 
-                idBackUrl: true, 
-                livenessUrl: true 
+                idBackUrl: true
             }
         });
 
@@ -1859,7 +1900,6 @@ export async function deleteResident(id: string) {
         if (resident?.imageUrl) await deleteUploadedFile(resident.imageUrl);
         if (resident?.idFrontUrl) await deleteUploadedFile(resident.idFrontUrl);
         if (resident?.idBackUrl) await deleteUploadedFile(resident.idBackUrl);
-        if (resident?.livenessUrl) await deleteUploadedFile(resident.livenessUrl);
 
         // 1. Delete associated user if exists (important for cleanup)
         if (resident?.userId) {

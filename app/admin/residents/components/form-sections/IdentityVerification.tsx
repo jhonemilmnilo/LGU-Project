@@ -1,16 +1,16 @@
-import { Upload, Camera } from "lucide-react";
+import { Upload, Camera, ShieldCheck } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { CameraCapture } from "../CameraCapture";
 import { FacialVerification } from "../FacialVerification";
 import { Resident } from "../../providers/ResidentProvider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { ID_TYPES } from "../../constants";
 
 export function IdentityVerificationSection({ data }: { data?: Partial<Resident> }) {
   const [previews, setPreviews] = useState({
     idFront: data?.idFrontUrl || null,
     idBack: data?.idBackUrl || null,
-    liveness: data?.livenessUrl || null,
     imageUrl: data?.imageUrl || null
   });
 
@@ -25,8 +25,8 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
 
   const idFrontInputRef = useRef<HTMLInputElement>(null);
   const idBackInputRef = useRef<HTMLInputElement>(null);
-  const livenessInputRef = useRef<HTMLInputElement>(null);
   const portraitInputRef = useRef<HTMLInputElement>(null);
+  const [idTypeVal, setIdTypeVal] = useState(data?.idType || "");
 
   // Sync previews when data changes (e.g. during edit)
   useEffect(() => {
@@ -36,7 +36,6 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
           if (
             prev.idFront === data.idFrontUrl && 
             prev.idBack === data.idBackUrl && 
-            prev.liveness === data.livenessUrl &&
             prev.imageUrl === data.imageUrl
           ) {
             return prev;
@@ -44,16 +43,15 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
           return {
             idFront: data.idFrontUrl || null,
             idBack: data.idBackUrl || null,
-            liveness: data.livenessUrl || null,
             imageUrl: data.imageUrl || null
           };
         });
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [data?.idFrontUrl, data?.idBackUrl, data?.livenessUrl, data?.imageUrl, data]);
+  }, [data?.idFrontUrl, data?.idBackUrl, data?.imageUrl, data]);
 
-  const handleFileChange = (field: "idFront" | "idBack" | "liveness" | "imageUrl", e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (field: "idFront" | "idBack" | "imageUrl", e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const url = URL.createObjectURL(file);
@@ -93,24 +91,8 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
     setCamera({ isOpen: true, field });
   };
 
-  const onFacialVerified = (descriptor: number[], imageBase64: string) => {
+  const onFacialVerified = (descriptor: number[]) => {
     setFaceDescriptor(descriptor);
-    
-    // Convert base64 to File for the preview/upload
-    fetch(imageBase64)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], `liveness_capture.jpg`, { type: "image/jpeg" });
-        const url = URL.createObjectURL(file);
-        setPreviews(prev => ({ ...prev, liveness: url }));
-
-        if (livenessInputRef.current) {
-          const dataTransfer = new DataTransfer();
-          dataTransfer.items.add(file);
-          livenessInputRef.current.files = dataTransfer.files;
-        }
-      });
-    
     setFacialVerifyOpen(false);
   };
 
@@ -160,8 +142,14 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold">Government Issued ID Type *</label>
-        <Select name="idType" defaultValue={data?.idType || undefined}>
+        <label className="text-sm font-semibold flex items-center gap-1.5">
+            Government Issued ID Type <span className="text-red-500">*</span>
+        </label>
+        <Select 
+            name="idType" 
+            onValueChange={setIdTypeVal}
+            defaultValue={data?.idType || undefined}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select ID Type" />
           </SelectTrigger>
@@ -169,6 +157,18 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
             {ID_TYPES.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}
           </SelectContent>
         </Select>
+
+        {idTypeVal === "Other" && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+                <Input 
+                    name="otherIdType" 
+                    placeholder="Specify other ID type" 
+                    defaultValue={data?.otherIdType || ""}
+                    required 
+                    className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                />
+            </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -254,24 +254,24 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
       </div>
 
       <div className="space-y-3">
-        <label className="text-xs font-black uppercase text-slate-500 tracking-tighter">Facial Verification / Liveness Photo</label>
+        <label className="text-xs font-black uppercase text-slate-500 tracking-tighter">Biometric Face Verification</label>
         <div className="relative h-64 rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-colors group">
-            {previews.liveness ? (
-                <div className="w-full h-full relative group">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previews.liveness} alt="Liveness" className="w-full h-full object-cover" />
+            {faceDescriptor ? (
+                <div className="w-full h-full relative group flex flex-col items-center justify-center bg-green-500/5">
+                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                        <ShieldCheck className="w-10 h-10 text-green-500 animate-pulse" />
+                    </div>
+                    <span className="text-sm font-black text-green-600 uppercase tracking-widest italic">Biometrics Verified</span>
                     <button 
                         type="button"
                         onClick={() => setFacialVerifyOpen(true)}
-                        className="absolute bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="mt-4 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-bold text-slate-500 hover:bg-slate-50"
                     >
-                        <Camera className="w-5 h-5" />
+                        RE-VERIFY IDENTITY
                     </button>
-                    {faceDescriptor && (
-                        <div className="absolute top-4 left-4 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                            Biometric Secured
-                        </div>
-                    )}
+                    <div className="absolute top-4 left-4 bg-green-500 text-white text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                        Identity Secured
+                    </div>
                 </div>
             ) : (
                 <button 
@@ -285,16 +285,6 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
                     <span className="text-xs text-slate-400 font-black uppercase tracking-widest">Open Camera and verify face</span>
                     <p className="text-[10px] text-slate-400 mt-1">Look directly at the camera and ensure good lighting</p>
                 </button>
-            )}
-            <input 
-              type="file" 
-              name="livenessUrlFile" 
-              ref={livenessInputRef}
-              className="absolute inset-0 opacity-0 pointer-events-none" 
-              onChange={(e) => handleFileChange("liveness", e)}
-            />
-            {data?.livenessUrl && previews.liveness === data.livenessUrl && (
-              <input type="hidden" name="livenessUrl" value={data.livenessUrl} />
             )}
         </div>
       </div>
