@@ -110,7 +110,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
                 
                 <Link href="/user/updates">
-                    <Button variant="ghost" className="w-full h-14 border-2 border-dashed border-slate-200 dark:border-white/10 text-slate-400 font-black uppercase tracking-widest text-[9px] rounded-3xl hover:bg-orange-50 dark:hover:bg-orange-500/5 hover:text-orange-600 hover:border-orange-500 transition-all mt-6">
+                    <Button className="w-full py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 mt-6">
                         Archived Broadcasts
                     </Button>
                 </Link>
@@ -184,7 +184,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
 
                 <Link href="/user/news">
-                    <Button className="w-full h-14 bg-slate-900 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-slate-900/10 transition-all flex items-center justify-center gap-2 group">
+                    <Button className="w-full py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-xl shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2 group">
                         Explore All Stories
                         <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
                     </Button>

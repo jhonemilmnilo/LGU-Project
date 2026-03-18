@@ -43,7 +43,7 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
 
                 <Link href="/user/projects">
                     <Button 
-                        className="px-8 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 group"
+                        className="px-8 py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95 group"
                     >
                         <FolderKanban className="w-4 h-4 transition-transform mr-2" />
                         View All Projects

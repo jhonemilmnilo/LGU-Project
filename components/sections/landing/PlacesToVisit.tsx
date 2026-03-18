@@ -57,7 +57,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
                 <div
                     onClick={() => router.push("/user/tourism")}
-                    className="flex items-center gap-3 px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 rounded-[2rem] font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 dark:hover:bg-blue-600 dark:hover:text-white transition-all cursor-pointer shadow-xl active:scale-95 group"
+                    className="px-8 py-4 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all cursor-pointer shadow-xl shadow-blue-500/25 active:scale-95 group flex items-center gap-3"
                 >
                     <Compass className="w-4 h-4 group-hover:rotate-45 transition-transform" />
                     Explore Entire Gallery

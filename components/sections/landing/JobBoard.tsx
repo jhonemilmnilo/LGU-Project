@@ -88,7 +88,7 @@ export function JobBoard() {
                                     </div>
                                 </div>
 
-                                <Button className="w-full bg-blue-50 dark:bg-white/5 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white h-14 rounded-2xl font-black uppercase tracking-widest transition-all">
+                                <Button className="w-full py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 active:scale-95">
                                     Apply Now
                                 </Button>
                             </div>
@@ -97,7 +97,7 @@ export function JobBoard() {
                 </div>
 
                 <div className="text-center pt-8">
-                    <Button variant="outline" className="h-14 px-12 rounded-2xl border-2 border-blue-600 text-blue-600 font-black uppercase tracking-widest hover:bg-blue-50 transition-all">
+                    <Button className="px-12 py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95">
                         View All Open Positions
                     </Button>
                 </div>

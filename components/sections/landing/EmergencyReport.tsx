@@ -110,7 +110,7 @@ export function EmergencyReport() {
                                 />
                             </div>
 
-                            <Button className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-[0.2em] italic shadow-2xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3">
+                            <Button className="w-full py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] italic shadow-xl shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-3">
                                 Submit Report
                                 <Send className="w-5 h-5" />
                             </Button>

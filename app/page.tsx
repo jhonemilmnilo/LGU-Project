@@ -12,23 +12,27 @@ import { Government } from "@/components/sections/landing/Government";
 import { Services } from "@/components/sections/landing/Services";
 import { EmergencyReport } from "@/components/sections/landing/EmergencyReport";
 import prisma from "@/lib/db/prisma";
-import { getSystemSetting, isMaintenanceMode } from "@/lib/settings";
+import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-    // 1. Check Maintenance Mode
-    const maintenance = await isMaintenanceMode();
+    // 1. Fetch all needed system settings first in one query
+    const settings = await getMultipleSystemSettings(["maintenance_mode", "site_logo"]);
+    
+    // Check Maintenance Mode
+    const maintenance = settings.get("maintenance_mode") === "true";
     if (maintenance) {
         redirect("/maintenance");
     }
 
-    // 2. Fetch Dynamic Content
-    const [slides, logoUrl, tourismSpots, dining, lodging, announcements, events, news, projects] = await Promise.all([
+    const logoUrl = settings.get("site_logo") || "";
+
+    // 2. Fetch Content
+    const [slides, tourismSpots, dining, lodging, announcements, events, news, projects] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
             orderBy: { order: 'asc' }
         }),
-        getSystemSetting("site_logo", ""),
         prisma.tourismSpot.findMany({
             where: { isPublished: true },
             take: 5
@@ -65,6 +69,7 @@ export default async function Home() {
             take: 3
         })
     ]);
+
 
     // Merge and shuffle discovery items
     const discoveryItems = [

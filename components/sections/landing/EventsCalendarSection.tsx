@@ -208,7 +208,7 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                     </ScrollArea>
                     
                     <Link href="/user/events">
-                        <Button className="w-full h-14 bg-slate-900 hover:bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all flex items-center justify-center gap-2 group">
+                        <Button className="w-full py-6 h-auto bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-blue-500/25 active:scale-95 flex items-center justify-center gap-2 group">
                             View Full Calendar
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </Button>

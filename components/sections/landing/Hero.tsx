@@ -89,7 +89,7 @@ export function Hero({ slides }: HeroProps) {
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                             {activeSlide.primaryBtnText && (
                                 <Link href={activeSlide.primaryBtnLink || "#"}>
-                                    <Button className="h-16 px-10 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-blue-500/40 transition-all hover:scale-105 active:scale-95 flex items-center gap-3">
+                                    <Button className="px-10 py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-95 flex items-center gap-3">
                                         <Compass className="w-5 h-5" />
                                         {activeSlide.primaryBtnText}
                                     </Button>
@@ -97,8 +97,8 @@ export function Hero({ slides }: HeroProps) {
                             )}
                             {activeSlide.secondaryBtnText && (
                                 <Link href={activeSlide.secondaryBtnLink || "#"}>
-                                    <Button variant="outline" className="h-16 px-10 bg-white/10 backdrop-blur-md hover:bg-white/20 border-white/20 text-white rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-3">
-                                        <ShieldCheck className="w-5 h-5 text-blue-400" />
+                                    <Button className="px-10 py-6 h-auto bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-blue-500/40 active:scale-95 flex items-center gap-3">
+                                        <ShieldCheck className="w-5 h-5 text-white" />
                                         {activeSlide.secondaryBtnText}
                                     </Button>
                                 </Link>
