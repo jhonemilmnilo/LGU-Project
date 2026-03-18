@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Siren, Flame, HeartPulse, Send, AlertCircle, Info } from "lucide-react";
+import { Siren, Flame, HeartPulse, Send, AlertCircle, Info, Copy, Smartphone, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,15 +12,38 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
-const hotlines = [
-    { name: "PNP Mapandan", number: "0912-345-6789", icon: Siren },
-    { name: "Fire Station", number: "0912-345-6788", icon: Flame },
-    { name: "MDRRMO", number: "0912-345-6787", icon: AlertCircle },
-    { name: "Rural Health Unit", number: "0912-345-6786", icon: HeartPulse },
-];
+interface InitialHotline {
+    id: string;
+    name: string;
+    category: string;
+    mobileNumber: string | null;
+    telephone: string | null;
+    address: string | null;
+}
 
-export function EmergencyReport() {
+export function EmergencyReport({ initialHotlines = [] }: { initialHotlines?: InitialHotline[] }) {
+    const [copied, setCopied] = React.useState<string | null>(null);
+
+    const getIcon = (category: string) => {
+        const cat = category?.toLowerCase() || "";
+        if (cat.includes("police") || cat.includes("pnp")) return Siren;
+        if (cat.includes("fire") || cat.includes("bfp")) return Flame;
+        if (cat.includes("health") || cat.includes("hospital") || cat.includes("rhu")) return HeartPulse;
+        if (cat.includes("mdrrmo") || cat.includes("disaster")) return AlertCircle;
+        return Info;
+    };
+
+    const copyToClipboard = (number: string, name: string) => {
+        if (!number) return;
+        navigator.clipboard.writeText(number);
+        setCopied(number);
+        toast.success(`Copied ${name}'s number: ${number}`);
+        setTimeout(() => setCopied(null), 2000);
+    };
+
     return (
         <section id="hotlines" className="py-24 px-6 bg-slate-950 text-white relative overflow-hidden">
             {/* Ambient Background Effects */}
@@ -37,28 +60,84 @@ export function EmergencyReport() {
                         </div>
                         <p className="text-slate-400 font-medium italic max-w-lg">
                             In case of emergency, please contact the appropriate department immediately. 
-                            Lines are open 24/7.
+                            Lines are open 24/7. Click to copy the number.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {hotlines.map((hotline, idx) => (
-                            <motion.div
-                                key={hotline.name}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.1 }}
-                                className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center gap-4 hover:bg-white/10 transition-all group cursor-pointer"
-                            >
-                                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center group-hover:bg-primary transition-colors">
-                                    <hotline.icon className="w-6 h-6 text-slate-300 group-hover:text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-primary transition-colors">{hotline.name}</p>
-                                    <p className="text-lg font-black tracking-tighter text-white">{hotline.number}</p>
-                                </div>
-                            </motion.div>
-                        ))}
+                    <div className="overflow-y-auto max-h-[500px] pr-4 custom-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <TooltipProvider>
+                                {initialHotlines.length > 0 ? initialHotlines.map((hotline, idx) => {
+                                    const Icon = getIcon(hotline.category);
+                                    const primaryNumber = hotline.mobileNumber || hotline.telephone || "N/A";
+                                    
+                                    return (
+                                        <Tooltip key={hotline.id}>
+                                            <TooltipTrigger asChild>
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    whileInView={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: idx * 0.1 }}
+                                                    onClick={() => copyToClipboard(primaryNumber, hotline.name)}
+                                                    className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center gap-4 hover:bg-white/10 transition-all group cursor-pointer relative"
+                                                >
+                                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center group-hover:bg-primary transition-colors">
+                                                        <Icon className="w-6 h-6 text-slate-300 group-hover:text-white" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary transition-colors truncate">{hotline.name}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-lg font-black tracking-tighter text-white">{primaryNumber}</p>
+                                                            {copied === primaryNumber && (
+                                                                <span className="text-[10px] font-bold text-emerald-500 italic animate-in fade-in zoom-in">Copied!</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                                    </div>
+                                                </motion.div>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-slate-900 border-white/10 p-4 rounded-2xl max-w-xs shadow-2xl">
+                                                <div className="space-y-3">
+                                                    <p className="text-xs font-black uppercase tracking-widest text-primary italic border-b border-white/10 pb-2">{hotline.name}</p>
+                                                    
+                                                    {hotline.mobileNumber && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Smartphone className="w-3.5 h-3.5 text-emerald-500" />
+                                                            <span className="text-[11px] font-bold text-slate-300">Mobile: {hotline.mobileNumber}</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {hotline.telephone && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="w-3.5 h-3.5 text-blue-500" />
+                                                            <span className="text-[11px] font-bold text-slate-300">Tele: {hotline.telephone}</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {hotline.address && (
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="w-3.5 h-3.5 text-red-500" />
+                                                            <span className="text-[11px] font-medium italic text-slate-400 leading-snug">{hotline.address}</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="pt-1">
+                                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Click any card to copy the primary number</p>
+                                                    </div>
+                                                </div>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    );
+                                }) : (
+                                    <div className="col-span-full py-12 text-center bg-white/5 rounded-[2rem] border border-dashed border-white/10">
+                                        <Info className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                                        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs italic">No active hotlines listed...</p>
+                                    </div>
+                                )}
+                            </TooltipProvider>
+                        </div>
                     </div>
 
                     <div className="p-8 bg-primary/10 border border-primary/20 rounded-[2.5rem] flex items-start gap-4">

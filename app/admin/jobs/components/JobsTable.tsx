@@ -1,6 +1,6 @@
 "use client";
 
-import { useJobs } from "../providers/JobsProvider";
+import { useJobs, Job } from "../providers/JobsProvider";
 import { deleteJob, toggleJobStatus } from "@/app/admin/actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,7 @@ export function JobsTable() {
         return matchesSearch && matchesCategory;
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleEdit = (item: any) => {
+    const handleEdit = (item: Job) => {
         setEditingData(item);
         setIsAddModalOpen(true);
     };

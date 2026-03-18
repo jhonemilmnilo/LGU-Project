@@ -37,7 +37,7 @@ export default async function Home() {
     const themeColor = settings.get("theme_color") || "#2563eb";
 
     // 2. Fetch Content
-    const [slides, tourismSpots, dining, lodging, announcements, events, news, projects, jobs, officials] = await Promise.all([
+    const [slides, tourismSpots, dining, lodging, announcements, events, news, projects, jobs, officials, hotlines] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
             orderBy: { order: 'asc' }
@@ -89,9 +89,13 @@ export default async function Home() {
         prisma.official.findMany({
             where: { isActive: true },
             orderBy: [
-                { order: 'asc' },
-                { createdAt: 'asc' }
+                { order: "asc" },
+                { createdAt: "asc" }
             ]
+        }),
+        prisma.hotline.findMany({
+            where: { isActive: true },
+            orderBy: { order: "asc" }
         })
     ]);
 
@@ -145,7 +149,7 @@ export default async function Home() {
                 <Services />
             </div>
             
-            <EmergencyReport />
+            <EmergencyReport initialHotlines={hotlines} />
             <Footer 
                 logoUrl={logoUrl} 
                 brandWord1={brandWord1} 

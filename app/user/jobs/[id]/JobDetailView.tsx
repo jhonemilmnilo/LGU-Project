@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { Job } from "../../../admin/jobs/providers/JobsProvider";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function JobDetailView({ job }: { job: any }) {
+export function JobDetailView({ job }: { job: Job }) {
     const links = Array.isArray(job.links) ? job.links : [];
     const mapLink = job.mapUrl;
 

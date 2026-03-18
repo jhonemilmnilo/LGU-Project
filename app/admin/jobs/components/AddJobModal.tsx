@@ -60,7 +60,7 @@ export function AddJobModal() {
         setLinks(newLinks);
     };
 
-    const formatDateForInput = (dateValue: any) => {
+    const formatDateForInput = (dateValue: Date | string | null | undefined) => {
         if (!dateValue) return "";
         const date = new Date(dateValue);
         if (isNaN(date.getTime())) return "";
