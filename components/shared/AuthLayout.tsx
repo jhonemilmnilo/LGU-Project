@@ -80,16 +80,6 @@ export const AuthLayout = ({
                     className="h-0.5 w-40"
                     style={{ background: `linear-gradient(to right, ${themeColor}33, transparent)` }} 
                 />
-                
-                <Link 
-                    href="/"
-                    className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all duration-300 pointer-events-auto group mt-4"
-                >
-                    <div className="w-8 h-8 rounded-full border border-slate-200 dark:border-white/10 flex items-center justify-center group-hover:bg-slate-900 dark:group-hover:bg-white transition-all">
-                        <ArrowLeft className="w-3.5 h-3.5 group-hover:text-white dark:group-hover:text-slate-950" />
-                    </div>
-                    <span>Back to Landing Page</span>
-                </Link>
             </div>
 
             {/* Left Side: Form Area */}

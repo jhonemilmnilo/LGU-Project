@@ -37,7 +37,7 @@ export default async function Home() {
     const themeColor = settings.get("theme_color") || "#2563eb";
 
     // 2. Fetch Content
-    const [slides, tourismSpots, dining, lodging, announcements, events, news, projects] = await Promise.all([
+    const [slides, tourismSpots, dining, lodging, announcements, events, news, projects, jobs, officials] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
             orderBy: { order: 'asc' }
@@ -76,6 +76,22 @@ export default async function Home() {
             where: { isPublished: true },
             orderBy: { createdAt: 'desc' },
             take: 3
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (prisma as any).job.findMany({
+            where: { isActive: true },
+            orderBy: [
+                { deadline: 'asc' },
+                { createdAt: 'desc' }
+            ],
+            take: 3
+        }),
+        prisma.official.findMany({
+            where: { isActive: true },
+            orderBy: [
+                { order: 'asc' },
+                { createdAt: 'asc' }
+            ]
         })
     ]);
 
@@ -124,8 +140,8 @@ export default async function Home() {
                 {/* Infrastructure Projects Section */}
                 <LGUProjects projects={projects} />
                 
-                <JobBoard />
-                <Government />
+                <JobBoard jobs={jobs} />
+                <Government officials={officials} />
                 <Services />
             </div>
             

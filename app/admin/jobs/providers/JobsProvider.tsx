@@ -6,12 +6,15 @@ export interface Job {
     id: string;
     title: string;
     department: string;
+    location: string | null;
     description: string;
-    requirements: string | null;
-    type: string;
-    salaryRange: string | null;
-    deadline: Date | null;
-    isPublished: boolean;
+    qualifications: string;
+    requirements: string;
+    salary: string | null;
+    employmentType: string;
+    deadline: Date | string | null;
+    links: any;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

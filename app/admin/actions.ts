@@ -779,20 +779,27 @@ export async function toggleNewsStatus(id: string, isPublished: boolean) {
 
 export async function addJob(formData: FormData) {
     try {
+        const linksJson = formData.get("linksJson") as string;
+        const links = linksJson ? JSON.parse(linksJson) : [];
+
         const newJob = await (prisma as any).job.create({
             data: {
                 title: formData.get("title") as string,
                 department: formData.get("department") as string,
+                location: formData.get("location") as string || null,
                 description: formData.get("description") as string,
                 qualifications: formData.get("qualifications") as string,
                 requirements: formData.get("requirements") as string,
                 salary: formData.get("salary") as string | null,
                 employmentType: formData.get("employmentType") as string,
                 deadline: formData.get("deadline") ? new Date(formData.get("deadline") as string) : null,
+                links: links,
+                mapUrl: formData.get("mapUrl") as string || null,
                 isActive: true,
             } as any,
         });
 
+        revalidatePath("/");
         revalidatePath("/admin/jobs");
         return { success: true, job: newJob };
     } catch (error) {
@@ -803,20 +810,27 @@ export async function addJob(formData: FormData) {
 
 export async function updateJob(id: string, formData: FormData) {
     try {
+        const linksJson = formData.get("linksJson") as string;
+        const links = linksJson ? JSON.parse(linksJson) : [];
+
         const updatedJob = await (prisma as any).job.update({
             where: { id },
             data: {
                 title: formData.get("title") as string,
                 department: formData.get("department") as string,
+                location: formData.get("location") as string || null,
                 description: formData.get("description") as string,
                 qualifications: formData.get("qualifications") as string,
                 requirements: formData.get("requirements") as string,
                 salary: formData.get("salary") as string | null,
                 employmentType: formData.get("employmentType") as string,
                 deadline: formData.get("deadline") ? new Date(formData.get("deadline") as string) : null,
+                links: links,
+                mapUrl: formData.get("mapUrl") as string || null,
             } as any,
         });
 
+        revalidatePath("/");
         revalidatePath("/admin/jobs");
         return { success: true, job: updatedJob };
     } catch (error) {

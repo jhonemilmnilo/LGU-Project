@@ -37,29 +37,30 @@ export function Navbar({
     const pathname = usePathname();
     const [isOpen, setIsOpen] = React.useState(false);
     const { scrollY } = useScroll();
+    const isHomePage = pathname === "/";
     
     const backgroundColor = useTransform(
         scrollY,
         [0, 60],
-        ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.95)"]
+        [isHomePage ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.95)", "rgba(255, 255, 255, 0.95)"]
     );
 
     const darkBackgroundColor = useTransform(
         scrollY,
         [0, 60],
-        ["rgba(10, 12, 16, 0)", "rgba(10, 12, 16, 0.95)"]
+        [isHomePage ? "rgba(10, 12, 16, 0)" : "rgba(10, 12, 16, 0.95)", "rgba(10, 12, 16, 0.95)"]
     );
     
     const backdropBlur = useTransform(
         scrollY,
         [0, 60],
-        ["blur(0px)", "blur(20px)"]
+        [isHomePage ? "blur(0px)" : "blur(20px)", "blur(20px)"]
     );
 
     const color = useTransform(
         scrollY,
         [0, 60],
-        ["rgba(255, 255, 255, 1)", "rgba(15, 23, 42, 1)"]
+        [isHomePage ? "rgba(255, 255, 255, 1)" : "rgba(15, 23, 42, 1)", "rgba(15, 23, 42, 1)"]
     );
 
     const darkColor = useTransform(
@@ -71,10 +72,10 @@ export function Navbar({
     const shadow = useTransform(
         scrollY,
         [0, 60],
-        ["none", "0 4px 30px -10px rgba(0, 0, 0, 0.1)"]
+        [isHomePage ? "none" : "0 4px 30px -10px rgba(0, 0, 0, 0.1)", "0 4px 30px -10px rgba(0, 0, 0, 0.1)"]
     );
 
-    const borderOpacity = useTransform(scrollY, [0, 60], [0, 1]);
+    const borderOpacity = useTransform(scrollY, [0, 60], [isHomePage ? 0 : 1, 1]);
 
     const isAuth = status === "authenticated";
      

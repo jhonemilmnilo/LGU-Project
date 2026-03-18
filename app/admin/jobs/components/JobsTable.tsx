@@ -74,8 +74,8 @@ export function JobsTable() {
             <Table>
                 <TableHeader>
                     <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
-                        <TableHead className="w-[300px] font-bold text-slate-900 dark:text-slate-100 h-12">Job Role</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Department</TableHead>
+                        <TableHead className="w-[280px] font-bold text-slate-900 dark:text-slate-100 h-12">Job Role</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Department/Office</TableHead>
                         <TableHead className="font-bold text-slate-900 dark:text-slate-100">Type</TableHead>
                         <TableHead className="font-bold text-slate-900 dark:text-slate-100">Deadline</TableHead>
                         <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Active</TableHead>
@@ -84,7 +84,7 @@ export function JobsTable() {
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-primary/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell className="font-medium">
                                 <div className="flex flex-col space-y-1">
                                     <span className="text-slate-900 dark:text-white font-bold leading-tight">{item.title}</span>
@@ -92,9 +92,12 @@ export function JobsTable() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm">
-                                    <Building2 className="w-3.5 h-3.5 mr-1" />
-                                    {item.department}
+                                <div className="flex flex-col space-y-1">
+                                    <div className="flex items-center text-slate-900 dark:text-white font-bold text-sm">
+                                        <Building2 className="w-3.5 h-3.5 mr-1 text-primary" />
+                                        {item.department}
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black italic">{item.location || "Office Based"}</span>
                                 </div>
                             </TableCell>
                             <TableCell>
@@ -112,7 +115,7 @@ export function JobsTable() {
                                     checked={item.isActive}
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isActive)}
                                     disabled={togglingId === item.id}
-                                    className="data-[state=checked]:bg-blue-600"
+                                    className="data-[state=checked]:bg-primary"
                                 />
                             </TableCell>
                             <TableCell className="text-right">
@@ -124,7 +127,7 @@ export function JobsTable() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
-                                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/50"
+                                                    className="h-8 w-8 text-primary hover:text-primary/90 hover:bg-primary/10 dark:hover:bg-primary/20"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>
