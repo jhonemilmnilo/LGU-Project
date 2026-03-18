@@ -4,6 +4,15 @@ import { motion } from "framer-motion";
 import { Newspaper, Calendar, Bell, ArrowRight, Clock, MapPin, Tag, User } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,7 +25,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
+                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
                             <Bell className="w-6 h-6 text-white" />
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Civic Updates</h1>
@@ -29,11 +38,11 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
 
             <Tabs defaultValue="news" className="space-y-10">
                 <TabsList className="bg-slate-100 dark:bg-white/5 p-1 h-16 rounded-2xl w-full sm:w-auto">
-                    <TabsTrigger value="news" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
+                    <TabsTrigger value="news" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
                         <Newspaper className="w-4 h-4 mr-2" />
                         Latest News
                     </TabsTrigger>
-                    <TabsTrigger value="events" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
+                    <TabsTrigger value="events" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
                         <Calendar className="w-4 h-4 mr-2" />
                         Community Events
                     </TabsTrigger>
@@ -55,13 +64,13 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
                             
-                            <div className="absolute inset-x-0 bottom-0 p-8 md:p-12 flex flex-col md:flex-row md:items-end justify-between gap-8 z-20">
+                             <div className="absolute inset-x-0 bottom-0 p-8 md:p-12 flex flex-col md:flex-row md:items-end justify-between gap-8 z-20">
                                 <div className="space-y-4 max-w-2xl">
-                                    <span className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg italic">Featured Bulletin</span>
+                                    <span className="inline-block px-4 py-1.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg italic">Featured Bulletin</span>
                                     <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">{initialNews[0].title}</h2>
                                     <p className="text-slate-200 md:text-slate-300 font-medium italic line-clamp-2 text-base md:text-lg">{initialNews[0].content}</p>
                                 </div>
-                                <Button className="h-16 px-10 bg-white text-blue-600 hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 group/btn shrink-0">
+                                <Button className="h-16 px-10 bg-white text-primary hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 group/btn shrink-0">
                                     Read Full Story
                                     <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                                 </Button>
@@ -93,11 +102,11 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                                     </div>
                                 </div>
                                 
-                                <div className="p-8 space-y-4 flex-1 flex flex-col">
+                                 <div className="p-8 space-y-4 flex-1 flex flex-col">
                                     <div className="flex items-center gap-4 text-slate-400">
                                         <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest">
                                             <Calendar className="w-3.5 h-3.5" />
-                                            {new Date(item.publishDate).toLocaleDateString()}
+                                            {format(new Date(item.publishDate), "MMM d, yyyy")}
                                         </div>
                                         <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest">
                                             <User className="w-3.5 h-3.5" />
@@ -105,7 +114,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                                         </div>
                                     </div>
                                     
-                                    <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-blue-600 transition-colors leading-tight italic">
+                                    <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors leading-tight italic">
                                         {item.title}
                                     </h3>
                                     
@@ -113,7 +122,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                                         {item.content}
                                     </p>
                                     
-                                    <Button variant="link" className="p-0 h-auto self-start text-blue-600 font-black uppercase tracking-widest flex items-center gap-2 group/read">
+                                    <Button variant="link" className="p-0 h-auto self-start text-primary font-black uppercase tracking-widest flex items-center gap-2 group/read">
                                         Read Story
                                         <ArrowRight className="w-4 h-4 group-hover/read:translate-x-1 transition-transform" />
                                     </Button>
@@ -140,14 +149,14 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                                         className="object-cover group-hover:scale-110 transition-transform duration-700"
                                     />
                                     <div className="absolute top-4 left-4 flex flex-col items-center justify-center w-14 h-16 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-white/20">
-                                        <span className="text-[10px] font-black uppercase text-blue-600 leading-none mb-1">{new Date(event.startDate).toLocaleString('default', { month: 'short' })}</span>
+                                        <span className="text-[10px] font-black uppercase text-primary leading-none mb-1">{new Date(event.startDate).toLocaleString('default', { month: 'short' })}</span>
                                         <span className="text-xl font-black text-slate-900 leading-none italic">{new Date(event.startDate).getDate()}</span>
                                     </div>
                                 </div>
                                 
                                 <div className="flex-1 flex flex-col justify-center py-4 pr-6">
                                     <div className="flex items-center gap-3 mb-4">
-                                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest">{event.category || "General Event"}</span>
+                                        <span className="px-3 py-1 bg-primary/10 dark:bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest">{event.category || "General Event"}</span>
                                         <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                                             <Clock className="w-3 h-3" />
                                             {event.time || "8:00 AM"}
@@ -157,13 +166,13 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                                     <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-colors mb-4">{event.title}</h3>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic mb-6 line-clamp-2">{event.description}</p>
                                     
-                                    <div className="flex items-center gap-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors mb-8">
-                                        <MapPin className="w-4 h-4 text-blue-500" />
+                                     <div className="flex items-center gap-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors mb-8">
+                                        <MapPin className="w-4 h-4 text-primary" />
                                         <span className="text-[10px] font-black uppercase tracking-widest italic">{event.location}</span>
                                     </div>
                                     
                                     <div className="flex gap-3">
-                                        <Button className="flex-1 h-14 bg-slate-900 dark:bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 group/btn shadow-xl shadow-blue-500/10">
+                                        <Button className="flex-1 h-14 bg-slate-900 dark:bg-primary text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 group/btn shadow-xl shadow-primary/10">
                                             Get Schedule
                                             <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                         </Button>

@@ -42,8 +42,8 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
             <div className="space-y-12">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-orange-100 dark:bg-orange-500/20 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/10">
-                            <Megaphone className="w-6 h-6 text-orange-600" />
+                        <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10">
+                            <Megaphone className="w-6 h-6 text-primary" />
                         </div>
                         <div className="space-y-0.5">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Citizens Broadcast</span>
@@ -71,7 +71,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 {item.isPinned && (
-                                                    <span className="bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full flex items-center gap-1">
+                                                    <span className="bg-primary text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full flex items-center gap-1">
                                                         <Pin className="w-2.5 h-2.5" />
                                                         Pinned
                                                     </span>
@@ -97,7 +97,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                             </p>
                                         </div>
                                         <div className="pt-4 flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            <Tag className="w-3 h-3 text-orange-500" />
+                                            <Tag className="w-3 h-3 text-primary font-bold" />
                                             {item.category}
                                         </div>
                                     </div>

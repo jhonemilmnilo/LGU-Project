@@ -38,7 +38,7 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Mapandan / Dining Hub</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Explore Mapandan / Dining Hub</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -47,12 +47,12 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-sky-600 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform hover:rotate-3 transition-transform">
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform hover:rotate-3 transition-transform">
                             <Utensils className="w-7 h-7 text-white" />
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Dining Hub</h1>
-                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] ml-1">Kainan at Sarap</p>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">Kainan at Sarap</p>
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">

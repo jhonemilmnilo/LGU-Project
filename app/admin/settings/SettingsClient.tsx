@@ -168,6 +168,33 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                     <p className="text-[10px] text-slate-400 italic">Leave empty to use the default municipal shield icon.</p>
                                 </div>
 
+                                {/* Logo Preview Display */}
+                                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-4">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Logo Preview</span>
+                                    <div className="relative w-24 h-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center p-2 shadow-inner">
+                                        {(logoPreview || logoUrl) ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img 
+                                                src={logoPreview || logoUrl} 
+                                                alt="Logo Preview" 
+                                                className="max-w-full max-h-full object-contain" 
+                                            />
+                                        ) : (
+                                            <ImageIcon className="w-10 h-10 text-slate-200" />
+                                        )}
+                                    </div>
+                                    {(logoPreview || logoUrl) && (
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => { setLogoUrl(""); setLogoPreview(null); setLogoFile(null); }}
+                                            className="h-7 text-[8px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                        >
+                                            Reset Logo
+                                        </Button>
+                                    )}
+                                </div>
+
                                 {/* Global Branding */}
                                 <div className="pt-8 border-t border-slate-100 dark:border-slate-800 space-y-6">
                                     <div className="space-y-1">

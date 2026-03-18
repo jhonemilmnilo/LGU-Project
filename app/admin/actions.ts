@@ -8,10 +8,37 @@ import { writeFile } from "fs/promises";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
+import { unlink } from "fs/promises";
+
+async function deleteUploadedFile(imageUrl: string | null | undefined) {
+    if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
+
+    try {
+        const filepath = path.join(process.cwd(), "public", imageUrl);
+        if (fs.existsSync(filepath)) {
+            await unlink(filepath);
+        }
+    } catch (error) {
+        console.error("Error deleting file:", error);
+    }
+}
 
 async function processImageUpload(formData: FormData, fieldName: string = "imageFile"): Promise<string | null> {
-    const file = formData.get(fieldName) as File | null;
-    let imageUrl = formData.get(`${fieldName}Url`) as string | null;
+    const fileItem = formData.get(fieldName);
+    const fileItemAlt = formData.get(`${fieldName}File`);
+    
+    let file: File | null = null;
+    let existingUrl: string | null = null;
+
+    if (fileItem instanceof File) {
+        file = fileItem;
+        existingUrl = formData.get(`${fieldName}Url`) as string | null || formData.get(fieldName) as string | null;
+    } else if (fileItemAlt instanceof File) {
+        file = fileItemAlt;
+        existingUrl = formData.get(fieldName) as string | null;
+    } else {
+        existingUrl = fileItem as string | null;
+    }
 
     if (file && file.size > 0 && file.name !== "undefined") {
         const buffer = Buffer.from(await file.arrayBuffer());
@@ -25,10 +52,10 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
         }
         
         await writeFile(filepath, buffer);
-        imageUrl = `/uploads/${filename}`;
+        existingUrl = `/uploads/${filename}`;
     }
 
-    return imageUrl || null;
+    return existingUrl || null;
 }
 
 // ----------------------------------------
@@ -295,6 +322,10 @@ export async function addDining(formData: FormData) {
 
 export async function deleteDining(id: string) {
     try {
+        const item = await prisma.dining.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await prisma.dining.delete({
             where: { id }
         });
@@ -308,7 +339,12 @@ export async function deleteDining(id: string) {
 
 export async function updateDining(id: string, formData: FormData) {
     try {
+        const oldItem = await prisma.dining.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const updatedDining = await prisma.dining.update({
             where: { id },
@@ -320,7 +356,7 @@ export async function updateDining(id: string, formData: FormData) {
                 openingHours: formData.get("openingHours") as string,
                 contactNumber: formData.get("contactNumber") as string,
                 facebookUrl: formData.get("facebookUrl") as string,
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
@@ -385,6 +421,10 @@ export async function addAccommodation(formData: FormData) {
 
 export async function deleteAccommodation(id: string) {
     try {
+        const item = await prisma.accommodation.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await prisma.accommodation.delete({
             where: { id }
         });
@@ -398,7 +438,12 @@ export async function deleteAccommodation(id: string) {
 
 export async function updateAccommodation(id: string, formData: FormData) {
     try {
+        const oldItem = await prisma.accommodation.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const updatedAccommodation = await prisma.accommodation.update({
             where: { id },
@@ -411,7 +456,7 @@ export async function updateAccommodation(id: string, formData: FormData) {
                 amenities: formData.get("amenities") as string,
                 contactNumber: formData.get("contactNumber") as string,
                 websiteUrl: formData.get("websiteUrl") as string,
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
@@ -475,6 +520,10 @@ export async function addTourismSpot(formData: FormData) {
 
 export async function deleteTourismSpot(id: string) {
     try {
+        const item = await prisma.tourismSpot.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await prisma.tourismSpot.delete({
             where: { id }
         });
@@ -488,7 +537,12 @@ export async function deleteTourismSpot(id: string) {
 
 export async function updateTourismSpot(id: string, formData: FormData) {
     try {
+        const oldItem = await prisma.tourismSpot.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const updatedSpot = await prisma.tourismSpot.update({
             where: { id },
@@ -500,7 +554,7 @@ export async function updateTourismSpot(id: string, formData: FormData) {
                 entranceFee: formData.get("entranceFee") as string,
                 bestTimeToVisit: formData.get("bestTimeToVisit") as string,
                 contactNumber: formData.get("contactNumber") as string,
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
@@ -566,7 +620,12 @@ export async function addEvent(formData: FormData) {
 
 export async function updateEvent(id: string, formData: FormData) {
     try {
+        const oldItem = await (prisma as any).event.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const updatedEvent = await (prisma as any).event.update({
             where: { id },
@@ -579,7 +638,7 @@ export async function updateEvent(id: string, formData: FormData) {
                 venueName: formData.get("venueName") as string,
                 address: formData.get("address") as string,
                 contactNumber: formData.get("contactNumber") as string,
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
@@ -597,6 +656,10 @@ export async function updateEvent(id: string, formData: FormData) {
 
 export async function deleteEvent(id: string) {
     try {
+        const item = await prisma.event.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await prisma.event.delete({
             where: { id }
         });
@@ -652,7 +715,12 @@ export async function addNews(formData: FormData) {
 
 export async function updateNews(id: string, formData: FormData) {
     try {
+        const oldItem = await (prisma as any).news.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const updatedNews = await (prisma as any).news.update({
             where: { id },
@@ -662,7 +730,7 @@ export async function updateNews(id: string, formData: FormData) {
                 author: formData.get("author") as string | null,
                 category: formData.get("category") as string,
                 publishDate: new Date(formData.get("publishDate") as string || Date.now()),
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
             } as any,
         });
 
@@ -676,6 +744,10 @@ export async function updateNews(id: string, formData: FormData) {
 
 export async function deleteNews(id: string) {
     try {
+        const item = await prisma.news.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await prisma.news.delete({
             where: { id }
         });
@@ -816,7 +888,12 @@ export async function addOfficial(formData: FormData) {
 
 export async function updateOfficial(id: string, formData: FormData) {
     try {
+        const oldItem = await (prisma as any).official.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const orderValue = formData.get("order") as string;
         const parsedOrder = orderValue ? parseInt(orderValue, 10) : 0;
@@ -832,7 +909,7 @@ export async function updateOfficial(id: string, formData: FormData) {
                 termStart: formData.get("termStart") ? new Date(formData.get("termStart") as string) : null,
                 termEnd: formData.get("termEnd") ? new Date(formData.get("termEnd") as string) : null,
                 order: isNaN(parsedOrder) ? 0 : parsedOrder,
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
             } as any,
         });
 
@@ -844,9 +921,12 @@ export async function updateOfficial(id: string, formData: FormData) {
     }
 }
 
-// ... existing deleteOfficial and toggleOfficialStatus ...
 export async function deleteOfficial(id: string) {
     try {
+        const item = await (prisma as any).official.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await prisma.official.delete({ where: { id } });
         revalidatePath("/admin/officials");
         return { success: true };
@@ -978,7 +1058,12 @@ export async function addProject(formData: FormData) {
 
 export async function updateProject(id: string, formData: FormData) {
     try {
+        const oldItem = await (prisma as any).project.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldItem.imageUrl);
+        }
 
         const project = await (prisma as any).project.update({
             where: { id },
@@ -993,7 +1078,7 @@ export async function updateProject(id: string, formData: FormData) {
                 startDate: formData.get("startDate") ? new Date(formData.get("startDate") as string) : null,
                 endDate: formData.get("endDate") ? new Date(formData.get("endDate") as string) : null,
                 progress: parseInt(formData.get("progress") as string || "0", 10),
-                imageUrl: imageUrl,
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
             } as any
         });
 
@@ -1007,6 +1092,10 @@ export async function updateProject(id: string, formData: FormData) {
 
 export async function deleteProject(id: string) {
     try {
+        const item = await (prisma as any).project.findUnique({ where: { id } });
+        if (item?.imageUrl) {
+            await deleteUploadedFile(item.imageUrl);
+        }
         await (prisma as any).project.delete({ where: { id } });
         revalidatePath("/admin/projects");
         return { success: true };
@@ -1505,10 +1594,32 @@ export async function updateResident(id: string, formData: FormData) {
             dataToUpdate.email = email;
         }
 
+        const oldResident = await (prisma as any).resident.findUnique({ where: { id } });
+
+        if (imageUrl && oldResident?.imageUrl && oldResident.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldResident.imageUrl);
+        }
+        if (idFrontUrl && oldResident?.idFrontUrl && oldResident.idFrontUrl !== idFrontUrl) {
+            await deleteUploadedFile(oldResident.idFrontUrl);
+        }
+        if (idBackUrl && oldResident?.idBackUrl && oldResident.idBackUrl !== idBackUrl) {
+            await deleteUploadedFile(oldResident.idBackUrl);
+        }
+        if (livenessUrl && oldResident?.livenessUrl && oldResident.livenessUrl !== livenessUrl) {
+            await deleteUploadedFile(oldResident.livenessUrl);
+        }
+
         if (imageUrl) dataToUpdate.imageUrl = imageUrl;
+        else dataToUpdate.imageUrl = (formData.get("imageUrl") as string) || null;
+        
         if (idFrontUrl) dataToUpdate.idFrontUrl = idFrontUrl;
+        else dataToUpdate.idFrontUrl = (formData.get("idFrontUrl") as string) || null;
+        
         if (idBackUrl) dataToUpdate.idBackUrl = idBackUrl;
+        else dataToUpdate.idBackUrl = (formData.get("idBackUrl") as string) || null;
+        
         if (livenessUrl) dataToUpdate.livenessUrl = livenessUrl;
+        else dataToUpdate.livenessUrl = (formData.get("livenessUrl") as string) || null;
 
         const isHead = formData.get("isHead") === "true" || formData.get("isHead") === "on";
         const headIdFromForm = formData.get("headId") as string || null;
@@ -1665,8 +1776,21 @@ export async function deleteResident(id: string) {
     try {
         const resident = await (prisma as any).resident.findUnique({ 
             where: { id },
-            select: { userId: true, householdId: true }
+            select: { 
+                userId: true, 
+                householdId: true, 
+                imageUrl: true, 
+                idFrontUrl: true, 
+                idBackUrl: true, 
+                livenessUrl: true 
+            }
         });
+
+        // Delete files
+        if (resident?.imageUrl) await deleteUploadedFile(resident.imageUrl);
+        if (resident?.idFrontUrl) await deleteUploadedFile(resident.idFrontUrl);
+        if (resident?.idBackUrl) await deleteUploadedFile(resident.idBackUrl);
+        if (resident?.livenessUrl) await deleteUploadedFile(resident.livenessUrl);
 
         // 1. Delete associated user if exists (important for cleanup)
         if (resident?.userId) {
@@ -1809,14 +1933,20 @@ export async function addDisasterMap(formData: FormData) {
 
 export async function updateDisasterMap(id: string, formData: FormData) {
     try {
+        const oldItem = await (prisma as any).disasterMap.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldItem?.imagePath && oldItem.imagePath !== imageUrl) {
+            await deleteUploadedFile(oldItem.imagePath);
+        }
+
         const updatedMap = await (prisma as any).disasterMap.update({
             where: { id },
             data: {
                 title: formData.get("title") as string,
                 location: formData.get("location") as string || null,
                 description: formData.get("description") as string || null,
-                imagePath: imageUrl || undefined,
+                imagePath: imageUrl || (formData.get("imagePath") as string) || undefined,
                 riskLevel: formData.get("riskLevel") as string || null,
             } as any,
         });
@@ -1829,6 +1959,10 @@ export async function updateDisasterMap(id: string, formData: FormData) {
 
 export async function deleteDisasterMap(id: string) {
     try {
+        const item = await (prisma as any).disasterMap.findUnique({ where: { id } });
+        if (item?.imagePath) {
+            await deleteUploadedFile(item.imagePath);
+        }
         await (prisma as any).disasterMap.delete({ where: { id } });
         revalidatePath("/admin/disasters");
         return { success: true };

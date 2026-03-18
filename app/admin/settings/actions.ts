@@ -2,28 +2,52 @@
 
 import prisma from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
+import { existsSync } from "fs";
 import path from "path";
 
-export async function processImageUpload(formData: FormData): Promise<string | null> {
-    const file = formData.get("imageFile") as File | null;
-    let imageUrl = formData.get("imageUrl") as string | null;
+async function deleteUploadedFile(imageUrl: string | null | undefined) {
+    if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
+
+    try {
+        const filepath = path.join(process.cwd(), "public", imageUrl);
+        if (existsSync(filepath)) {
+            await unlink(filepath);
+        }
+    } catch (error) {
+        console.error("Error deleting file:", error);
+    }
+}
+
+export async function processImageUpload(formData: FormData, fieldName: string = "imageFile"): Promise<string | null> {
+    const file = (formData.get(fieldName) || formData.get(fieldName + "File")) as File | null;
+    let existingUrl = (formData.get(fieldName) || formData.get("imageUrl")) as string | null;
 
     if (file && file.size > 0 && file.name !== "undefined") {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = Date.now() + "_" + file.name.replaceAll(" ", "_");
-        const uploadsDir = path.join(process.cwd(), "public/uploads");
-        
-        // Ensure directory exists
-        await mkdir(uploadsDir, { recursive: true });
-        
-        const filepath = path.join(uploadsDir, filename);
-        await writeFile(filepath, buffer);
-        imageUrl = `/uploads/${filename}`;
+        try {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
+            const uploadsDir = path.join(process.cwd(), "public", "uploads");
+            
+            await mkdir(uploadsDir, { recursive: true });
+            
+            const filepath = path.join(uploadsDir, filename);
+            await writeFile(filepath, buffer);
+            
+            // Delete old file if it exists and is different from the new one
+            if (existingUrl && existingUrl.startsWith("/uploads/")) {
+                await deleteUploadedFile(existingUrl);
+            }
+
+            return `/uploads/${filename}`;
+        } catch (error) {
+            console.error("Error processing image upload:", error);
+            return existingUrl; // Fallback to existing if upload fails
+        }
     }
 
-    // Return the new image URL, or the existing one if no new file was uploaded
-    return imageUrl || null;
+    // Return the existing URL if no new file was uploaded
+    return existingUrl && typeof existingUrl === 'string' ? existingUrl : null;
 }
 
 export async function updateSystemSetting(key: string, value: string) {
@@ -44,11 +68,15 @@ export async function updateSystemSetting(key: string, value: string) {
 
 export async function updateLogoSetting(formData: FormData) {
     try {
+        const oldSetting = await prisma.systemSetting.findUnique({ where: { key: "site_logo" } });
         const imageUrl = await processImageUpload(formData);
         const finalUrl = imageUrl || (formData.get("imageUrl") as string) || "";
         
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const result = await prisma.systemSetting.upsert({
+        if (imageUrl && oldSetting?.value && oldSetting.value !== imageUrl) {
+            await deleteUploadedFile(oldSetting.value);
+        }
+
+        await prisma.systemSetting.upsert({
             where: { key: "site_logo" },
             update: { value: finalUrl },
             create: { key: "site_logo", value: finalUrl }
@@ -92,6 +120,10 @@ export async function createHeroSlide(formData: FormData) {
 
 export async function deleteHeroSlide(id: string) {
     try {
+        const slide = await prisma.heroSlide.findUnique({ where: { id } });
+        if (slide?.imageUrl) {
+            await deleteUploadedFile(slide.imageUrl);
+        }
         await prisma.heroSlide.delete({ where: { id } });
         revalidatePath("/");
         revalidatePath("/admin/settings");
@@ -104,7 +136,12 @@ export async function deleteHeroSlide(id: string) {
 
 export async function updateHeroSlide(id: string, formData: FormData) {
     try {
+        const oldSlide = await prisma.heroSlide.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+
+        if (imageUrl && oldSlide?.imageUrl && oldSlide.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldSlide.imageUrl);
+        }
 
         await prisma.heroSlide.update({
             where: { id },
@@ -112,7 +149,7 @@ export async function updateHeroSlide(id: string, formData: FormData) {
                 title: formData.get("title") as string,
                 subtitle: formData.get("subtitle") as string,
                 tagline: formData.get("tagline") as string,
-                imageUrl: imageUrl || "",
+                imageUrl: imageUrl || (formData.get("imageUrl") as string) || "",
                 order: parseInt(formData.get("order") as string) || 0,
                 isActive: formData.get("isActive") === "true",
                 primaryBtnText: formData.get("primaryBtnText") as string,

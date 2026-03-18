@@ -39,7 +39,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">Explore Mapandan / Tuluyan & Resorts</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Explore Mapandan / Tuluyan & Resorts</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -48,12 +48,12 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform -rotate-3 hover:rotate-0 transition-transform">
                             <Bed className="w-7 h-7 text-white" />
                         </div>
                         <div className="space-y-0.5">
                             <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Tuluyan at Resorts</h1>
-                            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.3em] ml-1">Your home by the sea</p>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">Your home by the sea</p>
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
@@ -85,7 +85,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                             
                             {/* Badges */}
                             <div className="absolute top-6 left-6 z-20 flex flex-col items-start gap-2">
-                                <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                                <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
                                     <Bed className="w-3.5 h-3.5" />
                                     Tuluyan
                                 </span>
@@ -107,11 +107,11 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                         {/* Details */}
                         <div className="space-y-4 px-2">
                             <div className="space-y-2">
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter group-hover:text-blue-600 transition-colors leading-tight">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-tight">
                                     {item.name}
                                 </h3>
                                 <div className="flex items-center gap-2.5 text-slate-400">
-                                    <MapPin className="w-4 h-4 text-blue-500" />
+                                    <MapPin className="w-4 h-4 text-primary" />
                                     <span className="text-[11px] font-bold uppercase tracking-widest truncate italic">{item.address}</span>
                                 </div>
                             </div>
@@ -123,10 +123,10 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                             <div className="flex items-center justify-between pt-4">
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Starts at</span>
-                                    <span className="text-xl font-black text-blue-600 italic tracking-tighter leading-none">{item.priceRange || "Inquire"}</span>
+                                    <span className="text-xl font-black text-primary italic tracking-tighter leading-none">{item.priceRange || "Inquire"}</span>
                                 </div>
                                 <Link href={`/user/accommodation/${item.id}`}>
-                                    <Button className="h-12 px-8 bg-slate-900 dark:bg-white/5 dark:hover:bg-blue-600 text-white dark:hover:text-white rounded-2xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 group/btn transition-all shadow-md">
+                                    <Button className="h-12 px-8 bg-slate-900 dark:bg-white/5 dark:hover:bg-primary text-white dark:hover:text-white rounded-2xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 group/btn transition-all shadow-md">
                                         View Showcase
                                         <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                                     </Button>

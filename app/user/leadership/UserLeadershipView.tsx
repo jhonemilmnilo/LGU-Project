@@ -21,7 +21,7 @@ export function UserLeadershipView({ initialOfficials = [], initialHotlines = []
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
+                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
                             <Users className="w-6 h-6 text-white" />
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Council & Safety</h1>
@@ -34,11 +34,11 @@ export function UserLeadershipView({ initialOfficials = [], initialHotlines = []
 
             <Tabs defaultValue="officials" className="space-y-10">
                 <TabsList className="bg-slate-100 dark:bg-white/5 p-1 h-16 rounded-2xl w-full sm:w-auto">
-                    <TabsTrigger value="officials" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
+                    <TabsTrigger value="officials" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
                         <Shield className="w-4 h-4 mr-2" />
                         Town Council
                     </TabsTrigger>
-                    <TabsTrigger value="safety" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-blue-600 data-[state=active]:text-white transition-all">
+                    <TabsTrigger value="safety" className="h-full px-8 rounded-xl font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
                         <PhoneCall className="w-4 h-4 mr-2" />
                         Emergency Hotlines
                     </TabsTrigger>
@@ -64,17 +64,17 @@ export function UserLeadershipView({ initialOfficials = [], initialHotlines = []
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500" />
                                     
                                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-                                        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-blue-600 transition-all">
+                                        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-primary transition-all">
                                             <Facebook className="w-4 h-4" />
                                         </button>
-                                        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-blue-600 transition-all">
+                                        <button className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white hover:text-primary transition-all">
                                             <Mail className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-blue-600 transition-colors">{official.name}</h3>
-                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{official.position}</p>
+                                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">{official.name}</h3>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">{official.position}</p>
                                 </div>
                             </motion.div>
                         ))}
