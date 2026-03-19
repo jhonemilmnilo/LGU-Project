@@ -25,7 +25,7 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
                 if (p < phrases.length - 1) return p + 1;
                 return p;
             });
-        }, 1000);
+        }, 300);
 
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,7 +142,7 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
                             <motion.div
                                 initial={{ width: "0%" }}
                                 animate={{ width: "100%" }}
-                                transition={{ duration: 7, ease: "easeInOut" }}
+                                transition={{ duration: 2, ease: "easeInOut" }}
                                 style={{ background: `linear-gradient(to right, transparent, ${themeColor}, transparent)` }}
                                 className="absolute top-0 left-0 h-full"
                             />
