@@ -15,7 +15,7 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
     const [phase, setPhase] = useState(0);
     const phrases = [
         "Initializing Secure Protocol...",
-        "Syncing LGU Cloud Assets...",
+        "Syncing LGU Assets...",
         `Accessing ${brand1 || "Mapandan"} Gateway...`,
         "Ready to Connect."
     ];
@@ -32,7 +32,6 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const letters = (brand1 || "MAPANDAN").split("");
 
     return (
         <div 
@@ -75,7 +74,7 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
 
                 {/* Staggered Branding Line */}
                 <div className="flex flex-col items-center gap-8">
-                    <div className="flex items-center gap-1.5 overflow-hidden px-4 py-2">
+                    <div className="flex items-center gap-0 overflow-hidden px-4 py-2">
                         {/* First Word Staggered */}
                         {(brand1 || "MAPANDAN").split("").map((char, i) => (
                             <motion.span
@@ -94,8 +93,7 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
                             </motion.span>
                         ))}
 
-                        {/* Spacer if both words exist */}
-                        {brand1 && brand2 && <div className="w-4 md:w-8" />}
+
 
                         {/* Second Word Staggered */}
                         {(brand2 || "PORTAL").split("").map((char, i) => (

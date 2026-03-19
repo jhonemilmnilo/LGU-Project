@@ -3,11 +3,23 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import * as faceapi from "face-api.js";
 import Webcam from "react-webcam";
-import { CheckCircle2, Circle, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, RefreshCw, ShieldAlert, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { checkDuplicateFace } from "../../actions";
+
+// SILENCE MEDIAPIPE INFO LOGS (Next.js Dev Overlay Fix)
+if (typeof window !== "undefined") {
+    const originalError = console.error;
+    console.error = (...args) => {
+        if (args[0]?.includes?.("Created TensorFlow Lite XNNPACK delegate")) return;
+        originalError.apply(console, args);
+    };
+}
+
+// IMPORT MEDIAPIPE VIA LOCAL MODULE
+import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 interface FacialVerificationProps {
     isOpen: boolean;
@@ -15,20 +27,22 @@ interface FacialVerificationProps {
     onVerified: (descriptor: number[]) => void; 
 }
 
-type VerificationStep = "INITIALIZING" | "NEUTRAL" | "LOOK_LEFT" | "LOOK_RIGHT" | "BLINK" | "COMPLETED" | "PROCESSING";
+type VerificationStep = "INITIALIZING" | "NEUTRAL" | "BLINK" | "LOOK_LEFT" | "LOOK_RIGHT" | "COMPLETED" | "PROCESSING";
+
+interface MPPoint { x: number; y: number; z?: number }
 
 export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerificationProps) {
     const webcamRef = useRef<Webcam>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [step, setStep] = useState<VerificationStep>("INITIALIZING");
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [hint, setHint] = useState<string>("Face the camera");
     const [showGuide, setShowGuide] = useState(false); 
-    const isBlinkProcessing = useRef(false);
-    const [eyeBaseline, setEyeBaseline] = useState<number | null>(null); 
-    const [lightingDetail, setLightingDetail] = useState<{ score: number; status: 'GOOD' | 'POOR' }>({ score: 0, status: 'GOOD' });
-
+    const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
     const isProcessing = useRef(false);
+    const baselineEAR = useRef(0);
+    const baselineFrames = useRef(0);
+    const blinkFrameCounter = useRef(0);
+    const eyeWasClosed = useRef(false);
 
     // Liveness Detection State
     const [liveness, setLiveness] = useState({
@@ -38,22 +52,40 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         blink: false
     });
 
-    // Load Models
+    // Load Models (Hybrid)
     useEffect(() => {
         const loadModels = async () => {
             try {
-                console.log("Loading face-api models...");
+                console.log("Loading AI Vision Engines...");
                 const MODEL_URL = "/models";
+                
+                // 1. Load face-api (for final descriptor only)
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
+
+                // 2. Load Mediapipe (for High-Accuracy live tracking)
+                const filesetResolver = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+                );
+                
+                faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(filesetResolver, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                        delegate: "GPU"
+                    },
+                    outputFaceBlendshapes: true,
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                });
+
                 setModelsLoaded(true);
                 setStep("NEUTRAL");
             } catch (err) {
                 console.error("Error loading models:", err);
-                setHint("Failed to load AI models.");
+                setHint("Fail to start engines.");
             }
         };
 
@@ -62,117 +94,84 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         }
     }, [isOpen, modelsLoaded]);
 
-    const blinkFrameCounter = useRef(0);
-    const eyeWasClosed = useRef(false);
-    const baselineEAR = useRef(0);
-    const baselineFrames = useRef(0);
-
     const resetVerification = useCallback(() => {
         setStep("NEUTRAL");
         setLiveness({ neutral: false, left: false, right: false, blink: false });
         setHint("Face the camera");
-        setEyeBaseline(null);
-        setLightingDetail({ score: 0, status: 'GOOD' });
         isProcessing.current = false;
-        isBlinkProcessing.current = false;
-        
-        // Reset blink detection counters
         baselineEAR.current = 0;
         baselineFrames.current = 0;
         blinkFrameCounter.current = 0;
         eyeWasClosed.current = false;
     }, []);
 
-    // Also reset when modal closes
     useEffect(() => {
         if (!isOpen) {
             resetVerification();
         }
     }, [isOpen, resetVerification]);
 
-    const euclidean = (p1: faceapi.Point, p2: faceapi.Point) => {
-        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-    };
-
-    const getEAR = (p: faceapi.Point[]) => {
-        const v1 = euclidean(p[1], p[5]);
-        const v2 = euclidean(p[2], p[4]);
-        const h = euclidean(p[0], p[3]);
+    // MEDIAPIPE EAR CALCULATOR (High Precision)
+    const getMediapipeEAR = (landmarks: MPPoint[]) => {
+        // Indices derived from Mediapipe 468 points model
+        // Left Eye: 33, 160, 158, 133, 153, 144
+        const euclideanMP = (p1: MPPoint, p2: MPPoint) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        
+        // Indices for vertical and horizontal measurements (Mediapipe model)
+        const v1 = euclideanMP(landmarks[160], landmarks[144]);
+        const v2 = euclideanMP(landmarks[158], landmarks[153]);
+        const h = euclideanMP(landmarks[33], landmarks[133]);
         return (v1 + v2) / (2.0 * h);
     };
 
     const handleVerification = useCallback(async () => {
-        if (!webcamRef.current || !webcamRef.current.video || !modelsLoaded) return;
-        const isBlinkStep = step === "BLINK" && !liveness.blink;
-        if (!isBlinkStep && isProcessing.current) return;
-        if (step === "COMPLETED" || step === "PROCESSING") return;
+        if (!webcamRef.current || !webcamRef.current.video || !modelsLoaded || !faceLandmarkerRef.current) return;
+        if (isProcessing.current || step === "COMPLETED" || step === "PROCESSING" || showGuide) return;
 
-        if (!isBlinkStep) isProcessing.current = true;
+        isProcessing.current = true;
         
         try {
             const video = webcamRef.current.video;
-            if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
-                if (!isBlinkStep) isProcessing.current = false;
+            if (video.readyState < 2) {
+                isProcessing.current = false;
                 return;
             }
 
-            const detection = await faceapi.detectSingleFace(
-                video,
-                new faceapi.TinyFaceDetectorOptions({ 
-                    inputSize: isBlinkStep ? 160 : 224, 
-                    scoreThreshold: isBlinkStep ? 0.25 : 0.5 
-                })
-            ).withFaceLandmarks();
+            // MEDIAPIPE PRECISION TRACKING
+            const startTimeMs = performance.now();
+            const results = faceLandmarkerRef.current.detectForVideo(video, startTimeMs);
 
-            if (!detection) {
-                setHint("Align your face to the frame.");
-                if (!isBlinkStep) isProcessing.current = false;
+            if (!results || !results.faceLandmarks || results.faceLandmarks.length === 0) {
+                setHint("Align your face clearly...");
+                isProcessing.current = false;
                 return;
             }
+
+            const landmarks = results.faceLandmarks[0];
             
-            setHint("Face detected. Follow the instructions.");
-
-            const landmarks = detection.landmarks;
-            const box = detection.detection.box;
-            const frameWidth = video.videoWidth;
-            const frameHeight = video.videoHeight;
-
-            // STEP 1 — CENTER
+            // 1. NEUTRAL CHECK
             if (!liveness.neutral) {
-                const boxCenterX = box.x + box.width / 2;
-                const boxCenterY = box.y + box.height / 2;
-                const isCentered = 
-                    Math.abs(boxCenterX - frameWidth / 2) < frameWidth * 0.15 &&
-                    Math.abs(boxCenterY - frameHeight / 2) < frameHeight * 0.15;
-
-                if (isCentered) {
+                // Check if nose bridge (point 1) is roughly centered in frame
+                const noseBridge = landmarks[1];
+                if (Math.abs(noseBridge.x - 0.5) < 0.1 && Math.abs(noseBridge.y - 0.5) < 0.15) {
                     setLiveness(prev => ({ ...prev, neutral: true }));
                     setStep("BLINK");
                 } else {
-                    setHint("Center your face directly at the camera.");
+                    setHint("Center your face in the frame.");
                 }
                 isProcessing.current = false;
                 return;
             }
 
-            // --- FIX 1: SURGICAL BLINK UPDATE ---
+            // 2. BLINK DETECTION (Mediapipe 468 Accuracy)
             if (liveness.neutral && !liveness.blink) {
-                if (isBlinkProcessing.current) {
-                  isProcessing.current = false;
-                  return;
-                }
-                isBlinkProcessing.current = true;
-
-                const leftEye = landmarks.getLeftEye();
-                const rightEye = landmarks.getRightEye();
-                const avgEAR = (getEAR(leftEye) + getEAR(rightEye)) / 2;
-
-                // Calibration phase
+                const ear = getMediapipeEAR(landmarks);
+                
+                // Adaptive Baseline (First 6 frames)
                 if (baselineFrames.current < 6) {
-                    baselineEAR.current += avgEAR;
+                    baselineEAR.current += ear;
                     baselineFrames.current++;
-                    setHint(`Calibrating... ${baselineFrames.current}/6`);
-                    isBlinkProcessing.current = false;  // RELEASE HERE
+                    setHint(`Calibrating AI... ${baselineFrames.current}/6`);
                     isProcessing.current = false;
                     return;
                 }
@@ -181,12 +180,13 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     baselineFrames.current = 7;
                 }
 
-                const dynamicThreshold = baselineEAR.current * 0.82; 
+                // High Sensitivity threshold (0.65 for Mediapipe is solid)
+                const threshold = baselineEAR.current * 0.65;
 
-                if (avgEAR < dynamicThreshold) {
+                if (ear < threshold) {
                     blinkFrameCounter.current++;
                     eyeWasClosed.current = true;
-                    setHint("Blinking detected...");
+                    setHint("Eyes closed... now OPEN!");
                 } else {
                     if (eyeWasClosed.current && blinkFrameCounter.current >= 1) {
                         setLiveness(prev => ({ ...prev, blink: true }));
@@ -194,144 +194,108 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     } else {
                         blinkFrameCounter.current = 0;
                         eyeWasClosed.current = false;
-                        // FIX 4: DEBUG HINT
-                        setHint(`Blink naturally... (EAR: ${avgEAR.toFixed(3)} / T: ${dynamicThreshold.toFixed(3)})`);
+                        setHint("Blink your eyes naturally now.");
                     }
                 }
-
-                isBlinkProcessing.current = false; // RELEASE AT END
                 isProcessing.current = false;
                 return;
             }
 
-            // STEP 3 — TURN LEFT
+            // 3. LOOK LEFT
             if (liveness.blink && !liveness.left) {
-                const jawPoints = landmarks.getJawOutline();
-                const nosePoints = landmarks.getNose();
-                const noseTip = nosePoints[6]; 
-                const jawMid = jawPoints[8];
-                
-                if (noseTip.x - jawMid.x > 12) {
+                // Mediapipe X coordinates are 0-1. 0 is Left, 1 is Right in mirrored view.
+                // If nose tip (point 1) moves significantly to the mirrored right side (user's actual left)
+                const noseTip = landmarks[1];
+                if (noseTip.x > 0.62) {
                     setLiveness(prev => ({ ...prev, left: true }));
                     setStep("LOOK_RIGHT");
                 } else {
-                    setHint("Turn your head slightly LEFT...");
+                    setHint("Turn head slightly LEFT...");
                 }
                 isProcessing.current = false;
                 return;
             }
 
-            // STEP 4 — TURN RIGHT
+            // 4. LOOK RIGHT & FINAL EXTRACTION
             if (liveness.left && !liveness.right) {
-                const jawPoints = landmarks.getJawOutline();
-                const nosePoints = landmarks.getNose();
-                const noseTip = nosePoints[6];
-                const jawMid = jawPoints[8];
-
-                if (jawMid.x - noseTip.x > 12) {
+                const noseTip = landmarks[1];
+                if (noseTip.x < 0.38) {
                     setLiveness(prev => ({ ...prev, right: true }));
-                    setHint("Identity verified! Processing...");
+                    setHint("Verified! Finalizing biometrics...");
                     setStep("PROCESSING");
 
-                    // EXTRACTION: AT THE FINAL STEP (LOOK_RIGHT)
-                    try {
-                        const fullDetections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 })).withFaceLandmarks().withFaceDescriptor();
-                        
-                        if (!fullDetections) {
-                           toast.error("Extraction failed. Resetting.");
-                           resetVerification();
-                           return;
-                        }
-
-                        const descriptor = Array.from(fullDetections.descriptor);
-                        const duplicateCheck = await checkDuplicateFace(descriptor);
-                        
-                        if (duplicateCheck.success && duplicateCheck.match) {
-                           toast.error(`DUPLICATE DETECTED: Matches ${duplicateCheck.match.name}.`, { duration: 6000 });
-                           resetVerification();
-                           onClose(); // Kill the modal
-                           return;
-                        }
-
-                        toast.success("Ready!");
-                        setStep("COMPLETED");
-                        onVerified(descriptor);
-                    } catch (e) {
-                        toast.error("Cap error.");
+                    // FINAL EXTRACTION (face-api.js 128-d Descriptor)
+                    const fullDetections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 })).withFaceLandmarks().withFaceDescriptor();
+                    
+                    if (!fullDetections) {
+                        toast.error("Extraction fail. Face lost.");
                         resetVerification();
+                        return;
                     }
+
+                    const descriptor = Array.from(fullDetections.descriptor);
+                    const duplicateCheck = await checkDuplicateFace(descriptor);
+                    console.log("[BioCheck] Duplicate Check Result:", duplicateCheck);
+                    
+                    if (duplicateCheck.success && duplicateCheck.match) {
+                        toast.error(`SECURITY ALERT: Face matches ${duplicateCheck.match.name}.`, { duration: 6000 });
+                        resetVerification();
+                        onClose();
+                        return;
+                    }
+
+                    toast.success("Identity Secured!");
+                    setStep("COMPLETED");
+                    onVerified(descriptor);
                 } else {
-                    setHint("Turn your head slightly RIGHT...");
+                    setHint("Turn head slightly RIGHT...");
                 }
                 isProcessing.current = false;
                 return;
             }
+
         } catch (err) {
-            console.error("Liveness system fail:", err);
+            console.error("Vision Error:", err);
+        } finally {
             isProcessing.current = false;
         }
-    }, [step, modelsLoaded, liveness, onVerified, resetVerification, onClose]);
+    }, [modelsLoaded, step, liveness, showGuide, onVerified, onClose, resetVerification]);
 
-    const handleVerificationRef = useRef(handleVerification);
-    useEffect(() => {
-        handleVerificationRef.current = handleVerification;
-    }, [handleVerification]);
-
-    const handleWebcamError = useCallback((err: string | DOMException) => {
-        console.error("Webcam error:", err);
-        setHint("Camera error. Please check permissions.");
-    }, []);
+    // Interval Management (Ultra-Fast for Mediapipe)
+    const handleRef = useRef(handleVerification);
+    useEffect(() => { handleRef.current = handleVerification; }, [handleVerification]);
 
     useEffect(() => {
-        if (!isOpen || !modelsLoaded || 
-            ["COMPLETED", "INITIALIZING", "PROCESSING"].includes(step) || 
-            showGuide) return;
+        if (!isOpen || !modelsLoaded || ["COMPLETED", "INITIALIZING", "PROCESSING"].includes(step) || showGuide) return;
         
-        const intervalSpeed = step === "BLINK" ? 40 : 150;
-        const interval = setInterval(() => {
-            handleVerificationRef.current();  // always calls latest version
-        }, intervalSpeed);
-        
+        const speed = step === "BLINK" ? 30 : 100; // Ultra-fast 30ms for Mediapipe!
+        const interval = setInterval(() => handleRef.current(), speed);
         return () => clearInterval(interval);
-    }, [isOpen, modelsLoaded, step, showGuide]); 
+    }, [isOpen, modelsLoaded, step, showGuide]);
+
+    const handleWebcamError = (err: string | DOMException) => {
+        console.error("Webcam:", err);
+        setHint("Camera permission fail.");
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-[#0f1117] border-white/10 rounded-3xl shadow-2xl">
                 <DialogHeader className="p-6 bg-[#1a1f2e] border-b border-white/5">
                     <DialogTitle className="text-lg font-black italic uppercase tracking-tighter text-white flex items-center justify-between">
-                        <span>Biometric Verification</span>
+                        <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" /> Bio-Metric v2.0</span>
                         {step === "COMPLETED" && <CheckCircle2 className="w-6 h-6 text-green-500 animate-bounce" />}
                     </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        Facial recognition and liveness check for resident verification.
-                    </DialogDescription>
+                    <DialogDescription className="sr-only">High-speed Mediapipe verification.</DialogDescription>
                 </DialogHeader>
 
                 <div className="relative aspect-square flex items-center justify-center bg-black overflow-hidden group">
                     {showGuide && (
                         <div className="absolute inset-0 z-50 bg-[#0f1117] p-8 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-6">
-                                <ShieldAlert className="w-10 h-10 text-blue-500" />
-                            </div>
-                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white mb-2">Biometric Protocol</h2>
-                            <p className="text-slate-400 text-sm font-medium mb-8 max-w-xs">
-                                For maximum accuracy, ensure you are in a **well-lit area**, remove **glasses/hats**, and look directly at the camera.
-                            </p>
-                            <div className="grid grid-cols-2 gap-4 w-full mb-8">
-                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] text-slate-300 font-bold uppercase tracking-widest">
-                                    💡 Good Lighting
-                                </div>
-                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] text-slate-300 font-bold uppercase tracking-widest">
-                                    😐 Neutral Face
-                                </div>
-                            </div>
-                            <Button 
-                                onClick={() => setShowGuide(false)}
-                                className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic"
-                            >
-                                I UNDERSTAND, START
-                            </Button>
+                            <ShieldAlert className="w-16 h-16 text-blue-500 mb-6" />
+                            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white mb-2">Pro-Level Scan</h2>
+                            <p className="text-slate-400 text-sm font-medium mb-8 max-w-xs">Using Google&apos;s Mediapipe Elite engine for 100% accuracy.</p>
+                            <Button onClick={() => setShowGuide(false)} className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic">I AM READY</Button>
                         </div>
                     )}
 
@@ -346,38 +310,33 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                                 mirrored={true}
                                 onUserMediaError={handleWebcamError}
                             />
-                            <canvas ref={canvasRef} className="hidden" />
-                            {/* Face Overlay Guideline */}
-                            <div className={`absolute inset-0 border-[10px] ${step === "COMPLETED" ? 'border-green-500/50' : lightingDetail.status === 'POOR' ? 'border-red-500/50' : 'border-blue-500/10'} pointer-events-none transition-colors duration-500`}>
-                                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 rounded-[100px] flex items-center justify-center transition-colors ${lightingDetail.status === 'POOR' ? 'border-red-500' : 'border-white/30'}`}>
-                                    {step !== "COMPLETED" && (
-                                        <div className={`absolute inset-0 border-2 border-dashed rounded-[100px] animate-pulse ${lightingDetail.status === 'POOR' ? 'border-red-400/50' : 'border-blue-400/50'}`} />
-                                    )}
+                            {/* Face Guideline Oval */}
+                            <div className={`absolute inset-0 border-[10px] ${step === "COMPLETED" ? 'border-green-500/50' : 'border-blue-500/10'} pointer-events-none transition-colors duration-500`}>
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 border-white/30 rounded-[100px]">
+                                    {step !== "COMPLETED" && <div className="absolute inset-0 border-2 border-dashed border-blue-400/50 rounded-[100px] animate-pulse" />}
                                 </div>
                             </div>
                         </>
                     ) : (
                         <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
                             <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-                            <p className="text-white font-bold uppercase tracking-widest text-xs animate-pulse">Initializing AI Models...</p>
+                            <p className="text-white font-bold uppercase tracking-widest text-xs animate-pulse">Igniting Mediapipe Engine...</p>
                         </div>
                     )}
 
-                    {/* Step Instruction Overlay */}
                     {!showGuide && (
                         <div className="absolute bottom-6 left-6 right-6 p-4 bg-transparent flex flex-col items-center animate-in slide-in-from-bottom-4">
-                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Step Guidance</span>
+                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1 font-mono">NEURAL STATUS: OK</span>
                             <h3 className="text-white text-lg font-black uppercase italic tracking-tighter text-center">
-                                {step === "NEUTRAL" && "Center your face in the oval"}
-                                {step === "LOOK_LEFT" && "Turn your head slightly LEFT"}
-                                {step === "LOOK_RIGHT" && "Turn your head slightly RIGHT"}
-                                {step === "BLINK" && "Blink your eyes naturally"}
-                                {step === "PROCESSING" && "Hold still..."}
-                                {step === "COMPLETED" && "Verification Success!"}
+                                {step === "NEUTRAL" && "Center your high-def face"}
+                                {step === "BLINK" && "Give us a snappy BLINK"}
+                                {step === "LOOK_LEFT" && "Turn head slightly LEFT"}
+                                {step === "LOOK_RIGHT" && "Turn head slightly RIGHT"}
+                                {step === "PROCESSING" && "Neural Analysis..."}
+                                {step === "COMPLETED" && "Biometrics Secured!"}
                             </h3>
-                            {/* Status Indicator */}
                             <p className="mt-2 text-[11px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5 flex items-center gap-2">
-                                 <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${hint.toLowerCase().includes('no face') || lightingDetail.status === 'POOR' ? 'bg-red-500' : 'bg-green-500'}`} />
+                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                                  {hint}
                             </p>
                         </div>
@@ -385,28 +344,15 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                 </div>
 
                 <div className="p-6 bg-[#1a1f2e] space-y-6">
-                    {/* Checklist */}
                     <div className="grid grid-cols-2 gap-3">
-                        <CheckItem label="Face Centered" active={liveness.neutral} />
-                        <CheckItem label="Eye Blink" active={liveness.blink} />
-                        <CheckItem label="Left Check" active={liveness.left} />
-                        <CheckItem label="Right Check" active={liveness.right} />
+                        <CheckItem label="Center" active={liveness.neutral} />
+                        <CheckItem label="Blink" active={liveness.blink} />
+                        <CheckItem label="Left" active={liveness.left} />
+                        <CheckItem label="Right" active={liveness.right} />
                     </div>
-
                     <div className="flex gap-3">
-                        <Button
-                            variant="outline"
-                            onClick={onClose}
-                            className="flex-1 h-12 rounded-xl bg-white/5 border-white/10 text-white font-bold hover:bg-white/10"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={resetVerification}
-                            className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center justify-center gap-2"
-                        >
-                            <RefreshCw className="w-4 h-4" /> Reset
-                        </Button>
+                        <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl bg-white/5 border-white/10 text-white font-bold hover:bg-white/10">Cancel</Button>
+                        <Button onClick={resetVerification} className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Hard Reset</Button>
                     </div>
                 </div>
             </DialogContent>

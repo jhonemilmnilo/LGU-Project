@@ -53,37 +53,38 @@ export const AuthLayout = ({
             className="flex min-h-screen w-full bg-white dark:bg-slate-950 transition-colors duration-500 font-sans text-slate-950 dark:text-white relative"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
-            {/* Fixed Branding Block - High-End Professional Spacing */}
-            <div className="absolute top-24 left-16 xl:top-36 xl:left-32 z-50 flex flex-col gap-8 pointer-events-none">
-                <div className="flex items-center gap-5 group pointer-events-auto">
-                    <div 
-                        className="w-14 h-14 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-500 relative overflow-hidden group-hover:scale-110 group-hover:rotate-3"
-                        style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}44` }}
-                    >
-                        {logoSrc ? (
-                            <Image src={logoSrc} alt="Logo" fill className="object-cover p-2" />
-                        ) : (
-                            <Shield className="w-8 h-8 text-white relative z-10" />
-                        )}
-                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="flex flex-col drop-shadow-xl translate-y-1">
-                        <span className="text-3xl font-black uppercase tracking-tighter italic leading-none text-slate-900 dark:text-white">
-                            {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
-                        </span>
-                        <span className="text-[11px] uppercase font-black tracking-[0.4em] mt-2 text-slate-400 dark:text-slate-500/60">
-                            Smart Municipality
-                        </span>
-                    </div>
-                </div>
-                <div 
-                    className="h-0.5 w-40"
-                    style={{ background: `linear-gradient(to right, ${themeColor}33, transparent)` }} 
-                />
-            </div>
+
 
             {/* Left Side: Form Area */}
-            <div className="flex w-full flex-col justify-center px-8 lg:w-1/2 xl:px-24 relative z-10 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-white/5 min-h-screen">
+            <div className="flex w-full flex-col justify-center pt-48 lg:pt-32 px-8 lg:w-1/2 xl:px-24 relative z-10 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-white/5 min-h-screen">
+                {/* Branding Block - Now Centered specifically over the Form Side */}
+                <div className="absolute top-10 md:top-14 lg:top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 md:gap-4 lg:gap-6 pointer-events-none transition-all duration-500 w-full">
+                    <div className="flex flex-col md:flex-row items-center gap-3 md:gap-5 group pointer-events-auto">
+                        <div 
+                            className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-500 relative overflow-hidden group-hover:scale-110 group-hover:rotate-3"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}44` }}
+                        >
+                            {logoSrc ? (
+                                <Image src={logoSrc} alt="Logo" fill className="object-cover p-2" />
+                            ) : (
+                                <Shield className="w-8 h-8 text-white relative z-10" />
+                            )}
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <div className="flex flex-col items-center drop-shadow-xl translate-y-1">
+                            <span className="text-2xl md:text-3xl font-black uppercase tracking-tighter italic leading-none text-slate-900 dark:text-white">
+                                {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
+                            </span>
+                            <span className="text-[10px] md:text-[11px] uppercase font-black tracking-[0.4em] mt-2 text-slate-400 dark:text-slate-500/60">
+                                Smart Municipality
+                            </span>
+                        </div>
+                    </div>
+                    <div 
+                        className="h-0.5 w-32 md:w-40 bg-gradient-to-r from-transparent via-slate-200 to-transparent"
+                        style={{ background: `linear-gradient(to right, transparent, ${themeColor}33, transparent)` } as React.CSSProperties} 
+                    />
+                </div>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -94,7 +95,7 @@ export const AuthLayout = ({
                 </motion.div>
 
                 {/* Footer Credits */}
-                <div className="absolute bottom-10 left-10 xl:left-14">
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 lg:left-14 lg:translate-x-0 w-full lg:w-auto text-center lg:text-left">
                     <p className="text-[10px] uppercase font-black tracking-widest text-slate-300 dark:text-slate-600">
                         © {new Date().getFullYear()} {brandWord1}{brandWord2} Portal
                     </p>

@@ -94,9 +94,9 @@ export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps)
 
     return (
         <>
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
                 <div className="space-y-2">
-                    <h1 className="text-4xl font-black tracking-tighter italic text-slate-900 dark:text-white uppercase leading-none">Welcome back</h1>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter italic text-slate-900 dark:text-white uppercase leading-none">Welcome back</h1>
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                         Please enter your details to access your account.
                     </p>

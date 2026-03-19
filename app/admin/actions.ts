@@ -168,13 +168,16 @@ export async function checkDuplicateFace(descriptor: number[], excludeId?: strin
         }
 
         // FIX 1 & 3: Replace any existing FaceMatcher threshold with exactly 0.45
-        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
+        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
         const queryDescriptor = new Float32Array(descriptor);
+        console.log(`[BioCheck] Query Descriptor Length: ${queryDescriptor.length}`);
+        
         const bestMatch = faceMatcher.findBestMatch(queryDescriptor);
+        console.log(`[BioCheck] Best Match Result: ${bestMatch.toString()}`);
 
         if (bestMatch.label !== "unknown") {
             const [name, id] = bestMatch.label.split("|");
-            console.log(`[BioCheck] Match found: ${name} (Dist: ${bestMatch.distance.toFixed(4)})`);
+            console.log(`[BioCheck] CRITICAL MATCH: ${name} (Distance: ${bestMatch.distance.toFixed(4)})`);
             return { 
                 success: true, 
                 match: {
@@ -185,7 +188,7 @@ export async function checkDuplicateFace(descriptor: number[], excludeId?: strin
             };
         }
 
-        console.log("[BioCheck] No matching identity found.");
+        console.log("[BioCheck] No matching identity found (All above 0.55 threshold).");
         return { success: true, match: null };
     } catch (error) {
         console.error("Face check error:", error);
