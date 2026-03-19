@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import ReportMapWrapper from "./components/ReportMapWrapper";
 
 // Next.js 15+ requires params to be a Promise, but we handle it safely for both versions
-export default async function ReportDetailPage({ params }: { params: { id: string } }) {
+export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
     // Await params if it behaves like a promise (for newer Next.js versions)
     const resolvedParams = await params;
     const reportId = resolvedParams.id;
@@ -85,7 +85,7 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                     <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
-                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
                                     <Home className="w-3.5 h-3.5 mb-0.5" />
                                     Home
                                 </Link>
@@ -94,12 +94,12 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
-                                <Link href="/user/reports" className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic hover:text-primary transition-colors">Reports</Link>
+                                <Link href="/user/reports" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">Reports Hub</Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">#{reportId.slice(-6)}</BreadcrumbPage>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">#{reportId.slice(-6)}</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>

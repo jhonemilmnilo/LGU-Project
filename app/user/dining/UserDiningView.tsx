@@ -21,8 +21,25 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function UserDiningView({ initialDining = [] }: { initialDining: any[] }) {
+export interface Dining {
+    id: string;
+    name: string;
+    description: string;
+    address: string;
+    imageUrl?: string | null;
+    openingHours?: string | null;
+    cuisineType?: string | null;
+    contactNumber?: string | null;
+    facebookUrl?: string | null;
+    googleMapsUrl?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    isPublished: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export default function UserDiningView({ initialDining = [] }: { initialDining: Dining[] }) {
     return (
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
@@ -30,7 +47,7 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                 <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
@@ -38,7 +55,7 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Explore Mapandan / Dining Hub</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Dining Hub</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -62,7 +79,7 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
             </div>
 
             {/* Content section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
                 {initialDining.map((item, idx) => (
                     <motion.div
                         key={item.id}
@@ -70,15 +87,15 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: idx * 0.1 }}
-                        className="group flex flex-col space-y-6"
+                        className="group bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-[#2a3040] hover:border-primary/40 transition-all duration-500 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col h-full active:scale-[0.98]"
                     >
-                        {/* Image Container matching landing page style */}
-                        <div className="relative aspect-[4/3] rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 transition-transform duration-500 group-hover:scale-[1.02]">
+                        {/* Image Container - No search icon */}
+                        <div className="relative aspect-[16/10] overflow-hidden">
                             <Image
                                 src={item.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800"}
                                 alt={item.name}
                                 fill
-                                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                className="object-cover transition-transform duration-1000 group-hover:scale-110"
                                 priority={idx < 3}
                             />
                             
@@ -94,40 +111,36 @@ export default function UserDiningView({ initialDining = [] }: { initialDining: 
                                     </span>
                                 )}
                             </div>
-
-                            {/* View Overlay */}
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                <div className="p-4 bg-white/20 backdrop-blur-xl rounded-full border border-white/30 text-white scale-90 group-hover:scale-100 transition-transform">
-                                    <Search className="w-6 h-6" />
-                                </div>
-                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         </div>
 
-                        {/* Details */}
-                        <div className="space-y-4 px-2">
-                            <div className="space-y-2">
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter group-hover:text-orange-500 transition-colors">
-                                    {item.name}
-                                </h3>
-                                <div className="flex items-center gap-2 text-slate-400 group-hover:text-slate-500 transition-colors">
-                                    <MapPin className="w-4 h-4 text-orange-500" />
-                                    <span className="text-[11px] font-bold uppercase tracking-widest truncate italic">{item.address}</span>
+                        {/* Details - More visible with background and themed border */}
+                        <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-tight">
+                                        {item.name}
+                                    </h3>
+                                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-slate-500 transition-colors">
+                                        <MapPin className="w-4 h-4 text-primary" />
+                                        <span className="text-[11px] font-bold uppercase tracking-widest truncate italic">{item.address}</span>
+                                    </div>
                                 </div>
+                                
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 leading-relaxed h-10">
+                                    {item.description}
+                                </p>
                             </div>
                             
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 leading-relaxed h-10">
-                                {item.description}
-                            </p>
-                            
-                            <div className="flex items-center justify-between pt-4">
+                            <div className="flex items-center justify-between pt-8 border-t border-slate-100 dark:border-white/5">
                                 <Link href={`/user/dining/${item.id}`} className="flex-1">
-                                    <Button className="h-12 px-8 bg-slate-900 dark:bg-white/5 dark:hover:bg-orange-500 text-white dark:hover:text-white rounded-2xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 group/btn transition-all shadow-md">
-                                        Explore Showcase
-                                        <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                                    <Button className="h-12 px-8 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 shadow-md">
+                                        Explore
+                                        <ArrowRight className="w-3.5 h-3.5" />
                                     </Button>
                                 </Link>
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 italic ml-4">
-                                    <Clock className="w-4 h-4 text-orange-400" />
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 italic ml-4 shrink-0">
+                                    <Clock className="w-4 h-4 text-primary" />
                                     {item.openingHours || "TBA"}
                                 </div>
                             </div>

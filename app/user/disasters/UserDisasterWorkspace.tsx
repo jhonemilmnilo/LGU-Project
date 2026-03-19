@@ -5,18 +5,17 @@ import { motion } from "framer-motion";
 import { 
     Layers, 
     ShieldAlert, 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     Info, 
     Wind, 
     Waves, 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ArrowLeft,
     Compass,
     Activity,
     Map as MapIcon,
-    AlertTriangle
+    AlertTriangle,
+    Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Image from "next/image";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -34,6 +33,23 @@ export function UserDisasterWorkspace({
 
     return (
         <div className="space-y-10">
+            {/* Breadcrumb Section */}
+            <Breadcrumb>
+                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                <Home className="w-3.5 h-3.5 mb-0.5" />
+                                Home
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic max-w-[200px] truncate">Hazard Sentinel</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
@@ -122,9 +138,11 @@ export function UserDisasterWorkspace({
                                     plan and a ready-kit based on the highest risk level detected in your area.
                                 </p>
                             </div>
-                            <Button className="h-14 px-8 bg-white text-blue-600 hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 shrink-0">
-                                View Guide
-                            </Button>
+                            <Link href="/user/hotlines">
+                                <Button className="h-14 px-8 bg-white text-blue-600 hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest transition-all hover:scale-105 shrink-0">
+                                    Emergency Lines
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>

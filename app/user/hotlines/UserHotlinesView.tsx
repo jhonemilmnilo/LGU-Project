@@ -7,13 +7,29 @@ import { motion } from "framer-motion";
  
  
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { PhoneCall, Shield, Activity, Flame, Wind, Waves, ArrowRight, Copy } from "lucide-react";
+import { PhoneCall, Shield, Activity, Flame, Wind, Waves, ArrowRight, Copy, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import Link from "next/link";
 export function UserHotlinesView({ initialHotlines = [] }: { initialHotlines: any[] }) {
     return (
         <div className="space-y-12 pb-20">
+            <Breadcrumb>
+                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-red-600 transition-colors">
+                                <Home className="w-3.5 h-3.5 mb-0.5" />
+                                Home
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-red-600 italic max-w-[200px] truncate">Emergency Hotlines</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">

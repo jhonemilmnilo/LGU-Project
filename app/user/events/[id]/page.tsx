@@ -46,27 +46,26 @@ export default async function EventDetailPage({ params }: { params: { id: string
                 
                 <div className="absolute top-6 left-8">
                     <Breadcrumb>
-                        <BreadcrumbList className="bg-white/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/20 w-fit shadow-xl">
+                        <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/#events" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600">
+                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
                                         <Home className="w-3.5 h-3.5 mb-0.5" />
                                         Home
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator className="text-white/50" />
+                            <BreadcrumbSeparator />
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/user/events" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white hover:text-blue-400">
-                                        <Calendar className="w-3.5 h-3.5 mb-0.5" />
+                                    <Link href="/user/events" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
                                         Events Feed
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator className="text-white/50" />
+                            <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-400 italic font-black">{event.title}</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic max-w-[200px] truncate">{event.title}</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>

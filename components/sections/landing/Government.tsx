@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { User } from "lucide-react";
 
 interface Official {
     id: string;
@@ -54,8 +55,8 @@ export function Government({ officials = [] }: { officials?: Official[] }) {
                                         className="object-cover group-hover:scale-110 transition-transform duration-500"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                        <span className="text-4xl font-black uppercase italic tracking-tighter">{mayor.name.charAt(0)}</span>
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-white/5">
+                                        <User className="w-16 h-16 text-slate-200 dark:text-slate-800" />
                                     </div>
                                 )}
                             </div>
@@ -87,8 +88,8 @@ export function Government({ officials = [] }: { officials?: Official[] }) {
                                             className="object-cover group-hover:scale-110 transition-all duration-500"
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                            <span className="text-2xl font-black uppercase italic tracking-tighter">{member.name.charAt(0)}</span>
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-white/5">
+                                            <User className="w-10 h-10 text-slate-200 dark:text-slate-800" />
                                         </div>
                                     )}
                                 </div>
