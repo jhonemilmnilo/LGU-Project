@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon } from "lucide-react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function AboutClient({ initialData }: { initialData: any }) {
     const [isSaving, setIsSaving] = React.useState(false);
     const [previewImage, setPreviewImage] = React.useState(initialData?.mayorImageUrl || "");
@@ -24,7 +25,7 @@ export default function AboutClient({ initialData }: { initialData: any }) {
             } else {
                 toast.error(res.error || "Failed to update");
             }
-        } catch (error) {
+        } catch {
             toast.error("An error occurred");
         } finally {
             setIsSaving(false);
@@ -91,7 +92,7 @@ export default function AboutClient({ initialData }: { initialData: any }) {
 
             <div className="border-t border-slate-200 dark:border-white/10 pt-10 grid grid-cols-1 md:grid-cols-5 gap-10">
                 <div className="space-y-4 md:col-span-3">
-                    <h2 className="text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Mayor's Message</h2>
+                    <h2 className="text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Mayor&apos;s Message</h2>
                     <Textarea 
                         name="mayorMessage" 
                         defaultValue={initialData?.mayorMessage || ""} 
@@ -102,7 +103,7 @@ export default function AboutClient({ initialData }: { initialData: any }) {
                     />
                 </div>
                 <div className="space-y-4 md:col-span-2">
-                    <h2 className="text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Mayor's Photo</h2>
+                    <h2 className="text-xl font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Mayor&apos;s Photo</h2>
                     <div className="flex flex-col items-center sm:items-start gap-4">
                         {previewImage ? (
                             // eslint-disable-next-line @next/next/no-img-element

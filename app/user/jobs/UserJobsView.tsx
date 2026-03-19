@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, Building, Timer, UserCheck, ArrowRight, Home, MapPin, Search, Calendar } from "lucide-react";
+import { Briefcase, Timer, Home, MapPin, Calendar } from "lucide-react";
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -11,7 +11,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Job } from "../../admin/jobs/providers/JobsProvider";
 

@@ -2,7 +2,6 @@ import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import Image from "next/image";
 import { AboutClientView } from "./AboutClientView";
 
 export default async function AboutPage() {
@@ -15,7 +14,9 @@ export default async function AboutPage() {
 
     const themeColor = settings.get("theme_color") || "#2563eb";
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const aboutData = await (prisma as any).aboutPage.findFirst();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pastMayors = await (prisma as any).pastMayor.findMany({
         orderBy: { order: 'asc' }
     });

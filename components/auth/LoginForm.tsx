@@ -29,7 +29,7 @@ interface LoginFormProps {
     themeColor?: string;
 }
 
-export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps) {
+export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
     const [showPassword, setShowPassword] = React.useState(false);
     const [showChangeModal, setShowChangeModal] = React.useState(false);
     const [userEmail, setUserEmail] = React.useState("");

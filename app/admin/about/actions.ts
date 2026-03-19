@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import { processImageUpload, deleteUploadedFile } from "@/app/admin/settings/actions";
 
 export async function getAboutPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return await (prisma as any).aboutPage.findFirst();
 }
 
 export async function upsertAboutPage(formData: FormData) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const existing = await (prisma as any).aboutPage.findFirst();
         
         let mayorImageUrl = formData.get("mayorImageUrl")?.toString() || "";
@@ -38,11 +40,13 @@ export async function upsertAboutPage(formData: FormData) {
         };
 
         if (existing) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (prisma as any).aboutPage.update({
                 where: { id: existing.id },
                 data
             });
         } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (prisma as any).aboutPage.create({
                 data
             });
@@ -59,6 +63,7 @@ export async function upsertAboutPage(formData: FormData) {
 }
 
 export async function getPastMayors() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return await (prisma as any).pastMayor.findMany({
         orderBy: { order: 'asc' } // Or you could order by termStart later if preferred
     });
@@ -83,15 +88,18 @@ export async function upsertPastMayor(id: string | null, formData: FormData) {
         };
 
         if (id) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const existing = await (prisma as any).pastMayor.findUnique({ where: { id } });
             if (existing?.imageUrl && existing.imageUrl !== imageUrl) {
                 await deleteUploadedFile(existing.imageUrl);
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (prisma as any).pastMayor.update({
                 where: { id },
                 data
             });
         } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (prisma as any).pastMayor.create({
                 data
             });
@@ -109,10 +117,12 @@ export async function upsertPastMayor(id: string | null, formData: FormData) {
 
 export async function deletePastMayor(id: string) {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const existing = await (prisma as any).pastMayor.findUnique({ where: { id } });
         if (existing?.imageUrl) {
             await deleteUploadedFile(existing.imageUrl);
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (prisma as any).pastMayor.delete({
             where: { id }
         });

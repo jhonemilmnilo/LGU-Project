@@ -5,16 +5,6 @@ import { Newspaper, Calendar, Bell, ArrowRight, Clock, MapPin, Tag, User } from 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
  

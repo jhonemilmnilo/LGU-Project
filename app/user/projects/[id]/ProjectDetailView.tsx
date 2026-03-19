@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FolderKanban, Home, Clock, MapPin, Gauge, Calendar, Building2, CircleDollarSign, ArrowLeft } from "lucide-react";
+import { Clock, MapPin, Gauge, Calendar, Building2, CircleDollarSign, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import {

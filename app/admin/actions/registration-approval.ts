@@ -80,6 +80,7 @@ async function sendEmail({ type, to, name, remarks }: { type: "APPROVED" | "REJE
         
         console.log("Email sent successfully: " + info.messageId);
         return { success: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Nodemailer failed:", error);
         return { success: false, error: error.message || "Failed to send email." };

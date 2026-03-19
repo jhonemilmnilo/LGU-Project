@@ -27,22 +27,24 @@ export function AddJobModal() {
 
     useEffect(() => {
         if (isAddModalOpen) {
-            if (editingData?.links) {
-                // Handle both array and old object format
-                if (Array.isArray(editingData.links)) {
-                    setLinks([...editingData.links]);
+            setTimeout(() => {
+                if (editingData?.links) {
+                    // Handle both array and old object format
+                    if (Array.isArray(editingData.links)) {
+                        setLinks([...editingData.links]);
+                    } else {
+                        // Convert old fixed object to dynamic array
+                        const converted = [];
+                        if (editingData.links.website) converted.push({ label: "Website", url: editingData.links.website });
+                        if (editingData.links.facebook) converted.push({ label: "Facebook", url: editingData.links.facebook });
+                        if (editingData.links.instagram) converted.push({ label: "Instagram", url: editingData.links.instagram });
+                        if (editingData.links.mapUrl) converted.push({ label: "Map URL", url: editingData.links.mapUrl });
+                        setLinks(converted);
+                    }
                 } else {
-                    // Convert old fixed object to dynamic array
-                    const converted = [];
-                    if (editingData.links.website) converted.push({ label: "Website", url: editingData.links.website });
-                    if (editingData.links.facebook) converted.push({ label: "Facebook", url: editingData.links.facebook });
-                    if (editingData.links.instagram) converted.push({ label: "Instagram", url: editingData.links.instagram });
-                    if (editingData.links.mapUrl) converted.push({ label: "Map URL", url: editingData.links.mapUrl });
-                    setLinks(converted);
+                    setLinks([]);
                 }
-            } else {
-                setLinks([]);
-            }
+            }, 0);
         }
     }, [isAddModalOpen, editingData]);
 

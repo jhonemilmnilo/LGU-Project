@@ -17,7 +17,8 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
     const router = useRouter();
     const [mayors, setMayors] = useState(initialMayors);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [editingMayor, setEditingMayor] = useState<any | null>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [editingMayor, setEditingMayor] = useState<any | null>(null);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this specific record?")) return;
@@ -31,6 +32,7 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleEdit = (mayor: any) => {
         setEditingMayor(mayor);
         setShowAddModal(true);
@@ -103,8 +105,8 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
     );
 }
 
- 
-function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, onClose: () => void, initialData: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, onClose: () => void, initialData: any }) {
     const [isSaving, setIsSaving] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
@@ -168,7 +170,8 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
             } else {
                 toast.error(`Failed: ${result.error}`);
             }
-        } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
             console.error(error);
             toast.error("An error occurred");
         } finally {

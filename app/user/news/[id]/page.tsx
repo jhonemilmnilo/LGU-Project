@@ -7,7 +7,7 @@ import { Calendar, User, Tag, ArrowLeft, Share2, Facebook, Twitter, MessageCircl
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-export default async function NewsDetailPage({ params }: { params: { id: string } }) {
+export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
     const article = await prisma.news.findUnique({

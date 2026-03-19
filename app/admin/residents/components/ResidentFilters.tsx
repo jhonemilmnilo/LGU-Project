@@ -1,21 +1,19 @@
 "use client";
 
 import { useResident, ResidentCategory } from "../providers/ResidentProvider";
-import { Search, Plus, Filter, Users } from "lucide-react";
+import { Search, Plus, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { getResidentCategories } from "../../actions";
-import { cn } from "@/lib/utils";
 export function ResidentFilters() {
     const {
         searchQuery, setSearchQuery,
         setIsAddModalOpen,
         selectedBarangay, setSelectedBarangay,
         selectedGender, setSelectedGender,
-        selectedCategory, setSelectedCategory,
-        residents,
+        selectedCategory, setSelectedCategory
     } = useResident();
 
     const [mounted, setMounted] = useState(false);

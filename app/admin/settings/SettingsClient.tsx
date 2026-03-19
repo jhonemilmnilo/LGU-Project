@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
     Dialog, 
     DialogContent, 
@@ -18,7 +17,7 @@ import {
     DialogTitle, 
 } from "@/components/ui/dialog";
 import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send } from "lucide-react";
-import { processImageUpload, updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
+import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 

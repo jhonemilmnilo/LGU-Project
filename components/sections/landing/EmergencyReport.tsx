@@ -2,16 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Siren, Flame, HeartPulse, Send, AlertCircle, Info, Copy, Smartphone, Phone, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Siren, Flame, HeartPulse, AlertCircle, Info, Copy, Smartphone, Phone, MapPin } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 

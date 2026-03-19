@@ -10,7 +10,6 @@ import {
     CheckCircle2, 
     XCircle, 
     MapPin, 
-    Calendar,
     MessageSquare,
     Home,
     Activity,

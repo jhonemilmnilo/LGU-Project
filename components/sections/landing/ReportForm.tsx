@@ -13,7 +13,6 @@ import {
     CheckCircle2, 
     LogIn,
     Map,
-    ChevronRight,
     Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
