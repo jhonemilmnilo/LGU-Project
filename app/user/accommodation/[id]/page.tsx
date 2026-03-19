@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { MapPin, Phone, ArrowLeft, Globe, Navigation, Bed, Star, Waves, Wind, Coffee } from "lucide-react";
+import { MapPin, Phone, Globe, Navigation, Bed } from "lucide-react";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 
 export default async function AccommodationDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,17 +28,21 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
     return (
         <div className="min-h-screen pb-20 space-y-10">
             {/* Header / Nav */}
-            <div className="flex items-center justify-between">
-                <Link href="/user/accommodation">
-                    <Button variant="ghost" className="group flex items-center gap-2 font-black uppercase tracking-widest text-[9px] text-slate-500 hover:text-blue-600 transition-colors">
-                        <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                        Back to Hub
-                    </Button>
-                </Link>
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                    <span className="text-blue-600">{item.name}</span>
-                </div>
-            </div>
+            <Breadcrumb>
+                <BreadcrumbList className="font-black uppercase tracking-widest text-[10px]">
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/" className="transition-colors hover:text-blue-600">Home</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/user/accommodation" className="transition-colors hover:text-blue-600">Accommodation Hub</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-blue-600">{item.name}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
             {/* Compact Hero Section */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
@@ -82,19 +87,10 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                     </p>
 
                     {/* Smaller Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                         <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-[2rem] space-y-2 border border-slate-100 dark:border-white/5">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price Range</h3>
-                            <p className="text-base font-black text-blue-600 italic">{item.priceRange || "₱₱₱"}</p>
-                        </div>
-
-                        <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-[2rem] space-y-2 border border-slate-100 dark:border-white/5">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Environment</h3>
-                            <div className="flex items-center gap-3">
-                                <Waves className="w-4 h-4 text-blue-400" />
-                                <Wind className="w-4 h-4 text-slate-300" />
-                                <Coffee className="w-4 h-4 text-orange-400" />
-                            </div>
+                            <p className="text-base font-black text-blue-600 italic">{item.priceRange || "Contact for price"}</p>
                         </div>
                     </div>
 

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { MapPin, Clock, Phone, Facebook, Utensils, ArrowLeft, Globe, Navigation } from "lucide-react";
+import { MapPin, Clock, Phone, Facebook, Utensils, Navigation } from "lucide-react";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 
 export default async function DiningDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,17 +29,21 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
     return (
         <div className="min-h-screen pb-20 space-y-10">
             {/* Header / Nav */}
-            <div className="flex items-center justify-between">
-                <Link href="/user/dining">
-                    <Button variant="ghost" className="group flex items-center gap-2 font-black uppercase tracking-widest text-[9px] text-slate-500 hover:text-blue-600 transition-colors">
-                        <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                        Back to Hub
-                    </Button>
-                </Link>
-                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                    <span className="text-blue-600">{item.name}</span>
-                </div>
-            </div>
+            <Breadcrumb>
+                <BreadcrumbList className="font-black uppercase tracking-widest text-[10px]">
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/" className="transition-colors hover:text-blue-600">Home</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/user/dining" className="transition-colors hover:text-blue-600">Dining Hub</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-blue-600">{item.name}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
             {/* Compact Hero Section */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
