@@ -42,16 +42,16 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Explore Mapandan / Tuluyan & Resorts</BreadcrumbPage>
                     </BreadcrumbItem>
@@ -59,25 +59,23 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
             </Breadcrumb>
 
             {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform -rotate-3 hover:rotate-0 transition-transform">
-                            <Bed className="w-7 h-7 text-white" />
-                        </div>
-                        <div className="space-y-0.5">
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Tuluyan at Resorts</h1>
-                            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">Your home by the sea</p>
-                        </div>
+            <div className="flex flex-col items-center text-center space-y-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                        <Bed className="w-7 h-7 text-white" />
                     </div>
-                    <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        From beachfront resorts to hillside villas. Find your home away from home in the coastal breeze of Mapandan. Enjoy world-class hospitality and breathtaking views.
-                    </p>
+                    <div className="space-y-0.5">
+                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Tuluyan at Resorts</h1>
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">Your home by the sea</p>
+                    </div>
                 </div>
+                <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed mx-auto">
+                    From beachfront resorts to hillside villas. Find your home away from home in the coastal breeze of Mapandan. Enjoy world-class hospitality and breathtaking views.
+                </p>
             </div>
 
             {/* Content section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-4">
                 {initialAccommodations.map((item, idx) => (
                     <motion.div
                         key={item.id}

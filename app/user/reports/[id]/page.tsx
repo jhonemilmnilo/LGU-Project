@@ -82,32 +82,27 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             {/* Navigation & Breadcrumbs */}
             <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between">
                 <Breadcrumb>
-                    <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
-                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                     <Home className="w-3.5 h-3.5 mb-0.5" />
                                     Home
                                 </Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator />
+                        <BreadcrumbSeparator className="text-white/50" />
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
-                                <Link href="/user/reports" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">Reports Hub</Link>
+                                <Link href="/user/reports" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">Reports Hub</Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator />
+                        <BreadcrumbSeparator className="text-white/50" />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic">#{reportId.slice(-6)}</BreadcrumbPage>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">#{reportId.slice(-6)}</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
-
-                <Link href="/user/reports" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors italic group">
-                    <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to tracking list
-                </Link>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -204,7 +199,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 </div>
 
                 <div className="space-y-8">
-                    <div className="bg-white dark:bg-[#1e2330] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] p-8 space-y-8 shadow-xl shadow-slate-200/50">
+                    <div className="bg-white dark:bg-[#1e2330] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] p-8 space-y-8 shadow-xl shadow-slate-200/50 dark:shadow-none">
                         <div className="flex items-center gap-3 mb-2">
                             <MapPin className="w-6 h-6 text-red-500" />
                             <h4 className="text-lg font-black uppercase italic tracking-tighter">Location Box</h4>
@@ -229,7 +224,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                             <a 
                                 href={`https://www.google.com/maps/search/?api=1&query=${report.latitude},${report.longitude}`} 
                                 target="_blank"
-                                className="w-full h-14 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest italic hover:bg-primary transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-xl"
+                                className="w-full h-14 bg-primary text-white rounded-2xl text-[9px] font-black uppercase tracking-widest italic hover:scale-[1.02] transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-xl shadow-primary/20"
                             >
                                 Get Live Directions <MapIcon className="w-4 h-4 ml-1" />
                             </a>

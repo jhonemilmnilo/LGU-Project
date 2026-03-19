@@ -33,18 +33,16 @@ export function UserNewsView({ initialNews = [] }: { initialNews: any[] }) {
                 </BreadcrumbList>
             </Breadcrumb>
 
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pt-4">
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
-                            <Newspaper className="w-6 h-6 text-white" />
-                        </div>
-                        <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Municipal News</h1>
+            <div className="flex flex-col items-center text-center space-y-4 pt-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
+                        <Newspaper className="w-6 h-6 text-white" />
                     </div>
-                    <p className="text-slate-500 font-medium italic max-w-xl">
-                        Official updates, press releases, and community stories directly from the Mapandan Municipal Information Office.
-                    </p>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Municipal News</h1>
                 </div>
+                <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
+                    Official updates, press releases, and community stories directly from the Mapandan Municipal Information Office.
+                </p>
             </div>
 
             {/* Featured Article (First one) */}
@@ -79,7 +77,7 @@ export function UserNewsView({ initialNews = [] }: { initialNews: any[] }) {
             )}
 
             {/* News Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {initialNews.slice(1).map((item, idx) => (
                     <Link href={`/user/news/${item.id}`} key={item.id}>
                         <motion.div

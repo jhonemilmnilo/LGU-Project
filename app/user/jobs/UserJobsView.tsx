@@ -19,16 +19,16 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Careers & Opportunities</BreadcrumbPage>
                     </BreadcrumbItem>
@@ -36,20 +36,18 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
             </Breadcrumb>
 
             {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div className="space-y-4">
-                    <div className="space-y-0.5 pt-2">
-                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Career Hub</h1>
-                        <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">LGU Recruitment</p>
-                    </div>
-                    <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        Build your future while serving the community. Explore diverse career opportunities within the Mapandan Municipal Government.
-                    </p>
+            <div className="flex flex-col items-center text-center space-y-4">
+                <div className="space-y-0.5 pt-2">
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Career Hub</h1>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">LGU Recruitment</p>
                 </div>
+                <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed mx-auto">
+                    Build your future while serving the community. Explore diverse career opportunities within the Mapandan Municipal Government.
+                </p>
             </div>
 
             {/* Job Board Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                 {initialJobs.map((job, idx) => (
                     <motion.div
                         key={job.id}

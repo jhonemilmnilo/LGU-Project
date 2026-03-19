@@ -26,7 +26,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
     const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
     return (
-        <div className="min-h-screen pb-20 space-y-10">
+        <div className="min-h-screen pb-20 space-y-8">
             {/* Header / Nav */}
             <Breadcrumb>
                 <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
@@ -54,7 +54,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
             </Breadcrumb>
 
             {/* Compact Hero Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8 items-start">
                 {/* Smaller Image Column */}
                 <div className="lg:col-span-2">
                     <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 group">
@@ -88,7 +88,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                 </div>
 
                 {/* Larger Details Column */}
-                <div className="lg:col-span-3 space-y-8">
+                <div className="lg:col-span-3 space-y-6 md:space-y-8">
                     <div className="space-y-3">
                         <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
                             {item.name}

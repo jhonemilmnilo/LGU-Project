@@ -37,7 +37,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
     const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#0a0c10] pb-24">
+        <div className="min-h-screen bg-slate-50 dark:bg-[#0a0c10] pb-24 space-y-8">
             {/* Header / Backdrop */}
             <div className="relative h-[40vh] md:h-[55vh] overflow-hidden">
                 <Image
@@ -78,9 +78,9 @@ export default async function EventDetailPage({ params }: { params: { id: string
             </div>
 
             <div className="max-w-7xl mx-auto px-6 -mt-24 relative z-10">
-                <div className="flex flex-col lg:flex-row gap-12">
-                    {/* Left: Content */}
-                    <div className="flex-1 space-y-12">
+            <div className="flex flex-col lg:grid lg:grid-cols-5 gap-6 md:gap-8">
+                {/* Left: Content */}
+                <div className="lg:col-span-3 space-y-6 md:space-y-8">
                         <div className="bg-white dark:bg-[#111622] rounded-[3.5rem] p-10 md:p-16 shadow-2xl border border-slate-100 dark:border-white/5 space-y-8">
                             <div className="space-y-4">
                                 <div className="flex flex-wrap items-center gap-3">

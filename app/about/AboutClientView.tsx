@@ -73,18 +73,18 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     {/* Breadcrumbs */}
                     {/* Breadcrumb section */}
                     <Breadcrumb className="mb-8 relative z-10">
-                        <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm inline-flex">
+                        <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-[2rem] border border-white/10 shadow-sm inline-flex">
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2">
+                                    <Link href="/" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors flex items-center gap-2">
                                         <Home className="w-3.5 h-3.5" />
                                         Home
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic" style={{ color: themeColor }}>About Our Town</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">About Our Town</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>

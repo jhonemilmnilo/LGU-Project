@@ -127,8 +127,8 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                     <span className="uppercase tracking-[0.4em] text-xs font-bold text-white/50">{brandWord1} {brandWord2}</span>
                     <div className="h-px w-8 bg-white/20" />
                 </div>
-                <h2 className="text-4xl md:text-5xl font-serif italic text-white leading-tight tracking-tight mb-6">
-                    Past <span className="opacity-70">Mayors</span>
+                <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
+                    Past <span className="opacity-50">Mayors</span>
                 </h2>
                 <div className="w-px h-12 bg-gradient-to-b from-white/20 to-transparent" />
             </div>
@@ -160,7 +160,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                         {/* Left: Image Panel */}
                         <div className="w-full lg:w-1/2 flex justify-center lg:justify-end relative">
                             {/* Ghosted Index Watermark */}
-                            <div className="absolute -left-4 -top-12 md:-left-12 md:-top-16 text-[8rem] md:text-[14rem] font-serif font-black italic text-white/[0.03] select-none pointer-events-none leading-none z-0">
+                            <div className="absolute -left-4 -top-12 md:-left-12 md:-top-16 text-[8rem] md:text-[14rem] font-black italic text-white/[0.03] select-none pointer-events-none leading-none z-0 tracking-tighter">
                                 {String(activeIndex + 1).padStart(2, '0')}
                             </div>
 
@@ -198,7 +198,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                                     </div>
                                     
                                     {/* Frosted Badge */}
-                                    <div className="absolute top-6 left-6 z-20 bg-black/40 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full text-[9px] uppercase tracking-[0.2em] text-white/90 shadow-xl">
+                                    <div className="absolute top-6 left-6 z-20 bg-black/40 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white italic shadow-xl">
                                         {getEra(activeMayor.termStart)}
                                     </div>
                                 </div>
@@ -213,7 +213,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                                     <Calendar className="w-4 h-4 opacity-70" style={{ color: currentColor }} />
                                     <span>{activeMayor.termStart} &mdash; {activeMayor.termEnd}</span>
                                 </div>
-                                <h3 className="text-5xl md:text-7xl font-serif text-white leading-[1.1] mb-2 tracking-tight">
+                                <h3 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-[1.1] mb-2">
                                     {activeMayor.name}
                                 </h3>
                             </motion.div>
@@ -228,16 +228,16 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                                 <div className="relative z-10 pt-2">
                                     <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40 mb-4 border-b border-white/10 pb-2 inline-block">Key Highlights & Leadership</h4>
                                     {activeMayor.description ? (
-                                        <ul className="space-y-3 text-sm md:text-base text-white/70 font-light tracking-wide max-w-lg mx-auto lg:mx-0 text-left">
+                                        <ul className="space-y-4 text-sm md:text-base text-white/70 font-medium italic tracking-tight max-w-lg mx-auto lg:mx-0 text-left">
                                             {activeMayor.description.split('\n').filter(Boolean).slice(0, 4).map((item, i) => (
-                                                <li key={i} className="flex flex-col relative pl-6">
-                                                    <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: currentColor }} />
+                                                <li key={i} className="flex flex-col relative pl-6 group/item">
+                                                    <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full transition-transform group-hover/item:scale-150" style={{ backgroundColor: currentColor }} />
                                                     <span className="leading-snug">{item.trim().replace(/^[-•*]\s*/, '')}</span>
                                                 </li>
                                             ))}
                                         </ul>
                                     ) : (
-                                        <p className="text-white/40 text-sm italic font-serif">Historical records being updated.</p>
+                                        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest italic">Historical records being updated.</p>
                                     )}
                                 </div>
                             </motion.div>

@@ -53,42 +53,42 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
 
     return (
         <div 
-            className="space-y-12 pb-24"
+            className="space-y-8 pb-24"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
             {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/user/officials" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                            <Link href="/user/officials" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 Town Officials
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic max-w-[200px] truncate">{official.name}</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{official.name}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                 {/* Profile Card Sidebar */}
-                <div className="lg:col-span-1 space-y-8">
+                <div className="lg:col-span-1 space-y-6">
                     <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="bg-white dark:bg-[#0f1117] rounded-[3rem] overflow-hidden border border-slate-200 dark:border-[#2a3040] shadow-2xl relative group"
+                        className="bg-white dark:bg-[#0f1117] rounded-[2.5rem] overflow-hidden border border-slate-200 dark:border-[#2a3040] shadow-2xl relative group"
                     >
                         <div className="aspect-[3/4] relative overflow-hidden">
                             {official.imageUrl ? (
@@ -106,10 +106,10 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60" />
                         </div>
                         
-                        <div className="p-8 space-y-6 relative">
+                        <div className="p-6 md:p-8 space-y-6 relative">
                             <div className="space-y-4">
                                 <div className="space-y-1">
-                                    <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{official.name}</h1>
+                                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{official.name}</h1>
                                 </div>
                                 {official.motto && (
                                     <div className="flex gap-2 p-4 bg-primary/5 rounded-2xl border border-primary/10 italic">
@@ -125,22 +125,22 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                 </div>
 
                 {/* Main Content */}
-                <div className="lg:col-span-2 space-y-12">
+                <div className="lg:col-span-2 space-y-6 md:space-y-8">
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-12"
+                        className="space-y-6 md:space-y-8"
                     >
                         {/* Term Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="p-8 bg-white dark:bg-[#0f1117] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                            <div className="p-6 md:p-8 bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
                                         <Calendar className="w-5 h-5 text-primary" />
                                     </div>
                                     <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Terms</h3>
                                 </div>
-                                <div className="space-y-2 pl-13 text-sm">
+                                <div className="space-y-2 text-sm">
                                     <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-2">
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Start</span>
                                         <span className="font-black text-slate-700 dark:text-slate-300 italic">{formatDate(official.termStart) || "----"}</span>
@@ -152,7 +152,7 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                                 </div>
                             </div>
 
-                            <div className="p-6 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border border-primary/10 dark:border-primary/20 space-y-3">
+                            <div className="p-6 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border border-primary/10 dark:border-primary/20 space-y-3 flex flex-col justify-center">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
                                         <Shield className="w-4 h-4 text-primary" />
@@ -160,7 +160,7 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Government Role</h3>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-lg font-black italic tracking-tighter text-primary uppercase leading-tight">
+                                    <p className="text-xl font-black italic tracking-tighter text-primary uppercase leading-tight">
                                         {official.position}
                                     </p>
                                     <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Hierarchy Member</p>
@@ -169,8 +169,8 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                         </div>
 
                         {/* Education & Achievements */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                            <div className="bg-white dark:bg-[#0f1117] p-6 md:p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
                                         <GraduationCap className="w-5 h-5 text-primary" />
@@ -184,7 +184,7 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                                 </div>
                             </div>
 
-                            <div className="bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6">
+                            <div className="bg-white dark:bg-[#0f1117] p-6 md:p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0">
                                         <Trophy className="w-5 h-5 text-amber-500" />
@@ -200,7 +200,7 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                         </div>
 
                         {/* Bio Section */}
-                        <div className="bg-white dark:bg-[#0f1117] p-10 rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-8">
+                        <div className="bg-white dark:bg-[#0f1117] p-8 md:p-10 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-6">
                             <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter flex items-center gap-4">
                                 <div className="w-2 h-8 bg-primary rounded-full" />
                                 Biography & Vision
@@ -211,6 +211,7 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
                                 </p>
                             </div>
                         </div>
+
 
                         {/* Public Service Hotline Area */}
                         <div 
