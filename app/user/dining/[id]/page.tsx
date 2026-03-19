@@ -30,19 +30,19 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
         <div className="min-h-screen pb-20 space-y-10">
             {/* Header / Nav */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/user/dining" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                            <Link href="/user/dining" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 Dining Hub
                             </Link>
                         </BreadcrumbLink>

@@ -60,26 +60,26 @@ export default async function AnnouncementDetailPage({ params }: { params: { id:
 
                 <div className="absolute top-8 left-8 z-50">
                     <Breadcrumb>
-                        <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                        <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                         <Home className="w-3.5 h-3.5 mb-0.5" />
                                         Home
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/user/announcements" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                    <Link href="/user/announcements" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                         Announcements Hub
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic max-w-[200px] truncate">{announcement.title}</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{announcement.title}</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
@@ -95,7 +95,7 @@ export default async function AnnouncementDetailPage({ params }: { params: { id:
                                     {announcement.priority} Priority
                                 </div>
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Tag className="w-3.5 h-3.5 text-blue-600" />
+                                    <Tag className="w-3.5 h-3.5 text-primary" />
                                     {announcement.category}
                                 </span>
                             </div>
@@ -115,9 +115,9 @@ export default async function AnnouncementDetailPage({ params }: { params: { id:
                         </p>
                     </div>
 
-                    <div className="pt-8">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center shrink-0">
-                            <Info className="w-6 h-6 text-blue-600" />
+                    <div className="pt-8 flex items-start gap-6 border-t border-slate-100 dark:border-white/5">
+                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
+                            <Info className="w-6 h-6 text-primary" />
                         </div>
                         <div className="space-y-2">
                             <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Public Safety & Information</h4>

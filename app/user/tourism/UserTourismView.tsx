@@ -15,8 +15,25 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserTourismView({ initialTourism = [] }: { initialTourism: any[] }) {
+export interface TourismSpot {
+    id: string;
+    name: string;
+    description: string;
+    address: string;
+    imageUrl?: string | null;
+    category?: string | null;
+    entranceFee?: string | null;
+    bestTimeToVisit?: string | null;
+    googleMapsUrl?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    contactNumber?: string | null;
+    isPublished: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export function UserTourismView({ initialTourism = [] }: { initialTourism: TourismSpot[] }) {
     return (
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
@@ -24,7 +41,7 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
                 <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
@@ -50,14 +67,14 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
                         </div>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        Explore the natural wonders and cultural landmarks of Mapandan. From the iconic Umbrella Rocks to pristine river views.
+                        Explore the natural wonders and cultural landmarks of Mapandan.
                     </p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {initialTourism.map((spot, idx) => (
-                    <Link key={spot.id} href={`/user/places-to-visit/${spot.id}`}>
+                    <Link key={spot.id} href={`/user/tourism/${spot.id}`}>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
@@ -68,7 +85,8 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
                                 src={spot.imageUrl || "https://images.unsplash.com/photo-1542332213-31f87348057f?auto=format&fit=crop&q=80&w=800"}
                                 alt={spot.name || "Tourism Spot"}
                                 fill
-                                className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                                className="object-cover"
+                                priority={idx < 3}
                             />
                             
                             {/* Overlays */}
@@ -76,7 +94,7 @@ export function UserTourismView({ initialTourism = [] }: { initialTourism: any[]
                             
                             {/* Content */}
                             <div className="absolute inset-x-0 bottom-0 p-8 sm:p-10 space-y-2 sm:space-y-3 z-20">
-                                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
+                                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-tight">
                                     {spot.name}
                                 </h3>
                                 <div className="space-y-3">

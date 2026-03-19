@@ -14,33 +14,43 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Job } from "../../../admin/jobs/providers/JobsProvider";
+import { toast } from "sonner";
 
 export function JobDetailView({ job }: { job: Job }) {
     const links = Array.isArray(job.links) ? job.links : [];
     const mapLink = job.mapUrl;
 
+    const handleShare = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            toast.success("Job opportunity link copied!");
+        } catch (err) {
+            toast.error("Failed to copy link.");
+        }
+    };
+
     return (
         <div className="space-y-12 pb-24">
             {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/user/jobs" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                Careers
+                            <Link href="/user/jobs" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                                Careers Feed
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{job.title}</BreadcrumbPage>
                     </BreadcrumbItem>
@@ -56,19 +66,19 @@ export function JobDetailView({ job }: { job: Job }) {
                         className="space-y-8"
                     >
                         <div className="space-y-6">
-                            <div className="flex flex-wrap items-center gap-4">
-                                <span className="px-4 py-2 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">{job.employmentType}</span>
-                                <span className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10">{job.department}</span>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="px-4 py-1.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">{job.employmentType}</span>
+                                <span className="px-4 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 italic font-bold">{job.department}</span>
                             </div>
                             
-                            <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{job.title}</h1>
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{job.title}</h1>
                             
                             <div className="flex flex-wrap items-center gap-8 text-slate-500 font-medium italic">
                                 <div className="flex items-center gap-2">
                                     <MapPin className="w-5 h-5 text-primary" />
                                     <span>{job.location || "Municipal Government Office, Mapandan"}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-primary">
+                                <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-sm">
                                     <Clock className="w-5 h-5" />
                                     <span>{job.salary || "Salary Grade TBD"}</span>
                                 </div>
@@ -76,7 +86,7 @@ export function JobDetailView({ job }: { job: Job }) {
                         </div>
 
                         <div className="prose prose-slate dark:prose-invert max-w-none">
-                            <div className="bg-white dark:bg-[#0f1117] p-10 rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none space-y-10">
+                            <div className="bg-white dark:bg-[#111622] p-10 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl space-y-10">
                                 <section className="space-y-4">
                                     <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter flex items-center gap-3">
                                         <div className="w-1.5 h-6 bg-primary rounded-full" />
@@ -104,21 +114,14 @@ export function JobDetailView({ job }: { job: Job }) {
                         </div>
 
                         {mapLink && (
-                            <div className="bg-white dark:bg-[#0f1117] rounded-[3rem] p-6 sm:p-10 overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-[#2a3040] space-y-6">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-                                            <Navigation className="w-5 h-5 text-primary" />
-                                        </div>
-                                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Location Map</h3>
+                            <div className="bg-white dark:bg-[#111622] rounded-[3rem] p-10 overflow-hidden shadow-xl border border-slate-100 dark:border-white/5 space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                                        <Navigation className="w-5 h-5 text-primary" />
                                     </div>
-                                    <Link href={mapLink} target="_blank">
-                                        <Button variant="outline" className="w-full sm:w-auto rounded-xl font-black uppercase tracking-widest text-[9px] border-primary/20 hover:bg-primary hover:text-white hover:border-primary transition-colors">
-                                            Open in Google Maps
-                                        </Button>
-                                    </Link>
+                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Location Map</h3>
                                 </div>
-                                <div className="aspect-video w-full bg-slate-100 dark:bg-[#1a1f2e] rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/5 shadow-inner">
+                                <div className="aspect-video w-full bg-slate-100 dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/5 shadow-inner relative group/map">
                                     <iframe 
                                         width="100%"
                                         height="100%"
@@ -129,6 +132,16 @@ export function JobDetailView({ job }: { job: Job }) {
                                         loading="lazy" 
                                         referrerPolicy="no-referrer-when-downgrade"
                                     ></iframe>
+                                    
+                                    {/* Floating Get Directions Button */}
+                                    <div className="absolute top-4 right-4 z-20">
+                                        <Link href={job.mapUrl || `https://maps.google.com/maps?q=${encodeURIComponent(`${job.location || 'Municipal Office'}, Mapandan`)}`} target="_blank">
+                                            <Button className="bg-primary text-white rounded-xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 px-6 h-10 shadow-2xl">
+                                                <Navigation className="w-3.5 h-3.5" />
+                                                Get Directions
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -185,17 +198,20 @@ export function JobDetailView({ job }: { job: Job }) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] space-y-6"
+                        className="bg-white dark:bg-[#111622] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-6 shadow-xl"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-100 dark:bg-white/5 rounded-lg">
+                            <div className="p-2 bg-primary/10 rounded-lg">
                                 <Share2 className="w-5 h-5 text-primary" />
                             </div>
                             <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Share Opportunity</h4>
                         </div>
-                        <p className="text-xs text-slate-500 font-medium">Help friends and colleagues build their careers. Spread the word!</p>
-                        <Button className="w-full h-12 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-bold uppercase tracking-widest text-[10px] hover:scale-105 transition-transform">
-                            Copy Link
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic leading-relaxed">Help friends and colleagues build their careers. Spread the word!</p>
+                        <Button 
+                            onClick={handleShare}
+                            className="w-full h-12 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-transform"
+                        >
+                            Copy Job Link
                         </Button>
                     </motion.div>
                 </div>

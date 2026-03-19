@@ -76,7 +76,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                         <motion.div
                             key={spot.id}
                             layout
-                            onClick={() => handleCardClick(spot.id, idx)}
+                            onClick={() => router.push(`/user/tourism/${spot.id}`)}
                             initial={false}
                             animate={{
                                 filter: isActive ? "grayscale(0)" : "grayscale(0.4)"

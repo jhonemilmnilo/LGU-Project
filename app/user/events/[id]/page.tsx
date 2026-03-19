@@ -31,10 +31,15 @@ export default async function EventDetailPage({ params }: { params: { id: string
         notFound();
     }
 
+    const mapQuery = event.latitude && event.longitude 
+        ? `${event.latitude},${event.longitude}`
+        : `${event.venueName}, ${event.address}, Mapandan, Pangasinan`;
+    const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0a0c10] pb-24">
             {/* Header / Backdrop */}
-            <div className="relative h-[40vh] md:h-[60vh] overflow-hidden">
+            <div className="relative h-[40vh] md:h-[55vh] overflow-hidden">
                 <Image
                     src={event.imageUrl || "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=1600"}
                     alt={event.title}
@@ -46,84 +51,89 @@ export default async function EventDetailPage({ params }: { params: { id: string
                 
                 <div className="absolute top-6 left-8">
                     <Breadcrumb>
-                        <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                        <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                         <Home className="w-3.5 h-3.5 mb-0.5" />
                                         Home
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/user/events" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                    <Link href="/user/events" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                         Events Feed
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic max-w-[200px] truncate">{event.title}</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{event.title}</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 -mt-32 relative z-10">
+            <div className="max-w-7xl mx-auto px-6 -mt-24 relative z-10">
                 <div className="flex flex-col lg:flex-row gap-12">
                     {/* Left: Content */}
                     <div className="flex-1 space-y-12">
-                        <div className="bg-white dark:bg-[#111622] rounded-[3rem] p-10 md:p-16 shadow-2xl border border-slate-100 dark:border-white/5 space-y-8">
+                        <div className="bg-white dark:bg-[#111622] rounded-[3.5rem] p-10 md:p-16 shadow-2xl border border-slate-100 dark:border-white/5 space-y-8">
                             <div className="space-y-4">
                                 <div className="flex flex-wrap items-center gap-3">
-                                    <span className="px-4 py-1.5 bg-blue-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">
+                                    <span className="px-4 py-1.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
                                         {event.category}
                                     </span>
                                     <span className="px-4 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border border-slate-200 dark:border-white/10">
-                                        <Clock className="w-3.5 h-3.5 text-blue-600" />
+                                        <Clock className="w-3.5 h-3.5 text-primary" />
                                         {format(new Date(event.startDate), "hh:mm a")} - {format(new Date(event.endDate), "hh:mm a")}
                                     </span>
                                 </div>
-                                <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
+                                <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
                                     {event.title}
                                 </h1>
                             </div>
 
                             <div className="prose prose-slate dark:prose-invert max-w-none">
-                                <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">
+                                <p className="text-lg text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">
                                     {event.description || "No detailed description provided for this event."}
                                 </p>
                             </div>
                         </div>
 
                         {/* Map Section */}
-                        <div className="bg-white dark:bg-[#111622] rounded-[3rem] p-10 overflow-hidden shadow-2xl border border-slate-100 dark:border-white/5 space-y-6">
+                        <div className="bg-white dark:bg-[#111622] rounded-[3.5rem] p-10 overflow-hidden shadow-2xl border border-slate-100 dark:border-white/5 space-y-6">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-green-50 dark:bg-green-500/10 rounded-xl flex items-center justify-center">
-                                        <Navigation className="w-5 h-5 text-green-600" />
+                                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                                        <Navigation className="w-5 h-5 text-primary" />
                                     </div>
                                     <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Location Map</h3>
                                 </div>
-                                {event.googleMapsUrl && (
-                                    <Link href={event.googleMapsUrl} target="_blank">
-                                        <Button variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[9px]">Open in Google Maps</Button>
-                                    </Link>
-                                )}
                             </div>
-                            <div className="aspect-video w-full bg-slate-100 dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/5 shadow-inner">
+                            <div className="aspect-video w-full bg-slate-100 dark:bg-white/5 rounded-[3rem] overflow-hidden border border-slate-100 dark:border-white/5 shadow-inner relative group/map">
                                 <iframe
                                     width="100%"
                                     height="100%"
                                     frameBorder="0"
                                     style={{ border: 0 }}
-                                    src={`https://maps.google.com/maps?q=${encodeURIComponent(event.latitude && event.longitude ? `${event.latitude},${event.longitude}` : `${event.venueName}, ${event.address}, Mapandan, Pangasinan`)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                                    src={publicMapUrl}
                                     allowFullScreen
                                     loading="lazy"
                                 ></iframe>
+                                
+                                {/* Floating Directions Button */}
+                                <div className="absolute top-4 right-4 z-20">
+                                    <Link href={event.googleMapsUrl || `https://maps.google.com/maps?q=${encodeURIComponent(`${event.title}, ${event.venueName}`)}`} target="_blank">
+                                        <Button className="bg-primary text-white rounded-xl font-black uppercase tracking-widest text-[9px] flex items-center gap-2 px-6 h-10 shadow-2xl">
+                                            <Navigation className="w-3.5 h-3.5" />
+                                            Get Directions
+                                        </Button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -133,14 +143,14 @@ export default async function EventDetailPage({ params }: { params: { id: string
                         <div className="bg-white dark:bg-[#111622] rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 dark:border-white/5 sticky top-8 space-y-8">
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-6 flex items-center gap-2">
-                                    <Info className="w-5 h-5 text-blue-600" />
+                                    <Info className="w-5 h-5 text-primary" />
                                     Event Details
                                 </h3>
                                 
                                 <div className="space-y-6">
                                     <div className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
-                                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center shrink-0">
-                                            <Calendar className="w-5 h-5 text-blue-600" />
+                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                                            <Calendar className="w-5 h-5 text-primary" />
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Event Date</p>
@@ -149,8 +159,8 @@ export default async function EventDetailPage({ params }: { params: { id: string
                                     </div>
 
                                     <div className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
-                                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center shrink-0">
-                                            <MapPinned className="w-5 h-5 text-blue-600" />
+                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                                            <MapPinned className="w-5 h-5 text-primary" />
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Exact Venue</p>
@@ -161,7 +171,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
                                     
                                     {event.contactNumber && (
                                         <Link href={`tel:${event.contactNumber}`} className="block">
-                                            <Button variant="outline" className="w-full h-16 border-slate-200 dark:border-white/10 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
+                                            <Button variant="outline" className="w-full h-16 border-slate-200 dark:border-white/10 rounded-2xl font-black uppercase tracking-widest text-[11px] flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:bg-primary hover:text-white hover:border-primary transition-all">
                                                 <Phone className="w-4 h-4" />
                                                 Phone Inquiries: {event.contactNumber}
                                             </Button>
@@ -172,7 +182,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
 
                             <div className="pt-8 border-t border-slate-100 dark:border-white/5">
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-6 flex items-center gap-2">
-                                    <BellRing className="w-5 h-5 text-orange-600" />
+                                    <BellRing className="w-5 h-5 text-primary" />
                                     Reminders
                                 </h3>
                                 <div className="space-y-3">
@@ -181,7 +191,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
                                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         (event as any).reminders.map((reminder: string, rIdx: number) => (
                                             <div key={rIdx} className="flex gap-3 items-start animate-in fade-in slide-in-from-left-2 duration-500 fill-mode-both" style={{ animationDelay: `${rIdx * 100}ms` }}>
-                                                <BellRing className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
+                                                <BellRing className="w-3.5 h-3.5 text-primary/70 shrink-0 mt-0.5" />
                                                 <p className="text-[10px] text-slate-500 font-medium italic leading-relaxed">
                                                     {reminder}
                                                 </p>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { format } from "date-fns";
 import { Project } from "../../../admin/projects/providers/ProjectsProvider";
+import { toast } from "sonner";
 
 function getStatusIcon(status: string) {
     const lowerStatus = status.toLowerCase();
@@ -33,28 +34,37 @@ function getStatusColor(status: string) {
 }
 
 export function ProjectDetailView({ project }: { project: Project }) {
+    const handleShare = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            toast.success("Project link copied to clipboard!");
+        } catch (err) {
+            toast.error("Failed to copy link.");
+        }
+    };
+
     return (
         <div className="space-y-12 pb-24">
             {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/user/projects" className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                Projects
+                            <Link href="/user/projects" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                                Projects Feed
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">
                             {project.title}
@@ -71,7 +81,7 @@ export function ProjectDetailView({ project }: { project: Project }) {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl"
+                            className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-100 dark:border-white/5"
                         >
                             <img
                                 src={project.imageUrl || ""}
@@ -83,7 +93,7 @@ export function ProjectDetailView({ project }: { project: Project }) {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center"
+                            className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-slate-100 dark:border-white/5"
                         >
                             <Briefcase className="w-24 h-24 text-primary/30" />
                         </motion.div>
@@ -97,106 +107,111 @@ export function ProjectDetailView({ project }: { project: Project }) {
                         className="space-y-6"
                     >
                         <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <span className="inline-block px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-primary/10 text-primary mb-3">
+                            <div className="space-y-2">
+                                <span className="inline-block px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-full bg-primary text-white shadow-lg shadow-primary/20">
                                     {project.category}
                                 </span>
-                                <h1 className="text-4xl font-black text-slate-900 dark:text-white leading-tight">
+                                <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-none uppercase italic tracking-tighter">
                                     {project.title}
                                 </h1>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button className="p-3 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all">
-                                    <Share2 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                                <button 
+                                    onClick={handleShare}
+                                    className="p-3.5 rounded-2xl bg-white dark:bg-[#111622] border border-slate-200 dark:border-white/10 shadow-sm hover:bg-primary hover:text-white hover:border-primary transition-all group"
+                                >
+                                    <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                 </button>
                             </div>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
-                            <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${getStatusColor(project.status)}`}>
+                            <div className={`flex items-center gap-2 px-5 py-2 rounded-full font-black uppercase tracking-widest text-[10px] italic border border-current opacity-90 ${getStatusColor(project.status).replace('bg-green-100', 'border-green-500/20 bg-green-500/10').replace('bg-blue-100', 'border-blue-500/20 bg-blue-500/10').replace('bg-yellow-100', 'border-yellow-500/20 bg-yellow-500/10').replace('bg-red-100', 'border-red-500/20 bg-red-500/10')}`}>
                                 {getStatusIcon(project.status)}
-                                <span className="text-sm font-bold">{project.status}</span>
+                                {project.status}
                             </div>
-                            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300">
-                                <MapPin className="w-4 h-4" />
-                                <span className="text-sm font-medium">{project.location}</span>
+                            <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest italic border border-slate-200 dark:border-white/10">
+                                <MapPin className="w-3.5 h-3.5 text-primary" />
+                                {project.location}
                             </div>
                         </div>
 
                         <div className="prose prose-slate dark:prose-invert max-w-none">
-                            <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+                            <p className="text-xl leading-relaxed text-slate-600 dark:text-slate-400 italic">
                                 {project.description}
                             </p>
-                        </div>
-                    </motion.div>
-
-                    {/* Progress Section */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-white dark:bg-white/5 rounded-3xl p-8 border border-slate-200 dark:border-white/10"
-                    >
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Project Progress</h2>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between text-sm font-medium">
-                                <span className="text-slate-600 dark:text-slate-400">Completion Status</span>
-                                <span className="text-slate-900 dark:text-white">{project.progress}%</span>
-                            </div>
-                            <div className="h-4 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${project.progress}%` }}
-                                    transition={{ duration: 1, delay: 0.3 }}
-                                    className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full"
-                                />
-                            </div>
                         </div>
                     </motion.div>
                 </div>
 
                 {/* Sidebar */}
                 <div className="space-y-6">
+                    {/* Project Progress Card - Relocated here */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-white dark:bg-[#111622] rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 shadow-2xl"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Project Progress</h2>
+                            <span className="text-primary font-black italic">{project.progress}%</span>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 p-1">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${project.progress}%` }}
+                                    transition={{ duration: 1.5, ease: "easeOut" }}
+                                    className="h-full bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                                />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-center">
+                                Overall Completion Status
+                            </p>
+                        </div>
+                    </motion.div>
+
                     {/* Project Details Card */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="bg-white dark:bg-white/5 rounded-3xl p-6 border border-slate-200 dark:border-white/10"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white dark:bg-[#111622] rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 shadow-xl"
                     >
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Project Details</h2>
-                        <div className="space-y-4">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-6">Execution Details</h2>
+                        <div className="space-y-6">
                             {project.budget && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                                        <PhilippinePeso className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                <div className="flex items-start gap-4 group">
+                                    <div className="p-3 rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                                        <PhilippinePeso className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Budget</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{project.budget}</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Allocated Budget</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight">{project.budget}</p>
                                     </div>
                                 </div>
                             )}
 
                             {project.contractor && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                                        <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                <div className="flex items-start gap-4 group">
+                                    <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500 transition-colors group-hover:bg-blue-500 group-hover:text-white">
+                                        <Briefcase className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Contractor</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{project.contractor}</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Implementing Partner</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight">{project.contractor}</p>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                                    <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            <div className="flex items-start gap-4 group">
+                                <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 transition-colors group-hover:bg-purple-500 group-hover:text-white">
+                                    <MapPin className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Location</p>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{project.location}</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Site Location</p>
+                                    <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight">{project.location}</p>
                                 </div>
                             </div>
                         </div>
@@ -204,21 +219,21 @@ export function ProjectDetailView({ project }: { project: Project }) {
 
                     {/* Timeline Card */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-white dark:bg-white/5 rounded-3xl p-6 border border-slate-200 dark:border-white/10"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-white dark:bg-[#111622] rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 shadow-xl"
                     >
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Timeline</h2>
-                        <div className="space-y-4">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-6">Project Timeline</h2>
+                        <div className="space-y-6">
                             {project.startDate && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                                        <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full bg-orange-500/10 text-orange-500">
+                                        <Calendar className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Start Date</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Commencement Date</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white italic">
                                             {format(new Date(project.startDate), "MMMM d, yyyy")}
                                         </p>
                                     </div>
@@ -226,38 +241,19 @@ export function ProjectDetailView({ project }: { project: Project }) {
                             )}
 
                             {project.endDate && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                                        <Clock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                <div className="flex items-start gap-4">
+                                    <div className="p-3 rounded-full bg-red-500/10 text-red-500">
+                                        <Clock className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Target Completion</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Target Completion</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white italic">
                                             {format(new Date(project.endDate), "MMMM d, yyyy")}
                                         </p>
                                     </div>
                                 </div>
                             )}
-
-                            {!project.startDate && !project.endDate && (
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Timeline not specified</p>
-                            )}
                         </div>
-                    </motion.div>
-
-                    {/* Back to Projects */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
-                    >
-                        <Link
-                            href="/user/projects"
-                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-colors"
-                        >
-                            <Briefcase className="w-5 h-5" />
-                            View All Projects
-                        </Link>
                     </motion.div>
                 </div>
             </div>

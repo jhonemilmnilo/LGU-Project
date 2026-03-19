@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Newspaper, Calendar, User, Tag, Home, Clock, Share2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import ShareButton from "./ShareButton";
 
 export default async function NewsDetailPage({ params }: { params: { id: string } }) {
     const { id } = await params;
@@ -55,26 +56,26 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
 
                 <div className="absolute top-8 left-8 z-50">
                     <Breadcrumb>
-                        <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                        <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                         <Home className="w-3.5 h-3.5 mb-0.5" />
                                         Home
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
                                 <BreadcrumbLink asChild>
-                                    <Link href="/user/news" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">
+                                    <Link href="/user/news" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                         News Hub
                                     </Link>
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator />
+                            <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-blue-600 italic max-w-[200px] truncate">{news.title}</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{news.title}</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
@@ -83,34 +84,32 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
 
             <div className="max-w-4xl mx-auto px-6 -mt-16 relative z-10">
                 <div className="bg-white dark:bg-[#111622] rounded-[3rem] p-10 md:p-16 shadow-2xl border border-slate-100 dark:border-white/5 space-y-10">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-100 dark:border-white/5">
-                        <div className="space-y-4">
-                            {news.category && (
-                                <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                                        {news.category}
-                                    </span>
-                                </div>
-                            )}
-                            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight">
-                                {news.title}
-                            </h2>
-                        </div>
-                        <div className="flex items-center gap-4 text-slate-400 font-bold text-[10px] uppercase tracking-widest shrink-0">
-                            {news.author && (
-                                <span className="flex items-center gap-2">
-                                    <User className="w-4 h-4" />
-                                    {news.author}
+                    <div className="pb-8 border-b border-slate-100 dark:border-white/5 space-y-6">
+                        <div className="flex flex-wrap items-center gap-6">
+                             {news.category && (
+                                <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-primary text-white shadow-lg shadow-primary/20">
+                                    {news.category}
                                 </span>
                             )}
-                            <span className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4" />
-                                {format(new Date(news.publishDate), "MMMM d, yyyy")}
-                            </span>
+                            
+                            <div className="flex items-center gap-6 text-slate-400 font-bold text-[10px] uppercase tracking-widest italic">
+                                {news.author && (
+                                    <div className="flex items-center gap-2">
+                                        <User className="w-3.5 h-3.5 text-primary" />
+                                        {news.author}
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                                    {format(new Date(news.publishDate), "MMMM d, yyyy")}
+                                </div>
+                            </div>
                         </div>
+
+                        <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
+                            {news.title}
+                        </h2>
                     </div>
-
-
 
                     <div className="prose prose-xl prose-slate dark:prose-invert max-w-none">
                         <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 font-medium italic leading-relaxed whitespace-pre-wrap">
@@ -118,18 +117,8 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-8 border-t border-slate-100 dark:border-white/5">
-                        <Link
-                            href="/user/news"
-                            className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors font-bold text-sm uppercase tracking-widest"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Back to News
-                        </Link>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-colors">
-                            <Share2 className="w-4 h-4" />
-                            Share
-                        </button>
+                    <div className="flex items-center justify-end pt-8 border-t border-slate-100 dark:border-white/5">
+                        <ShareButton />
                     </div>
                 </div>
             </div>

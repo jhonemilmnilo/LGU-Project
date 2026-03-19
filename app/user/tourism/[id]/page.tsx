@@ -106,32 +106,30 @@ function DetailContent({ item }: { item: any }) {
     return (
         <div className="min-h-screen pb-20 space-y-10">
             {/* Nav */}
-            <div className="absolute top-8 left-8 z-50">
-                <Breadcrumb>
-                    <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors">
-                                    <Home className="w-3.5 h-3.5 mb-0.5" />
-                                    Home
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-white/50" />
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/user/tourism" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors">
-                                    Tourism Gallery
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-white/50" />
-                        <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-white drop-shadow-md italic max-w-[200px] truncate">{item.name}</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-            </div>
+            <Breadcrumb>
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                                <Home className="w-3.5 h-3.5 mb-0.5" />
+                                Home
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="text-white/50" />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/user/tourism" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                                Tourism Gallery
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="text-white/50" />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{item.name}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
             {/* Layout */}
             <div className={cn(
@@ -141,7 +139,7 @@ function DetailContent({ item }: { item: any }) {
                 {/* Image Section */}
                 <div className={hasMap ? "lg:col-span-2" : "w-full"}>
                     <div className={cn(
-                        "relative rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 bg-slate-100",
+                        "relative rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 bg-slate-100 group",
                         hasMap ? "aspect-[4/5]" : "aspect-[16/10]"
                     )}>
                         {item.imageUrl ? (
@@ -149,7 +147,7 @@ function DetailContent({ item }: { item: any }) {
                                 src={item.imageUrl}
                                 alt={item.name}
                                 fill
-                                className="object-cover"
+                                className="object-cover transition-transform duration-1000 group-hover:scale-105"
                                 priority
                             />
                         ) : (
@@ -163,27 +161,27 @@ function DetailContent({ item }: { item: any }) {
                 {/* Content Section */}
                 <div className={hasMap ? "lg:col-span-3 space-y-8" : "w-full space-y-8 pt-4"}>
                     <div className="space-y-6">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-900/30">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[9px] font-black uppercase tracking-widest border border-primary/20">
                             <Compass className="w-3 h-3" />
                             {hasMap ? "Tourist Destination" : "Hidden Gem Showcase"}
                         </div>
                         <h1 className={cn(
                             "font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-[0.9]",
-                            hasMap ? "text-5xl md:text-7xl" : "text-6xl md:text-8xl"
+                            hasMap ? "text-3xl md:text-5xl" : "text-4xl md:text-6xl"
                         )}>
                             {item.name}
                         </h1>
                         {item.address && (
-                            <div className="flex items-center gap-2 text-slate-500">
-                                <MapPin className="w-4 h-4 text-blue-600" />
-                                <span className="text-xs font-bold uppercase tracking-widest italic">{item.address}</span>
+                            <div className="flex items-center gap-2 text-primary">
+                                <MapPin className="w-4 h-4" />
+                                <span className="text-xs font-black uppercase tracking-widest italic">{item.address}</span>
                             </div>
                         )}
                     </div>
 
                     {item.description && (
                         <p className={cn(
-                            "text-slate-600 dark:text-slate-400 font-medium italic leading-relaxed border-l-4 border-blue-600 pl-6 py-2",
+                            "text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed border-l-4 border-primary pl-6 py-2",
                             hasMap ? "text-lg max-w-2xl" : "text-xl max-w-3xl"
                         )}>
                             {item.description}
@@ -194,9 +192,9 @@ function DetailContent({ item }: { item: any }) {
                     {hasQuickInfo && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {item.entranceFee && (
-                                <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] space-y-3 border border-slate-100 dark:border-white/5 transition-colors hover:border-blue-200 dark:hover:border-blue-900/50 group">
+                                <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] space-y-3 border border-slate-100 dark:border-white/5 transition-colors hover:border-primary/20 group">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
                                             <Wallet className="w-4 h-4 text-white" />
                                         </div>
                                         <div>
@@ -208,9 +206,9 @@ function DetailContent({ item }: { item: any }) {
                             )}
 
                             {item.bestTimeToVisit && (
-                                <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] space-y-3 border border-slate-100 dark:border-white/5 transition-colors hover:border-blue-200 dark:hover:border-blue-900/50 group">
+                                <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] space-y-3 border border-slate-100 dark:border-white/5 transition-colors hover:border-primary/20 group">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                                        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
                                             <Clock className="w-4 h-4 text-white" />
                                         </div>
                                         <div>
@@ -227,8 +225,8 @@ function DetailContent({ item }: { item: any }) {
                         <div className="space-y-4 pt-4">
                             <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Inquiries & Contact</h3>
                             <Link href={`tel:${item.contactNumber}`} className="block w-fit">
-                                <Button variant="outline" className="h-16 px-10 rounded-[2rem] border-slate-200 dark:border-white/10 font-black uppercase tracking-widest text-[10px] flex items-center gap-4 shadow-sm hover:border-blue-600 hover:text-blue-600 transition-all">
-                                    <Phone className="w-4 h-4" />
+                                <Button variant="outline" className="h-16 px-10 rounded-[2rem] border-slate-200 dark:border-white/10 font-black uppercase tracking-widest text-[10px] flex items-center gap-4 shadow-sm hover:border-primary transition-all">
+                                    <Phone className="w-4 h-4 text-primary" />
                                     {item.contactNumber}
                                 </Button>
                             </Link>
@@ -249,18 +247,16 @@ function DetailContent({ item }: { item: any }) {
                         <div className="space-y-1">
                             <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Location Map</h2>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic flex items-center gap-2">
-                                <Navigation className="w-3 h-3 text-blue-600" />
+                                <Navigation className="w-3 h-3 text-primary" />
                                 Navigate your way to {item.name}
                             </p>
                         </div>
-                        {item.googleMapsUrl && (
-                            <Link href={item.googleMapsUrl} target="_blank">
-                                <Button className="bg-blue-600 text-white hover:bg-slate-900 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 px-8 h-12 shadow-xl shadow-blue-500/20 transition-all hover:-translate-y-1">
-                                    <Navigation className="w-4 h-4" />
-                                    Open in Google Maps
-                                </Button>
-                            </Link>
-                        )}
+                        <Link href={item.googleMapsUrl || `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}`} target="_blank">
+                            <Button className="bg-primary text-white hover:bg-slate-900 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 px-8 h-12 shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
+                                <Navigation className="w-4 h-4" />
+                                Get Directions
+                            </Button>
+                        </Link>
                     </div>
                     
                     <div className="h-[500px] w-full rounded-[4rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 bg-slate-100 group relative">

@@ -29,24 +29,24 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
         <div className="min-h-screen pb-20 space-y-10">
             {/* Header / Nav */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/user/accommodation" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary transition-colors">
+                            <Link href="/user/accommodation" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
                                 Accommodation Hub
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{item.name}</BreadcrumbPage>
                     </BreadcrumbItem>
@@ -77,11 +77,11 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                             </span>
                         </div>
                         
-                        {/* Price Range moved inside image */}
-                        <div className="absolute bottom-6 left-6 right-6">
-                            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-2xl flex flex-col gap-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Investment from</span>
-                                <p className="text-xl font-black text-primary italic tracking-tighter leading-none">{item.priceRange || "Inquire"}</p>
+                        {/* Price Range moved inside image - Transparent and Professional */}
+                        <div className="absolute bottom-8 left-8 right-8">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[9px] font-black text-white/80 uppercase tracking-widest leading-none drop-shadow-md">price range</span>
+                                <p className="text-3xl font-black text-white italic tracking-tighter leading-none drop-shadow-xl">{item.priceRange || "Inquire"}</p>
                             </div>
                         </div>
                     </div>
