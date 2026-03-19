@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "./components/Sidebar";
 import { getMultipleSystemSettings } from "@/lib/settings";
+import prisma from "@/lib/db/prisma";
 
 export default async function AdminLayout({
     children,
@@ -22,9 +23,10 @@ export default async function AdminLayout({
         "theme_color"
     ]);
 
-    const pendingReportsCount = await prisma.report.count({
-        where: { status: "PENDING" }
-    });
+    const [pendingReportsCount, pendingResidentsCount] = await Promise.all([
+        prisma.report.count({ where: { status: "PENDING" } }),
+        prisma.resident.count({ where: { registrationStatus: "PENDING" } }),
+    ]);
 
     return (
         <div 
@@ -38,6 +40,7 @@ export default async function AdminLayout({
                 brandWord2={settings.get("brand_word_2")}
                 themeColor={settings.get("theme_color")}
                 pendingReportsCount={pendingReportsCount}
+                pendingResidentsCount={pendingResidentsCount}
             />
 
             {/* Main Content Area */}

@@ -32,6 +32,8 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { ResidentReviewModal } from "./ResidentReviewModal";
+
 
 export function ResidentTable() {
     const {
@@ -41,6 +43,7 @@ export function ResidentTable() {
         selectedBarangay,
         selectedGender,
         selectedCategory,
+        selectedStatus,
         setEditingData,
         setIsAddModalOpen,
     } = useResident();
@@ -54,14 +57,17 @@ export function ResidentTable() {
         const matchesGender = selectedGender === "All" || r.gender === selectedGender;
         const matchesCategory = selectedCategory === "All" || 
             (r.category && (r.category.id === selectedCategory || r.category.name === selectedCategory));
+        const matchesStatus = selectedStatus === "All" || r.registrationStatus === selectedStatus;
             
-        return matchesSearch && matchesBarangay && matchesGender && matchesCategory;
+        return matchesSearch && matchesBarangay && matchesGender && matchesCategory && matchesStatus;
     });
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isRFIDModalOpen, setIsRFIDModalOpen] = useState(false);
     const [selectedResident, setSelectedResident] = useState<{id: string, name: string} | null>(null);
+    const [reviewResident, setReviewResident] = useState<Resident | null>(null);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     useEffect(() => {
         if (currentPage !== 1) {
@@ -112,6 +118,19 @@ export function ResidentTable() {
         setIsRFIDModalOpen(true);
     };
 
+    const openReviewModal = (resident: Resident, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setReviewResident(resident);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleStatusChange = (id: string, newStatus: "APPROVED" | "REJECTED", remarks?: string) => {
+        setResidents(prev => prev.map(r => r.id === id
+            ? { ...r, registrationStatus: newStatus, rejectionRemarks: remarks || r.rejectionRemarks }
+            : r
+        ));
+    };
+
     return (
         <div className="bg-white dark:bg-[#151b2b] rounded-2xl border border-slate-200 dark:border-[#2a3040] shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -124,7 +143,6 @@ export function ResidentTable() {
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Info & Status</TableHead>
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Location</TableHead>
                             <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">Contact</TableHead>
-                            <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-right pr-6">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -141,7 +159,8 @@ export function ResidentTable() {
                         ) : (
                             paginatedResidents.map((resident) => (
                                                     <TableRow key={resident.id}
-                                    className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors"
+                                    className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer"
+                                    onClick={(e) => openReviewModal(resident, e)}
                                 >
                                     <TableCell className="py-4">
                                         <div className="relative w-12 h-12 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
@@ -230,85 +249,6 @@ export function ResidentTable() {
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right pr-6">
-                                        <div className="flex justify-end gap-2">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-all">
-                                                        <MoreVertical className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
-                                                    <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Management Options</DropdownMenuLabel>
-                                                    <DropdownMenuItem 
-                                                        onClick={() => handleEdit(resident)}
-                                                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300 font-bold transition-colors group"
-                                                    >
-                                                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                                            <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                                        </div>
-                                                        Edit Profile
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuItem 
-                                                        onClick={() => openRFIDModal(resident.id, `${resident.firstName} ${resident.lastName}`)}
-                                                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/20 text-slate-700 dark:text-slate-300 font-bold transition-colors group"
-                                                    >
-                                                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                                            <Radio className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                                        </div>
-                                                        Assign RFID Tag
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuItem 
-                                                        onClick={() => handleToggleIsDead(resident.id, resident.isDead, `${resident.firstName} ${resident.lastName}`)}
-                                                        className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl font-bold transition-colors group ${
-                                                            resident.isDead 
-                                                            ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600' 
-                                                            : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300'
-                                                        }`}
-                                                    >
-                                                        <div className={`p-1.5 rounded-lg group-hover:scale-110 transition-transform ${
-                                                            resident.isDead ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-slate-100 dark:bg-slate-800'
-                                                        }`}>
-                                                            <Skull className={`w-4 h-4 ${resident.isDead ? 'text-emerald-600' : 'text-slate-500'}`} />
-                                                        </div>
-                                                        {resident.isDead ? 'Mark as Alive' : 'Mark as Deceased'}
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800 my-1" />
-
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <div className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 font-bold transition-colors group">
-                                                                <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                                                </div>
-                                                                Delete Record
-                                                            </div>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] rounded-3xl">
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle className="text-slate-900 dark:text-white font-black uppercase text-xl italic tracking-tighter">Remove Resident</AlertDialogTitle>
-                                                                <AlertDialogDescription className="text-slate-500 font-medium">
-                                                                    Are you sure you want to delete the resident record for {resident.firstName} {resident.lastName}? This action cannot be undone and will affect census data.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter className="gap-3">
-                                                                <AlertDialogCancel className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border-0 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl h-11 px-6 font-bold">Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    onClick={() => handleDelete(resident.id)}
-                                                                    className="bg-red-600 hover:bg-red-700 text-white rounded-2xl h-11 px-6 font-bold"
-                                                                >
-                                                                    Delete Record
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </TableCell>
                                 </TableRow>
                             ))
                         )}
@@ -363,6 +303,12 @@ export function ResidentTable() {
                 onClose={() => setIsRFIDModalOpen(false)}
                 residentId={selectedResident?.id || ""}
                 residentName={selectedResident?.name || ""}
+            />
+            <ResidentReviewModal
+                resident={reviewResident}
+                isOpen={isReviewModalOpen}
+                onClose={() => { setIsReviewModalOpen(false); setReviewResident(null); }}
+                onStatusChange={handleStatusChange}
             />
         </div>
     );

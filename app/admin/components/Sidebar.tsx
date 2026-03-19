@@ -6,7 +6,7 @@ import * as React from "react";
 import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, ShieldAlert, Layers, Megaphone, UserCheck,
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
     ChevronDown, ChevronUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ interface SidebarProps {
     brandWord2?: string;
     themeColor?: string;
     pendingReportsCount?: number;
+    pendingResidentsCount?: number;
 }
 
 export function Sidebar({ 
@@ -33,7 +34,8 @@ export function Sidebar({
     brandWord1 = "E", 
     brandWord2 = "Mapandan", 
     themeColor = "#2563eb",
-    pendingReportsCount = 0
+    pendingReportsCount = 0,
+    pendingResidentsCount = 0
 }: SidebarProps) {
     const pathname = usePathname();
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
@@ -65,7 +67,8 @@ export function Sidebar({
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
         { href: "/admin/hotlines", label: "Hotlines", icon: Phone },
-        { href: "/admin/residents", label: "Resident Registry", icon: Users, category: "Citizens & Services" },
+        { href: "/admin/resident-approvals", label: "Resident Approvals", icon: UserCheck, category: "Citizens & Services", badge: pendingResidentsCount },
+        { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
         { href: "/admin/disasters/manage", label: "Disaster Maps", icon: Layers },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
