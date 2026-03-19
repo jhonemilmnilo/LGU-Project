@@ -108,8 +108,20 @@ export async function approveResident(residentId: string) {
                 firstName: true,
                 lastName: true,
                 email: true,
+                userId: true,
             }
         });
+
+        // 🔄 Sync with the connected User table
+        if (resident.userId) {
+            await prisma.user.update({
+                where: { id: resident.userId },
+                data: {
+                    isEmailVerified: true,
+                    emailVerified: new Date(),
+                }
+            });
+        }
 
         // Trigger email notification directly from server
         if (resident.email) {
@@ -160,8 +172,20 @@ export async function rejectResident(residentId: string, remarks: string) {
                 firstName: true,
                 lastName: true,
                 email: true,
+                userId: true,
             }
         });
+
+        // 🔄 Sync with the connected User table
+        if (resident.userId) {
+            await prisma.user.update({
+                where: { id: resident.userId },
+                data: {
+                    isEmailVerified: false,
+                    emailVerified: null,
+                }
+            });
+        }
 
         // Trigger rejection email directly from server
         if (resident.email) {

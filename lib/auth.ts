@@ -35,6 +35,11 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Invalid password");
                 }
 
+                // Block login if user is not verified (but allow ADMIN)
+                if (user.role === "USER" && !user.isEmailVerified) {
+                    throw new Error("Your account has not been approved yet. Please wait for an administrator to process your registration.");
+                }
+
                 return {
                     id: user.id,
                     email: user.email,
@@ -54,6 +59,20 @@ export const authOptions: NextAuthOptions = {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token.isPasswordChanged = (user as any).isPasswordChanged;
             }
+
+            // Sync Database dynamically with Session to Auto-Logout rejected/pending users!
+            if (token.id && token.role === "USER") {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.id as string },
+                    select: { isEmailVerified: true }
+                });
+
+                if (!dbUser || !dbUser.isEmailVerified) {
+                    // Force the session to expire immediately (triggering auto-logout)
+                    token.exp = 0; 
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {

@@ -145,8 +145,8 @@ export function ResidentTable() {
                                 >
                                     <TableCell className="py-4">
                                         <div className="relative w-12 h-12 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
-                                            {resident.imageUrl ? (
-                                                <Image src={resident.imageUrl} alt={`${resident.firstName} ${resident.lastName}`} layout="fill" objectFit="cover" />
+                                            {(resident.livenessUrl || resident.imageUrl) ? (
+                                                <Image src={(resident.livenessUrl || resident.imageUrl)} alt={`${resident.firstName} ${resident.lastName}`} layout="fill" objectFit="cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold uppercase">
                                                     {resident.firstName[0]}{resident.lastName[0]}

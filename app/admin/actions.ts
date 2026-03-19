@@ -1337,7 +1337,7 @@ export async function deleteHousehold(id: string) {
 
 export async function addResident(formData: FormData) {
     try {
-        const imageUrl = await processImageUpload(formData, "imageUrl");
+        const livenessUrl = await processImageUpload(formData, "livenessUrl");
         const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
         const idBackUrl = await processImageUpload(formData, "idBackUrl");
 
@@ -1488,7 +1488,7 @@ export async function addResident(formData: FormData) {
                 receivedBy: formData.get("receivedBy") as string || null,
                 officialPosition: formData.get("officialPosition") as string || null,
                 dateReceived: formData.get("dateReceived") ? new Date(formData.get("dateReceived") as string) : null,
-                imageUrl,
+                livenessUrl,
                 registrationStatus: "APPROVED",
                 registrationType: "HEAD",
                 isDead: false,
@@ -1573,7 +1573,7 @@ export async function addResident(formData: FormData) {
 
 export async function updateResident(id: string, formData: FormData) {
     try {
-        const imageUrl = await processImageUpload(formData, "imageUrl");
+        const livenessUrl = await processImageUpload(formData, "livenessUrl");
         const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
         const idBackUrl = await processImageUpload(formData, "idBackUrl");
 
@@ -1682,6 +1682,9 @@ export async function updateResident(id: string, formData: FormData) {
                 if (dataToUpdate.registrationStatus === "APPROVED") {
                     userUpdateData.emailVerified = new Date();
                     userUpdateData.isEmailVerified = true;
+                } else if (dataToUpdate.registrationStatus === "PENDING" || dataToUpdate.registrationStatus === "REJECTED") {
+                    userUpdateData.emailVerified = null;
+                    userUpdateData.isEmailVerified = false;
                 }
 
                 console.log(`[AccountSync] Updating account for ${email}...`);
@@ -1716,8 +1719,8 @@ export async function updateResident(id: string, formData: FormData) {
 
         const oldResident = await (prisma as any).resident.findUnique({ where: { id } });
 
-        if (imageUrl && oldResident?.imageUrl && oldResident.imageUrl !== imageUrl) {
-            await deleteUploadedFile(oldResident.imageUrl);
+        if (livenessUrl && oldResident?.livenessUrl && oldResident.livenessUrl !== livenessUrl) {
+            await deleteUploadedFile(oldResident.livenessUrl);
         }
         if (idFrontUrl && oldResident?.idFrontUrl && oldResident.idFrontUrl !== idFrontUrl) {
             await deleteUploadedFile(oldResident.idFrontUrl);
@@ -1726,8 +1729,8 @@ export async function updateResident(id: string, formData: FormData) {
             await deleteUploadedFile(oldResident.idBackUrl);
         }
 
-        if (imageUrl) dataToUpdate.imageUrl = imageUrl;
-        else dataToUpdate.imageUrl = (formData.get("imageUrl") as string) || null;
+        if (livenessUrl) dataToUpdate.livenessUrl = livenessUrl;
+        else dataToUpdate.livenessUrl = (formData.get("livenessUrl") as string) || null;
         
         if (idFrontUrl) dataToUpdate.idFrontUrl = idFrontUrl;
         else dataToUpdate.idFrontUrl = (formData.get("idFrontUrl") as string) || null;
@@ -1894,6 +1897,7 @@ export async function deleteResident(id: string) {
                 userId: true, 
                 householdId: true, 
                 imageUrl: true, 
+                livenessUrl: true,
                 idFrontUrl: true, 
                 idBackUrl: true
             }
@@ -1901,6 +1905,7 @@ export async function deleteResident(id: string) {
 
         // Delete files
         if (resident?.imageUrl) await deleteUploadedFile(resident.imageUrl);
+        if (resident?.livenessUrl) await deleteUploadedFile(resident.livenessUrl);
         if (resident?.idFrontUrl) await deleteUploadedFile(resident.idFrontUrl);
         if (resident?.idBackUrl) await deleteUploadedFile(resident.idBackUrl);
 

@@ -11,10 +11,10 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
   const [previews, setPreviews] = useState({
     idFront: data?.idFrontUrl || null,
     idBack: data?.idBackUrl || null,
-    imageUrl: data?.imageUrl || null
+    livenessUrl: data?.livenessUrl || null
   });
 
-  const [camera, setCamera] = useState<{ isOpen: boolean; field: "idFront" | "idBack" | "imageUrl" | null }>({
+  const [camera, setCamera] = useState<{ isOpen: boolean; field: "idFront" | "idBack" | "livenessUrl" | null }>({
     isOpen: false,
     field: null
   });
@@ -36,22 +36,22 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
           if (
             prev.idFront === data.idFrontUrl && 
             prev.idBack === data.idBackUrl && 
-            prev.imageUrl === data.imageUrl
+            prev.livenessUrl === data.livenessUrl
           ) {
             return prev;
           }
           return {
             idFront: data.idFrontUrl || null,
             idBack: data.idBackUrl || null,
-            imageUrl: data.imageUrl || null
+            livenessUrl: data.livenessUrl || null
           };
         });
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [data?.idFrontUrl, data?.idBackUrl, data?.imageUrl, data]);
+  }, [data?.idFrontUrl, data?.idBackUrl, data?.livenessUrl, data]);
 
-  const handleFileChange = (field: "idFront" | "idBack" | "imageUrl", e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (field: "idFront" | "idBack" | "livenessUrl", e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const url = URL.createObjectURL(file);
@@ -77,7 +77,7 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
         let inputRef: React.RefObject<HTMLInputElement | null> | null = null;
         if (field === "idFront") inputRef = idFrontInputRef;
         if (field === "idBack") inputRef = idBackInputRef;
-        if (field === "imageUrl") inputRef = portraitInputRef;
+        if (field === "livenessUrl") inputRef = portraitInputRef;
 
         if (inputRef && inputRef.current) {
           const dataTransfer = new DataTransfer();
@@ -87,7 +87,7 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
       });
   };
 
-  const openCamera = (field: "idFront" | "idBack" | "imageUrl") => {
+  const openCamera = (field: "idFront" | "idBack" | "livenessUrl") => {
     setCamera({ isOpen: true, field });
   };
 
@@ -104,17 +104,17 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
           Official Resident Portrait
           <button 
                 type="button"
-                onClick={() => openCamera("imageUrl")}
+                onClick={() => openCamera("livenessUrl")}
                 className="text-[10px] font-bold text-blue-500 flex items-center gap-1 hover:underline"
             >
                 <Camera className="w-3 h-3" /> CAPTURE PORTRAIT
             </button>
         </label>
         <div className="relative w-40 h-40 mx-auto rounded-full border-4 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-all group shadow-inner">
-            {previews.imageUrl ? (
+            {previews.livenessUrl ? (
                 <div className="w-full h-full relative group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previews.imageUrl} alt="Portrait" className="w-full h-full object-cover" />
+                    <img src={previews.livenessUrl} alt="Portrait" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Upload className="w-6 h-6 text-white" />
                     </div>
@@ -129,13 +129,13 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
             )}
             <input 
               type="file" 
-              name="imageUrlFile" 
+              name="livenessUrlFile" 
               ref={portraitInputRef}
               className="absolute inset-0 opacity-0 cursor-pointer" 
-              onChange={(e) => handleFileChange("imageUrl", e)}
+              onChange={(e) => handleFileChange("livenessUrl", e)}
             />
-            {data?.imageUrl && previews.imageUrl === data.imageUrl && (
-              <input type="hidden" name="imageUrl" value={data.imageUrl} />
+            {data?.livenessUrl && previews.livenessUrl === data.livenessUrl && (
+              <input type="hidden" name="livenessUrl" value={data.livenessUrl} />
             )}
         </div>
         <p className="text-[10px] text-slate-400 text-center font-medium italic">This will be used as the resident&apos;s digital profile picture.</p>
