@@ -16,6 +16,9 @@ export default async function AboutPage() {
     const themeColor = settings.get("theme_color") || "#2563eb";
 
     const aboutData = await prisma.aboutPage.findFirst();
+    const pastMayors = await prisma.pastMayor.findMany({
+        orderBy: { order: 'asc' }
+    });
 
     if (!aboutData) {
         return (
@@ -51,6 +54,7 @@ export default async function AboutPage() {
             
             <AboutClientView 
                 aboutData={aboutData} 
+                pastMayors={pastMayors}
                 themeColor={themeColor} 
                 brandWord1={settings.get("brand_word_1") || "LGU"} 
                 brandWord2={settings.get("brand_word_2") || "Portal"} 

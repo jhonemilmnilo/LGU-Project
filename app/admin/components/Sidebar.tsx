@@ -42,6 +42,7 @@ export function Sidebar({
     const pathname = usePathname();
     const role = session?.user?.role || "ADMIN";
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
+    const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
     const allMenuItems = [
@@ -60,7 +61,18 @@ export function Sidebar({
                 { href: "/admin/settings?tab=credentials", label: "Credentials" },
             ]
         },
-        { href: "/admin/about", label: "About Content", icon: Info, category: "Website Control" },
+        { 
+            label: "About Us Content", 
+            icon: Info, 
+            category: "Website Control",
+            isDropdown: true,
+            isOpen: isAboutOpen,
+            onToggle: () => setIsAboutOpen(!isAboutOpen),
+            subItems: [
+                { href: "/admin/about", label: "Platform Info" },
+                { href: "/admin/about/past-mayors", label: "Past Mayors" },
+            ]
+        },
         { href: "/admin/announcements", label: "Announcements", icon: Megaphone, category: "Content" },
         { href: "/admin/news", label: "News & Updates", icon: Newspaper },
         { href: "/admin/events", label: "Events", icon: Calendar },
@@ -81,7 +93,7 @@ export function Sidebar({
 
     const contentAdminAllowed = [
         "Dashboard", 
-        "About Content",
+        "About Us Content",
         "Announcements", 
         "News & Updates", 
         "Events", 

@@ -56,3 +56,70 @@ export async function upsertAboutPage(formData: FormData) {
         return { success: false, error: `Failed: ${error.message || error.toString()}` };
     }
 }
+
+export async function getPastMayors() {
+    return await prisma.pastMayor.findMany({
+        orderBy: { order: 'asc' } // Or you could order by termStart later if preferred
+    });
+}
+
+export async function upsertPastMayor(id: string | null, formData: FormData) {
+    try {
+        let imageUrl = formData.get("imageUrl")?.toString() || "";
+        
+        const uploadedImageUrl = await processImageUpload(formData, "imageFile");
+        if (uploadedImageUrl && typeof uploadedImageUrl === "string" && uploadedImageUrl !== imageUrl) {
+            imageUrl = uploadedImageUrl;
+        }
+
+        const data = {
+            name: formData.get("name")?.toString() || "",
+            termStart: formData.get("termStart")?.toString() || "",
+            termEnd: formData.get("termEnd")?.toString() || "",
+            description: formData.get("description")?.toString() || "",
+            order: parseInt(formData.get("order")?.toString() || "0"),
+            imageUrl: imageUrl || null
+        };
+
+        if (id) {
+            const existing = await prisma.pastMayor.findUnique({ where: { id } });
+            if (existing?.imageUrl && existing.imageUrl !== imageUrl) {
+                await deleteUploadedFile(existing.imageUrl);
+            }
+            await prisma.pastMayor.update({
+                where: { id },
+                data
+            });
+        } else {
+            await prisma.pastMayor.create({
+                data
+            });
+        }
+
+        revalidatePath("/about");
+        revalidatePath("/admin/about");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error saving past mayor:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deletePastMayor(id: string) {
+    try {
+        const existing = await prisma.pastMayor.findUnique({ where: { id } });
+        if (existing?.imageUrl) {
+            await deleteUploadedFile(existing.imageUrl);
+        }
+        await prisma.pastMayor.delete({
+            where: { id }
+        });
+        
+        revalidatePath("/about");
+        revalidatePath("/admin/about");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error deleting past mayor:", error);
+        return { success: false, error: error.message };
+    }
+}

@@ -1,21 +1,39 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
-import { Globe, Target, Eye, Quote, HeartHandshake, Building2, Map, Home } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Target, Eye, Quote, HeartHandshake, Building2, Map, Home, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { PastMayorsExhibit } from "./PastMayorsExhibit";
 
 interface AboutClientViewProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     aboutData: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pastMayors: any[];
     themeColor: string;
     brandWord1: string;
     brandWord2: string;
 }
 
-export function AboutClientView({ aboutData, themeColor, brandWord1, brandWord2 }: AboutClientViewProps) {
+export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1, brandWord2 }: AboutClientViewProps) {
+    const [activeMayorIndex, setActiveMayorIndex] = React.useState(0);
+    const [isMayorPaused, setIsMayorPaused] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!pastMayors || pastMayors.length === 0 || isMayorPaused) return;
+
+        const interval = setInterval(() => {
+            setActiveMayorIndex((prev) => (prev + 1) % pastMayors.length);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [isMayorPaused, pastMayors]);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fadeIn: any = {
         hidden: { opacity: 0, y: 30 },
@@ -108,9 +126,66 @@ export function AboutClientView({ aboutData, themeColor, brandWord1, brandWord2 
             {/* Main Content Blocks */}
             <div className="max-w-7xl mx-auto px-4 md:px-8 mt-20 md:mt-32 space-y-24 md:space-y-40">
                 
-                {/* Historical Background */}
+                {/* Mayor's Message - Now the First Primary Block */}
                 <motion.div 
                     initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-100px" }}
+                    variants={fadeIn}
+                >
+                    <Card className="rounded-[3rem] shadow-2xl border-none bg-white dark:bg-slate-950 overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
+                        
+                        <div className="flex flex-col lg:flex-row items-stretch h-full w-full">
+                            {/* Photo Section */}
+                            {aboutData.mayorImageUrl ? (
+                                <div className="lg:w-2/5 relative min-h-[400px] lg:self-stretch p-6 pb-0 lg:pb-6 lg:pr-0">
+                                    <div className="relative w-full h-full rounded-[2rem] overflow-hidden shadow-2xl">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img 
+                                            src={aboutData.mayorImageUrl} 
+                                            alt="Mayor" 
+                                            className="absolute inset-0 w-full h-full object-cover" 
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="lg:w-1/3 bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-12">
+                                    <div className="text-center opacity-50 space-y-4">
+                                        <Building2 className="w-20 h-20 mx-auto" />
+                                        <p className="text-xs font-bold uppercase tracking-widest">Office of the Mayor</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Message Section */}
+                            <div className="lg:w-3/5 p-10 md:p-16 lg:p-20 relative z-10 flex flex-col justify-center">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
+                                        <Quote className="w-4 h-4" />
+                                    </div>
+                                    <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Message from the Office</h2>
+                                </div>
+                                
+                                <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-10 tracking-tighter leading-none">
+                                    Mayor's <br/><span style={{ color: themeColor }}>Message</span>
+                                </h3>
+                                
+                                <div className="relative">
+                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-loose italic font-medium whitespace-pre-wrap">
+                                        {aboutData.mayorMessage}
+                                    </p>
+                                </div>
+
+                                {/* Button removed as requested */}
+                            </div>
+                        </div>
+                    </Card>
+                </motion.div>
+
+                {/* Historical Background */}
+                <motion.div                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, margin: "-100px" }}
                     variants={fadeIn}
@@ -140,6 +215,8 @@ export function AboutClientView({ aboutData, themeColor, brandWord1, brandWord2 
                         </Card>
                     </div>
                 </motion.div>
+
+
 
                 {/* Mission & Vision Cards */}
                 <motion.div 
@@ -213,62 +290,20 @@ export function AboutClientView({ aboutData, themeColor, brandWord1, brandWord2 
                     </div>
                 </motion.div>
 
-                {/* Mayor's Message */}
-                <motion.div 
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "-100px" }}
-                    variants={fadeIn}
-                >
-                    <Card className="rounded-[3rem] shadow-2xl border-none bg-white dark:bg-slate-950 overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
-                        
-                        <CardContent className="p-0 flex flex-col lg:flex-row items-stretch">
-                            {/* Photo Section */}
-                            {aboutData.mayorImageUrl ? (
-                                <div className="lg:w-2/5 relative min-h-[400px] lg:min-h-[600px]">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img 
-                                        src={aboutData.mayorImageUrl} 
-                                        alt="Mayor" 
-                                        className="absolute inset-0 w-full h-full object-cover" 
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 lg:from-black/60 via-black/20 to-transparent" />
-                                </div>
-                            ) : (
-                                <div className="lg:w-1/3 bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-12">
-                                    <div className="text-center opacity-50 space-y-4">
-                                        <Building2 className="w-20 h-20 mx-auto" />
-                                        <p className="text-xs font-bold uppercase tracking-widest">Office of the Mayor</p>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* Message Section */}
-                            <div className="lg:w-3/5 p-10 md:p-16 lg:p-20 relative z-10 flex flex-col justify-center">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
-                                        <Quote className="w-4 h-4" />
-                                    </div>
-                                    <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Message from the Office</h2>
-                                </div>
-                                
-                                <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-10 tracking-tighter leading-none">
-                                    Mayor's <br/><span style={{ color: themeColor }}>Message</span>
-                                </h3>
-                                
-                                <div className="relative">
-                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-loose italic font-medium whitespace-pre-wrap">
-                                        {aboutData.mayorMessage}
-                                    </p>
-                                </div>
 
-                                {/* Button removed as requested */}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
+                {/* Past Mayors exhibit section imported cleanly */}
             </div>
+
+            {pastMayors && pastMayors.length > 0 && (
+                <div className="w-full mt-24">
+                    <PastMayorsExhibit 
+                        mayors={pastMayors} 
+                        brandWord1={brandWord1} 
+                        brandWord2={brandWord2} 
+                    />
+                </div>
+            )}
         </div>
     );
 }

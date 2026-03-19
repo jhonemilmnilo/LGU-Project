@@ -486,3 +486,15 @@ model AboutPage {
   updatedAt               DateTime @updatedAt
   createdAt               DateTime @default(now())
 }
+
+model PastMayor {
+  id           String   @id @default(cuid())
+  name         String
+  termStart    String
+  termEnd      String
+  imageUrl     String?
+  description  String?  @db.Text
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

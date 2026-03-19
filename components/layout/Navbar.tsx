@@ -37,30 +37,30 @@ export function Navbar({
     const pathname = usePathname();
     const [isOpen, setIsOpen] = React.useState(false);
     const { scrollY } = useScroll();
-    const isHomePage = pathname === "/";
+    const isTransparentNavPage = pathname === "/";
     
     const backgroundColor = useTransform(
         scrollY,
         [0, 60],
-        [isHomePage ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.95)", "rgba(255, 255, 255, 0.95)"]
+        [isTransparentNavPage ? "rgba(255, 255, 255, 0)" : "rgba(255, 255, 255, 0.95)", "rgba(255, 255, 255, 0.95)"]
     );
 
     const darkBackgroundColor = useTransform(
         scrollY,
         [0, 60],
-        [isHomePage ? "rgba(10, 12, 16, 0)" : "rgba(10, 12, 16, 0.95)", "rgba(10, 12, 16, 0.95)"]
+        [isTransparentNavPage ? "rgba(10, 12, 16, 0)" : "rgba(10, 12, 16, 0.95)", "rgba(10, 12, 16, 0.95)"]
     );
     
     const backdropBlur = useTransform(
         scrollY,
         [0, 60],
-        [isHomePage ? "blur(0px)" : "blur(20px)", "blur(20px)"]
+        [isTransparentNavPage ? "blur(0px)" : "blur(20px)", "blur(20px)"]
     );
 
     const color = useTransform(
         scrollY,
         [0, 60],
-        [isHomePage ? "rgba(255, 255, 255, 1)" : "rgba(15, 23, 42, 1)", "rgba(15, 23, 42, 1)"]
+        [isTransparentNavPage ? "rgba(255, 255, 255, 1)" : "rgba(15, 23, 42, 1)", "rgba(15, 23, 42, 1)"]
     );
 
     const darkColor = useTransform(
@@ -72,18 +72,17 @@ export function Navbar({
     const shadow = useTransform(
         scrollY,
         [0, 60],
-        [isHomePage ? "none" : "0 4px 30px -10px rgba(0, 0, 0, 0.1)", "0 4px 30px -10px rgba(0, 0, 0, 0.1)"]
+        [isTransparentNavPage ? "none" : "0 4px 30px -10px rgba(0, 0, 0, 0.1)", "0 4px 30px -10px rgba(0, 0, 0, 0.1)"]
     );
 
-    const borderOpacity = useTransform(scrollY, [0, 60], [isHomePage ? 0 : 1, 1]);
+    const borderOpacity = useTransform(scrollY, [0, 60], [isTransparentNavPage ? 0 : 1, 1]);
 
     const isAuth = status === "authenticated";
      
 
-
-
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const userRole = (session?.user as { role?: string })?.role;
+    const userName = session?.user?.name || "Member";
     
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
@@ -92,8 +91,8 @@ export function Navbar({
         setMounted(true);
     }, []);
 
-    // Standard public links
-    const publicLinks = [
+    // Unified main navigation links for all users
+    const mainLinks = [
         { name: "About", href: "/about", icon: Info },
         { name: "Services", href: "/#services", icon: Briefcase },
         { name: "Gallery", href: "/#tourism", icon: Compass },
@@ -102,20 +101,7 @@ export function Navbar({
         { name: "Safety", href: "/#hotlines", icon: PhoneCall },
     ];
 
-    // Authenticated hub links
-    const hubLinks = [
-        { name: "Maps", href: "/user/maps", icon: Map },
-        { name: "Updates", href: "/#updates", icon: Bell },
-        { name: "Dining Hub", href: "/user/dining", icon: Utensils },
-        { name: "Accommodations", href: "/user/accommodation", icon: Bed },
-        { name: "Gallery", href: "/user/tourism", icon: Compass },
-        { name: "Projects", href: "/user/projects", icon: FolderKanban },
-        { name: "About LGU", href: "/about", icon: Info },
-        { name: "Services", href: "/user/services", icon: HeartPulse },
-        { name: "Leadership", href: "/user/leadership", icon: Users },
-    ];
-
-    const currentLinks = isAuth ? hubLinks : publicLinks;
+    const currentLinks = mainLinks;
 
     // Determine effective theme safely for hydration
     const activeTheme = mounted ? resolvedTheme : "light";
@@ -210,24 +196,33 @@ export function Navbar({
                     <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
 
                     {isAuth ? (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 pl-2 pr-4 py-1.5 rounded-2xl">
+                                <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white text-[10px] font-black uppercase">
+                                    {userName.charAt(0)}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Authenticated</span>
+                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] leading-tight">{userName}</span>
+                                </div>
+                            </div>
                             <Button 
                                 onClick={() => signOut({ callbackUrl: "/" })}
                                 variant="ghost" 
-                                className="text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold uppercase tracking-widest h-10 px-4 rounded-xl flex items-center gap-2 text-[10px] transition-all"
+                                size="icon"
+                                className="h-10 w-10 text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                             >
                                 <LogOut className="w-4 h-4" />
-                                <span className="xl:inline lg:hidden">Sign Out</span>
                             </Button>
                         </div>
                     ) : (
-                        <Link href="/auth/login">
+                        <Link href="/auth/login" className="active:scale-95 transition-all">
                             <Button 
                                 style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
-                                className="text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 active:scale-95 transition-all flex items-center gap-2 text-[10px]"
+                                className="text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 flex items-center gap-2 text-[10px] border-none"
                             >
                                 <LogIn className="w-4 h-4" />
-                                Access Hub
+                                Access Resident Hub
                             </Button>
                         </Link>
                     )}
@@ -295,19 +290,28 @@ export function Navbar({
                             
                             {isAuth ? (
                                 <div className="space-y-6">
+                                    <div className="flex items-center gap-4 p-6 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-blue-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-blue-500/20">
+                                            {userName.charAt(0)}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Welcome Back</span>
+                                            <span className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tight uppercase">{userName}</span>
+                                        </div>
+                                    </div>
                                     <Button 
                                         onClick={() => signOut({ callbackUrl: "/" })}
-                                        className="w-full bg-red-500 hover:bg-red-600 text-white h-16 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-red-500/20"
+                                        className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white h-20 rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all border border-red-500/20"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Sign Out
+                                        Logout from Hub
                                     </Button>
                                 </div>
                             ) : (
                                 <Link href="/auth/login" onClick={() => setIsOpen(false)}>
                                     <Button 
                                         style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}33` }}
-                                        className="w-full text-white h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl active:scale-95 transition-all"
+                                        className="w-full text-white h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl active:scale-95 transition-all outline-none border-none"
                                     >
                                         Access Member Hub
                                     </Button>
