@@ -5,13 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
+import { UserRole } from "@prisma/client";
+
 type UserWithProfile = {
     id: string;
     name: string | null;
     email: string | null;
     emailVerified: Date | null;
     isEmailVerified: boolean;
-    role: "ADMIN" | "USER";
+    role: UserRole;
     createdAt: Date;
     residentProfile: {
         id: string;

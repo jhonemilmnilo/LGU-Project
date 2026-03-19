@@ -7,12 +7,11 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { 
     
     Shield, Menu, X, LogIn, LogOut, 
-    ChevronDown, Bell, Briefcase, 
+    ChevronDown, Briefcase, 
     
-    Map, Newspaper, PhoneCall, LayoutGrid, Info,
+    Newspaper, PhoneCall, Info,
     
-    Compass, HeartPulse, Users,
-    Utensils, Bed, FolderKanban
+    Compass
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

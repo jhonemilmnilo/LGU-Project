@@ -2,15 +2,18 @@
 
 import { motion } from "framer-motion";
  
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Users, Info, Mail, Phone, MapPin, Star, ShieldCheck } from "lucide-react";
+import { Users, ShieldCheck } from "lucide-react";
 import Image from "next/image";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Button } from "@/components/ui/button";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserOfficialsView({ initialOfficials = [] }: { initialOfficials: any[] }) {
-    const mayor = initialOfficials.find(o => o.role.toLowerCase().includes('mayor') && !o.role.toLowerCase().includes('vice'));
+interface Official {
+    id: string;
+    name: string;
+    position: string;
+    imageUrl?: string | null;
+}
+
+export function UserOfficialsView({ initialOfficials = [] }: { initialOfficials: Official[] }) {
+    const mayor = initialOfficials.find(o => o.position.toLowerCase().includes('mayor') && !o.position.toLowerCase().includes('vice'));
     const others = initialOfficials.filter(o => o.id !== mayor?.id);
 
     return (
@@ -54,12 +57,7 @@ export function UserOfficialsView({ initialOfficials = [] }: { initialOfficials:
                         </div>
                         <div className="space-y-3">
                             <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{mayor.name}</h2>
-                            <p className="text-blue-600 font-black uppercase tracking-[0.3em] text-sm italic">{mayor.role}</p>
-                            <div className="flex items-center justify-center gap-6 pt-2 text-slate-400">
-                                <Mail className="w-5 h-5 hover:text-blue-600 cursor-pointer transition-colors" />
-                                <Phone className="w-5 h-5 hover:text-blue-600 cursor-pointer transition-colors" />
-                                <Info className="w-5 h-5 hover:text-blue-600 cursor-pointer transition-colors" />
-                            </div>
+                            <p className="text-blue-600 font-black uppercase tracking-[0.3em] text-sm italic">{mayor.position}</p>
                         </div>
                     </motion.div>
                 )}
@@ -85,7 +83,7 @@ export function UserOfficialsView({ initialOfficials = [] }: { initialOfficials:
                             </div>
                             <div className="space-y-1 px-4">
                                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-blue-600 transition-colors leading-tight">{member.name}</h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{member.role}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{member.position}</p>
                             </div>
                         </motion.div>
                     ))}

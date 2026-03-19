@@ -16,8 +16,22 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function ProjectDetailView({ project }: { project: any }) {
+interface Project {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    status: string;
+    location: string;
+    budget?: string | null;
+    contractor?: string | null;
+    progress: number;
+    imageUrl?: string | null;
+    startDate?: string | Date | null;
+    updatedAt: string | Date;
+}
+
+export function ProjectDetailView({ project }: { project: Project }) {
     return (
         <div className="space-y-10 pb-20">
             {/* Header / Nav */}

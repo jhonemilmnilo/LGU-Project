@@ -23,7 +23,7 @@ interface Official {
     imageUrl?: string | null;
     contactNumber?: string | null;
     email?: string | null;
-    links?: { label: string; url: string }[] | any;
+    links?: { label: string; url: string }[];
     termStart?: string | Date | null;
     termEnd?: string | Date | null;
     bio?: string | null;
@@ -42,7 +42,7 @@ export function OfficialDetailView({ official, themeColor = "#2563eb" }: { offic
         setTimeout(() => setIdCopied(false), 2000);
     };
 
-    const formatDate = (date: any) => {
+    const formatDate = (date: string | Date | null | undefined) => {
         if (!date) return "";
         return new Date(date).toLocaleDateString("en-US", {
             month: "long",

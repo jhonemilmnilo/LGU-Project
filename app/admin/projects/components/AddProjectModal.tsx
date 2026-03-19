@@ -161,7 +161,7 @@ export function AddProjectModal() {
                                     <Input
                                         name="title"
                                         required
-                                        defaultValue={editingData?.title}
+                                        defaultValue={editingData?.title ?? ""}
                                         placeholder="e.g. Agno Public Market Renovation"
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
                                     />
@@ -196,7 +196,7 @@ export function AddProjectModal() {
                                     <Input
                                         name="location"
                                         required
-                                        defaultValue={editingData?.location}
+                                        defaultValue={editingData?.location ?? ""}
                                         placeholder="Where is this project located?"
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                     />
@@ -206,7 +206,7 @@ export function AddProjectModal() {
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold">Budget Allocation (Optional)</Label>
                                     <Input
                                         name="budget"
-                                        defaultValue={editingData?.budget}
+                                        defaultValue={editingData?.budget ?? ""}
                                         placeholder="e.g. ₱ 5,000,000.00"
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                     />
@@ -216,7 +216,7 @@ export function AddProjectModal() {
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold">Contractor/Agency (Optional)</Label>
                                     <Input
                                         name="contractor"
-                                        defaultValue={editingData?.contractor}
+                                        defaultValue={editingData?.contractor ?? ""}
                                         placeholder="e.g. DPWH or XYZ Construction"
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                     />
@@ -261,7 +261,7 @@ export function AddProjectModal() {
                                     <Textarea
                                         name="description"
                                         required
-                                        defaultValue={editingData?.description}
+                                        defaultValue={editingData?.description ?? ""}
                                         placeholder="Describe the scope, goals, and impact of this project..."
                                         className="min-h-[120px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
                                     />

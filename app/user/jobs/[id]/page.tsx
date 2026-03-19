@@ -9,7 +9,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         notFound();
     }
 
-    const job = await (prisma as any).job.findUnique({
+    const job = await prisma.job.findUnique({
         where: { id: id },
     });
 

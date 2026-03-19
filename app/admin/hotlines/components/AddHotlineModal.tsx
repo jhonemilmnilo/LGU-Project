@@ -51,7 +51,7 @@ export function AddHotlineModal() {
                                         <Input
                                             name="name"
                                             required
-                                            defaultValue={editingData?.name}
+                                            defaultValue={editingData?.name || ""}
                                             placeholder="e.g. Agno Police Station"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
                                         />
@@ -61,7 +61,7 @@ export function AddHotlineModal() {
                                         <Input
                                             name="category"
                                             required
-                                            defaultValue={editingData?.category}
+                                            defaultValue={editingData?.category || ""}
                                             placeholder="e.g. Police, Health, Fire"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
@@ -75,7 +75,7 @@ export function AddHotlineModal() {
                                         </Label>
                                         <Input
                                             name="mobileNumber"
-                                            defaultValue={editingData?.mobileNumber}
+                                            defaultValue={editingData?.mobileNumber || ""}
                                             placeholder="e.g. 0912 345 6789"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
@@ -86,7 +86,7 @@ export function AddHotlineModal() {
                                         </Label>
                                         <Input
                                             name="telephone"
-                                            defaultValue={editingData?.telephone}
+                                            defaultValue={editingData?.telephone || ""}
                                             placeholder="e.g. (075) 123-4567"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
@@ -99,7 +99,7 @@ export function AddHotlineModal() {
                                     </Label>
                                     <Input
                                         name="address"
-                                        defaultValue={editingData?.address}
+                                        defaultValue={editingData?.address || ""}
                                         placeholder="Where is this agency located?"
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                     />

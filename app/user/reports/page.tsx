@@ -11,7 +11,6 @@ import {
     FileText,
     Activity,
     ChevronRight,
-    PlusCircle,
     Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +27,15 @@ import { cn } from "@/lib/utils";
 import { getUserReports } from "@/app/admin/actions";
 import { useRouter } from "next/navigation";
 
+interface Report {
+    id: string;
+    status: string;
+    category: string;
+    createdAt: string | Date;
+}
+
 export default function UserReportsPage() {
-    const [reports, setReports] = useState<any[]>([]);
+    const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -87,8 +93,8 @@ export default function UserReportsPage() {
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
-
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+ 
+             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="space-y-0.5">
                         <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Citizen <span className="text-primary">Reports</span></h1>
@@ -99,9 +105,9 @@ export default function UserReportsPage() {
                     </p>
                 </div>
             </div>
-
+ 
             <div className="grid grid-cols-1 gap-4">
-                {reports.length > 0 ? reports.map((report: any) => {
+                {reports.length > 0 ? reports.map((report: Report) => {
                     const style = getStatusStyle(report.status);
                     const StatusIcon = style.icon;
                     

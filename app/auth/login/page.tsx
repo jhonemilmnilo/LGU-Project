@@ -1,15 +1,16 @@
 import { AuthLayout } from "@/components/shared/AuthLayout";
 import { LoginForm } from "@/components/auth/LoginForm";
 import prisma from "@/lib/db/prisma";
+import { HeroSlide, SystemSetting } from "@prisma/client"; // Import Prisma types
 
 export default async function LoginPage() {
-    const slides = await prisma.heroSlide.findMany({
+    const slides: HeroSlide[] = await prisma.heroSlide.findMany({
         where: { isActive: true },
         orderBy: { order: 'asc' }
     });
 
-    const settingsList = await prisma.systemSetting.findMany();
-    const settings = settingsList.reduce((acc: any, curr: { key: string; value: string }) => {
+    const settingsList: SystemSetting[] = await prisma.systemSetting.findMany();
+    const settings = settingsList.reduce((acc: Record<string, string>, curr: SystemSetting) => {
         acc[curr.key] = curr.value;
         return acc;
     }, {});

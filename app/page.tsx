@@ -19,7 +19,7 @@ import { authOptions } from "@/lib/auth";
 
 export default async function Home() {
     const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
+    const role = (session?.user as { role?: string })?.role;
     
     // Completely block any Admin/Content Admin from the landing page.
     if (session && role && role !== "USER") {

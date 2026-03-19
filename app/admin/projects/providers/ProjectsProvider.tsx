@@ -5,13 +5,15 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 export interface Project {
     id: string;
     title: string;
-    description: string | null;
+    description: string;
     category: string;
     status: string;
-    budget: number | null;
-    startDate: Date;
+    location: string;
+    budget: string | null;
+    contractor: string | null;
+    startDate: Date | null;
     endDate: Date | null;
-    location: string | null;
+    progress: number;
     imageUrl: string | null;
     isPublished: boolean;
     createdAt: Date;
@@ -63,7 +65,7 @@ export function ProjectsProvider({ children, initialData }: { children: ReactNod
                 setSelectedCategory,
                 selectedStatus,
                 setSelectedStatus,
-            }}
+                }}
         >
             {children}
         </ProjectsContext.Provider>

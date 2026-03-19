@@ -1,47 +1,48 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Target, Eye, Quote, HeartHandshake, Building2, Map, Home, Globe } from "lucide-react";
+import { motion, Variants } from "framer-motion";
+import { Target, Eye, Quote, HeartHandshake, Building2, Home, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { PastMayorsExhibit } from "./PastMayorsExhibit";
 
+interface PastMayor {
+    id: string;
+    name: string;
+    termStart: string;
+    termEnd: string;
+    description: string | null;
+    imageUrl: string | null;
+    order: number;
+}
+
 interface AboutClientViewProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    aboutData: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    pastMayors: any[];
+    aboutData: {
+        geographyOrDemographics?: string | null;
+        mayorImageUrl?: string | null;
+        mayorMessage?: string | null;
+        history?: string | null;
+        mission?: string | null;
+        vision?: string | null;
+        coreValues?: string | null;
+    };
+    pastMayors: PastMayor[];
     themeColor: string;
     brandWord1: string;
     brandWord2: string;
 }
 
+
+
 export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1, brandWord2 }: AboutClientViewProps) {
-    const [activeMayorIndex, setActiveMayorIndex] = React.useState(0);
-    const [isMayorPaused, setIsMayorPaused] = React.useState(false);
-
-    React.useEffect(() => {
-        if (!pastMayors || pastMayors.length === 0 || isMayorPaused) return;
-
-        const interval = setInterval(() => {
-            setActiveMayorIndex((prev) => (prev + 1) % pastMayors.length);
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [isMayorPaused, pastMayors]);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fadeIn: any = {
+    const fadeIn: Variants = {
         hidden: { opacity: 0, y: 30 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
     };
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const staggerContainer: any = {
+    const staggerContainer: Variants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
@@ -143,7 +144,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                                     <div className="relative w-full h-full rounded-[2rem] overflow-hidden shadow-2xl">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img 
-                                            src={aboutData.mayorImageUrl} 
+                                            src={aboutData.mayorImageUrl || ""} 
                                             alt="Mayor" 
                                             className="absolute inset-0 w-full h-full object-cover" 
                                         />
@@ -169,7 +170,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                                 </div>
                                 
                                 <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-10 tracking-tighter leading-none">
-                                    Mayor's <br/><span style={{ color: themeColor }}>Message</span>
+                                    Mayor&apos;s <br/><span style={{ color: themeColor }}>Message</span>
                                 </h3>
                                 
                                 <div className="relative">

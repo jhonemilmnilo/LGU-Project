@@ -15,8 +15,8 @@ export default async function AboutPage() {
 
     const themeColor = settings.get("theme_color") || "#2563eb";
 
-    const aboutData = await prisma.aboutPage.findFirst();
-    const pastMayors = await prisma.pastMayor.findMany({
+    const aboutData = await (prisma as any).aboutPage.findFirst();
+    const pastMayors = await (prisma as any).pastMayor.findMany({
         orderBy: { order: 'asc' }
     });
 

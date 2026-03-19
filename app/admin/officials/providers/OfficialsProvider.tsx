@@ -6,11 +6,18 @@ export interface Official {
     id: string;
     name: string;
     position: string;
-    termStart: Date;
-    termEnd: Date;
     contactNumber: string | null;
+    email: string | null;
+    links: any;
+    bio: string | null;
+    education: string | null;
+    motto: string | null;
+    achievements: string | null;
     imageUrl: string | null;
-    isPublished: boolean;
+    termStart: Date | null;
+    termEnd: Date | null;
+    order: number;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -22,7 +22,7 @@ export async function deleteUploadedFile(imageUrl: string | null | undefined) {
 export async function processImageUpload(formData: FormData, fieldName: string = "imageFile"): Promise<string | null> {
     const file = (formData.get(fieldName) || formData.get(fieldName + "File")) as File | null;
     
-    let rawExisting = formData.get(fieldName) || formData.get("imageUrl");
+    const rawExisting = formData.get(fieldName) || formData.get("imageUrl");
     let existingUrl: string | null = null;
     
     if (typeof rawExisting === 'string') {

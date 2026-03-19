@@ -118,10 +118,10 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
                     <div className="flex items-center gap-4">
                         <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0">
                             {(resident.livenessUrl || resident.imageUrl) ? (
-                                <Image src={(resident.livenessUrl || resident.imageUrl)} alt="Profile" fill className="object-cover" />
+                                <Image src={(resident.livenessUrl || resident.imageUrl) || ""} alt="Profile" fill className="object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center font-black text-xl text-slate-400 uppercase">
-                                    {resident.firstName[0]}{resident.lastName[0]}
+                                    {(resident.firstName && resident.firstName[0]) || ""}{(resident.lastName && resident.lastName[0]) || ""}
                                 </div>
                             )}
                         </div>

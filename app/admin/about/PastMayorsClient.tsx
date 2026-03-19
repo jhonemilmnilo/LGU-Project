@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Edit2, Plus, Trash2, Save, Image as ImageIcon, Send, X, History as HistoryIcon, Loader2, User, Calendar, ListOrdered, FileText } from "lucide-react";
+import { Edit2, Plus, Trash2, Image as ImageIcon, X, History as HistoryIcon, Loader2, User, Calendar, ListOrdered, FileText } from "lucide-react";
 import { upsertPastMayor, deletePastMayor } from "./actions";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
     const router = useRouter();
     const [mayors, setMayors] = useState(initialMayors);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [editingMayor, setEditingMayor] = useState<any | null>(null);
+    const [editingMayor, setEditingMayor] = useState<any | null>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this specific record?")) return;
@@ -103,8 +103,8 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, onClose: () => void, initialData: any }) {
+ 
+function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, onClose: () => void, initialData: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
     const [isSaving, setIsSaving] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
@@ -204,7 +204,9 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                             {/* Left side form fields */}
                             <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Full Name</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
+                                        <User className="w-4 h-4 text-blue-500" /> Full Name
+                                    </Label>
                                     <Input
                                         placeholder="e.g. Hon. Juan De La Cruz"
                                         required
@@ -216,7 +218,9 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Term Start</Label>
+                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
+                                            <Calendar className="w-4 h-4 text-emerald-500" /> Term Start
+                                        </Label>
                                         <Input
                                             placeholder="1990"
                                             required
@@ -226,7 +230,9 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Term End</Label>
+                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
+                                            <Calendar className="w-4 h-4 text-emerald-500" /> Term End
+                                        </Label>
                                         <Input
                                             placeholder="1995"
                                             required
@@ -238,7 +244,9 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Display Order</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
+                                        <ListOrdered className="w-4 h-4 text-amber-500" /> Display Order
+                                    </Label>
                                     <Input
                                         type="number"
                                         value={formData.order}
@@ -249,7 +257,9 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Key Highlights</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-purple-500" /> Key Highlights
+                                    </Label>
                                     <Textarea
                                         placeholder="• Accomplishment one&#10;• Accomplishment two"
                                         value={formData.description}

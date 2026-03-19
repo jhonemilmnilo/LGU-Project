@@ -13,6 +13,5 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         notFound();
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <ProjectDetailView project={project as any} />;
+    return <ProjectDetailView project={project} />;
 }

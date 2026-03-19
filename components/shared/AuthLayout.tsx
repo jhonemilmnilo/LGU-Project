@@ -3,8 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Shield } from "lucide-react";
 
 interface HeroSlide {
     id: string;
