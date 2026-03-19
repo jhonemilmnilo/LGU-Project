@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Image as ImageIcon, X, Loader2, Users, Phone, Mail, Facebook, Calendar, Hash, GraduationCap, Trophy, Quote, Globe, Plus, Trash2 } from "lucide-react";
+import { Image as ImageIcon, X, Loader2, Users, Phone, Mail, Calendar, Hash, GraduationCap, Trophy, Quote, Globe, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
 // -----------------------------------------------------------------------
@@ -35,14 +35,16 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (editingData?.links && Array.isArray(editingData.links)) {
-            setLinks([...editingData.links]);
-        } else if (editingData?.facebookUrl) {
-            // Migration: if they had a facebookUrl, put it in links
-            setLinks([{ label: "Facebook", url: editingData.facebookUrl }]);
-        } else {
-            setLinks([]);
-        }
+        setTimeout(() => {
+            if (editingData?.links && Array.isArray(editingData.links)) {
+                setLinks([...editingData.links]);
+            } else if (editingData?.facebookUrl) {
+                // Migration: if they had a facebookUrl, put it in links
+                setLinks([{ label: "Facebook", url: editingData.facebookUrl }]);
+            } else {
+                setLinks([]);
+            }
+        }, 0);
     }, [editingData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

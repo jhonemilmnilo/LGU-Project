@@ -7,9 +7,9 @@ export default async function AdminReportsPage() {
     
     const stats = {
         total: reports.length,
-        pending: reports.filter((r: any) => r.status === "PENDING").length,
-        inProgress: reports.filter((r: any) => r.status === "IN_PROGRESS").length,
-        completed: reports.filter((r: any) => r.status === "COMPLETED").length,
+        pending: reports.filter((r: { status: string }) => r.status === "PENDING").length,
+        inProgress: reports.filter((r: { status: string }) => r.status === "IN_PROGRESS").length,
+        completed: reports.filter((r: { status: string }) => r.status === "COMPLETED").length,
     };
 
     return (

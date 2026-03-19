@@ -101,7 +101,7 @@ export function ReportForm() {
             } else {
                 toast.error(res.error || "Failed to submit report");
             }
-        } catch (error) {
+        } catch {
             toast.error("Something went wrong.");
         } finally {
             setIsSubmitting(false);

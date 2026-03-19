@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EDUCATIONAL_ATTAINMENT, EMPLOYMENT_STATUS, INCOME_RANGES } from "../../constants";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function GovSocioEconomicSection({ data }: { data?: any }) {
   const [eduVal, setEduVal] = useState(data?.educationalAttainment || "");
   const [empVal, setEmpVal] = useState(data?.employmentStatus || "");

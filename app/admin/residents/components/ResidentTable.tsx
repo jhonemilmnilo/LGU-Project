@@ -5,7 +5,7 @@ import { Resident } from "../providers/ResidentProvider";
 import { deleteResident } from "../../actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, Phone, BadgeCheck, MoreVertical, Skull, Radio, Eye } from "lucide-react";
+import { Edit, Trash2, Search, Phone, BadgeCheck, MoreVertical, Skull, Radio } from "lucide-react";
 import { toast } from "sonner";
 import {
     DropdownMenu,

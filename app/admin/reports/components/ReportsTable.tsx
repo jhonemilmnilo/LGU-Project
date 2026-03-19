@@ -47,7 +47,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { updateReportStatus } from "@/app/admin/actions";
-import { cn } from "@/lib/utils";
+
 
 interface Report {
     id: string;
@@ -104,7 +104,7 @@ export function ReportsTable({ initialReports }: { initialReports: Report[] }) {
             } else {
                 toast.error(res.error || "Update failed");
             }
-        } catch (error) {
+        } catch {
             toast.error("An error occurred");
         } finally {
             setIsUpdating(false);

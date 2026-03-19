@@ -2,32 +2,12 @@
 
 import { useResident } from "../providers";
 import { Resident } from "../providers/ResidentProvider";
-import { deleteResident } from "../../actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, Phone, BadgeCheck, Skull, Radio } from "lucide-react";
-import { toast } from "sonner";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toggleResidentDeathStatus } from "../../actions";
-import { RFIDCaptureModal } from "./RFIDCaptureModal";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Search, Phone, BadgeCheck } from "lucide-react";
+
+
+
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,8 +24,6 @@ export function ResidentTable() {
         selectedGender,
         selectedCategory,
         selectedStatus,
-        setEditingData,
-        setIsAddModalOpen,
     } = useResident();
 
     const filteredResidents = residents.filter((r) => {
@@ -64,8 +42,6 @@ export function ResidentTable() {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [isRFIDModalOpen, setIsRFIDModalOpen] = useState(false);
-    const [selectedResident, setSelectedResident] = useState<{id: string, name: string} | null>(null);
     const [reviewResident, setReviewResident] = useState<Resident | null>(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
@@ -79,44 +55,7 @@ export function ResidentTable() {
     const totalPages = Math.ceil(filteredResidents.length / itemsPerPage);
     const paginatedResidents = filteredResidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    const handleDelete = async (id: string) => {
-        try {
-            const response = await deleteResident(id);
-            if (response.success) {
-                setResidents(prev => prev.filter(r => r.id !== id));
-                toast.success("Resident entry deleted successfully!");
-            } else {
-                toast.error(response.error || "Failed to delete resident entry.");
-            }
-        } catch {
-            toast.error("An error occurred while deleting the resident.");
-        }
-    };
 
-    const handleEdit = (resident: Resident) => {
-        setEditingData(resident);
-        setIsAddModalOpen(true);
-    };
-
-    const handleToggleIsDead = async (id: string, currentStatus: boolean, name: string) => {
-        const newStatus = !currentStatus;
-        try {
-            const res = await toggleResidentDeathStatus(id, newStatus);
-            if (res.success) {
-                setResidents(prev => prev.map(r => r.id === id ? { ...r, isDead: newStatus } : r));
-                toast.success(`${name} marked as ${newStatus ? 'Deceased' : 'Alive'}.`);
-            } else {
-                toast.error(res.error || "Failed to update status.");
-            }
-        } catch {
-            toast.error("An error occurred.");
-        }
-    };
-
-    const openRFIDModal = (id: string, name: string) => {
-        setSelectedResident({ id, name });
-        setIsRFIDModalOpen(true);
-    };
 
     const openReviewModal = (resident: Resident, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -298,12 +237,6 @@ export function ResidentTable() {
                     </div>
                 </div>
             </div>
-            <RFIDCaptureModal 
-                isOpen={isRFIDModalOpen}
-                onClose={() => setIsRFIDModalOpen(false)}
-                residentId={selectedResident?.id || ""}
-                residentName={selectedResident?.name || ""}
-            />
             <ResidentReviewModal
                 resident={reviewResident}
                 isOpen={isReviewModalOpen}

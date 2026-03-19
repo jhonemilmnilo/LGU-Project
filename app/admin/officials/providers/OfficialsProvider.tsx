@@ -8,6 +8,7 @@ export interface Official {
     position: string;
     contactNumber: string | null;
     email: string | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     links: any;
     bio: string | null;
     education: string | null;

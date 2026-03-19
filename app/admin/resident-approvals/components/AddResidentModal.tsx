@@ -35,27 +35,29 @@ export function AddResidentModal() {
 
     useEffect(() => {
         if (isAddModalOpen) {
-            // Reset to Step 1 whenever modal is opened
-            setCurrentStep(0);
-            
-            if (editingData) {
-                // Combine manual family members and linked household members
-                const manual = editingData.familyMembers || [];
-                const linked = (editingData.isHead && editingData.household?.members)
-                    ? editingData.household.members
-                        .filter(m => m.id !== editingData.id)
-                        .map(m => ({
-                            id: m.id,
-                            fullName: `${m.firstName} ${m.lastName}`,
-                            relationship: m.relationshipToHead || "Member",
-                            age: m.age || ""
-                        }))
-                    : [];
+            setTimeout(() => {
+                // Reset to Step 1 whenever modal is opened
+                setCurrentStep(0);
                 
-                setCurrentFamilyMembers([...manual, ...linked]);
-            } else {
-                setCurrentFamilyMembers([]);
-            }
+                if (editingData) {
+                    // Combine manual family members and linked household members
+                    const manual = editingData.familyMembers || [];
+                    const linked = (editingData.isHead && editingData.household?.members)
+                        ? editingData.household.members
+                            .filter(m => m.id !== editingData.id)
+                            .map(m => ({
+                                id: m.id,
+                                fullName: `${m.firstName} ${m.lastName}`,
+                                relationship: m.relationshipToHead || "Member",
+                                age: m.age || ""
+                            }))
+                        : [];
+                    
+                    setCurrentFamilyMembers([...manual, ...linked]);
+                } else {
+                    setCurrentFamilyMembers([]);
+                }
+            }, 0);
         }
     }, [isAddModalOpen, editingData, setCurrentFamilyMembers]);
 
