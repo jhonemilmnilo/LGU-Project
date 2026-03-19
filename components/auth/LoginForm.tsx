@@ -72,8 +72,10 @@ export function LoginForm({ onSuccess, themeColor = "#2563eb" }: LoginFormProps)
                 }
 
                 // Normal redirect based on role
-                if (role === "ADMIN") {
+                if (role === "ADMIN" || role === "CONTENT_ADMIN") {
                     router.push("/admin/dashboard");
+                } else if (role === "USER") {
+                    router.push("/");
                 } else {
                     router.push("/");
                 }

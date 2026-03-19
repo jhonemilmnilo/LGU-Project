@@ -14,8 +14,18 @@ import { EmergencyReport } from "@/components/sections/landing/EmergencyReport";
 import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function Home() {
+    const session = await getServerSession(authOptions);
+    const role = (session?.user as any)?.role;
+    
+    // Completely block any Admin/Content Admin from the landing page.
+    if (session && role && role !== "USER") {
+        redirect("/admin/dashboard");
+    }
+
     // 0. Cinematic Delay - specifically for seeing the full animation as requested
     await new Promise(resolve => setTimeout(resolve, 6000));
 

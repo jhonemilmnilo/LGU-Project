@@ -12,7 +12,11 @@ export default async function AdminLayout({
 }) {
     const session = await getServerSession(authOptions);
 
-    if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+    if (!session) {
+        redirect("/auth/login");
+    }
+    const role = (session.user as { role?: string })?.role;
+    if (role !== "ADMIN" && role !== "CONTENT_ADMIN") {
         redirect("/auth/login");
     }
 
@@ -30,7 +34,7 @@ export default async function AdminLayout({
 
     return (
         <div 
-            className="flex min-h-screen bg-slate-50 dark:bg-[#0f1117] text-slate-900 dark:text-slate-200 font-sans transition-colors duration-300"
+            className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#0f1117] text-slate-900 dark:text-slate-200 font-sans transition-colors duration-300"
             style={{ "--primary-theme": settings.get("theme_color") || "#2563eb" } as React.CSSProperties}
         >
             <Sidebar 

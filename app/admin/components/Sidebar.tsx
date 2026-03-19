@@ -7,8 +7,9 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp
+    ChevronDown, ChevronUp, LogOut, Menu, X
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -18,6 +19,7 @@ interface SidebarProps {
             name?: string | null;
             email?: string | null;
             image?: string | null;
+            role?: string;
         };
     };
     logoUrl?: string;
@@ -38,9 +40,11 @@ export function Sidebar({
     pendingResidentsCount = 0
 }: SidebarProps) {
     const pathname = usePathname();
+    const role = session?.user?.role || "ADMIN";
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
-    const menuItems = [
+    const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { 
             label: "Website Settings", 
@@ -74,12 +78,52 @@ export function Sidebar({
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
+    const contentAdminAllowed = [
+        "Dashboard", 
+        "Announcements", 
+        "News & Updates", 
+        "Events", 
+        "LGU Projects", 
+        "Kainan (Dining)", 
+        "Tuluyan (Stay)", 
+        "Gallery", 
+        "Job Postings"
+    ];
+
+    const menuItems = role === "CONTENT_ADMIN" 
+        ? allMenuItems.filter(item => contentAdminAllowed.includes(item.label))
+        : allMenuItems;
+
     return (
-        <aside className="w-64 bg-white dark:bg-[#1e2330] border-r border-slate-200 dark:border-[#2a3040] flex flex-col justify-between hidden md:flex transition-colors duration-300">
-            <div className="overflow-y-auto custom-scrollbar">
-                {/* Logo & Branding */}
-                {/* Logo & Branding */}
-                <div className="p-6 flex items-center space-x-3">
+        <>
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+                    onClick={() => setIsSidebarOpen(false)} 
+                />
+            )}
+
+            {/* Sidebar Toggle Button */}
+            <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className={cn(
+                    "fixed z-50 p-2 bg-white dark:bg-[#1e2330] rounded-lg shadow-md border border-slate-200 dark:border-[#2a3040] transition-all duration-300 text-slate-600 dark:text-slate-300 hover:text-primary",
+                    isSidebarOpen ? "opacity-0 pointer-events-none -translate-x-full" : "top-4 left-4 opacity-100 translate-x-0"
+                )}
+            >
+                <Menu size={20} />
+            </button>
+
+            <aside className={cn(
+                "fixed md:static inset-y-0 left-0 flex-shrink-0 z-40 bg-white dark:bg-[#1e2330] border-r border-slate-200 dark:border-[#2a3040] transition-all duration-300 overflow-hidden",
+                isSidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"
+            )}>
+                <div className="w-64 h-full flex flex-col justify-between">
+                    <div className="overflow-y-auto custom-scrollbar flex-1 pb-4">
+                        {/* Logo & Branding */}
+                        <div className="p-6 flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
                     <div 
                         className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg"
                         style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
@@ -98,6 +142,13 @@ export function Sidebar({
                         <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Admin Control</p>
                     </div>
                 </div>
+                <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 transition-colors"
+                >
+                    <X size={20} />
+                </button>
+            </div>
 
                 <nav className="px-4 space-y-1">
                     {menuItems.map((item, idx) => {
@@ -215,12 +266,21 @@ export function Sidebar({
                                 className="text-[10px] text-slate-500 mt-1 hover:opacity-80 cursor-pointer transition-colors font-bold uppercase tracking-widest"
                                 style={{ color: themeColor }}
                             >
-                                Admin System
+                                {role === "CONTENT_ADMIN" ? "Content Admin" : "Admin System"}
                             </p>
                         </div>
                     </div>
+                    <button 
+                        onClick={() => signOut({ callbackUrl: "/auth/login" })}
+                        className="p-2 text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Log Out"
+                    >
+                        <LogOut size={18} />
+                    </button>
                 </div>
             </div>
+            </div>
         </aside>
+        </>
     );
 }
