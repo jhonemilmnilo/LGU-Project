@@ -380,8 +380,8 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
         imageUrl: "",
         primaryBtnText: "",
         primaryBtnLink: "",
-        secondaryBtnText: "",
-        secondaryBtnLink: "",
+        secondaryBtnText: "Learn More",
+        secondaryBtnLink: "/about",
     });
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

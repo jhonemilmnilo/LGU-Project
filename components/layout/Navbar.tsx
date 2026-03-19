@@ -9,7 +9,7 @@ import {
     Shield, Menu, X, LogIn, LogOut, 
     ChevronDown, Bell, Briefcase, 
     
-    Map, Newspaper, PhoneCall, LayoutGrid, 
+    Map, Newspaper, PhoneCall, LayoutGrid, Info,
     
     Compass, HeartPulse, Users,
     Utensils, Bed, FolderKanban
@@ -94,6 +94,7 @@ export function Navbar({
 
     // Standard public links
     const publicLinks = [
+        { name: "About", href: "/about", icon: Info },
         { name: "Services", href: "/#services", icon: Briefcase },
         { name: "Gallery", href: "/#tourism", icon: Compass },
         { name: "Updates", href: "/#news", icon: Newspaper },
@@ -109,6 +110,7 @@ export function Navbar({
         { name: "Accommodations", href: "/user/accommodation", icon: Bed },
         { name: "Gallery", href: "/user/tourism", icon: Compass },
         { name: "Projects", href: "/user/projects", icon: FolderKanban },
+        { name: "About LGU", href: "/about", icon: Info },
         { name: "Services", href: "/user/services", icon: HeartPulse },
         { name: "Leadership", href: "/user/leadership", icon: Users },
     ];

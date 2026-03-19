@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Menu, X
+    ChevronDown, ChevronUp, LogOut, Menu, X, Info
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,7 @@ export function Sidebar({
                 { href: "/admin/settings?tab=credentials", label: "Credentials" },
             ]
         },
+        { href: "/admin/about", label: "About Content", icon: Info, category: "Website Control" },
         { href: "/admin/announcements", label: "Announcements", icon: Megaphone, category: "Content" },
         { href: "/admin/news", label: "News & Updates", icon: Newspaper },
         { href: "/admin/events", label: "Events", icon: Calendar },
@@ -80,6 +81,7 @@ export function Sidebar({
 
     const contentAdminAllowed = [
         "Dashboard", 
+        "About Content",
         "Announcements", 
         "News & Updates", 
         "Events", 

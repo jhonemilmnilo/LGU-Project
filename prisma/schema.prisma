@@ -471,3 +471,18 @@ model Report {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
+
+model AboutPage {
+  id                      String   @id @default(cuid())
+  history                 String   @db.Text
+  mission                 String   @db.Text
+  vision                  String   @db.Text
+  coreValues              String   @db.Text
+  mayorMessage            String   @db.Text
+  mayorImageUrl           String?
+  geographyOrDemographics String?  @db.Text
+  coverImages             Json?    @default("[]")
+  
+  updatedAt               DateTime @updatedAt
+  createdAt               DateTime @default(now())
+}

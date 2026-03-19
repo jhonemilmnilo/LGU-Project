@@ -6,7 +6,7 @@ import { writeFile, mkdir, unlink } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 
-async function deleteUploadedFile(imageUrl: string | null | undefined) {
+export async function deleteUploadedFile(imageUrl: string | null | undefined) {
     if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
 
     try {
@@ -21,7 +21,15 @@ async function deleteUploadedFile(imageUrl: string | null | undefined) {
 
 export async function processImageUpload(formData: FormData, fieldName: string = "imageFile"): Promise<string | null> {
     const file = (formData.get(fieldName) || formData.get(fieldName + "File")) as File | null;
-    let existingUrl = (formData.get(fieldName) || formData.get("imageUrl")) as string | null;
+    
+    let rawExisting = formData.get(fieldName) || formData.get("imageUrl");
+    let existingUrl: string | null = null;
+    
+    if (typeof rawExisting === 'string') {
+        existingUrl = rawExisting;
+    } else if (typeof formData.get("imageUrl") === 'string') {
+        existingUrl = formData.get("imageUrl") as string;
+    }
 
     if (file && file.size > 0 && file.name !== "undefined") {
         try {
