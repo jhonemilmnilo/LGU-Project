@@ -11,8 +11,17 @@ interface LoadingProps {
     themeColor?: string;
 }
 
+declare global {
+  interface Window {
+    _app_has_loaded?: boolean;
+  }
+}
+
 export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor }: LoadingProps) {
     const [phase, setPhase] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const [isFirstLoad, setIsFirstLoad] = useState(true);
+
     const phrases = [
 
         `Accessing ${brand1 || "Mapandan"} Gateway...`,
@@ -20,6 +29,18 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
     ];
 
     useEffect(() => {
+        // Check if app has already loaded in this window session
+        // Using window property instead of sessionStorage so it resets on full refresh
+        if (typeof window !== "undefined" && window._app_has_loaded) {
+            setIsFirstLoad(false);
+            return;
+        }
+
+        setIsVisible(true);
+        if (typeof window !== "undefined") {
+            window._app_has_loaded = true;
+        }
+
         const interval = setInterval(() => {
             setPhase((p) => {
                 if (p < phrases.length - 1) return p + 1;
@@ -30,6 +51,9 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // If it's not the first load of the window session, or if we are still mounting on first load
+    if (!isFirstLoad || (!isVisible && typeof window !== "undefined")) return null;
 
 
     return (
