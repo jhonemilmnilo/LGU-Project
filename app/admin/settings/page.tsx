@@ -16,12 +16,28 @@ export default async function SettingsPage() {
         return acc;
     }, {});
 
+    // Default section visibility settings if not set
+    const defaultSectionSettings = {
+        section_dining_lodging: "true",
+        section_places_to_visit: "true",
+        section_events: "true",
+        section_announcements: "true",
+        section_lgu_projects: "true",
+        section_jobs: "true",
+        section_government: "true",
+        section_services: "true",
+        section_emergency: "true",
+    };
+
+    // Merge with defaults for any missing settings
+    const finalSettings = { ...defaultSectionSettings, ...settings };
+
     return (
         <div className="p-8">
             <Suspense fallback={<div>Loading Settings...</div>}>
-                <SettingsClient 
-                    settings={settings} 
-                    slides={slides} 
+                <SettingsClient
+                    settings={finalSettings}
+                    slides={slides}
                 />
             </Suspense>
         </div>

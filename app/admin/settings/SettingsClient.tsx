@@ -8,13 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogDescription, 
-    DialogFooter, 
-    DialogHeader, 
-    DialogTitle, 
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send } from "lucide-react";
 import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
@@ -68,7 +68,7 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
         setIsSaving(true);
         try {
             await updateSystemSetting("maintenance_mode", maintenanceMode.toString());
-            
+
             // Handle logo
             if (logoFile) {
                 const formData = new FormData();
@@ -90,7 +90,7 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
             await updateSystemSetting("brand_word_2", brandWord2);
             await updateSystemSetting("theme_color", themeColor);
             toast.success("Settings updated successfully!");
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast.error("Failed to save settings");
         } finally {
@@ -130,8 +130,8 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                         Redirects all public visitors to the maintenance page.
                                     </p>
                                 </div>
-                                <Switch 
-                                    checked={maintenanceMode} 
+                                <Switch
+                                    checked={maintenanceMode}
                                     onCheckedChange={setMaintenanceMode}
                                     className="data-[state=checked]:bg-amber-600"
                                 />
@@ -147,17 +147,17 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-slate-400">Upload Logo</Label>
-                                            <Input 
-                                                type="file" 
-                                                accept="image/*" 
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
                                                 onChange={handleLogoChange}
                                                 className="rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs file:text-[10px] file:font-bold"
                                             />
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-slate-400">Or Logo URL</Label>
-                                            <Input 
-                                                value={logoUrl} 
+                                            <Input
+                                                value={logoUrl}
                                                 onChange={(e) => setLogoUrl(e.target.value)}
                                                 placeholder="https://example.com/logo.png"
                                                 className="font-mono text-xs rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
@@ -173,19 +173,19 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                     <div className="relative w-24 h-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center p-2 shadow-inner">
                                         {(logoPreview || logoUrl) ? (
                                             // eslint-disable-next-line @next/next/no-img-element
-                                            <img 
-                                                src={logoPreview || logoUrl} 
-                                                alt="Logo Preview" 
-                                                className="max-w-full max-h-full object-contain" 
+                                            <img
+                                                src={logoPreview || logoUrl}
+                                                alt="Logo Preview"
+                                                className="max-w-full max-h-full object-contain"
                                             />
                                         ) : (
                                             <ImageIcon className="w-10 h-10 text-slate-200" />
                                         )}
                                     </div>
                                     {(logoPreview || logoUrl) && (
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => { setLogoUrl(""); setLogoPreview(null); setLogoFile(null); }}
                                             className="h-7 text-[8px] font-black uppercase text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
                                         >
@@ -207,8 +207,8 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-slate-400">Branding First Word</Label>
-                                            <Input 
-                                                value={brandWord1} 
+                                            <Input
+                                                value={brandWord1}
                                                 onChange={(e) => setBrandWord1(e.target.value)}
                                                 placeholder="E"
                                                 className="rounded-xl"
@@ -216,8 +216,8 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-slate-400">Branding Second Word</Label>
-                                            <Input 
-                                                value={brandWord2} 
+                                            <Input
+                                                value={brandWord2}
                                                 onChange={(e) => setBrandWord2(e.target.value)}
                                                 placeholder="Mapandan"
                                                 className="rounded-xl"
@@ -226,14 +226,14 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase text-slate-400">Primary Theme Color</Label>
                                             <div className="flex gap-2">
-                                                <Input 
+                                                <Input
                                                     type="color"
-                                                    value={themeColor} 
+                                                    value={themeColor}
                                                     onChange={(e) => setThemeColor(e.target.value)}
                                                     className="w-12 h-10 p-1 rounded-lg cursor-pointer"
                                                 />
-                                                <Input 
-                                                    value={themeColor} 
+                                                <Input
+                                                    value={themeColor}
                                                     onChange={(e) => setThemeColor(e.target.value)}
                                                     placeholder="#2563eb"
                                                     className="rounded-xl font-mono uppercase"
@@ -248,17 +248,17 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                             <div className="text-3xl font-black uppercase tracking-tighter italic leading-none text-slate-900 dark:text-white">
                                                 {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
                                             </div>
-                                            <div 
+                                            <div
                                                 className="h-1 w-24 mt-2 rounded-full"
                                                 style={{ background: `linear-gradient(to right, ${themeColor}, transparent)` }}
                                             />
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="pt-4">
-                                    <Button 
-                                        onClick={handleSaveSettings} 
+                                    <Button
+                                        onClick={handleSaveSettings}
                                         disabled={isSaving}
                                         className="w-full h-14 bg-slate-900 dark:bg-white dark:text-slate-950 text-white hover:opacity-90 rounded-2xl font-black uppercase tracking-widest shadow-xl transition-all active:scale-[0.98]"
                                     >
@@ -290,8 +290,8 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
                                     <Input value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} className="rounded-xl" />
                                 </div>
                             </div>
-                            <Button 
-                                onClick={handleSaveSettings} 
+                            <Button
+                                onClick={handleSaveSettings}
                                 disabled={isSaving}
                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-6"
                             >
@@ -303,6 +303,10 @@ export function SettingsClient({ settings, slides }: SettingsClientProps) {
 
                 <TabsContent value="hero" className="space-y-6">
                     <HeroSlidesManager initialSlides={slides} themeColor={themeColor} />
+                </TabsContent>
+
+                <TabsContent value="sections" className="space-y-6">
+                    <SectionVisibilityManager settings={settings} />
                 </TabsContent>
             </Tabs>
         </div>
@@ -316,7 +320,7 @@ function HeroSlidesManager({ initialSlides, themeColor }: { initialSlides: any[]
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this slide?")) return;
-        
+
         const result = await deleteHeroSlide(id);
         if (result.success) {
             toast.success("Slide deleted");
@@ -351,9 +355,9 @@ function HeroSlidesManager({ initialSlides, themeColor }: { initialSlides: any[]
                 ))}
             </div>
 
-            <AddHeroSlideModal 
-                isOpen={showAddModal} 
-                onClose={() => setShowAddModal(false)} 
+            <AddHeroSlideModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
                 order={slides.length}
                 themeColor={themeColor}
             />
@@ -366,6 +370,93 @@ interface AddHeroSlideModalProps {
     onClose: () => void;
     order: number;
     themeColor: string;
+}
+
+// Section Visibility Manager Component
+function SectionVisibilityManager({ settings }: { settings: Record<string, string> }) {
+    const [sectionStates, setSectionStates] = useState({
+        section_dining_lodging: settings.section_dining_lodging !== "false",
+        section_places_to_visit: settings.section_places_to_visit !== "false",
+        section_events: settings.section_events !== "false",
+        section_announcements: settings.section_announcements !== "false",
+        section_lgu_projects: settings.section_lgu_projects !== "false",
+        section_jobs: settings.section_jobs !== "false",
+        section_government: settings.section_government !== "false",
+        section_services: settings.section_services !== "false",
+        section_emergency: settings.section_emergency !== "false",
+    });
+    const [isSaving, setIsSaving] = useState(false);
+
+    const sections = [
+        { key: "section_dining_lodging", label: "Kainan at Tuluyan", description: "Dining and lodging establishments" },
+        { key: "section_places_to_visit", label: "Gallery", description: "Tourist spots and attractions" },
+        { key: "section_events", label: "Upcoming Events", description: "Calendar of events" },
+        { key: "section_announcements", label: "Announcements", description: "News and announcements" },
+        { key: "section_lgu_projects", label: "LGU Projects", description: "Infrastructure projects" },
+        { key: "section_jobs", label: "Serve the Community", description: "Job opportunities" },
+        { key: "section_government", label: "Municipal Government", description: "List of officials" },
+        { key: "section_services", label: "Services & Projects", description: "Municipal services" },
+        { key: "section_emergency", label: "Emergency Hotlines", description: "Emergency contact information" },
+    ];
+
+    const handleToggle = (key: string) => {
+        setSectionStates(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            for (const [key, value] of Object.entries(sectionStates)) {
+                await updateSystemSetting(key, value.toString());
+            }
+            toast.success("Section visibility updated successfully!");
+        } catch {
+            toast.error("Failed to save section settings");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Card className="border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                <CardTitle className="flex items-center gap-2">
+                    <Layout className="w-5 h-5 text-blue-600" />
+                    Landing Page Sections
+                </CardTitle>
+                <CardDescription>Show or hide sections on the public landing page.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+                {sections.map((section) => (
+                    <div
+                        key={section.key}
+                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800"
+                    >
+                        <div className="space-y-1">
+                            <Label className="text-base font-bold text-slate-900 dark:text-white">
+                                {section.label}
+                            </Label>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                                {section.description}
+                            </p>
+                        </div>
+                        <Switch
+                            checked={sectionStates[section.key as keyof typeof sectionStates]}
+                            onCheckedChange={() => handleToggle(section.key)}
+                            className="data-[state=checked]:bg-emerald-600"
+                        />
+                    </div>
+                ))}
+                <Button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold mt-4"
+                >
+                    {isSaving ? "Saving..." : "Save Section Settings"}
+                </Button>
+            </CardContent>
+        </Card>
+    );
 }
 
 function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideModalProps) {
@@ -441,19 +532,19 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Main Title</Label>
-                                    <Input 
-                                        placeholder="e.g. Welcome to Mapandan" 
+                                    <Input
+                                        placeholder="e.g. Welcome to Mapandan"
                                         value={formData.title}
-                                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                         className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tagline</Label>
-                                    <Input 
-                                        placeholder="e.g. The Home of Umbrella Rocks" 
+                                    <Input
+                                        placeholder="e.g. The Home of Umbrella Rocks"
                                         value={formData.tagline}
-                                        onChange={(e) => setFormData({...formData, tagline: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                                         className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium italic"
                                     />
                                 </div>
@@ -461,10 +552,10 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
 
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Subtitle / Description</Label>
-                                <Input 
-                                    placeholder="Enter a brief description of this slide..." 
+                                <Input
+                                    placeholder="Enter a brief description of this slide..."
                                     value={formData.subtitle}
-                                    onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
+                                    onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
                                     className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                                 />
                             </div>
@@ -476,41 +567,41 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                                 <Layout className="w-3.5 h-3.5" />
                                 Action Buttons
                             </Label>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <Label className="text-[9px] font-bold text-slate-400">Primary Text</Label>
-                                    <Input 
-                                        placeholder="Explore" 
+                                    <Input
+                                        placeholder="Explore"
                                         value={formData.primaryBtnText}
-                                        onChange={(e) => setFormData({...formData, primaryBtnText: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, primaryBtnText: e.target.value })}
                                         className="rounded-xl h-10 text-xs"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[9px] font-bold text-slate-400">Primary Link</Label>
-                                    <Input 
-                                        placeholder="/explore" 
+                                    <Input
+                                        placeholder="/explore"
                                         value={formData.primaryBtnLink}
-                                        onChange={(e) => setFormData({...formData, primaryBtnLink: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, primaryBtnLink: e.target.value })}
                                         className="rounded-xl h-10 text-xs font-mono"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[9px] font-bold text-slate-400">Secondary Text</Label>
-                                    <Input 
-                                        placeholder="Learn More" 
+                                    <Input
+                                        placeholder="Learn More"
                                         value={formData.secondaryBtnText}
-                                        onChange={(e) => setFormData({...formData, secondaryBtnText: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, secondaryBtnText: e.target.value })}
                                         className="rounded-xl h-10 text-xs"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[9px] font-bold text-slate-400">Secondary Link</Label>
-                                    <Input 
-                                        placeholder="/about" 
+                                    <Input
+                                        placeholder="/about"
                                         value={formData.secondaryBtnLink}
-                                        onChange={(e) => setFormData({...formData, secondaryBtnLink: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, secondaryBtnLink: e.target.value })}
                                         className="rounded-xl h-10 text-xs font-mono"
                                     />
                                 </div>
@@ -525,7 +616,7 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                                 <ImageIcon className="w-3.5 h-3.5" />
                                 Slide Imagery
                             </Label>
-                            
+
                             <div className="aspect-video rounded-[2rem] bg-slate-100 dark:bg-slate-900 overflow-hidden relative border-2 border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center group">
                                 {previewUrl || formData.imageUrl ? (
                                     <>
@@ -546,9 +637,9 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             <div className="space-y-3">
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase text-slate-400">Upload High-Res Image</Label>
-                                    <Input 
-                                        type="file" 
-                                        accept="image/*" 
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
                                         onChange={handleFileChange}
                                         className="rounded-xl h-12 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 file:border-none file:bg-slate-200 dark:file:bg-slate-800 file:text-[10px] file:font-black file:uppercase file:mr-4 file:h-full file:px-4 cursor-pointer"
                                     />
@@ -559,10 +650,10 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-black uppercase text-slate-400">External Image URL</Label>
-                                    <Input 
-                                        placeholder="https://images.unsplash.com/..." 
+                                    <Input
+                                        placeholder="https://images.unsplash.com/..."
                                         value={formData.imageUrl}
-                                        onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                                         className="h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-mono text-[10px]"
                                     />
                                 </div>
@@ -572,15 +663,15 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                 </div>
 
                 <DialogFooter className="p-8 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         onClick={onClose}
                         className="rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]"
                     >
                         Cancel
                     </Button>
-                    <Button 
-                        onClick={handleSave} 
+                    <Button
+                        onClick={handleSave}
                         disabled={isSaving}
                         className="bg-slate-900 dark:bg-white dark:text-slate-950 text-white rounded-2xl px-12 h-14 font-black uppercase tracking-widest text-[10px] shadow-2xl transition-all active:scale-[0.98] flex items-center gap-3"
                         style={{ backgroundColor: themeColor }}
@@ -668,37 +759,37 @@ function SlideEditor({ slide, onSave, onDelete }: { slide: any, onSave: (id: str
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <Label className="text-[10px] font-black uppercase text-slate-400">Title</Label>
-                            <Input value={data.title} onChange={(e) => setData({...data, title: e.target.value})} className="h-9 rounded-lg" />
+                            <Input value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} className="h-9 rounded-lg" />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-[10px] font-black uppercase text-slate-400">Tagline</Label>
-                            <Input value={data.tagline || ""} onChange={(e) => setData({...data, tagline: e.target.value})} className="h-9 rounded-lg" />
+                            <Input value={data.tagline || ""} onChange={(e) => setData({ ...data, tagline: e.target.value })} className="h-9 rounded-lg" />
                         </div>
                     </div>
 
                     <div className="space-y-1">
                         <Label className="text-[10px] font-black uppercase text-slate-400">Subtitle</Label>
-                        <Input value={data.subtitle || ""} onChange={(e) => setData({...data, subtitle: e.target.value})} className="h-9 rounded-lg" />
+                        <Input value={data.subtitle || ""} onChange={(e) => setData({ ...data, subtitle: e.target.value })} className="h-9 rounded-lg" />
                     </div>
 
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label className="text-[10px] font-black uppercase text-slate-400">Upload Image</Label>
-                                <Input 
-                                    type="file" 
-                                    accept="image/*" 
+                                <Input
+                                    type="file"
+                                    accept="image/*"
                                     onChange={handleFileChange}
-                                    className="h-9 rounded-lg text-xs file:bg-slate-100 dark:file:bg-slate-800 file:border-0 file:rounded-md file:mr-2 file:text-[10px] file:font-bold" 
+                                    className="h-9 rounded-lg text-xs file:bg-slate-100 dark:file:bg-slate-800 file:border-0 file:rounded-md file:mr-2 file:text-[10px] file:font-bold"
                                 />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-[10px] font-black uppercase text-slate-400">Or Image URL</Label>
-                                <Input 
-                                    value={data.imageUrl} 
-                                    onChange={(e) => setData({...data, imageUrl: e.target.value})} 
+                                <Input
+                                    value={data.imageUrl}
+                                    onChange={(e) => setData({ ...data, imageUrl: e.target.value })}
                                     placeholder="https://..."
-                                    className="h-9 rounded-lg font-mono text-[10px]" 
+                                    className="h-9 rounded-lg font-mono text-[10px]"
                                 />
                             </div>
                         </div>
@@ -706,17 +797,17 @@ function SlideEditor({ slide, onSave, onDelete }: { slide: any, onSave: (id: str
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <Label className="text-[10px] font-black uppercase text-slate-400">Order</Label>
-                                <Input type="number" value={data.order} onChange={(e) => setData({...data, order: e.target.value})} className="h-9 rounded-lg" />
+                                <Input type="number" value={data.order} onChange={(e) => setData({ ...data, order: e.target.value })} className="h-9 rounded-lg" />
                             </div>
                             <div className="flex flex-col justify-end pb-1 px-2">
                                 <Label className="text-[10px] font-black uppercase text-slate-400 mb-1">Active</Label>
-                                <Switch checked={data.isActive} onCheckedChange={(val) => setData({...data, isActive: val})} />
+                                <Switch checked={data.isActive} onCheckedChange={(val) => setData({ ...data, isActive: val })} />
                             </div>
                         </div>
                     </div>
 
                     <div className="pt-4 flex border-t border-slate-200 dark:border-slate-800 gap-4">
-                        <Button 
+                        <Button
                             onClick={handleLocalSave}
                             disabled={isSaving}
                             className="bg-slate-900 dark:bg-slate-100 dark:text-slate-950 text-white hover:bg-slate-800 rounded-full px-6 gap-2 flex-grow sm:flex-grow-0"
@@ -724,8 +815,8 @@ function SlideEditor({ slide, onSave, onDelete }: { slide: any, onSave: (id: str
                             <Save className="w-4 h-4" />
                             {isSaving ? "Saving..." : "Save Changes"}
                         </Button>
-                        <Button 
-                            variant="ghost" 
+                        <Button
+                            variant="ghost"
                             disabled={isSaving}
                             onClick={() => onDelete(slide.id)}
                             className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-full px-4 gap-2"

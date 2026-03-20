@@ -20,7 +20,7 @@ import { authOptions } from "@/lib/auth";
 export default async function Home() {
     const session = await getServerSession(authOptions);
     const role = (session?.user as { role?: string })?.role;
-    
+
     // Completely block any Admin/Content Admin from the landing page.
     if (session && role && role !== "USER") {
         redirect("/admin/dashboard");
@@ -31,13 +31,22 @@ export default async function Home() {
 
     // 1. Fetch all needed system settings first in one query
     const settings = await getMultipleSystemSettings([
-        "maintenance_mode", 
+        "maintenance_mode",
         "site_logo",
         "brand_word_1",
         "brand_word_2",
-        "theme_color"
+        "theme_color",
+        "section_dining_lodging",
+        "section_places_to_visit",
+        "section_events",
+        "section_announcements",
+        "section_lgu_projects",
+        "section_jobs",
+        "section_government",
+        "section_services",
+        "section_emergency"
     ]);
-    
+
     // Check Maintenance Mode
     const maintenance = settings.get("maintenance_mode") === "true";
     if (maintenance) {
@@ -48,6 +57,17 @@ export default async function Home() {
     const brandWord1 = settings.get("brand_word_1") || "E";
     const brandWord2 = settings.get("brand_word_2") || "Mapandan";
     const themeColor = settings.get("theme_color") || "#2563eb";
+
+    // Section visibility settings (default to true if not set)
+    const showDiningLodging = settings.get("section_dining_lodging") !== "false";
+    const showPlacesToVisit = settings.get("section_places_to_visit") !== "false";
+    const showEvents = settings.get("section_events") !== "false";
+    const showAnnouncements = settings.get("section_announcements") !== "false";
+    const showLGUProjects = settings.get("section_lgu_projects") !== "false";
+    const showJobs = settings.get("section_jobs") !== "false";
+    const showGovernment = settings.get("section_government") !== "false";
+    const showServices = settings.get("section_services") !== "false";
+    const showEmergency = settings.get("section_emergency") !== "false";
 
     // 2. Fetch Content
     const [slides, tourismSpots, dining, lodging, announcements, events, news, projects, jobs, officials, hotlines] = await Promise.all([
@@ -116,58 +136,58 @@ export default async function Home() {
     // Merge and shuffle discovery items
     const discoveryItems = [
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...dining.map((d: any) => ({ 
-            ...d, 
+        ...dining.map((d: any) => ({
+            ...d,
             itemType: "kainan" as const,
-            cuisineType: d.cuisineType || undefined 
+            cuisineType: d.cuisineType || undefined
         })),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...lodging.map((l: any) => ({ 
-            ...l, 
+        ...lodging.map((l: any) => ({
+            ...l,
             itemType: "tuluyan" as const,
-            type: l.type || undefined 
+            type: l.type || undefined
         }))
-// eslint-disable-next-line react-hooks/purity
+        // eslint-disable-next-line react-hooks/purity
     ].sort(() => Math.random() - 0.5);
 
     return (
-        <main 
+        <main
             className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-primary/30"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
-            <Navbar 
-                logoUrl={logoUrl} 
-                brandWord1={brandWord1} 
-                brandWord2={brandWord2} 
-                themeColor={themeColor} 
+            <Navbar
+                logoUrl={logoUrl}
+                brandWord1={brandWord1}
+                brandWord2={brandWord2}
+                themeColor={themeColor}
             />
-            
+
             <Hero slides={slides} themeColor={themeColor} />
-            
+
             <div className="space-y-4 pb-32">
-                <DiningLodging items={discoveryItems} />
-                <PlacesToVisit spots={tourismSpots} />
-                
+                {showDiningLodging && <DiningLodging items={discoveryItems} />}
+                {showPlacesToVisit && <PlacesToVisit spots={tourismSpots} />}
+
                 {/* Major Updates: Events with Calendar */}
-                <EventsCalendarSection events={events} />
-                
+                {showEvents && <EventsCalendarSection events={events} />}
+
                 {/* Announcements & News Section */}
-                <AnnouncementsNews announcements={announcements} news={news} />
+                {showAnnouncements && <AnnouncementsNews announcements={announcements} news={news} />}
 
                 {/* Infrastructure Projects Section */}
-                <LGUProjects projects={projects} />
-                
-                <JobBoard jobs={jobs} />
-                <Government officials={officials} />
-                <Services />
+                {showLGUProjects && <LGUProjects projects={projects} />}
+
+                {showJobs && <JobBoard jobs={jobs} />}
+                {showGovernment && <Government officials={officials} />}
+                {showServices && <Services />}
             </div>
-            
-            <EmergencyReport initialHotlines={hotlines} />
-            <Footer 
-                logoUrl={logoUrl} 
-                brandWord1={brandWord1} 
-                brandWord2={brandWord2} 
-                themeColor={themeColor} 
+
+            {showEmergency && <EmergencyReport initialHotlines={hotlines} />}
+            <Footer
+                logoUrl={logoUrl}
+                brandWord1={brandWord1}
+                brandWord2={brandWord2}
+                themeColor={themeColor}
             />
         </main>
     );
