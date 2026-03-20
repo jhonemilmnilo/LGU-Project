@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { 
     Layers, 
     ShieldAlert, 
-    Info, 
     Wind, 
     Waves, 
     Compass,
@@ -16,9 +15,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import Image from "next/image";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Link from "next/link";
 import { SimpleDisasterView } from "../../admin/disasters/components/SimpleDisasterView";
 import { cn } from "@/lib/utils";

@@ -34,13 +34,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
     if (!spots || spots.length === 0) return null;
 
-    const handleCardClick = (id: string, idx: number) => {
-        if (activeIndex === idx) {
-            router.push(`/user/places-to-visit/${id}`);
-        } else {
-            setActiveIndex(idx);
-        }
-    };
+
 
     return (
         <section id="tourism" className="py-24 px-6 max-w-7xl mx-auto space-y-16">

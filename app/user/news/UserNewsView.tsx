@@ -5,15 +5,19 @@ import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Newspaper, Bell, Search, Tag, Calendar, User, ArrowRight, Home } from "lucide-react";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { cn } from "@/lib/utils";
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserNewsView({ initialNews = [] }: { initialNews: any[] }) {
+export interface News {
+    id: string;
+    title: string;
+    content: string;
+    imageUrl?: string | null;
+    publishDate: Date | string;
+}
+
+export function UserNewsView({ initialNews = [] }: { initialNews: News[] }) {
     return (
         <div className="space-y-12 pb-20">
             <Breadcrumb>

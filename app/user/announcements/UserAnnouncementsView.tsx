@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Megaphone, Calendar, Tag, User, ArrowRight, Pin, Home } from "lucide-react";
+import { Megaphone, Calendar, Tag, ArrowRight, Pin, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 
-interface Announcement {
+export interface Announcement {
     id: string;
     title: string;
     content: string;

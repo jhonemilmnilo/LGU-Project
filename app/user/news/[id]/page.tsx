@@ -1,8 +1,9 @@
 import prisma from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { Newspaper, Calendar, User, Tag, Home, Clock, Share2, ArrowLeft } from "lucide-react";
+import { Newspaper, Calendar, User, Home } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import ShareButton from "./ShareButton";
 
@@ -23,9 +24,10 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
             <div className="h-64 md:h-80 w-full relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
                 {news.imageUrl ? (
                     <>
-                        <img
+                        <Image
                             src={news.imageUrl}
                             alt={news.title}
+                            fill
                             className="absolute inset-0 w-full h-full object-cover opacity-30"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />

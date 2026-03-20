@@ -1,3 +1,4 @@
+import prisma from "@/lib/db/prisma";
 import { UserTourismView, type TourismSpot } from "./UserTourismView";
 
 export default async function UserTourismPage() {

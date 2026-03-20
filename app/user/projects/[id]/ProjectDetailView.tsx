@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { MapPin, Calendar, Briefcase, PhilippinePeso, Clock, Share2, Home, CheckCircle2, Circle, PlayCircle, XCircle } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -38,7 +39,7 @@ export function ProjectDetailView({ project }: { project: Project }) {
         try {
             await navigator.clipboard.writeText(window.location.href);
             toast.success("Project link copied to clipboard!");
-        } catch (err) {
+        } catch {
             toast.error("Failed to copy link.");
         }
     };
@@ -83,9 +84,10 @@ export function ProjectDetailView({ project }: { project: Project }) {
                             animate={{ opacity: 1, y: 0 }}
                             className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-100 dark:border-white/5"
                         >
-                            <img
+                            <Image
                                 src={project.imageUrl || ""}
                                 alt={project.title}
+                                fill
                                 className="w-full h-full object-cover"
                             />
                         </motion.div>

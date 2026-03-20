@@ -11,7 +11,15 @@ import { PhoneCall, Shield, Activity, Flame, Wind, Waves, ArrowRight, Copy, Home
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
-export function UserHotlinesView({ initialHotlines = [] }: { initialHotlines: any[] }) {
+
+export interface Hotline {
+    id: string;
+    title: string;
+    description?: string | null;
+    number: string;
+}
+
+export function UserHotlinesView({ initialHotlines = [] }: { initialHotlines: Hotline[] }) {
     return (
         <div className="space-y-12 pb-20">
             <Breadcrumb>

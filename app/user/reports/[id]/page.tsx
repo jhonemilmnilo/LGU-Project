@@ -13,13 +13,13 @@ import {
     MessageSquare,
     Home,
     Activity,
-    ChevronLeft,
     Share2,
     CalendarCheck,
     Map as MapIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -190,8 +190,12 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             {report.images.map((img: string, i: number) => (
                                 <div key={i} className="aspect-video rounded-[2.5rem] overflow-hidden border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-[#1e2330] group relative">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={img} alt="evidence" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    <Image 
+                                        src={img} 
+                                        alt="evidence" 
+                                        fill
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                                    />
                                 </div>
                             ))}
                         </div>

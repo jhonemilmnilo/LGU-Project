@@ -24,7 +24,7 @@ export function JobDetailView({ job }: { job: Job }) {
         try {
             await navigator.clipboard.writeText(window.location.href);
             toast.success("Job opportunity link copied!");
-        } catch (err) {
+        } catch {
             toast.error("Failed to copy link.");
         }
     };
