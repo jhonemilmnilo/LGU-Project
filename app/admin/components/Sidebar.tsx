@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import {
-    LayoutDashboard, Users, Newspaper,
+    LayoutDashboard, Users, Newspaper, Navigation,
     Briefcase, MapPin, Map,
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck, CloudLightning,
     ChevronDown, ChevronUp, LogOut, Menu, X, Info
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -89,6 +89,8 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
         { href: "/admin/disasters/manage", label: "Disaster Maps", icon: Layers },
+        { href: "/admin/typhoon-alerts", label: "Typhoon Alerts", icon: CloudLightning },
+        { href: "/admin/visitor-map", label: "Visitor Map", icon: Navigation },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
@@ -102,7 +104,8 @@ export function Sidebar({
         "Kainan (Dining)",
         "Tuluyan (Stay)",
         "Gallery",
-        "Job Postings"
+        "Job Postings",
+        "Typhoon Alerts"
     ];
 
     const menuItems = role === "CONTENT_ADMIN"
