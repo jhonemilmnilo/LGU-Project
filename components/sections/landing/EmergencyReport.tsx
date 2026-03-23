@@ -54,37 +54,29 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
                                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white">Map Monitoring</h2>
                             </div>
                             <p className="text-slate-400 font-medium italic max-w-lg">
-                                Real-time visualization of weather patterns and municipal boundaries.
-                            </p>
+                            Real-time visualization of regional weather patterns.
+                        </p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                        {/* Mapandan Border Map (Left Side) */}
+                        {/* Mapandan Border Map (Left Side) - Text Removed */}
                         <motion.div 
                             initial={{ opacity: 0, x: -24 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             className="rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[500px] relative bg-[#050505]"
                         >
-                            <div className="absolute top-6 left-6 z-10 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 pointer-events-none">
-                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                                <span className="text-xs font-black tracking-widest uppercase text-white shadow-sm">Mapandan Territory</span>
-                            </div>
                             <MapandanMapWrapper />
                         </motion.div>
 
-                        {/* Live Weather / Typhoon Map (Right Side) */}
+                        {/* Live Weather / Typhoon Map (Right Side) - Text Removed */}
                         <motion.div 
                             initial={{ opacity: 0, x: 24 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             className="bg-slate-900 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[500px] relative"
                         >
-                            <div className="absolute top-6 left-6 z-10 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 pointer-events-none">
-                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                                <span className="text-xs font-black tracking-widest uppercase text-white shadow-sm">Live Weather Radar</span>
-                            </div>
                             <iframe 
                                 width="100%" 
                                 height="100%" 

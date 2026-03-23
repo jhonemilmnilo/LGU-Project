@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap, Marker, Popup } from "react-leaflet";
 import * as turf from "@turf/turf";
+import * as L from "leaflet";
+import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import { toast } from "sonner";
 
 interface GeoJSONFeature {
     type: "Feature";
@@ -13,9 +16,37 @@ interface GeoJSONFeature {
 
 const MAPANDAN_CENTER: [number, number] = [16.0333, 120.4500];
 
+// Sub-component for Geolocation
+function LocateMeControl({ onLocationFound }: { onLocationFound: (pos: [number, number]) => void }) {
+    const map = useMap();
+    
+    const locate = () => {
+        map.locate({ setView: true, maxZoom: 16 });
+        map.on("locationfound", (e) => {
+            onLocationFound([e.latlng.lat, e.latlng.lng]);
+            toast.success("Location found!");
+        });
+        map.on("locationerror", () => {
+            toast.error("Could not find your location.");
+        });
+    };
+
+    return (
+        <button 
+            onClick={locate}
+            className="p-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 hover:scale-110 active:scale-95 transition-all text-blue-600 group"
+            title="Locate me & show pin"
+        >
+            <MapPin className="w-5 h-5 group-hover:scale-125 transition-transform" />
+        </button>
+    );
+}
+
+
 export default function MapandanMap() {
     const [boundaryGeoJson, setBoundaryGeoJson] = useState<GeoJSONFeature | null>(null);
     const [maskedGeoJson, setMaskedGeoJson] = useState<GeoJSONFeature | null>(null);
+    const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
 
     useEffect(() => {
         const fetchRealBoundary = async () => {
@@ -32,9 +63,7 @@ export default function MapandanMap() {
                     // Use Turf.js to create the Inverted World Mask!
                     // This cuts the exact shape of Mapandan out of a pitch-black world layer
                     try {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const feature = turf.feature(geojson);
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const mask = turf.mask(feature as any);
                         setMaskedGeoJson(mask);
                     } catch (e) {
@@ -56,13 +85,13 @@ export default function MapandanMap() {
                 zoom={13}
                 scrollWheelZoom={true}
                 className="w-full h-full rounded-3xl"
-                style={{ background: "#050505" }}
+                style={{ background: "#f8fafc" }}
             >
-                {/* Clean Street Map Layer */}
+                {/* Google-style Roadmap Tiles */}
                 <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; OpenStreetMap contributors'
-                    maxZoom={19}
+                    url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                    attribution='&copy; Google Maps'
+                    maxZoom={20}
                 />
 
                 {/* Render the Pitch-Black Mask covering everything OUTSIDE Mapandan */}
@@ -71,14 +100,13 @@ export default function MapandanMap() {
                         key="mask"
                         data={maskedGeoJson}
                         style={{
-                            fillColor: "#050505",
-                            fillOpacity: 0.85, // Highly darkened outside world
+                            fillColor: "#000000",
+                            fillOpacity: 0.45, // Lighter mask so surrounding context is visible but darkened
                             color: "transparent",
                             weight: 0
                         }}
                     />
                 )}
-
                 {/* Tracing the EXACT border of Mapandan dynamically */}
                 {boundaryGeoJson && (
                     <GeoJSON
@@ -93,6 +121,33 @@ export default function MapandanMap() {
                         }}
                     />
                 )}
+
+                {/* User Location Marker - Clean Blue Dot style */}
+                {userPosition && (
+                    <Marker 
+                        position={userPosition}
+                        icon={L.divIcon({
+                            className: "custom-marker",
+                            html: `
+                                <div class="relative flex items-center justify-center">
+                                    <div class="absolute w-8 h-8 bg-blue-500/40 rounded-full animate-ping"></div>
+                                    <div class="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-[0_0_10px_rgba(37,99,235,0.8)]"></div>
+                                </div>
+                            `,
+                            iconSize: [20, 20],
+                            iconAnchor: [10, 10],
+                        })}
+                    >
+                         <Popup className="font-bold">You are here 📍</Popup>
+                    </Marker>
+                )}
+
+                {/* Location Overlay - Nested inside MapContainer to access useMap() */}
+                <div className="leaflet-top leaflet-right !z-[1000] pointer-events-none p-6">
+                    <div className="pointer-events-auto shadow-2xl">
+                        <LocateMeControl onLocationFound={setUserPosition} />
+                    </div>
+                </div>
             </MapContainer>
         </div>
     );
