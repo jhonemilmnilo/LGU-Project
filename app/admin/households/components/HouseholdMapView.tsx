@@ -39,7 +39,7 @@ export function HouseholdMapView() {
         fetch('/agno-border.json')
             .then(res => res.json())
             .then(data => setAgnoBorder(data))
-            .catch(err => console.error("Failed to load Agno border:", err));
+            .catch(err => console.error("Failed to load Mapandan border:", err));
 
         setMounted(true);
         // We only require leaflet dynamically on the client side

@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Church, Home, Clock, MapPin, Globe, CreditCard, Download, TrendingUp, CalendarDays, ArrowRight, Heart, Share2, Info, Calendar, Navigation } from "lucide-react";
+import { Church, Home, Clock, Download, TrendingUp, ArrowRight, Info, Calendar, Navigation } from "lucide-react";
 import Link from "next/link";
 import {
     Breadcrumb,
@@ -309,7 +309,7 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                     </div>
 
                     {/* Historical Logs List */}
-                    <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl p-10 ring-1 ring-slate-200 dark:ring-white/5 flex flex-col h-[700px]">
+                    <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl p-10 ring-1 ring-slate-200 dark:ring-white/5 flex flex-col max-h-[700px] min-h-[300px]">
                         <div className="flex items-center justify-between mb-8 shrink-0">
                             <div className="space-y-1">
                                 <h3 className="text-lg font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Financial History</h3>

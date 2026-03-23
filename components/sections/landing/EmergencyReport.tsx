@@ -39,7 +39,7 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
     };
 
     return (
-        <section id="hotlines" className="pt-0 pb-24 px-6 bg-slate-950 text-white relative overflow-hidden">
+        <section id="hotlines" className="py-24 px-6 bg-slate-950 text-white relative overflow-hidden">
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
             <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-red-600/5 blur-[100px] rounded-full" />
