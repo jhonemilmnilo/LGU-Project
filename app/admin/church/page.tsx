@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import prisma from "@/lib/db/prisma";
 import ChurchClient from "./ChurchClient";
 
@@ -28,10 +29,10 @@ export default async function ChurchManagementPage() {
     }
 
     return (
-        <ChurchClient 
-            initialInfo={activeChurch} 
-            initialSchedules={schedules} 
-            initialCollections={collections} 
+        <ChurchClient
+            initialInfo={activeChurch}
+            initialSchedules={schedules}
+            initialCollections={collections}
         />
     );
 }

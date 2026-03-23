@@ -384,6 +384,8 @@ function SectionVisibilityManager({ settings }: { settings: Record<string, strin
         section_government: settings.section_government !== "false",
         section_services: settings.section_services !== "false",
         section_emergency: settings.section_emergency !== "false",
+        section_church: settings.section_church !== "false",
+        section_map: settings.section_map !== "false",
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -397,6 +399,8 @@ function SectionVisibilityManager({ settings }: { settings: Record<string, strin
         { key: "section_government", label: "Municipal Government", description: "List of officials" },
         { key: "section_services", label: "Services & Projects", description: "Municipal services" },
         { key: "section_emergency", label: "Emergency Hotlines", description: "Emergency contact information" },
+        { key: "section_church", label: "Parish Corner", description: "Church schedules and collections" },
+        { key: "section_map", label: "Municipality Monitoring", description: "Interactive map and monitoring" },
     ];
 
     const handleToggle = (key: string) => {

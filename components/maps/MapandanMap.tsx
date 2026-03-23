@@ -5,11 +5,17 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import * as turf from "@turf/turf";
 import "leaflet/dist/leaflet.css";
 
+interface GeoJSONFeature {
+    type: "Feature";
+    geometry: GeoJSON.Geometry | null;
+    properties?: Record<string, unknown> | null;
+}
+
 const MAPANDAN_CENTER: [number, number] = [16.0333, 120.4500];
 
 export default function MapandanMap() {
-    const [boundaryGeoJson, setBoundaryGeoJson] = useState<any>(null);
-    const [maskedGeoJson, setMaskedGeoJson] = useState<any>(null);
+    const [boundaryGeoJson, setBoundaryGeoJson] = useState<GeoJSONFeature | null>(null);
+    const [maskedGeoJson, setMaskedGeoJson] = useState<GeoJSONFeature | null>(null);
 
     useEffect(() => {
         const fetchRealBoundary = async () => {
@@ -26,7 +32,9 @@ export default function MapandanMap() {
                     // Use Turf.js to create the Inverted World Mask!
                     // This cuts the exact shape of Mapandan out of a pitch-black world layer
                     try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const feature = turf.feature(geojson);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const mask = turf.mask(feature as any);
                         setMaskedGeoJson(mask);
                     } catch (e) {
@@ -56,7 +64,7 @@ export default function MapandanMap() {
                     attribution='&copy; OpenStreetMap contributors'
                     maxZoom={19}
                 />
-                
+
                 {/* Render the Pitch-Black Mask covering everything OUTSIDE Mapandan */}
                 {maskedGeoJson && (
                     <GeoJSON

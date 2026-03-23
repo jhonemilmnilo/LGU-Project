@@ -5,12 +5,12 @@ import { motion } from "framer-motion";
 import { Church, Home, Clock, MapPin, Globe, CreditCard, Download, TrendingUp, CalendarDays, ArrowRight, Heart, Share2, Info, Calendar, Navigation } from "lucide-react";
 import Link from "next/link";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { format } from "date-fns";
 import * as React from "react";
@@ -26,8 +26,9 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
     const [selectedMonth, setSelectedMonth] = React.useState<string>("all");
 
     const availableMonths = React.useMemo(() => {
+        const safeCollections = [...collections];
         const months = new Set<string>();
-        collections.forEach(c => months.add(format(new Date(c.date), "MMMM")));
+        safeCollections.forEach(c => months.add(format(new Date(c.date), "MMMM")));
         return Array.from(months).sort((a, b) => {
             const monthsOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             return monthsOrder.indexOf(a) - monthsOrder.indexOf(b);
@@ -35,17 +36,18 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
     }, [collections]);
 
     const filteredCollections = React.useMemo(() => {
-        if (selectedMonth === "all") return collections;
-        return collections.filter(c => format(new Date(c.date), "MMMM") === selectedMonth);
+        const safeCollections = [...collections];
+        if (selectedMonth === "all") return safeCollections;
+        return safeCollections.filter(c => format(new Date(c.date), "MMMM") === selectedMonth);
     }, [collections, selectedMonth]);
 
     const groupedSchedules = React.useMemo(() => {
         const result: { day: string, slots: any[], isPriority: boolean }[] = [];
-        
+
         schedules.forEach(s => {
             const isPriority = (s.prio || 0) > 0;
             const dayKey = s.date ? format(new Date(s.date), "MMMM dd, yyyy") : s.day;
-            
+
             const existing = result.find(g => g.day === dayKey && g.isPriority === isPriority);
             if (existing) {
                 existing.slots.push(s);
@@ -55,12 +57,12 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
         });
 
         result.forEach(g => {
-            g.slots.sort((a,b) => (b.prio || 0) - (a.prio || 0));
+            g.slots.sort((a, b) => (b.prio || 0) - (a.prio || 0));
         });
 
         const dayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        
-        return result.sort((a,b) => {
+
+        return result.sort((a, b) => {
             // Priority First
             if (a.isPriority && !b.isPriority) return -1;
             if (!a.isPriority && b.isPriority) return 1;
@@ -78,10 +80,10 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
     }, [schedules]);
 
     const addressSuffix = info.address?.toLowerCase().includes("mapandan") ? "" : ", Mapandan, Pangasinan";
-    const mapQuery = info.latitude && info.longitude 
+    const mapQuery = info.latitude && info.longitude
         ? `${info.latitude},${info.longitude}`
         : `${info.name}${info.address ? `, ${info.address}` : ""}${addressSuffix}`;
-    
+
     // Updated to use same zoom (15) and added iwloc=A to force the pin
     const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=A&output=embed`;
 
@@ -118,15 +120,15 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                         </div>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-3xl text-lg leading-relaxed">
-                        The heartbeat of our spiritual community. Located at <span className="text-slate-900 dark:text-white font-black">{info.address}</span>. 
+                        The heartbeat of our spiritual community. Located at <span className="text-slate-900 dark:text-white font-black">{info.address}</span>.
                         We welcome everyone to join our celebrations and foster stewardship together.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {info.locationUrl && (
-                        <a 
-                            href={info.locationUrl} 
+                        <a
+                            href={info.locationUrl}
                             target="_blank"
                             className="flex items-center gap-2.5 px-5 py-2.5 bg-primary text-white rounded-full font-black uppercase italic tracking-wider text-[10px] transition-all shadow-lg shadow-primary/25 group border-none"
                         >
@@ -135,9 +137,9 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                         </a>
                     )}
                     {info.flyerUrl && (
-                        <a 
-                            href={info.flyerUrl} 
-                            download 
+                        <a
+                            href={info.flyerUrl}
+                            download
                             className="flex items-center space-x-3 bg-primary hover:opacity-90 text-white px-8 py-4 rounded-[1.8rem] font-black uppercase italic tracking-tighter text-sm shadow-xl shadow-primary/25 transition-all active:scale-95 group"
                         >
                             <Download size={18} className="group-hover:bounce" />
@@ -150,11 +152,11 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                 {/* LEFT: Schedules and Info */}
                 <div className="lg:col-span-2 space-y-10">
-                    
+
                     {/* Mass Schedule Card */}
                     <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden p-10 ring-1 ring-slate-200 dark:ring-white/5">
                         <div className="flex items-center justify-between mb-10">
-                             <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${info.themeColor || '#2563eb'}1a` }}>
                                     <Clock className="w-5 h-5" style={{ color: info.themeColor || '#2563eb' }} />
                                 </div>
@@ -164,7 +166,7 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
 
                         <div className="space-y-6 max-h-[650px] overflow-y-auto custom-scrollbar pr-2 pb-6">
                             {groupedSchedules.map((group, idx) => (
-                                <motion.div 
+                                <motion.div
                                     key={idx}
                                     initial={{ opacity: 0, y: 10 }}
                                     whileInView={{ opacity: 1, y: 0 }}
@@ -221,8 +223,8 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                         {/* PDF Download link at the bottom of the card content area */}
                         {info.flyerUrl && (
                             <div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 flex flex-col items-center">
-                                <a 
-                                    href={info.flyerUrl} 
+                                <a
+                                    href={info.flyerUrl}
                                     download
                                     className="group flex items-center gap-4 px-8 py-4 bg-slate-100 dark:bg-white/5 hover:bg-primary hover:text-white rounded-[2rem] transition-all duration-500 border border-slate-200 dark:border-white/10 shadow-sm"
                                 >
@@ -243,11 +245,11 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
 
                 {/* RIGHT: Transparency Records */}
                 <div className="space-y-8">
-                    
+
                     {/* Latest Financial Card */}
                     <div className="bg-primary rounded-[3.5rem] p-10 text-white shadow-2xl shadow-primary/25 relative overflow-hidden group border border-white/5">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-                        
+
                         <div className="relative z-10 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -283,20 +285,20 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
-                                         <div className="p-4 bg-white/5 rounded-3xl border border-white/10">
-                                             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">2nd Basket</p>
-                                             <p className="text-xl font-bold italic">₱{Number(latest.secondBasket).toLocaleString()}</p>
-                                         </div>
-                                         <div className="p-4 bg-white/5 rounded-3xl border border-white/10">
-                                             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">Envelopes</p>
-                                             <p className="text-xl font-bold italic">₱{Number(latest.envelopes).toLocaleString()}</p>
-                                         </div>
+                                        <div className="p-4 bg-white/5 rounded-3xl border border-white/10">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">2nd Basket</p>
+                                            <p className="text-xl font-bold italic">₱{Number(latest.secondBasket).toLocaleString()}</p>
+                                        </div>
+                                        <div className="p-4 bg-white/5 rounded-3xl border border-white/10">
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">Envelopes</p>
+                                            <p className="text-xl font-bold italic">₱{Number(latest.envelopes).toLocaleString()}</p>
+                                        </div>
                                     </div>
 
                                     {(latest.donationsJson as any[]).length > 0 && (
                                         <div className="p-4 bg-white/5 rounded-3xl border border-white/10">
-                                             <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">Generous Donations</p>
-                                             <p className="text-xl font-bold italic">₱{(latest.donationsJson as any[]).reduce((sum, item) => sum + Number(item.amount || 0), 0).toLocaleString()}</p>
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">Generous Donations</p>
+                                            <p className="text-xl font-bold italic">₱{(latest.donationsJson as any[]).reduce((sum, item) => sum + Number(item.amount || 0), 0).toLocaleString()}</p>
                                         </div>
                                     )}
                                 </div>
@@ -309,23 +311,23 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                     {/* Historical Logs List */}
                     <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl p-10 ring-1 ring-slate-200 dark:ring-white/5 flex flex-col h-[700px]">
                         <div className="flex items-center justify-between mb-8 shrink-0">
-                           <div className="space-y-1">
-                               <h3 className="text-lg font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Financial History</h3>
-                               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{filteredCollections.length} Records found</p>
-                           </div>
-                           <Info size={14} className="text-slate-400" />
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Financial History</h3>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{filteredCollections.length} Records found</p>
+                            </div>
+                            <Info size={14} className="text-slate-400" />
                         </div>
 
                         {/* Month Filter Pills */}
                         <div className="flex items-center gap-2 overflow-x-auto pb-6 mb-4 shrink-0 no-scrollbar">
-                            <button 
+                            <button
                                 onClick={() => setSelectedMonth("all")}
                                 className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedMonth === 'all' ? 'bg-primary text-white shadow-lg shadow-primary/25' : 'bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10'}`}
                             >
                                 All Time
                             </button>
                             {availableMonths.map(month => (
-                                <button 
+                                <button
                                     key={month}
                                     onClick={() => setSelectedMonth(month)}
                                     className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedMonth === month ? 'bg-primary text-white shadow-lg shadow-primary/25' : 'bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 dark:hover:bg-white/10'}`}
@@ -334,7 +336,7 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                                 </button>
                             ))}
                         </div>
-                        
+
                         <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
                             {filteredCollections.length > 0 ? filteredCollections.map((c, idx) => (
                                 <div key={c.id} className="group p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all flex items-center justify-between">
@@ -351,7 +353,7 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                                 <p className="text-center py-20 text-slate-400 font-bold italic uppercase text-xs border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[2rem]">No records log available for {selectedMonth}.</p>
                             )}
                         </div>
-                        
+
                         <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 text-center shrink-0">
                             <p className="text-[10px] text-slate-400 font-medium italic">Authenticated transparency ledger for the community of Mapandan.</p>
                         </div>

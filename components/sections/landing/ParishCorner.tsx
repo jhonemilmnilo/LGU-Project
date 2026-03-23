@@ -120,7 +120,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-3">
                                 <Clock className="w-6 h-6" style={{ color: info.themeColor || '#2563eb' }} />
-                                <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Weekly Eucharist</h3>
+                                <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Mass Schedule</h3>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Schedule Highlights</span>
                         </div>

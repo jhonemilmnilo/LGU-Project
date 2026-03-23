@@ -46,7 +46,8 @@ export default async function Home() {
         "section_government",
         "section_services",
         "section_emergency",
-        "section_church"
+        "section_church",
+        "section_map"
     ]);
 
     // Check Maintenance Mode
@@ -71,6 +72,7 @@ export default async function Home() {
     const showServices = settings.get("section_services") !== "false";
     const showEmergency = settings.get("section_emergency") !== "false";
     const showChurch = settings.get("section_church") !== "false";
+    const showMap = settings.get("section_map") !== "false";
 
     // 2. Fetch Content
     const [
@@ -210,7 +212,7 @@ export default async function Home() {
                     collections={latestCollection} 
                 />
             )}
-            {showEmergency && <EmergencyReport initialHotlines={hotlines} />}
+            {showEmergency && <EmergencyReport initialHotlines={hotlines} showMap={showMap} />}
             <Footer
                 logoUrl={logoUrl}
                 brandWord1={brandWord1}
