@@ -76,7 +76,7 @@ export function AddAccommodationModal() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Name of Place <span className="text-red-500">*</span></Label>
-                                            <Input id="name" name="name" defaultValue={editingData?.name || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] h-11" placeholder="e.g. Agno Beach Resort" />
+                                            <Input id="name" name="name" defaultValue={editingData?.name || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] h-11" placeholder="e.g. Mapandan Beach Resort" />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Type of Stay <span className="text-red-500">*</span></Label>
@@ -137,7 +137,7 @@ export function AddAccommodationModal() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="address" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Complete Address <span className="text-red-500">*</span></Label>
-                                        <Input id="address" name="address" defaultValue={editingData?.address || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] h-11" placeholder="Street, Barangay, Agno" />
+                                        <Input id="address" name="address" defaultValue={editingData?.address || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] h-11" placeholder="Street, Barangay, Mapandan" />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">

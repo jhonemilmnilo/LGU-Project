@@ -28,7 +28,7 @@ function DiningDashboard() {
                     </div>
                     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">Dining Management</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage all local restaurants and eateries in Agno.</p>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage all local restaurants and eateries in Mapandan.</p>
                     </motion.div>
                 </div>
 

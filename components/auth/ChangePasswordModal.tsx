@@ -295,7 +295,7 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                                 <div className="space-y-1">
                                     <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Reset Password</DialogTitle>
                                     <DialogDescription className="text-sm font-medium leading-relaxed text-muted-foreground px-2">
-                                        Please choose a strong password to secure your Agno Municipal account.
+                                        Please choose a strong password to secure your MAPANDAN Municipal account.
                                     </DialogDescription>
                                 </div>
                             </DialogHeader>

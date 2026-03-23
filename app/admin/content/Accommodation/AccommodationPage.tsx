@@ -30,7 +30,7 @@ export function AccommodationPage({ initialData }: AccommodationPageProps) {
                             <span className="text-blue-600 dark:text-blue-400 font-bold">Tuluyan (Stay)</span>
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">Tuluyan Management</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage resorts, hotels, and homestays in Agno.</p>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage resorts, hotels, and homestays in Mapandan.</p>
                     </div>
                 </div>
 

@@ -499,12 +499,43 @@ model PastMayor {
   updatedAt    DateTime @updatedAt
 }
 
-model TyphoonAlert {
-  id              String   @id @default(cuid())
-  name            String   // Name of the typhoon
-  signalNumber    Int      // Storm signal (1-5)
-  description     String?  @db.Text // Public warning or instructions
-  isActive        Boolean  @default(true) // Set to false when finished
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model ChurchInfo {
+  id          String   @id @default(cuid())
+  name        String   @default("Our Lady of the Holy Rosary Parish")
+  address     String?  @default("Mapandan, Pangasinan")
+  locationUrl String?  @db.Text
+  latitude    Float?
+  longitude   Float?
+  flyerUrl    String?  @db.Text // URL for the weekly PDF flyer
+  schedules   ChurchSchedule[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ChurchSchedule {
+  id           String     @id @default(cuid())
+  churchInfoId String
+  churchInfo   ChurchInfo @relation(fields: [churchInfoId], references: [id], onDelete: Cascade)
+  day          String     // e.g. Sunday, Monday
+  time         String     // e.g. 6:00 AM
+  language     String?    // e.g. Ilocano, English
+  type         String?    // e.g. Mass, Special Service
+  date         DateTime?  // Optional specific date for special services
+  prio         Int        @default(0) // Higher number = top priority in the card
+  description  String?    @db.Text
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model ChurchCollection {
+  id                String   @id @default(cuid())
+  date              DateTime @default(now())
+  sundayMassJson    Json?    // Array of { time: string, amount: number }
+  secondBasket      Float    @default(0)
+  weekdays          Float    @default(0)
+  envelopes         Float    @default(0)
+  donationsJson     Json?    // Array of { name: string, amount: number }
+  totalAmount       Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

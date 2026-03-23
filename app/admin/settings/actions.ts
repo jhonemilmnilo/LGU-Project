@@ -57,6 +57,35 @@ export async function processImageUpload(formData: FormData, fieldName: string =
     // Return the existing URL if no new file was uploaded
     return existingUrl && typeof existingUrl === 'string' ? existingUrl : null;
 }
+export async function processFileUpload(formData: FormData, fieldName: string): Promise<string | null> {
+    const file = formData.get(fieldName) as File | null;
+    const existingUrl = formData.get(fieldName + "Url")?.toString() || null;
+
+    if (file && file.size > 0 && file.name !== "undefined") {
+        try {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
+            const uploadsDir = path.join(process.cwd(), "public", "uploads");
+            
+            await mkdir(uploadsDir, { recursive: true });
+            
+            const filepath = path.join(uploadsDir, filename);
+            await writeFile(filepath, buffer);
+            
+            // Delete old file if it exists
+            if (existingUrl && existingUrl.startsWith("/uploads/")) {
+                await deleteUploadedFile(existingUrl);
+            }
+
+            return `/uploads/${filename}`;
+        } catch (error) {
+            console.error("Error processing file upload:", error);
+            return existingUrl;
+        }
+    }
+
+    return existingUrl;
+}
 
 export async function updateSystemSetting(key: string, value: string) {
     try {

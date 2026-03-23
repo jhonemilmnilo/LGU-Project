@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Siren, Flame, HeartPulse, AlertCircle, Info, Copy, Smartphone, Phone, MapPin } from "lucide-react";
+import { Siren, Flame, HeartPulse, AlertCircle, Info, Copy, Smartphone, Phone, MapPin, CloudLightning } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import MapandanMapWrapper from "@/components/maps/MapandanMapWrapper";
 
 import { ReportForm } from "./ReportForm";
 
@@ -38,13 +39,65 @@ export function EmergencyReport({ initialHotlines = [] }: { initialHotlines?: In
     };
 
     return (
-        <section id="hotlines" className="py-24 px-6 bg-slate-950 text-white relative overflow-hidden">
+        <section id="hotlines" className="pt-0 pb-24 px-6 bg-slate-950 text-white relative overflow-hidden">
             {/* Ambient Background Effects */}
             <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
             <div className="absolute bottom-0 left-0 w-[30%] h-[30%] bg-red-600/5 blur-[100px] rounded-full" />
 
+            {/* Disaster Monitoring (Side by Side Maps) */}
+            <div className="max-w-7xl mx-auto mb-24 relative z-10">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <CloudLightning className="w-8 h-8 text-blue-500 animate-pulse" />
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white">Map Monitoring</h2>
+                        </div>
+                        <p className="text-slate-400 font-medium italic max-w-lg">
+                            Real-time visualization of weather patterns and municipal boundaries.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                    {/* Mapandan Border Map (Left Side) */}
+                    <motion.div 
+                        initial={{ opacity: 0, x: -24 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[500px] relative bg-[#050505]"
+                    >
+                        <div className="absolute top-6 left-6 z-10 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 pointer-events-none">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                            <span className="text-xs font-black tracking-widest uppercase text-white shadow-sm">Mapandan Territory</span>
+                        </div>
+                        <MapandanMapWrapper />
+                    </motion.div>
+
+                    {/* Live Weather / Typhoon Map (Right Side) */}
+                    <motion.div 
+                        initial={{ opacity: 0, x: 24 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="bg-slate-900 rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[500px] relative"
+                    >
+                        <div className="absolute top-6 left-6 z-10 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 pointer-events-none">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                            <span className="text-xs font-black tracking-widest uppercase text-white shadow-sm">Live Weather Radar</span>
+                        </div>
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=12.8797&lon=121.7740" 
+                            frameBorder="0"
+                            title="Live Weather Map"
+                            className="absolute inset-0"
+                        />
+                    </motion.div>
+                </div>
+            </div>
+
+            {/* Emergency Hotlines Container */}
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 relative z-10">
-                {/* Hotlines */}
                 <div className="space-y-12">
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">

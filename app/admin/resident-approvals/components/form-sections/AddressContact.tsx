@@ -61,7 +61,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Municipality</label>
-                    <Input name="municipality" defaultValue={data?.municipality || "AGNO"} readOnly className="bg-slate-50 cursor-not-allowed font-bold" />
+                    <Input name="municipality" defaultValue={data?.municipality || "MAPANDAN"} readOnly className="bg-slate-50 cursor-not-allowed font-bold" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Province</label>

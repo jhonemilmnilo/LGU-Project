@@ -11,6 +11,7 @@ import { LGUProjects } from "@/components/sections/landing/LGUProjects";
 import { Government } from "@/components/sections/landing/Government";
 import { Services } from "@/components/sections/landing/Services";
 import { EmergencyReport } from "@/components/sections/landing/EmergencyReport";
+import ParishCorner from "../components/sections/landing/ParishCorner";
 import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
@@ -44,7 +45,8 @@ export default async function Home() {
         "section_jobs",
         "section_government",
         "section_services",
-        "section_emergency"
+        "section_emergency",
+        "section_church"
     ]);
 
     // Check Maintenance Mode
@@ -68,9 +70,15 @@ export default async function Home() {
     const showGovernment = settings.get("section_government") !== "false";
     const showServices = settings.get("section_services") !== "false";
     const showEmergency = settings.get("section_emergency") !== "false";
+    const showChurch = settings.get("section_church") !== "false";
 
     // 2. Fetch Content
-    const [slides, tourismSpots, dining, lodging, announcements, events, news, projects, jobs, officials, hotlines] = await Promise.all([
+    const [
+        slides, tourismSpots, dining, lodging, 
+        announcements, events, news, projects, 
+        jobs, officials, hotlines, 
+        churchInfo, churchSchedules, latestCollection
+    ] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
             orderBy: { order: 'asc' }
@@ -129,6 +137,19 @@ export default async function Home() {
         prisma.hotline.findMany({
             where: { isActive: true },
             orderBy: { order: "asc" }
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (prisma as any).churchInfo.findFirst({
+            include: { schedules: true }
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (prisma as any).churchSchedule.findMany({
+            orderBy: [{ day: "asc" }, { time: "asc" }]
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (prisma as any).churchCollection.findMany({
+            orderBy: { date: "desc" },
+            take: 4
         })
     ]);
 
@@ -164,7 +185,7 @@ export default async function Home() {
 
             <Hero slides={slides} themeColor={themeColor} />
 
-            <div className="space-y-4 pb-32">
+            <div className="space-y-4 pb-20">
                 {showDiningLodging && <DiningLodging items={discoveryItems} />}
                 {showPlacesToVisit && <PlacesToVisit spots={tourismSpots} />}
 
@@ -182,6 +203,13 @@ export default async function Home() {
                 {showServices && <Services />}
             </div>
 
+            {showChurch && (
+                <ParishCorner 
+                    info={churchInfo} 
+                    schedules={churchSchedules} 
+                    collections={latestCollection} 
+                />
+            )}
             {showEmergency && <EmergencyReport initialHotlines={hotlines} />}
             <Footer
                 logoUrl={logoUrl}

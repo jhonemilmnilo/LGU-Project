@@ -25,12 +25,6 @@ export default function MapandanMapWrapper() {
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
                 <span className="text-xs font-black tracking-widest uppercase text-white shadow-sm">Mapandan Territory</span>
             </div>
-            
-            <div className="absolute bottom-4 right-4 z-50 pointer-events-none">
-                <div className="bg-red-500/90 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-lg border border-red-400">
-                    Live Satellite Imagery
-                </div>
-            </div>
         </div>
     );
 }

@@ -43,7 +43,7 @@ export const AuthLayout = ({
     // Fallback data if no slides exist
     const currentSlide = hasSlides ? slides[currentIndex] : {
         imageUrl: "/images/umbrella-rocks.png",
-        title: "Agno's Umbrella Rocks represent the timeless beauty of our coastal heritage.",
+        title: "Mapandan's represent the timeless beauty of our coastal heritage.",
         subtitle: "LOCAL TOURISM OFFICE"
     };
 

@@ -36,7 +36,7 @@ export function DisasterWorkspace({
 { }
 { }
                                 {/* eslint-disable-next-line react/no-unescaped-entities */}
-                                Command center for Agno's multi-hazard spatial analysis.
+                                Command center for Mapandan's multi-hazard spatial analysis.
                             </p>
                         </div>
 

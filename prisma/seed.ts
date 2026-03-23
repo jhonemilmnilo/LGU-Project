@@ -31,7 +31,7 @@ async function main() {
   await prisma.heroSlide.upsert({
     where: { id: 'initial-hero' },
     update: {
-        title: 'Welcome To Agno',
+        title: 'Welcome To Mapandan',
         subtitle: 'Discover the pristine beauty of the Umbrella Rocks, our vibrant community, and the rich heritage of our municipality.',
         tagline: 'The Home of the Umbrella Rocks',
         imageUrl: '/agno_hero_cinematic_coastline.png',
@@ -44,7 +44,7 @@ async function main() {
     },
     create: {
       id: 'initial-hero',
-      title: 'Welcome To Agno',
+      title: 'Welcome To Mapandan',
       subtitle: 'Discover the pristine beauty of the Umbrella Rocks, our vibrant community, and the rich heritage of our municipality.',
       tagline: 'The Home of the Umbrella Rocks',
       imageUrl: '/agno_hero_cinematic_coastline.png',

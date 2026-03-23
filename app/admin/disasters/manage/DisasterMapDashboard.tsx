@@ -253,7 +253,7 @@ export function DisasterMapDashboard({ initialData }: { initialData: DisasterMap
                                                 defaultValue={editingMap?.title}
                                                 required
                                                 className="h-12 bg-slate-50 dark:bg-[#111420] border-slate-200 dark:border-white/5 font-bold"
-                                                placeholder="e.g. Agno River Flood Zone"
+                                                placeholder=""
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -265,7 +265,7 @@ export function DisasterMapDashboard({ initialData }: { initialData: DisasterMap
                                                 name="location"
                                                 defaultValue={editingMap?.location || ""}
                                                 className="h-12 bg-slate-50 dark:bg-[#111420] border-slate-200 dark:border-white/5 font-bold"
-                                                placeholder="e.g. Brgy. Patar, Agno"
+                                                placeholder=""
                                             />
                                         </div>
                                         <div className="space-y-2">

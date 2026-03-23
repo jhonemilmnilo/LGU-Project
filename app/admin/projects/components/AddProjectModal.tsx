@@ -162,7 +162,7 @@ export function AddProjectModal() {
                                         name="title"
                                         required
                                         defaultValue={editingData?.title ?? ""}
-                                        placeholder="e.g. Agno Public Market Renovation"
+                                        placeholder=""
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
                                     />
                                 </div>

@@ -46,7 +46,7 @@ export default function MapandanMap() {
             <MapContainer
                 center={MAPANDAN_CENTER}
                 zoom={13}
-                scrollWheelZoom={false}
+                scrollWheelZoom={true}
                 className="w-full h-full rounded-3xl"
                 style={{ background: "#050505" }}
             >

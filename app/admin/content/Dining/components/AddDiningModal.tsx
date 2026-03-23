@@ -67,7 +67,7 @@ export function AddDiningModal() {
                                         <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                                             Dining Name <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input id="name" name="name" defaultValue={editingData?.name || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] text-slate-900 dark:text-white h-11" placeholder="e.g. Agno Seafood Restaurant" />
+                                        <Input id="name" name="name" defaultValue={editingData?.name || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] text-slate-900 dark:text-white h-11" placeholder="e.g. Mapandan Seafood Restaurant" />
                                     </div>
                                     <div>
                                         <Label htmlFor="cuisineType" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
@@ -91,7 +91,7 @@ export function AddDiningModal() {
                                         <Label htmlFor="address" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                                             Location / Complete Address <span className="text-red-500">*</span>
                                         </Label>
-                                        <Input id="address" name="address" defaultValue={editingData?.address || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] text-slate-900 dark:text-white h-11" placeholder="Brgy. Poblacion, Agno" />
+                                        <Input id="address" name="address" defaultValue={editingData?.address || ""} required className="bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040] text-slate-900 dark:text-white h-11" placeholder="Brgy. Poblacion, Mapandan" />
                                     </div>
                                     <div>
                                         <Label htmlFor="googleMapsUrl" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">

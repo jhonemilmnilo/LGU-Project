@@ -44,7 +44,7 @@ export function AddAnnouncementModal() {
                                 {editingData ? "Edit Announcement" : "Create New Announcement"}
                             </DialogTitle>
                             <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic">
-                                Broadcast important updates to the citizens of Agno.
+                                Broadcast important updates to the citizens of Mapandan.
                             </DialogDescription>
                         </div>
                     </div>

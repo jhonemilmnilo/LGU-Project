@@ -72,7 +72,7 @@ export function AddEventModal() {
                                     {editingData ? "Edit Event Details" : "Create New Event"}
                                 </DialogTitle>
                                 <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
-                                    Share the upcoming happenings in Agno with the community.
+                                    Share the upcoming happenings in Mapandan with the community.
                                 </DialogDescription>
                             </div>
                         </div>
@@ -94,7 +94,7 @@ export function AddEventModal() {
                                             name="title"
                                             required
                                             defaultValue={editingData?.title || ""}
-                                            placeholder="e.g. Agno Umbrella Festival 2024"
+                                            placeholder=""
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
                                         />
                                     </div>
@@ -189,7 +189,7 @@ export function AddEventModal() {
                                             name="venueName"
                                             required
                                             defaultValue={editingData?.venueName || ""}
-                                            placeholder="e.g. Agno Municipal Plaza"
+                                            placeholder="e.g. Mapandan Municipal Plaza"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
                                     </div>
@@ -200,7 +200,7 @@ export function AddEventModal() {
                                             name="address"
                                             required
                                             defaultValue={editingData?.address || ""}
-                                            placeholder="e.g. Poblacion, Agno"
+                                            placeholder="e.g. Poblacion, Mapandan"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
                                     </div>

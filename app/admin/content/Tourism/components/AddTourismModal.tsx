@@ -64,7 +64,7 @@ export function AddTourismModal() {
                                 {editingData ? "Edit Tourism Spot" : "Add New Destination"}
                             </DialogTitle>
                             <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
-                                Fill in the details to showcase another beautiful spot in Agno.
+                                Fill in the details to showcase another beautiful spot in Mapandan.
                             </DialogDescription>
                         </div>
                     </div>
@@ -153,7 +153,7 @@ export function AddTourismModal() {
                                     name="address"
                                     required
                                     defaultValue={editingData?.address || ""}
-                                    placeholder="e.g. Brgy. Sabangan, Agno"
+                                    placeholder=""
                                     className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                 />
                             </div>

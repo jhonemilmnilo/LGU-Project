@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, Newspaper, Navigation,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck, CloudLightning,
-    ChevronDown, ChevronUp, LogOut, Menu, X, Info
+    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -81,6 +81,7 @@ export function Sidebar({
         { href: "/admin/dining", label: "Kainan (Dining)", icon: UtensilsCrossed },
         { href: "/admin/accommodation", label: "Tuluyan (Stay)", icon: BedDouble },
         { href: "/admin/tourism", label: "Gallery", icon: Map },
+        { href: "/admin/church", label: "Church Management", icon: Church },
         { href: "/admin/reports", label: "Public Reports", icon: AlertTriangle, category: "Management", badge: pendingReportsCount },
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
@@ -88,9 +89,6 @@ export function Sidebar({
         { href: "/admin/resident-approvals", label: "Resident Approvals", icon: UserCheck, category: "Citizens & Services", badge: pendingResidentsCount },
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        { href: "/admin/disasters/manage", label: "Disaster Maps", icon: Layers },
-        { href: "/admin/typhoon-alerts", label: "Typhoon Alerts", icon: CloudLightning },
-        { href: "/admin/visitor-map", label: "Visitor Map", icon: Navigation },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
