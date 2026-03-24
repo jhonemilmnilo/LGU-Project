@@ -126,75 +126,6 @@ export async function getResidentCategories() {
     }
 }
 
-export async function checkDuplicateFace(descriptor: number[], excludeId?: string) {
-    try {
-        const residents = await (prisma.resident as any).findMany({
-            where: {
-                facialRecognition: { not: null },
-                ...(excludeId ? { id: { not: excludeId } } : {})
-            },
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                facialRecognition: true
-            }
-        });
-
-        // FIX 1: Before ANY match attempt, check if the descriptor store is empty.
-        if (residents.length === 0) {
-            return { success: true, match: null };
-        }
-
-        console.log(`[BioCheck] Comparing against ${residents.length} records...`);
-
-        // FIX 1: Wrap descriptors correctly for FaceMatcher: new faceapi.LabeledFaceDescriptors(label, [Float32ArrayDescriptor])
-        const labeledDescriptors = residents.map((r: any) => {
-            const facialData = r.facialRecognition;
-            const storedDescriptor = Array.isArray(facialData) ? facialData : facialData?.descriptor;
-            if (!storedDescriptor) return null;
-
-            // FIX 1: ALWAYS convert back to Float32Array: Float32Array.from(Object.values(storedDescriptor))
-            const floatArray = Float32Array.from(Object.values(storedDescriptor));
-            
-            return new faceapi.LabeledFaceDescriptors(
-                `${r.firstName} ${r.lastName}|${r.id}`, 
-                [floatArray]
-            );
-        }).filter(Boolean) as faceapi.LabeledFaceDescriptors[];
-
-        if (labeledDescriptors.length === 0) {
-            return { success: true, match: null };
-        }
-
-        // FIX 1 & 3: Replace any existing FaceMatcher threshold with exactly 0.45
-        const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
-        const queryDescriptor = new Float32Array(descriptor);
-        console.log(`[BioCheck] Query Descriptor Length: ${queryDescriptor.length}`);
-        
-        const bestMatch = faceMatcher.findBestMatch(queryDescriptor);
-        console.log(`[BioCheck] Best Match Result: ${bestMatch.toString()}`);
-
-        if (bestMatch.label !== "unknown") {
-            const [name, id] = bestMatch.label.split("|");
-            console.log(`[BioCheck] CRITICAL MATCH: ${name} (Distance: ${bestMatch.distance.toFixed(4)})`);
-            return { 
-                success: true, 
-                match: {
-                    id,
-                    name,
-                    distance: bestMatch.distance
-                } 
-            };
-        }
-
-        console.log("[BioCheck] No matching identity found (All above 0.55 threshold).");
-        return { success: true, match: null };
-    } catch (error) {
-        console.error("Face check error:", error);
-        return { success: false, error: "System error checking facial data." };
-    }
-}
 
 export async function searchHeads(query: string) {
     try {
@@ -1416,21 +1347,21 @@ export async function addResident(formData: FormData) {
         const categoryIds = formData.getAll("categories") as string[];
 
         // FIX 3: REGISTRATION DUPLICATE GUARD
-        const faceDataRaw = formData.get("facialRecognition");
-        if (faceDataRaw) {
-            const faceData = JSON.parse(faceDataRaw as string);
-            const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
-            
-            if (descriptorToSave) {
-                 const duplicateCheck = await checkDuplicateFace(descriptorToSave);
-                 if (duplicateCheck.success && duplicateCheck.match) {
-                     return { 
-                         success: false, 
-                         error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}.` 
-                     };
-                 }
-            }
-        }
+        // const faceDataRaw = formData.get("facialRecognition");
+        // if (faceDataRaw) {
+        //     const faceData = JSON.parse(faceDataRaw as string);
+        //     const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
+        //     
+        //     if (descriptorToSave) {
+        //          const duplicateCheck = await checkDuplicateFace(descriptorToSave);
+        //          if (duplicateCheck.success && duplicateCheck.match) {
+        //              return { 
+        //                  success: false, 
+        //                  error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}.` 
+        //              };
+        //          }
+        //     }
+        // }
 
         const resident = await (prisma as any).resident.create({
             data: {
@@ -1590,21 +1521,21 @@ export async function updateResident(id: string, formData: FormData) {
         const categoryIds = formData.getAll("categories") as string[];
 
         // FIX 3: REGISTRATION DUPLICATE GUARD (UPDATE)
-        const faceDataRaw = formData.get("facialRecognition");
-        if (faceDataRaw) {
-            const faceData = JSON.parse(faceDataRaw as string);
-            const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
-            
-            if (descriptorToSave) {
-                 const duplicateCheck = await checkDuplicateFace(descriptorToSave, id);
-                 if (duplicateCheck.success && duplicateCheck.match) {
-                     return { 
-                         success: false, 
-                         error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}. Update blocked.` 
-                     };
-                 }
-            }
-        }
+        // const faceDataRaw = formData.get("facialRecognition");
+        // if (faceDataRaw) {
+        //     const faceData = JSON.parse(faceDataRaw as string);
+        //     const descriptorToSave = faceData.descriptor || (Array.isArray(faceData) ? faceData : null);
+        //     
+        //     if (descriptorToSave) {
+        //          const duplicateCheck = await checkDuplicateFace(descriptorToSave, id);
+        //          if (duplicateCheck.success && duplicateCheck.match) {
+        //              return { 
+        //                  success: false, 
+        //                  error: `DUPLICATE FACE DETECTED: This identity matches ${duplicateCheck.match.name}. Update blocked.` 
+        //              };
+        //          }
+        //     }
+        // }
 
         const dataToUpdate: any = {
             firstName: formData.get("firstName") as string,

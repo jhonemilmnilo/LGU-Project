@@ -7,7 +7,6 @@ import { CheckCircle2, Circle, Loader2, RefreshCw, ShieldAlert, Zap } from "luci
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { checkDuplicateFace } from "../../actions";
 
 // SILENCE MEDIAPIPE INFO LOGS (Next.js Dev Overlay Fix)
 if (typeof window !== "undefined") {
@@ -225,25 +224,21 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     setStep("PROCESSING");
 
                     // FINAL EXTRACTION (face-api.js 128-d Descriptor)
-                    const fullDetections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 })).withFaceLandmarks().withFaceDescriptor();
+                    let fullDetections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.2 })).withFaceLandmarks().withFaceDescriptor();
                     
+                    // Fallback retry with higher size and lower threshold if the first one misses
                     if (!fullDetections) {
-                        toast.error("Extraction fail. Face lost.");
+                         fullDetections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.1 })).withFaceLandmarks().withFaceDescriptor();
+                    }
+
+                    if (!fullDetections) {
+                        toast.error("Extraction fail. Make sure there is enough lighting so your face is clear.");
                         resetVerification();
                         return;
                     }
 
                     const descriptor = Array.from(fullDetections.descriptor);
-                    const duplicateCheck = await checkDuplicateFace(descriptor);
-                    console.log("[BioCheck] Duplicate Check Result:", duplicateCheck);
                     
-                    if (duplicateCheck.success && duplicateCheck.match) {
-                        toast.error(`SECURITY ALERT: Face matches ${duplicateCheck.match.name}.`, { duration: 6000 });
-                        resetVerification();
-                        onClose();
-                        return;
-                    }
-
                     toast.success("Identity Secured!");
                     setStep("COMPLETED");
                     onVerified(descriptor);

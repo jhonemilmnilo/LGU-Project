@@ -24,6 +24,9 @@ model User {
   
   isPasswordChanged Boolean            @default(false)
   
+  managedBarangay   String? // For BARANGAY_ADMIN
+
+  
   createdAt         DateTime           @default(now())
   reports           Report[]
   
@@ -33,6 +36,7 @@ model User {
 enum UserRole {
   ADMIN
   CONTENT_ADMIN
+  BARANGAY_ADMIN
   USER
 }
 
@@ -88,6 +92,8 @@ model Dining {
   longitude     Float?
   googleMapsUrl String?  @db.Text
 
+  barangay      String?
+
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -109,6 +115,8 @@ model Accommodation {
   longitude     Float?
   googleMapsUrl String?  @db.Text
 
+  barangay      String?
+
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -128,6 +136,8 @@ model TourismSpot {
   latitude      Float?
   longitude     Float?
   googleMapsUrl String?  @db.Text
+
+  barangay      String?
 
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
@@ -151,6 +161,8 @@ model Event {
   longitude     Float?
   googleMapsUrl String?  @db.Text
 
+  barangay      String?
+
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -164,6 +176,7 @@ model News {
   category    String   @default("Announcement")
   imageUrl    String?
   publishDate DateTime @default(now())
+  barangay    String?
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -178,6 +191,7 @@ model Announcement {
   isPinned    Boolean  @default(false)
   isActive    Boolean  @default(true)
   expiryDate  DateTime?
+  barangay    String?
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -196,6 +210,7 @@ model Job {
   deadline       DateTime?
   links          Json?     @default("[]")
   mapUrl         String?   @db.Text
+  barangay       String?
   isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -247,6 +262,7 @@ model Project {
   endDate      DateTime?
   progress     Int       @default(0)
   imageUrl     String?
+  barangay     String?
   isPublished  Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -506,6 +522,7 @@ model ChurchInfo {
   locationUrl String?  @db.Text
   latitude    Float?
   longitude   Float?
+  barangay    String?
   flyerUrl    String?  @db.Text // URL for the weekly PDF flyer
   schedules   ChurchSchedule[]
   createdAt   DateTime @default(now())
@@ -538,4 +555,21 @@ model ChurchCollection {
   totalAmount       Float    @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model BarangayInfo {
+  id              String   @id @default(cuid())
+  name            String   @unique // Target barangay name
+  description     String?  @db.Text
+  logoUrl         String?
+  coverImageUrl   String?
+  captainName     String?
+  captainMessage  String?  @db.Text
+  captainImageUrl String?
+  history         String?  @db.Text
+  mission         String?  @db.Text
+  vision          String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
