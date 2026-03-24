@@ -30,11 +30,12 @@ interface AnnouncementContextType {
     selectedPriority: string;
     setSelectedPriority: (priority: string) => void;
     currentBarangay?: string;
+    activeBarangays?: string[];
 }
 
 const AnnouncementContext = createContext<AnnouncementContextType | undefined>(undefined);
 
-export function AnnouncementProvider({ children, initialData, currentBarangay }: { children: ReactNode; initialData: Announcement[]; currentBarangay?: string }) {
+export function AnnouncementProvider({ children, initialData, currentBarangay, activeBarangays = [] }: { children: ReactNode; initialData: Announcement[]; currentBarangay?: string; activeBarangays?: string[] }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [announcements, setAnnouncements] = useState<Announcement[]>(initialData);
@@ -62,6 +63,7 @@ export function AnnouncementProvider({ children, initialData, currentBarangay }:
                 selectedPriority,
                 setSelectedPriority,
                 currentBarangay,
+                activeBarangays,
             }}
         >
             {children}

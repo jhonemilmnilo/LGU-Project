@@ -35,8 +35,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
         ],
     });
 
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
     return <AnnouncementPage 
         initialData={announcements} 
         currentBarangay={isBarangayAdmin ? user.managedBarangay : (barangayParam || undefined)}
+        activeBarangays={activeBarangays.map(b => b.name)}
     />;
 }

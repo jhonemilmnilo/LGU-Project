@@ -35,11 +35,12 @@ interface EventsContextType {
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
     currentBarangay?: string;
+    activeBarangays?: string[];
 }
 
 const EventsContext = createContext<EventsContextType | undefined>(undefined);
 
-export function EventsProvider({ children, initialData, currentBarangay }: { children: ReactNode; initialData: Event[]; currentBarangay?: string }) {
+export function EventsProvider({ children, initialData, currentBarangay, activeBarangays = [] }: { children: ReactNode; initialData: Event[]; currentBarangay?: string; activeBarangays?: string[] }) {
     const [events, setEvents] = useState<Event[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -63,7 +64,8 @@ export function EventsProvider({ children, initialData, currentBarangay }: { chi
                 setEditingData,
                 selectedCategory,
                 setSelectedCategory,
-                currentBarangay
+                currentBarangay,
+                activeBarangays,
             }}
         >
             {children}

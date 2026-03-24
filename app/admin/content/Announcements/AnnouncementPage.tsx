@@ -10,11 +10,16 @@ import { Home, Megaphone } from "lucide-react";
 interface AnnouncementPageProps {
     initialData: Announcement[];
     currentBarangay?: string;
+    activeBarangays?: string[];
 }
 
-export function AnnouncementPage({ initialData, currentBarangay }: AnnouncementPageProps) {
+export function AnnouncementPage({ initialData, currentBarangay, activeBarangays }: AnnouncementPageProps) {
     return (
-        <AnnouncementProvider initialData={initialData} currentBarangay={currentBarangay}>
+        <AnnouncementProvider 
+            initialData={initialData} 
+            currentBarangay={currentBarangay}
+            activeBarangays={activeBarangays}
+        >
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

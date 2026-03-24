@@ -7,5 +7,15 @@ export default async function UserNewsPage() {
         orderBy: { publishDate: "desc" }
     });
 
-    return <UserNewsView initialNews={news as News[]} />;
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
+    return (
+        <UserNewsView 
+            initialNews={news as News[]} 
+            activeBarangays={activeBarangays.map(b => b.name)}
+        />
+    );
 }

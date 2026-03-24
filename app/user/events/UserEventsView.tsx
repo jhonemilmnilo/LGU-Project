@@ -1,107 +1,189 @@
 "use client";
 
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Calendar, MapPin, Clock, Tag, ArrowRight, Home } from "lucide-react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, Tag, ArrowRight, Home, Search, Filter } from "lucide-react";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Input } from "@/components/ui/input";
+import { 
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { format } from "date-fns";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] }) {
-    const pageTitle = "Community Pulse";
+interface UserEventsViewProps {
+    initialEvents: any[];
+    activeBarangays?: string[];
+}
+
+export function UserEventsView({ 
+    initialEvents = [], 
+    activeBarangays = [] 
+}: UserEventsViewProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedBarangay, setSelectedBarangay] = useState("All");
+
+    const barangayList = useMemo(() => {
+        return ["All", ...activeBarangays.sort()];
+    }, [activeBarangays]);
+
+    const filteredEvents = useMemo(() => {
+        return initialEvents.filter(item => {
+            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 (item.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 item.category.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesBarangay = selectedBarangay === "All" || item.barangay === selectedBarangay;
+            return matchesSearch && matchesBarangay;
+        });
+    }, [initialEvents, searchQuery, selectedBarangay]);
+
+    const pageTitle = "Community Events";
+
     return (
-        <div className="space-y-8 pb-20">
+        <div className="space-y-12 pb-20">
+            {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
+                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator className="text-white/50" />
+                    <BreadcrumbSeparator />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
-
-            <div className="flex flex-col items-center text-center space-y-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
-                        <Calendar className="w-6 h-6 text-white" />
+            
+            {/* Header section with Search/Filter */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 bg-primary rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform rotate-3 hover:rotate-0 transition-transform">
+                            <Calendar className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{pageTitle}</h1>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">Festivals & Gatherings</p>
+                        </div>
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">{pageTitle}</h1>
                 </div>
-                <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
-                    Explore upcoming festivals, municipal celebrations, and community gatherings across Mapandan.
-                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                    <div className="relative w-full sm:w-[300px] group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                        <Input 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search festivals or sports..."
+                            className="pl-11 h-12 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-2xl font-bold italic focus:ring-primary/20 transition-all shadow-sm"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-[200px]">
+                        <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                            <SelectTrigger className="h-12 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-2xl font-bold italic shadow-sm text-[10px] uppercase tracking-widest">
+                                <Filter className="w-4 h-4 mr-2 text-primary" />
+                                <SelectValue placeholder="Barangay" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-2xl">
+                                {barangayList.map(b => (
+                                    <SelectItem key={b} value={b} className="font-bold italic text-[10px] uppercase tracking-widest">
+                                        {b === "All" ? "All Locations" : b}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                {initialEvents.map((event, idx) => (
-                    <Link key={event.id} href={`/user/events/${event.id}`}>
-                        <motion.div
-                            initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            className="bg-white dark:bg-[#0a0c10] rounded-[3.5rem] p-4 flex flex-col md:flex-row gap-8 border border-slate-100 dark:border-white/5 shadow-2xl hover:border-primary/30 transition-all group overflow-hidden h-full"
-                        >
-                            <div className="relative aspect-[16/10] md:aspect-square md:w-[240px] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shrink-0">
-                                <Image
-                                    src={event.imageUrl || "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&q=80&w=800"}
-                                    alt={event.title}
-                                    fill
-                                    className="object-cover group-hover:scale-110 transition-transform duration-700"
+            <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
+                Discover the vibrant community life in Mapandan. From municipal festivals to local sports leagues, there&apos;s always something happening.
+            </p>
+
+            {/* Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredEvents.map((item, idx) => (
+                    <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="bg-white dark:bg-[#0a0c10] rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col group hover:border-primary transition-all relative h-full overflow-hidden"
+                    >
+                        {item.imageUrl && (
+                            <div className="relative h-56 w-full overflow-hidden">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img 
+                                    src={item.imageUrl} 
+                                    alt={item.title} 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                 />
-                                <div className="absolute top-4 left-4 flex flex-col items-center justify-center w-14 h-16 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl">
-                                    <span className="text-[10px] font-black uppercase text-primary leading-none mb-1">{new Date(event.startDate).toLocaleString('default', { month: 'short' })}</span>
-                                    <span className="text-xl font-black text-slate-900 leading-none italic">{new Date(event.startDate).getDate()}</span>
+                                <div className="absolute top-4 left-4">
+                                    <div className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary shadow-xl">
+                                        {item.category}
+                                    </div>
                                 </div>
+                                {item.barangay && (
+                                    <div className="absolute top-4 right-4">
+                                        <div className="px-4 py-2 bg-black/50 backdrop-blur-md rounded-2xl text-[10px] font-black uppercase tracking-widest text-white shadow-xl">
+                                            {item.barangay}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            
-                            <div className="flex-1 flex flex-col justify-center py-4 pr-6">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest">{event.category || "General Event"}</span>
-                                    <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                        <Clock className="w-3 h-3" />
-                                        {new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        {event.endDate && ` - ${new Date(event.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        )}
+                        <div className="p-8 flex-1 flex flex-col space-y-6">
+                            <div className="space-y-4 flex-1">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary italic">
+                                    <Calendar className="w-4 h-4" />
+                                    {format(new Date(item.startDate), "MMMM d, yyyy")} • {format(new Date(item.startDate), "h:mm aa")}
+                                </div>
+                                
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors leading-tight italic">
+                                    {item.title}
+                                </h3>
+                                
+                                <div className="flex items-start gap-2 text-slate-400">
+                                    <MapPin className="w-4 h-4 mt-0.5 text-primary" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest italic leading-relaxed">
+                                        {item.venueName}<br />
+                                        {item.address}
                                     </span>
                                 </div>
-                                
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors mb-4">{event.title}</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic mb-6 line-clamp-2">{event.description}</p>
-                                
-                                <div className="flex items-center gap-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors mb-8">
-                                    <MapPin className="w-4 h-4 text-primary" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest italic">{event.venueName}</span>
-                                </div>
-                                
-                                <div className="flex gap-3">
-                                    <Button className="flex-1 h-14 bg-slate-950 dark:bg-primary/20 text-white dark:text-primary rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 group/btn border border-transparent dark:border-primary/30">
-                                        Join Celebration
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </Button>
-                                </div>
+
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed">
+                                    {item.description}
+                                </p>
                             </div>
-                        </motion.div>
-                    </Link>
+
+                            <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                                <Link href={`/user/events/${item.id}`} className="block w-full">
+                                    <button className="w-full py-4 bg-slate-50 dark:bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 group-hover:bg-primary group-hover:text-white transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 italic">
+                                        View Event Details
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
+                                </Link>
+                            </div>
+                        </div>
+                    </motion.div>
                 ))}
             </div>
-
-            {initialEvents.length === 0 && (
-                <div className="py-20 text-center opacity-50 italic">No upcoming events found for this area. Check back soon!</div>
+            
+            {filteredEvents.length === 0 && (
+                <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-white dark:bg-black/10">
+                    <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-400 font-black uppercase tracking-[0.2em] italic">No events scheduled at the moment...</p>
+                </div>
             )}
         </div>
     );

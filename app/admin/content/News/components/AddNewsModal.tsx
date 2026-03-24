@@ -185,8 +185,12 @@ export function AddNewsModal() {
                                                 name="category" 
                                                 value={selectedCategory === "Other" ? otherCategory : selectedCategory} 
                                             />
-                                            {currentBarangay && !editingData && (
-                                                <input type="hidden" name="barangay" value={currentBarangay} />
+                                            {(currentBarangay || editingData?.barangay) && (
+                                                <input 
+                                                    type="hidden" 
+                                                    name="barangay" 
+                                                    value={editingData?.barangay || currentBarangay || ""} 
+                                                />
                                             )}
                                         </div>
                                         <div className="space-y-2">

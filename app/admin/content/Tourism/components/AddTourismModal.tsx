@@ -147,8 +147,12 @@ export function AddTourismModal() {
                                 <MapPin className="w-4 h-4" />
                                 <h3 className="text-sm font-bold uppercase tracking-wider">Location & Media</h3>
                             </div>
-                            {currentBarangay && !editingData && (
-                                <input type="hidden" name="barangay" value={currentBarangay} />
+                            {(currentBarangay || editingData?.barangay) && (
+                                <input 
+                                    type="hidden" 
+                                    name="barangay" 
+                                    value={editingData?.barangay || currentBarangay || ""} 
+                                />
                             )}
 
                             <div className="space-y-2">

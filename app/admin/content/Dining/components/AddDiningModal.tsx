@@ -145,8 +145,12 @@ export function AddDiningModal() {
                                     <Label htmlFor="imageFile" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                                         Dining Image
                                     </Label>
-                                    {currentBarangay && !editingData && (
-                                        <input type="hidden" name="barangay" value={currentBarangay} />
+                                    {(currentBarangay || editingData?.barangay) && (
+                                        <input 
+                                            type="hidden" 
+                                            name="barangay" 
+                                            value={editingData?.barangay || currentBarangay || ""} 
+                                        />
                                     )}
                                     <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-colors cursor-pointer group relative overflow-hidden">
                                         {imagePreview ? (

@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Briefcase, GraduationCap, Building2, Calendar, MapPin, Globe, Plus, Trash2 } from "lucide-react";
 
 export function AddJobModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useJobs();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useJobs();
     const { handleSubmit, loading } = useJobsForm();
     const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
 
@@ -98,6 +98,13 @@ export function AddJobModal() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Left Column: Basic Details */}
                                 <div className="space-y-6">
+                                    {(currentBarangay || editingData?.barangay) && (
+                                        <input 
+                                            type="hidden" 
+                                            name="barangay" 
+                                            value={editingData?.barangay || currentBarangay || ""} 
+                                        />
+                                    )}
                                     <div className="space-y-2">
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest">Job Title</Label>
                                         <Input

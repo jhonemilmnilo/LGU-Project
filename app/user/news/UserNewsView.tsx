@@ -1,145 +1,198 @@
 "use client";
 
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
- 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Newspaper, Bell, Search, Tag, Calendar, User, ArrowRight, Home } from "lucide-react";
-import Image from "next/image";
-
+import { Newspaper, Calendar, User, ArrowRight, Home, Search, Filter } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Input } from "@/components/ui/input";
+import { 
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
+import { format } from "date-fns";
 
 export interface News {
     id: string;
     title: string;
     content: string;
-    imageUrl?: string | null;
-    publishDate: Date | string;
+    category: string;
+    author: string | null;
+    imageUrl: string | null;
+    publishDate: Date;
+    isPublished: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    barangay?: string | null;
 }
 
-export function UserNewsView({ initialNews = [] }: { initialNews: News[] }) {
+interface UserNewsViewProps {
+    initialNews: News[];
+    activeBarangays?: string[];
+}
+
+export function UserNewsView({ 
+    initialNews = [], 
+    activeBarangays = [] 
+}: UserNewsViewProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedBarangay, setSelectedBarangay] = useState("All");
+
+    const barangayList = useMemo(() => {
+        return ["All", ...activeBarangays.sort()];
+    }, [activeBarangays]);
+
+    const filteredNews = useMemo(() => {
+        return initialNews.filter(item => {
+            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 item.category.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesBarangay = selectedBarangay === "All" || item.barangay === selectedBarangay;
+            return matchesSearch && matchesBarangay;
+        });
+    }, [initialNews, searchQuery, selectedBarangay]);
+
     const pageTitle = "Municipal News";
+
     return (
-        <div className="space-y-8 pb-20">
+        <div className="space-y-12 pb-20">
+            {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm mb-6">
+                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator className="text-white/50" />
+                    <BreadcrumbSeparator />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
-
-            <div className="flex flex-col items-center text-center space-y-4 pt-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
-                        <Newspaper className="w-6 h-6 text-white" />
+            
+            {/* Header section with Search/Filter */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 bg-blue-600 rounded-[22px] flex items-center justify-center shadow-2xl shadow-blue-500/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                            <Newspaper className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{pageTitle}</h1>
+                            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.3em] ml-1">LGU Official Stories</p>
+                        </div>
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">{pageTitle}</h1>
                 </div>
-                <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
-                    Official updates, press releases, and community stories directly from the Mapandan Municipal Information Office.
-                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                    <div className="relative w-full sm:w-[300px] group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <Input 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search headlines or stories..."
+                            className="pl-11 h-12 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-2xl font-bold italic focus:ring-blue-600/20 transition-all shadow-sm"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-[200px]">
+                        <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                            <SelectTrigger className="h-12 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-2xl font-bold italic shadow-sm text-[10px] uppercase tracking-widest">
+                                <Filter className="w-4 h-4 mr-2 text-blue-600" />
+                                <SelectValue placeholder="Barangay" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-2xl">
+                                {barangayList.map(b => (
+                                    <SelectItem key={b} value={b} className="font-bold italic text-[10px] uppercase tracking-widest">
+                                        {b === "All" ? "All Locations" : b}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </div>
 
-            {/* Featured Article (First one) */}
-            {initialNews.length > 0 && (
-                <Link href={`/user/news/${initialNews[0].id}`}>
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="relative aspect-auto md:aspect-[21/9] min-h-[500px] md:min-h-0 rounded-[2rem] md:rounded-[3rem] overflow-hidden group cursor-pointer shadow-2xl"
-                    >
-                        <Image
-                            src={initialNews[0].imageUrl || "https://images.unsplash.com/photo-150471142745a-5099af501997?auto=format&fit=crop&q=80&w=1200"}
-                            alt={initialNews[0].title}
-                            fill
-                            className="object-cover transition-transform duration-1000 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                        
-                        <div className="absolute inset-x-0 bottom-0 p-6 md:p-10 flex flex-col md:flex-row md:items-end justify-between gap-6 z-20">
-                            <div className="space-y-4 max-w-2xl">
-                                <span className="inline-block px-3 py-1 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg italic">Featured Bulletin</span>
-                                <h2 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter leading-tight">{initialNews[0].title}</h2>
-                                <p className="text-slate-200 md:text-slate-300 font-medium italic line-clamp-2 text-sm">{initialNews[0].content}</p>
-                            </div>
-                            <div className="text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80">
-                                Read Full Story
-                                <ArrowRight className="w-4 h-4" />
-                            </div>
-                        </div>
-                    </motion.div>
-                </Link>
-            )}
+            <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
+                Stay informed with the latest updates, achievements, and local stories from across the municipality of Mapandan.
+            </p>
 
-            {/* News Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-12 pb-10">
-                {initialNews.slice(1).map((item, idx) => (
-                    <Link href={`/user/news/${item.id}`} key={item.id}>
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="bg-white dark:bg-[#0a0c10] h-full rounded-[2.5rem] border border-slate-100 dark:border-white/5 overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col group transition-all"
-                        >
-                            <div className="relative aspect-video overflow-hidden">
-                                <Image
-                                    src={item.imageUrl || "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=800"}
-                                    alt={item.title}
-                                    fill
-                                    className="object-cover transition-transform duration-500"
+            {/* Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {filteredNews.map((item, idx) => (
+                    <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="bg-white dark:bg-[#0a0c10] rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col sm:flex-row gap-8 group hover:border-blue-600 transition-all relative h-full overflow-hidden p-8"
+                    >
+                        {item.imageUrl && (
+                            <div className="relative h-48 sm:h-auto sm:w-2/5 overflow-hidden rounded-[2rem] flex-shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img 
+                                    src={item.imageUrl} 
+                                    alt={item.title} 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                 />
                                 <div className="absolute top-4 left-4">
-                                    <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-md flex items-center gap-1.5">
-                                        <Tag className="w-3 h-3 text-primary" />
-                                        Updates
-                                    </span>
+                                    <div className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest text-blue-600 shadow-xl">
+                                        {item.category}
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div className="p-8 space-y-4 flex-1 flex flex-col">
-                                <div className="flex items-center gap-4 text-slate-400">
-                                    <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest">
-                                        <Calendar className="w-3.5 h-3.5 text-primary" />
-                                        {new Date(item.publishDate).toLocaleDateString()}
+                        )}
+                        <div className="flex-1 flex flex-col space-y-6">
+                            <div className="space-y-4 flex-1 pt-2">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-600 italic">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        {format(new Date(item.publishDate), "MMM d, yyyy")}
                                     </div>
-                                    <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest">
-                                        <User className="w-3.5 h-3.5 text-primary" />
-                                        Admin
-                                    </div>
+                                    {item.author && (
+                                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 italic">
+                                            <User className="w-3.5 h-3.5" />
+                                            {item.author}
+                                        </div>
+                                    )}
+                                    {item.barangay && (
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-auto">
+                                            Brgy. {item.barangay}
+                                        </span>
+                                    )}
                                 </div>
                                 
-                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight line-clamp-2">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-blue-600 transition-colors leading-tight italic">
                                     {item.title}
                                 </h3>
                                 
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed flex-1">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed">
                                     {item.content}
                                 </p>
-                                
-                                <div className="p-0 h-auto self-start text-primary font-black uppercase tracking-widest text-[10px] flex items-center gap-2 transition-opacity hover:opacity-80">
-                                    Read Story
-                                    <ArrowRight className="w-4 h-4" />
-                                </div>
                             </div>
-                        </motion.div>
-                    </Link>
+
+                            <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                                <Link href={`/user/news/${item.id}`} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 transition-colors group/read italic">
+                                    Read Full Story
+                                    <ArrowRight className="w-4 h-4 group-hover/read:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
+                        </div>
+                    </motion.div>
                 ))}
             </div>
             
-            {initialNews.length === 0 && (
-                <div className="py-20 text-center space-y-4 opacity-50">
-                    <Newspaper className="w-16 h-16 mx-auto text-slate-300" />
-                    <h3 className="text-xl font-black text-slate-400 uppercase italic tracking-tighter">No news available</h3>
+            {filteredNews.length === 0 && (
+                <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-white dark:bg-black/10">
+                    <Newspaper className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-400 font-black uppercase tracking-[0.2em] italic">No news articles found...</p>
                 </div>
             )}
         </div>

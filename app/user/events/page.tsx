@@ -7,5 +7,15 @@ export default async function UserEventsPage() {
         orderBy: { startDate: "asc" }
     });
 
-    return <UserEventsView initialEvents={events} />;
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
+    return (
+        <UserEventsView 
+            initialEvents={events} 
+            activeBarangays={activeBarangays.map(b => b.name)}
+        />
+    );
 }

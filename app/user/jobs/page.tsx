@@ -8,5 +8,15 @@ export default async function UserJobsPage() {
         orderBy: { createdAt: "desc" }
     });
 
-    return <UserJobsView initialJobs={jobs as Job[]} />;
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
+    return (
+        <UserJobsView 
+            initialJobs={jobs as any} 
+            activeBarangays={activeBarangays.map(b => b.name)}
+        />
+    );
 }

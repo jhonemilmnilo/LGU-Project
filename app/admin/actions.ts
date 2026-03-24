@@ -833,6 +833,7 @@ export async function updateJob(id: string, formData: FormData) {
     try {
         const linksJson = formData.get("linksJson") as string;
         const links = linksJson ? JSON.parse(linksJson) : [];
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         const updatedJob = await (prisma as any).job.update({
             where: { id },
@@ -848,6 +849,7 @@ export async function updateJob(id: string, formData: FormData) {
                 deadline: formData.get("deadline") ? new Date(formData.get("deadline") as string) : null,
                 links: links,
                 mapUrl: formData.get("mapUrl") as string || null,
+                barangay: barangay || null,
             } as any,
         });
 

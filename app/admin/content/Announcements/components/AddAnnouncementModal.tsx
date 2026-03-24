@@ -68,8 +68,12 @@ export function AddAnnouncementModal() {
                                         placeholder="e.g. Schedule for Coastal Clean-up"
                                         className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
                                     />
-                                    {currentBarangay && !editingData && (
-                                        <input type="hidden" name="barangay" value={currentBarangay} />
+                                    {(currentBarangay || editingData?.barangay) && (
+                                        <input 
+                                            type="hidden" 
+                                            name="barangay" 
+                                            value={editingData?.barangay || currentBarangay || ""} 
+                                        />
                                     )}
                                 </div>
                                 <div className="space-y-2">

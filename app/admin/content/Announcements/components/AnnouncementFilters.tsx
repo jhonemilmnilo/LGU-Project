@@ -4,7 +4,9 @@ import { useAnnouncements } from "../providers/AnnouncementProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, MapPin } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 
 export function AnnouncementFilters() {
     const { 
@@ -14,8 +16,31 @@ export function AnnouncementFilters() {
         selectedCategory, 
         setSelectedCategory,
         selectedPriority,
-        setSelectedPriority
+        setSelectedPriority,
+        currentBarangay,
+        activeBarangays = []
     } = useAnnouncements();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Re-use logic to update URL params
+    const createQueryString = useCallback(
+        (name: string, value: string) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (value === "All") {
+                params.delete(name);
+            } else {
+                params.set(name, value);
+            }
+            return params.toString();
+        },
+        [searchParams]
+    );
+
+    const handleBarangayChange = (value: string) => {
+        router.push(pathname + "?" + createQueryString("barangay", value));
+    };
 
     return (
         <div className="p-6 border-b border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#151b2b]">
@@ -57,6 +82,25 @@ export function AnnouncementFilters() {
                             <SelectItem value="Low">Low</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {/* Barangay Filter for Super Admins */}
+                    {activeBarangays.length > 0 && (
+                        <Select 
+                            value={currentBarangay || "All"} 
+                            onValueChange={handleBarangayChange}
+                        >
+                            <SelectTrigger className="w-[160px] h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic">
+                                <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                                <SelectValue placeholder="Barangay" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                <SelectItem value="All" className="font-bold italic text-blue-600">All Locations</SelectItem>
+                                {activeBarangays.map(b => (
+                                    <SelectItem key={b} value={b} className="font-bold italic">{b}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
 
                 <Button

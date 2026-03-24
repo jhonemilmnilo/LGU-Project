@@ -16,6 +16,7 @@ export interface Job {
     deadline: Date | string | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     links: any;
+    barangay: string | null;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -32,11 +33,23 @@ interface JobsContextType {
     setEditingData: (data: Job | null) => void;
     selectedDepartment: string;
     setSelectedDepartment: (department: string) => void;
+    currentBarangay?: string | null;
+    activeBarangays?: string[];
 }
 
 const JobsContext = createContext<JobsContextType | undefined>(undefined);
 
-export function JobsProvider({ children, initialData }: { children: ReactNode; initialData: Job[] }) {
+export function JobsProvider({ 
+    children, 
+    initialData,
+    currentBarangay,
+    activeBarangays = [] 
+}: { 
+    children: ReactNode; 
+    initialData: Job[];
+    currentBarangay?: string | null;
+    activeBarangays?: string[];
+}) {
     const [jobsData, setJobsData] = useState<Job[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -60,6 +73,8 @@ export function JobsProvider({ children, initialData }: { children: ReactNode; i
                 setEditingData,
                 selectedDepartment,
                 setSelectedDepartment,
+                currentBarangay,
+                activeBarangays
             }}
         >
             {children}

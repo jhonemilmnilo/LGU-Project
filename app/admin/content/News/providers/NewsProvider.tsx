@@ -10,6 +10,7 @@ export interface News {
     author: string | null;
     imageUrl: string | null;
     publishDate: Date;
+    barangay: string | null;
     isPublished: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -27,11 +28,12 @@ interface NewsContextType {
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
     currentBarangay?: string;
+    activeBarangays?: string[];
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
 
-export function NewsProvider({ children, initialData, currentBarangay }: { children: ReactNode; initialData: News[]; currentBarangay?: string }) {
+export function NewsProvider({ children, initialData, currentBarangay, activeBarangays = [] }: { children: ReactNode; initialData: News[]; currentBarangay?: string; activeBarangays?: string[] }) {
     const [newsData, setNewsData] = useState<News[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -57,6 +59,7 @@ export function NewsProvider({ children, initialData, currentBarangay }: { child
                 selectedCategory,
                 setSelectedCategory,
                 currentBarangay,
+                activeBarangays,
             }}
         >
             {children}

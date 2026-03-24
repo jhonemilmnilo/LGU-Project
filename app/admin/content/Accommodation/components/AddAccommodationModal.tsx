@@ -162,8 +162,12 @@ export function AddAccommodationModal() {
                                         <UploadCloud className="w-4 h-4" />
                                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notice Image</h3>
                                     </div>
-                                    {currentBarangay && !editingData && (
-                                        <input type="hidden" name="barangay" value={currentBarangay} />
+                                    {(currentBarangay || editingData?.barangay) && (
+                                        <input 
+                                            type="hidden" 
+                                            name="barangay" 
+                                            value={editingData?.barangay || currentBarangay || ""} 
+                                        />
                                     )}
                                     <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-all cursor-pointer group relative overflow-hidden min-h-[200px]">
                                         {imagePreview ? (
