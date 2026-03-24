@@ -2244,3 +2244,20 @@ export async function getReportById(id: string) {
         return { success: false, error: "Failed to fetch report." };
     }
 }
+
+export async function updateUserRole(userId: string, role: string, managedBarangay: string | null = null) {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { 
+                role: role as any,
+                managedBarangay 
+            }
+        });
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update user role:", error);
+        return { success: false, error: "Failed to update user role." };
+    }
+}

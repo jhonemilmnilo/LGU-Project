@@ -46,6 +46,7 @@ export const authOptions: NextAuthOptions = {
                     name: user.name,
                     role: user.role,
                     isPasswordChanged: user.isPasswordChanged,
+                    managedBarangay: user.managedBarangay,
                 };
             },
         }),
@@ -58,6 +59,8 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token.isPasswordChanged = (user as any).isPasswordChanged;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                token.managedBarangay = (user as any).managedBarangay;
             }
 
             // Sync Database dynamically with Session to Auto-Logout rejected/pending users!
@@ -83,6 +86,8 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).id = token.id;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (session.user as any).isPasswordChanged = token.isPasswordChanged;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (session.user as any).managedBarangay = token.managedBarangay;
             }
             return session;
         },
