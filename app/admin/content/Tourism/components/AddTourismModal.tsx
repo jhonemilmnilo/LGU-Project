@@ -19,18 +19,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Image as ImageIcon, X, Loader2, Camera, Info, Clock, Wallet } from "lucide-react";
 
 export function AddTourismModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useTourism();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useTourism();
     const { handleSubmit, loading } = useTourismForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Sync preview with existing image ONLY when editingData changes initially
     useEffect(() => {
-        const url = editingData?.imageUrl || null;
-        if (imagePreview !== url) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setImagePreview(url);
+        if (editingData?.imageUrl) {
+            setImagePreview(editingData.imageUrl);
+        } else {
+            setImagePreview(null);
         }
-    }, [editingData, imagePreview]);
+    }, [editingData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -146,6 +147,9 @@ export function AddTourismModal() {
                                 <MapPin className="w-4 h-4" />
                                 <h3 className="text-sm font-bold uppercase tracking-wider">Location & Media</h3>
                             </div>
+                            {currentBarangay && !editingData && (
+                                <input type="hidden" name="barangay" value={currentBarangay} />
+                            )}
 
                             <div className="space-y-2">
                                 <Label className="text-slate-700 dark:text-slate-300 font-bold">Address / Barangay</Label>

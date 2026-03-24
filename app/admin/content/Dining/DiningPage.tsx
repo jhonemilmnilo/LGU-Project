@@ -60,9 +60,9 @@ function DiningDashboard() {
     );
 }
 
-export default function DiningPage({ diningData }: { diningData: Dining[] }) {
+export default function DiningPage({ diningData, currentBarangay }: { diningData: Dining[]; currentBarangay?: string }) {
     return (
-        <DiningProvider initialData={diningData}>
+        <DiningProvider initialData={diningData} currentBarangay={currentBarangay}>
             <DiningDashboard />
         </DiningProvider>
     );

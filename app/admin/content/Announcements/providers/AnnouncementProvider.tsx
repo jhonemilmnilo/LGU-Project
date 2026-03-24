@@ -10,6 +10,7 @@ export interface Announcement {
     category: string;
     isPinned: boolean;
     isActive: boolean;
+    barangay: string | null;
     expiryDate: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -28,14 +29,15 @@ interface AnnouncementContextType {
     setSelectedCategory: (category: string) => void;
     selectedPriority: string;
     setSelectedPriority: (priority: string) => void;
+    currentBarangay?: string;
 }
 
 const AnnouncementContext = createContext<AnnouncementContextType | undefined>(undefined);
 
-export function AnnouncementProvider({ children, initialData }: { children: ReactNode; initialData: Announcement[] }) {
-    const [announcements, setAnnouncements] = useState<Announcement[]>(initialData);
+export function AnnouncementProvider({ children, initialData, currentBarangay }: { children: ReactNode; initialData: Announcement[]; currentBarangay?: string }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [announcements, setAnnouncements] = useState<Announcement[]>(initialData);
     const [editingData, setEditingData] = useState<Announcement | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedPriority, setSelectedPriority] = useState("All");
@@ -59,6 +61,7 @@ export function AnnouncementProvider({ children, initialData }: { children: Reac
                 setSelectedCategory,
                 selectedPriority,
                 setSelectedPriority,
+                currentBarangay,
             }}
         >
             {children}

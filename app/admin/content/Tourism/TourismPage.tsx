@@ -12,11 +12,12 @@ import { Home } from "lucide-react";
 
 interface TourismPageProps {
     initialData: Tourism[];
+    currentBarangay?: string | null;
 }
 
-export function TourismPage({ initialData }: TourismPageProps) {
+export function TourismPage({ initialData, currentBarangay }: TourismPageProps) {
     return (
-        <TourismProvider initialData={initialData}>
+        <TourismProvider initialData={initialData} currentBarangay={currentBarangay}>
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

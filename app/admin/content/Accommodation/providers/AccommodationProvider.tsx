@@ -16,6 +16,7 @@ export interface Accommodation {
     latitude: number | null;
     longitude: number | null;
     googleMapsUrl: string | null;
+    barangay: string | null;
     isPublished: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -29,16 +30,19 @@ interface AccommodationContextType {
     setIsAddModalOpen: (isOpen: boolean) => void;
     editingData: Accommodation | null;
     setEditingData: (data: Accommodation | null) => void;
+    currentBarangay?: string | null;
 }
 
 const AccommodationContext = createContext<AccommodationContextType | undefined>(undefined);
 
 export function AccommodationProvider({
     children,
-    initialData
+    initialData,
+    currentBarangay
 }: {
     children: React.ReactNode;
-    initialData: Accommodation[]
+    initialData: Accommodation[];
+    currentBarangay?: string | null;
 }) {
     const [accommodationData, setAccommodationData] = useState<Accommodation[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
@@ -60,6 +64,7 @@ export function AccommodationProvider({
                 setIsAddModalOpen,
                 editingData,
                 setEditingData,
+                currentBarangay
             }}
         >
             {children}

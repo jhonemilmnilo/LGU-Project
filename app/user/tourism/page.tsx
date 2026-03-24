@@ -6,5 +6,15 @@ export default async function UserTourismPage() {
         orderBy: { name: "asc" }
     });
 
-    return <UserTourismView initialTourism={tourismSpots as TourismSpot[]} />;
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
+    return (
+        <UserTourismView 
+            initialTourism={tourismSpots as any} 
+            activeBarangays={activeBarangays.map(b => b.name)}
+        />
+    );
 }

@@ -19,17 +19,18 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AddAccommodationModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useAccommodation();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useAccommodation();
     const { handleSubmit, loading } = useAccommodationForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+    // Sync preview with existing image ONLY when editingData changes initially
     useEffect(() => {
-        const url = editingData?.imageUrl || null;
-        if (imagePreview !== url) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setImagePreview(url);
+        if (editingData?.imageUrl) {
+            setImagePreview(editingData.imageUrl);
+        } else {
+            setImagePreview(null);
         }
-    }, [editingData, imagePreview]);
+    }, [editingData]);
 
     return (
         <Dialog
@@ -157,10 +158,13 @@ export function AddAccommodationModal() {
 
                                 {/* Section 4: Image */}
                                 <div className="space-y-4">
-                                    <div className="flex items-center space-x-2 text-sm font-bold text-slate-400 uppercase tracking-widest pb-2 border-b border-slate-200 dark:border-[#2a3040]">
+                                    <div className="flex items-center gap-2 text-blue-600">
                                         <UploadCloud className="w-4 h-4" />
-                                        <span>Cover Image</span>
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notice Image</h3>
                                     </div>
+                                    {currentBarangay && !editingData && (
+                                        <input type="hidden" name="barangay" value={currentBarangay} />
+                                    )}
                                     <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-all cursor-pointer group relative overflow-hidden min-h-[200px]">
                                         {imagePreview ? (
                                             <div className="absolute inset-0 w-full h-full">

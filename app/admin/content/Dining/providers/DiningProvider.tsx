@@ -15,6 +15,7 @@ export interface Dining {
     latitude: number | null;
     longitude: number | null;
     googleMapsUrl: string | null;
+    barangay: string | null;
     isPublished: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -28,11 +29,12 @@ interface DiningContextType {
     diningData: Dining[];
     editingData: Dining | null;
     setEditingData: (data: Dining | null) => void;
+    currentBarangay?: string;
 }
 
 const DiningContext = createContext<DiningContextType | undefined>(undefined);
 
-export function DiningProvider({ children, initialData }: { children: React.ReactNode; initialData: Dining[] }) {
+export function DiningProvider({ children, initialData, currentBarangay }: { children: React.ReactNode; initialData: Dining[]; currentBarangay?: string }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [diningData, setDiningData] = useState<Dining[]>(initialData);
@@ -45,7 +47,7 @@ export function DiningProvider({ children, initialData }: { children: React.Reac
     }, [initialData]);
 
     return (
-        <DiningContext.Provider value={{ searchTerm, setSearchTerm, isAddModalOpen, setIsAddModalOpen, diningData, editingData, setEditingData }}>
+        <DiningContext.Provider value={{ searchTerm, setSearchTerm, isAddModalOpen, setIsAddModalOpen, diningData, editingData, setEditingData, currentBarangay }}>
             {children}
         </DiningContext.Provider>
     );

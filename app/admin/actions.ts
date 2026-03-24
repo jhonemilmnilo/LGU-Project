@@ -295,6 +295,7 @@ export async function getHeadDetails(id: string) {
 export async function addDining(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         const newDining = await prisma.dining.create({
             data: {
@@ -310,6 +311,7 @@ export async function addDining(formData: FormData) {
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
                 isPublished: true,
+                barangay: barangay || null,
             },
         });
 
@@ -342,6 +344,7 @@ export async function updateDining(id: string, formData: FormData) {
     try {
         const oldItem = await prisma.dining.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
             await deleteUploadedFile(oldItem.imageUrl);
@@ -361,6 +364,7 @@ export async function updateDining(id: string, formData: FormData) {
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
+                barangay: barangay || null,
             },
         });
 
@@ -393,6 +397,7 @@ export async function toggleDiningStatus(id: string, isPublished: boolean) {
 export async function addAccommodation(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         const newAccommodation = await prisma.accommodation.create({
             data: {
@@ -409,6 +414,7 @@ export async function addAccommodation(formData: FormData) {
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
                 isPublished: true,
+                barangay: barangay || null,
             },
         });
 
@@ -441,6 +447,7 @@ export async function updateAccommodation(id: string, formData: FormData) {
     try {
         const oldItem = await prisma.accommodation.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
             await deleteUploadedFile(oldItem.imageUrl);
@@ -461,6 +468,7 @@ export async function updateAccommodation(id: string, formData: FormData) {
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
+                barangay: barangay || null,
             },
         });
 
@@ -493,6 +501,7 @@ export async function toggleAccommodationStatus(id: string, isPublished: boolean
 export async function addTourismSpot(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         const newSpot = await prisma.tourismSpot.create({
             data: {
@@ -508,6 +517,7 @@ export async function addTourismSpot(formData: FormData) {
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
                 isPublished: true,
+                barangay: barangay || null,
             },
         });
 
@@ -540,6 +550,7 @@ export async function updateTourismSpot(id: string, formData: FormData) {
     try {
         const oldItem = await prisma.tourismSpot.findUnique({ where: { id } });
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         if (imageUrl && oldItem?.imageUrl && oldItem.imageUrl !== imageUrl) {
             await deleteUploadedFile(oldItem.imageUrl);
@@ -559,6 +570,7 @@ export async function updateTourismSpot(id: string, formData: FormData) {
                 latitude: formData.get("latitude") ? parseFloat(formData.get("latitude") as string) : null,
                 longitude: formData.get("longitude") ? parseFloat(formData.get("longitude") as string) : null,
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
+                barangay: barangay || null,
             },
         });
 

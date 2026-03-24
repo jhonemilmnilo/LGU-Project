@@ -1,14 +1,25 @@
 "use client";
 
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
     Bed, 
     MapPin, 
     Home, 
-    ArrowRight
+    ArrowRight,
+    Search,
+    Filter
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -31,26 +42,51 @@ export interface Accommodation {
     type?: string | null;
     contactNumber?: string | null;
     websiteUrl?: string | null;
+    barangay?: string | null;
     isPublished: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export function UserAccommodationView({ initialAccommodations = [] }: { initialAccommodations: Accommodation[] }) {
+interface UserAccommodationViewProps {
+    initialAccommodations: Accommodation[];
+    activeBarangays?: string[];
+}
+
+export function UserAccommodationView({ 
+    initialAccommodations = [], 
+    activeBarangays = [] 
+}: UserAccommodationViewProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedBarangay, setSelectedBarangay] = useState("All");
+
+    const barangayList = useMemo(() => {
+        return ["All", ...activeBarangays.sort()];
+    }, [activeBarangays]);
+
+    const filteredAccommodations = useMemo(() => {
+        return initialAccommodations.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesBarangay = selectedBarangay === "All" || item.barangay === selectedBarangay;
+            return matchesSearch && matchesBarangay;
+        });
+    }, [initialAccommodations, searchQuery, selectedBarangay]);
+
     return (
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
             <Breadcrumb>
-                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
+                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
                     <BreadcrumbItem>
                         <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
+                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
                             </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator className="text-white/50" />
+                    <BreadcrumbSeparator />
                     <BreadcrumbItem>
                         <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Explore Mapandan / Tuluyan & Resorts</BreadcrumbPage>
                     </BreadcrumbItem>
@@ -58,9 +94,9 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
             </Breadcrumb>
 
             {/* Header section */}
-            <div className="flex flex-col items-center text-center space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform -rotate-3 hover:rotate-0 transition-transform">
+                    <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary/80 rounded-[22px] flex items-center justify-center shadow-2xl shadow-primary/40 transform hover:rotate-3 transition-transform">
                         <Bed className="w-7 h-7 text-white" />
                     </div>
                     <div className="space-y-0.5">
@@ -68,14 +104,46 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                         <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">Your home by the sea</p>
                     </div>
                 </div>
-                <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed mx-auto">
-                    From beachfront resorts to hillside villas. Find your home away from home in the coastal breeze of Mapandan. Enjoy world-class hospitality and breathtaking views.
-                </p>
+
+                {/* Search and Filter Bar */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                    <div className="relative w-full sm:w-[300px] group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                            <Search className="w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                        </div>
+                        <Input 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search resorts or stays..."
+                            className="pl-11 h-12 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-2xl font-bold italic placeholder:text-slate-400 focus:ring-primary/20 transition-all"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-[200px]">
+                        <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                            <SelectTrigger className="h-12 bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-2xl font-bold italic focus:ring-primary/20">
+                                <Filter className="w-4 h-4 mr-2 text-primary" />
+                                <SelectValue placeholder="Barangay" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 rounded-2xl">
+                                {barangayList.map(b => (
+                                    <SelectItem key={b} value={b} className="font-bold italic">
+                                        {b === "All" ? "All Locations" : b}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
             </div>
 
+            <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
+                From beachfront resorts to hillside villas. Find your home away from home in the coastal breeze of Mapandan. Enjoy world-class hospitality and breathtaking views.
+            </p>
+
             {/* Content section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-4">
-                {initialAccommodations.map((item, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-4 text-left">
+                {filteredAccommodations.map((item, idx) => (
                     <motion.div
                         key={item.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -84,7 +152,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                         transition={{ delay: idx * 0.1 }}
                         className="group bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-[#2a3040] hover:border-primary/40 transition-all duration-500 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col h-full active:scale-[0.98]"
                     >
-                        {/* Image Container - No search icon */}
+                        {/* Image Container */}
                         <div className="relative aspect-[16/10] overflow-hidden">
                             <Image
                                 src={item.imageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800"}
@@ -109,7 +177,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         </div>
                         
-                        {/* Details - More visible with background and themed border */}
+                        {/* Details */}
                         <div className="p-8 space-y-4 flex-1 flex flex-col justify-between">
                             <div className="space-y-4">
                                 <div className="space-y-2">
@@ -118,11 +186,13 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                                     </h3>
                                     <div className="flex items-center gap-2 text-slate-400 group-hover:text-slate-500 transition-colors">
                                         <MapPin className="w-4 h-4 text-primary" />
-                                        <span className="text-[11px] font-bold uppercase tracking-widest truncate italic">{item.address}</span>
+                                        <span className="text-[11px] font-bold uppercase tracking-widest truncate italic">
+                                            {item.address} {item.barangay && `• Barangay ${item.barangay}`}
+                                        </span>
                                     </div>
                                 </div>
                                 
-                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 leading-relaxed h-10">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 leading-relaxed h-10 text-left">
                                     {item.description}
                                 </p>
                             </div>
@@ -144,7 +214,7 @@ export function UserAccommodationView({ initialAccommodations = [] }: { initialA
                 ))}
             </div>
 
-            {initialAccommodations.length === 0 && (
+            {filteredAccommodations.length === 0 && (
                 <div className="py-32 flex flex-col items-center justify-center space-y-4 opacity-40">
                     <Bed className="w-12 h-12" />
                     <p className="font-black uppercase tracking-widest text-xs italic">Preparations in progress... Beachfront soon!</p>

@@ -6,5 +6,15 @@ export default async function UserAccommodationPage() {
         orderBy: { createdAt: "desc" },
     });
 
-    return <UserAccommodationView initialAccommodations={accommodations as Accommodation[]} />;
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
+    return (
+        <UserAccommodationView 
+            initialAccommodations={accommodations as any} 
+            activeBarangays={activeBarangays.map(b => b.name)}
+        />
+    );
 }

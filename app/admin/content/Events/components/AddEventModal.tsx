@@ -22,7 +22,7 @@ import { MapPin, Image as ImageIcon, X, Loader2, Calendar, Info, Clock, Phone, M
 const categories = ["Festival", "Community", "Religious", "Sports", "Other"];
 
 export function AddEventModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useEvents();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useEvents();
     const { handleSubmit, loading } = useEventsForm();
     const [selectedCategory, setSelectedCategory] = useState<string>("Community");
     const [otherCategory, setOtherCategory] = useState<string>("");
@@ -109,14 +109,17 @@ export function AddEventModal() {
 
                                     <div className="space-y-2">
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Event Title</Label>
-                                        <Input
-                                            name="title"
-                                            required
-                                            defaultValue={editingData?.title || ""}
-                                            placeholder=""
-                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
-                                        />
-                                    </div>
+                                            <Input
+                                                name="title"
+                                                required
+                                                defaultValue={editingData?.title || ""}
+                                                placeholder="e.g. Schedule for Coastal Clean-up"
+                                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
+                                            />
+                                            {currentBarangay && !editingData && (
+                                                <input type="hidden" name="barangay" value={currentBarangay} />
+                                            )}
+                                        </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">

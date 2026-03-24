@@ -15,6 +15,7 @@ export interface Tourism {
     latitude: number | null;
     longitude: number | null;
     googleMapsUrl: string | null;
+    barangay: string | null;
     isPublished: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -30,16 +31,19 @@ interface TourismContextType {
     setEditingData: (data: Tourism | null) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    currentBarangay?: string | null;
 }
 
 const TourismContext = createContext<TourismContextType | undefined>(undefined);
 
 export function TourismProvider({
     children,
-    initialData
+    initialData,
+    currentBarangay
 }: {
     children: React.ReactNode;
-    initialData: Tourism[]
+    initialData: Tourism[];
+    currentBarangay?: string | null;
 }) {
     const [tourismData, setTourismData] = useState<Tourism[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
@@ -64,6 +68,7 @@ export function TourismProvider({
                 setEditingData,
                 selectedCategory,
                 setSelectedCategory,
+                currentBarangay
             }}
         >
             {children}

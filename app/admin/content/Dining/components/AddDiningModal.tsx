@@ -13,17 +13,18 @@ import { Textarea } from "@/components/ui/textarea";
 // removed unused containerVariants
 
 export function AddDiningModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useDining();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useDining();
     const { handleSubmit, loading } = useDiningForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-    // Sync preview with existing image when editing data changes
+    // Sync preview with existing image ONLY when editingData changes initially
     React.useEffect(() => {
-        const url = editingData?.imageUrl || null;
-        if (imagePreview !== url) {
-            setImagePreview(url);
+        if (editingData?.imageUrl) {
+            setImagePreview(editingData.imageUrl);
+        } else {
+            setImagePreview(null);
         }
-    }, [editingData, imagePreview]);
+    }, [editingData]);
 
     return (
         <Dialog
@@ -144,6 +145,9 @@ export function AddDiningModal() {
                                     <Label htmlFor="imageFile" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                                         Dining Image
                                     </Label>
+                                    {currentBarangay && !editingData && (
+                                        <input type="hidden" name="barangay" value={currentBarangay} />
+                                    )}
                                     <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-colors cursor-pointer group relative overflow-hidden">
                                         {imagePreview ? (
                                             <div className="absolute inset-0 w-full h-full">

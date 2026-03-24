@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface Event {
     id: string;
@@ -13,6 +13,7 @@ export interface Event {
     address: string;
     contactNumber: string | null;
     imageUrl: string | null;
+    barangay: string | null;
     reminders: string[];
     latitude: number | null;
     longitude: number | null;
@@ -33,16 +34,16 @@ interface EventsContextType {
     setEditingData: (data: Event | null) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    currentBarangay?: string;
 }
 
 const EventsContext = createContext<EventsContextType | undefined>(undefined);
 
-export function EventsProvider({ children, initialData }: { children: ReactNode; initialData: Event[] }) {
+export function EventsProvider({ children, initialData, currentBarangay }: { children: ReactNode; initialData: Event[]; currentBarangay?: string }) {
     const [events, setEvents] = useState<Event[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [editingData, setEditingData] = useState<any | null>(null);
+    const [editingData, setEditingData] = useState<Event | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
 
     useEffect(() => {
@@ -62,6 +63,7 @@ export function EventsProvider({ children, initialData }: { children: ReactNode;
                 setEditingData,
                 selectedCategory,
                 setSelectedCategory,
+                currentBarangay
             }}
         >
             {children}

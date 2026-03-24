@@ -11,12 +11,13 @@ import { Home } from "lucide-react";
 
 
 interface EventsPageProps {
-    initialData: Event[];
+    initialData: any[];
+    currentBarangay?: string;
 }
 
-export function EventsPage({ initialData }: EventsPageProps) {
+export function EventsPage({ initialData, currentBarangay }: EventsPageProps) {
     return (
-        <EventsProvider initialData={initialData}>
+        <EventsProvider initialData={initialData} currentBarangay={currentBarangay}>
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

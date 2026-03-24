@@ -6,8 +6,10 @@ import DiningPageWrapper from "@/app/admin/content/Dining/DiningPage";
 
 export const dynamic = "force-dynamic";
 
-export default async function DiningPage() {
+export default async function DiningPage({ searchParams }: { searchParams: Promise<{ barangay?: string }> }) {
     const session = await getServerSession(authOptions);
+    const params = await searchParams;
+    const barangayParam = params.barangay || null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session?.user as any;
@@ -18,9 +20,14 @@ export default async function DiningPage() {
     const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
 
     const diningData = await prisma.dining.findMany({
-        where: isBarangayAdmin ? { barangay: user.managedBarangay } : {},
+        where: isBarangayAdmin 
+            ? { barangay: user.managedBarangay } 
+            : (barangayParam ? { barangay: barangayParam } : {}),
         orderBy: { createdAt: "desc" }
     });
 
-    return <DiningPageWrapper diningData={diningData} />;
+    return <DiningPageWrapper 
+        diningData={diningData} 
+        currentBarangay={isBarangayAdmin ? user.managedBarangay : (barangayParam || undefined)}
+    />;
 }

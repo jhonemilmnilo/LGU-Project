@@ -13,11 +13,12 @@ import { Accommodation } from "./providers/AccommodationProvider";
 
 interface AccommodationPageProps {
     initialData: Accommodation[];
+    currentBarangay?: string | null;
 }
 
-export function AccommodationPage({ initialData }: AccommodationPageProps) {
+export function AccommodationPage({ initialData, currentBarangay }: AccommodationPageProps) {
     return (
-        <AccommodationProvider initialData={initialData}>
+        <AccommodationProvider initialData={initialData} currentBarangay={currentBarangay}>
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

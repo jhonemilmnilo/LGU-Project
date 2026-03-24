@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Megaphone, Info, Calendar, Pin, AlertTriangle, Loader2 } from "lucide-react";
 
 export function AddAnnouncementModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useAnnouncements();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useAnnouncements();
     const { handleSubmit, loading } = useAnnouncementForm();
 
     const formatDateForInput = (dateInput: Date | string | null | undefined) => {
@@ -68,6 +68,9 @@ export function AddAnnouncementModal() {
                                         placeholder="e.g. Schedule for Coastal Clean-up"
                                         className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
                                     />
+                                    {currentBarangay && !editingData && (
+                                        <input type="hidden" name="barangay" value={currentBarangay} />
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notice Description</Label>

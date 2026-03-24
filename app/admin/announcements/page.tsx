@@ -3,8 +3,11 @@ import { AnnouncementPage } from "../content/Announcements/AnnouncementPage";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ barangay?: string }> }) {
     const session = await getServerSession(authOptions);
+    const params = await searchParams;
+    const barangayParam = params.barangay || null;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session?.user as any;
     const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
@@ -23,12 +26,17 @@ export default async function Page() {
     }
 
     const announcements = await announcementDelegate.findMany({
-        where: isBarangayAdmin ? { barangay: user.managedBarangay } : {},
+        where: isBarangayAdmin 
+            ? { barangay: user.managedBarangay } 
+            : (barangayParam ? { barangay: barangayParam } : {}),
         orderBy: [
             { isPinned: "desc" },
             { createdAt: "desc" }
         ],
     });
 
-    return <AnnouncementPage initialData={announcements} />;
+    return <AnnouncementPage 
+        initialData={announcements} 
+        currentBarangay={isBarangayAdmin ? user.managedBarangay : (barangayParam || undefined)}
+    />;
 }
