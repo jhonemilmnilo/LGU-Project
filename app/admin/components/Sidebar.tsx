@@ -43,6 +43,7 @@ export function Sidebar({
     const role = session?.user?.role || "ADMIN";
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
+    const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
     const allMenuItems = [
@@ -72,6 +73,18 @@ export function Sidebar({
             subItems: [
                 { href: "/admin/about", label: "Platform Info" },
                 { href: "/admin/about/past-mayors", label: "Past Mayors" },
+            ]
+        },
+        {
+            label: "Barangays Mgmt",
+            icon: Map,
+            category: "Infrastructure",
+            isDropdown: true,
+            isOpen: isBarangaysOpen,
+            onToggle: () => setIsBarangaysOpen(!isBarangaysOpen),
+            subItems: [
+                { href: "/admin/barangays/list", label: "Add/Edit Barangays" },
+                { href: "/admin/barangays/admins", label: "Add Barangay Admins" },
             ]
         },
         { href: "/admin/announcements", label: "Announcements", icon: Megaphone, category: "Content" },
@@ -106,9 +119,28 @@ export function Sidebar({
         "Typhoon Alerts"
     ];
 
-    const menuItems = role === "CONTENT_ADMIN"
-        ? allMenuItems.filter(item => contentAdminAllowed.includes(item.label))
-        : allMenuItems;
+    const barangayAdminAllowed = [
+        "Dashboard",
+        "Announcements",
+        "News & Updates",
+        "Events",
+        "LGU Projects",
+        "Kainan (Dining)",
+        "Tuluyan (Stay)",
+        "Gallery",
+        "Church Management",
+        "Job Postings",
+        "Council Members",
+        "Resident Approvals",
+        "Resident Registry",
+    ];
+
+    let menuItems = allMenuItems;
+    if (role === "CONTENT_ADMIN") {
+        menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
+    } else if (role === "BARANGAY_ADMIN") {
+        menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
+    }
 
     return (
         <>

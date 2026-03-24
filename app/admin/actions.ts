@@ -2261,3 +2261,129 @@ export async function updateUserRole(userId: string, role: string, managedBarang
         return { success: false, error: "Failed to update user role." };
     }
 }
+
+// ----------------------------------------
+// BARANGAY MANAGEMENT ACTIONS
+// ----------------------------------------
+
+export async function addBarangay(formData: FormData) {
+    try {
+        const logoUrl = await processImageUpload(formData, "logo");
+        const coverImageUrl = await processImageUpload(formData, "coverImage");
+        const captainImageUrl = await processImageUpload(formData, "captainImage");
+
+        const newBarangay = await prisma.barangayInfo.create({
+            data: {
+                name: formData.get("name") as string,
+                description: formData.get("description") as string || null,
+                logoUrl: logoUrl,
+                coverImageUrl: coverImageUrl,
+                captainName: formData.get("captainName") as string || null,
+                captainMessage: formData.get("captainMessage") as string || null,
+                captainImageUrl: captainImageUrl,
+                history: formData.get("history") as string || null,
+                mission: formData.get("mission") as string || null,
+                vision: formData.get("vision") as string || null,
+            },
+        });
+
+        revalidatePath("/admin/barangays/list");
+        return { success: true, barangay: newBarangay };
+    } catch (error) {
+        console.error("Failed to add barangay:", error);
+        return { success: false, error: "Failed to create barangay entry." };
+    }
+}
+
+export async function updateBarangay(id: string, formData: FormData) {
+    try {
+        const oldItem = await prisma.barangayInfo.findUnique({ where: { id } });
+        
+        const logoUrl = await processImageUpload(formData, "logo");
+        const coverImageUrl = await processImageUpload(formData, "coverImage");
+        const captainImageUrl = await processImageUpload(formData, "captainImage");
+
+        if (logoUrl && oldItem?.logoUrl && oldItem.logoUrl !== logoUrl) {
+            await deleteUploadedFile(oldItem.logoUrl);
+        }
+        if (coverImageUrl && oldItem?.coverImageUrl && oldItem.coverImageUrl !== coverImageUrl) {
+            await deleteUploadedFile(oldItem.coverImageUrl);
+        }
+        if (captainImageUrl && oldItem?.captainImageUrl && oldItem.captainImageUrl !== captainImageUrl) {
+            await deleteUploadedFile(oldItem.captainImageUrl);
+        }
+
+        const updatedBarangay = await prisma.barangayInfo.update({
+            where: { id },
+            data: {
+                name: formData.get("name") as string,
+                description: formData.get("description") as string || null,
+                logoUrl: logoUrl || (formData.get("logoUrl") as string) || null,
+                coverImageUrl: coverImageUrl || (formData.get("coverImageUrl") as string) || null,
+                captainName: formData.get("captainName") as string || null,
+                captainMessage: formData.get("captainMessage") as string || null,
+                captainImageUrl: captainImageUrl || (formData.get("captainImageUrl") as string) || null,
+                history: formData.get("history") as string || null,
+                mission: formData.get("mission") as string || null,
+                vision: formData.get("vision") as string || null,
+            },
+        });
+
+        revalidatePath("/admin/barangays/list");
+        return { success: true, barangay: updatedBarangay };
+    } catch (error) {
+        console.error("Failed to update barangay:", error);
+        return { success: false, error: "Failed to update barangay entry." };
+    }
+}
+
+export async function deleteBarangay(id: string) {
+    try {
+        const item = await prisma.barangayInfo.findUnique({ where: { id } });
+        if (item?.logoUrl) await deleteUploadedFile(item.logoUrl);
+        if (item?.coverImageUrl) await deleteUploadedFile(item.coverImageUrl);
+        if (item?.captainImageUrl) await deleteUploadedFile(item.captainImageUrl);
+
+        await prisma.barangayInfo.delete({ where: { id } });
+        revalidatePath("/admin/barangays/list");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to delete barangay:", error);
+        return { success: false, error: "Failed to delete barangay entry." };
+    }
+}
+
+export async function createBarangayAdmin(formData: FormData) {
+    try {
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const managedBarangay = formData.get("managedBarangay") as string;
+
+        // Check if email already exists
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return { success: false, error: "Email already exists in the system." };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newAdmin = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: "BARANGAY_ADMIN",
+                managedBarangay,
+                isEmailVerified: true, // Auto-verify for admins
+                emailVerified: new Date(),
+            }
+        });
+
+        revalidatePath("/admin/barangays/admins");
+        return { success: true, admin: newAdmin };
+    } catch (error: any) {
+        console.error("Failed to create barangay admin:", error);
+        return { success: false, error: error.message || "Failed to create barangay admin." };
+    }
+}
