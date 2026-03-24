@@ -20,6 +20,7 @@ interface SidebarProps {
             email?: string | null;
             image?: string | null;
             role?: string;
+            managedBarangay?: string | null;
         };
     };
     logoUrl?: string;
@@ -314,7 +315,7 @@ export function Sidebar({
                                         className="text-[10px] text-slate-500 mt-1 hover:opacity-80 cursor-pointer transition-colors font-bold uppercase tracking-widest"
                                         style={{ color: themeColor }}
                                     >
-                                        {role === "CONTENT_ADMIN" ? "Content Admin" : "Admin System"}
+                                        {role === "CONTENT_ADMIN" ? "Content Admin" : role === "BARANGAY_ADMIN" ? `Brgy. ${session?.user?.managedBarangay || "Admin"}` : "Admin System"}
                                     </p>
                                 </div>
                             </div>

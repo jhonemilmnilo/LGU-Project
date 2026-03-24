@@ -34,7 +34,21 @@ interface AnnouncementsNewsProps {
     news: News[];
 }
 
+import { useBarangay } from "../../providers/BarangayProvider";
+
 export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProps) {
+    const { selectedBarangay } = useBarangay();
+
+    const filteredAnnouncements = React.useMemo(() => {
+        if (selectedBarangay === "All") return announcements;
+        return announcements.filter((a: any) => a.barangay === selectedBarangay);
+    }, [announcements, selectedBarangay]);
+
+    const filteredNews = React.useMemo(() => {
+        if (selectedBarangay === "All") return news;
+        return news.filter((n: any) => n.barangay === selectedBarangay);
+    }, [news, selectedBarangay]);
+
     return (
         <section id="news" className="py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
             
@@ -53,12 +67,12 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
 
                 <div className="flex flex-col gap-6">
-                    {announcements.length === 0 ? (
+                    {filteredAnnouncements.length === 0 ? (
                         <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-[2.5rem] p-12 text-center">
-                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No urgent notices today.</p>
+                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No urgent notices for this area.</p>
                         </div>
                     ) : (
-                        announcements.map((item, idx) => (
+                        filteredAnnouncements.map((item, idx) => (
                             <Link key={item.id} href={`/user/announcements/${item.id}`} className="block">
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
@@ -131,12 +145,12 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                 </div>
 
                 <div className="flex flex-col gap-8">
-                    {news.length === 0 ? (
+                    {filteredNews.length === 0 ? (
                         <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-[2.5rem] p-12 text-center">
-                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No news updates posted.</p>
+                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No news updates for this area.</p>
                         </div>
                     ) : (
-                        news.map((item, idx) => (
+                        filteredNews.map((item, idx) => (
                             <Link key={item.id} href={`/user/news/${item.id}`} className="block">
                                 <motion.div
                                     initial={{ opacity: 0, x: 20 }}

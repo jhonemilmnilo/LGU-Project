@@ -22,8 +22,17 @@ interface DiningLodgingProps {
     items: CombinedItem[];
 }
 
+import { useBarangay } from "../../providers/BarangayProvider";
+
 export function DiningLodging({ items }: DiningLodgingProps) {
-    if (!items || items.length === 0) return null;
+    const { selectedBarangay } = useBarangay();
+
+    const filteredItems = React.useMemo(() => {
+        if (selectedBarangay === "All") return items;
+        return items.filter((item: any) => item.barangay === selectedBarangay);
+    }, [items, selectedBarangay]);
+
+    if (!items || filteredItems.length === 0) return null;
 
     return (
         <section id="experience" className="py-16 px-6 max-w-7xl mx-auto space-y-12">
@@ -53,7 +62,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {items.map((item, idx) => {
+                {filteredItems.map((item, idx) => {
                     const isDining = item.itemType === "kainan";
                     const CategoryIcon = isDining ? Utensils : Bed;
                     const subCategory = isDining ? item.cuisineType : item.type;

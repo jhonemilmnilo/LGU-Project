@@ -10,11 +10,15 @@ export default async function DiningPage() {
     const session = await getServerSession(authOptions);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || (session.user as any).role !== "ADMIN") {
+    const user = session?.user as any;
+    if (!session || (user.role !== "ADMIN" && user.role !== "BARANGAY_ADMIN")) {
         redirect("/auth/login");
     }
 
+    const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
+
     const diningData = await prisma.dining.findMany({
+        where: isBarangayAdmin ? { barangay: user.managedBarangay } : {},
         orderBy: { createdAt: "desc" }
     });
 

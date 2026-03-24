@@ -18,19 +18,22 @@ import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
+import { BarangaySelector } from "./BarangaySelector";
 
 interface NavbarProps {
     logoUrl?: string;
     brandWord1?: string;
     brandWord2?: string;
     themeColor?: string;
+    barangays?: string[];
 }
 
 export function Navbar({ 
     logoUrl, 
     brandWord1 = "E", 
     brandWord2 = "Mapandan", 
-    themeColor = "#2563eb" 
+    themeColor = "#2563eb",
+    barangays = []
 }: NavbarProps) {
     const { data: session, status } = useSession();
     const pathname = usePathname();
@@ -193,6 +196,10 @@ export function Navbar({
                     <ThemeToggle />
                     
                     <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
+                    
+                    <BarangaySelector barangays={barangays} themeColor={themeColor} />
+                    
+                    <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
 
                     {isAuth ? (
                         <div className="flex items-center gap-3">
@@ -228,7 +235,8 @@ export function Navbar({
                 </div>
 
                 {/* Small Screen Controls (Desktop layout but smaller window) */}
-                <div className="flex min-[1100px]:hidden items-center gap-4">
+                <div className="flex min-[1100px]:hidden items-center gap-2 sm:gap-4">
+                    <BarangaySelector barangays={barangays} themeColor={themeColor} />
                     <ThemeToggle />
                     <button 
                         className="p-3 bg-white/5 dark:bg-black/5 rounded-xl border border-white/10"

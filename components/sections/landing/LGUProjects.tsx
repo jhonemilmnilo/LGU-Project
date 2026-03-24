@@ -25,8 +25,17 @@ interface LGUProjectsProps {
     projects: Project[];
 }
 
+import { useBarangay } from "../../providers/BarangayProvider";
+
 export function LGUProjects({ projects }: LGUProjectsProps) {
-    if (!projects || projects.length === 0) return null;
+    const { selectedBarangay } = useBarangay();
+
+    const filteredProjects = React.useMemo(() => {
+        if (selectedBarangay === "All") return projects;
+        return projects.filter((p: any) => p.barangay === selectedBarangay);
+    }, [projects, selectedBarangay]);
+
+    if (!projects || filteredProjects.length === 0) return null;
 
     return (
         <section id="projects" className="py-12 px-6 max-w-7xl mx-auto space-y-10">
@@ -52,7 +61,7 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {projects.map((project, idx) => (
+                {filteredProjects.map((project, idx) => (
                     <motion.div
                         key={project.id}
                         initial={{ opacity: 0, y: 20 }}

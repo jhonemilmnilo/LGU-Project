@@ -25,7 +25,16 @@ interface EventsCalendarSectionProps {
     events: Event[];
 }
 
+import { useBarangay } from "../../providers/BarangayProvider";
+
 export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
+    const { selectedBarangay } = useBarangay();
+
+    const filteredEvents = React.useMemo(() => {
+        if (selectedBarangay === "All") return events;
+        return events.filter((e: any) => e.barangay === selectedBarangay);
+    }, [events, selectedBarangay]);
+
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [selectedDate, setSelectedDate] = React.useState(new Date());
 
@@ -46,7 +55,7 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
         for (let i = 0; i < 7; i++) {
             formattedDate = format(day, "d");
             const cloneDay = day;
-            const hasEvents = events.some(event => isSameDay(new Date(event.startDate), cloneDay));
+            const hasEvents = filteredEvents.some(event => isSameDay(new Date(event.startDate), cloneDay));
             
             const isToday = isSameDay(day, new Date());
             
@@ -83,7 +92,7 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
         days = [];
     }
 
-    const selectedEvents = events.filter(event => isSameDay(new Date(event.startDate), selectedDate));
+    const selectedEvents = filteredEvents.filter(event => isSameDay(new Date(event.startDate), selectedDate));
 
     return (
         <section id="events" className="py-12 px-6 max-w-7xl mx-auto">

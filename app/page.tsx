@@ -79,7 +79,8 @@ export default async function Home() {
         slides, tourismSpots, dining, lodging, 
         announcements, events, news, projects, 
         jobs, officials, hotlines, 
-        churchInfo, churchSchedules, latestCollection
+        churchInfo, churchSchedules, latestCollection,
+        barangays
     ] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { isActive: true },
@@ -152,7 +153,11 @@ export default async function Home() {
         (prisma as any).churchCollection.findMany({
             orderBy: { date: "desc" },
             take: 4
-        })
+        }),
+        (prisma as any).barangayInfo.findMany({
+            select: { name: true },
+            orderBy: { name: 'asc' }
+        }).then((list: any[]) => list.map((b: any) => b.name))
     ]);
 
 
@@ -183,6 +188,7 @@ export default async function Home() {
                 brandWord1={brandWord1}
                 brandWord2={brandWord2}
                 themeColor={themeColor}
+                barangays={barangays}
             />
 
             <Hero slides={slides} themeColor={themeColor} />

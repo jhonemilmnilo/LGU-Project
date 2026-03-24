@@ -13,6 +13,16 @@ import { unlink } from "fs/promises";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+async function getSessionBarangay(): Promise<string | null> {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return null;
+    const user = session.user as any;
+    if (user.role === "BARANGAY_ADMIN" && user.managedBarangay) {
+        return user.managedBarangay;
+    }
+    return null;
+}
+
 async function deleteUploadedFile(imageUrl: string | null | undefined) {
     if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
 
@@ -582,6 +592,8 @@ export async function addEvent(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
 
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const newEvent = await (prisma as any).event.create({
             data: {
                 title: formData.get("title") as string,
@@ -598,6 +610,7 @@ export async function addEvent(formData: FormData) {
                 googleMapsUrl: formData.get("googleMapsUrl") as string,
                 reminders: (formData.get("reminders") as string)?.split("\n").map(r => r.trim()).filter(r => r !== "") || [],
                 isPublished: true,
+                barangay: barangay || null,
             } as any,
         });
 
@@ -683,6 +696,7 @@ export async function toggleEventStatus(id: string, isPublished: boolean) {
 export async function addNews(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
 
         const newNews = await (prisma as any).news.create({
             data: {
@@ -693,6 +707,7 @@ export async function addNews(formData: FormData) {
                 publishDate: new Date(formData.get("publishDate") as string || Date.now()),
                 imageUrl: imageUrl,
                 isPublished: true,
+                barangay: barangay || null,
             } as any,
         });
 
@@ -773,6 +788,8 @@ export async function addJob(formData: FormData) {
         const linksJson = formData.get("linksJson") as string;
         const links = linksJson ? JSON.parse(linksJson) : [];
 
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const newJob = await (prisma as any).job.create({
             data: {
                 title: formData.get("title") as string,
@@ -787,6 +804,7 @@ export async function addJob(formData: FormData) {
                 links: links,
                 mapUrl: formData.get("mapUrl") as string || null,
                 isActive: true,
+                barangay: barangay || null,
             } as any,
         });
 
@@ -870,6 +888,8 @@ export async function addOfficial(formData: FormData) {
         const orderValue = formData.get("order") as string;
         const parsedOrder = orderValue ? parseInt(orderValue, 10) : 0;
 
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const newOfficial = await (prisma as any).official.create({
             data: {
                 name: formData.get("name") as string,
@@ -886,6 +906,7 @@ export async function addOfficial(formData: FormData) {
                 order: isNaN(parsedOrder) ? 99 : parsedOrder,
                 imageUrl: imageUrl,
                 isActive: true,
+                barangay: barangay || null,
             } as any,
         });
 
@@ -976,6 +997,8 @@ export async function addHotline(formData: FormData) {
         const orderValue = formData.get("order") as string;
         const parsedOrder = orderValue ? parseInt(orderValue, 10) : 0;
 
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const newHotline = await (prisma as any).hotline.create({
             data: {
                 name: formData.get("name") as string,
@@ -985,6 +1008,7 @@ export async function addHotline(formData: FormData) {
                 address: formData.get("address") as string | null,
                 order: isNaN(parsedOrder) ? 0 : parsedOrder,
                 isActive: true,
+                barangay: barangay || null,
             } as any,
         });
 
@@ -1051,6 +1075,8 @@ export async function addProject(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
 
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const project = await (prisma as any).project.create({
             data: {
                 title: formData.get("title") as string,
@@ -1065,6 +1091,7 @@ export async function addProject(formData: FormData) {
                 progress: parseInt(formData.get("progress") as string || "0", 10),
                 imageUrl: imageUrl,
                 isPublished: true,
+                barangay: barangay || null,
             } as any
         });
 
@@ -1158,10 +1185,12 @@ export async function addHousehold(formData: FormData) {
             }
         }
         
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+        
         const household = await (prisma as any).household.create({
             data: {
                 headId: headId || null,
-                barangay: formData.get("barangay") as string,
+                barangay: barangay || null,
                 latitude: lat,
                 longitude: lng,
                 householdSize: parseInt(formData.get("householdSize") as string || "1", 10),
@@ -1383,7 +1412,6 @@ export async function addResident(formData: FormData) {
                 street: formData.get("street") as string || null,
                 sitio: formData.get("sitio") as string || null,
                 purok: formData.get("purok") as string || null,
-                barangay: formData.get("barangay") as string,
                 municipality: formData.get("municipality") as string || "Mapandan",
                 province: formData.get("province") as string || "Pangasinan",
                 contactNumber: formData.get("contactNumber") as string || null,
@@ -1429,7 +1457,8 @@ export async function addResident(formData: FormData) {
                     : null,
                 userId: createdUserId,
                 email: email,
-                categoryId: categoryIds.length > 0 ? categoryIds[0] : null
+                categoryId: categoryIds.length > 0 ? categoryIds[0] : null,
+                barangay: formData.get("barangay") as string || await getSessionBarangay() || null,
             } as any
         });
 
