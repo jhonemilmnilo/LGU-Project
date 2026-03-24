@@ -14,9 +14,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useBarangay } from "@/components/providers/BarangayProvider";
+import React from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserProjectsView({ initialProjects = [] }: { initialProjects: any[] }) {
+    const filteredProjects = initialProjects;
+
+    const pageTitle = "Municipal Initiatives";
+
     return (
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
@@ -27,12 +33,12 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                             <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                 <Home className="w-3.5 h-3.5 mb-0.5" />
                                 Home
-                            </Link>
+                              </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Municipal Initiatives / Projects</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic truncate max-w-[200px]">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -45,7 +51,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                             <FolderKanban className="w-7 h-7 text-white" />
                         </div>
                         <div className="space-y-0.5">
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Growth Engine</h1>
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{pageTitle}</h1>
                             <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">LGU Infrastructure</p>
                         </div>
                     </div>
@@ -56,7 +62,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {initialProjects.map((project, idx) => (
+                {filteredProjects.map((project, idx) => (
                     <motion.div
                         key={project.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -138,7 +144,7 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
                 ))}
             </div>
 
-            {initialProjects.length === 0 && (
+            {filteredProjects.length === 0 && (
                 <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-white dark:bg-black/10">
                     <FolderKanban className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-400 font-black uppercase tracking-[0.2em] italic">Infrastructure roadmap is being updated...</p>
@@ -147,5 +153,3 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
         </div>
     );
 }
-
-

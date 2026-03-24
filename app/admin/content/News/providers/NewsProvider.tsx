@@ -26,11 +26,12 @@ interface NewsContextType {
     setEditingData: (data: News | null) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    currentBarangay?: string;
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
 
-export function NewsProvider({ children, initialData }: { children: ReactNode; initialData: News[] }) {
+export function NewsProvider({ children, initialData, currentBarangay }: { children: ReactNode; initialData: News[]; currentBarangay?: string }) {
     const [newsData, setNewsData] = useState<News[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -55,6 +56,7 @@ export function NewsProvider({ children, initialData }: { children: ReactNode; i
                 setEditingData,
                 selectedCategory,
                 setSelectedCategory,
+                currentBarangay,
             }}
         >
             {children}

@@ -13,8 +13,13 @@ import {
 } from "@/components/ui/breadcrumb";
 import { format } from "date-fns";
 import { Job } from "../../admin/jobs/providers/JobsProvider";
+import React from "react";
 
 export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
+    const filteredJobs = initialJobs;
+
+    const pageTitle = "Career Hub";
+
     return (
         <div className="space-y-10 pb-20">
             {/* Breadcrumb section */}
@@ -30,7 +35,7 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Careers & Opportunities</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -38,17 +43,17 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
             {/* Header section */}
             <div className="flex flex-col items-center text-center space-y-4">
                 <div className="space-y-0.5 pt-2">
-                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Career Hub</h1>
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{pageTitle}</h1>
                     <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">LGU Recruitment</p>
                 </div>
-                <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed mx-auto">
-                    Build your future while serving the community. Explore diverse career opportunities within the Mapandan Municipal Government.
+                <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
+                    Find your next opportunity within the municipal government and local industries. Empowering Mapandan through employment.
                 </p>
             </div>
 
             {/* Job Board Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                {initialJobs.map((job, idx) => (
+                {filteredJobs.map((job, idx) => (
                     <motion.div
                         key={job.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -59,8 +64,6 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
                             href={`/user/jobs/${job.id}`}
                             className="p-8 bg-white dark:bg-[#0f1117] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col sm:flex-row gap-8 group hover:border-primary/40 transition-all active:scale-[0.98] h-full"
                         >
-
-                            
                             <div className="flex-1 space-y-6">
                                 <div className="space-y-2">
                                     <div className="flex flex-wrap items-center gap-3">
@@ -68,7 +71,7 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
                                         <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest border border-primary/20">{job.department}</span>
                                     </div>
                                     <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter transition-colors group-hover:text-primary leading-tight">{job.title}</h3>
-                                    {job.location && (
+                                    {(job.location) && (
                                         <div className="flex items-center gap-1.5 text-slate-400">
                                             <MapPin className="w-3.5 h-3.5" />
                                             <span className="text-[10px] font-bold uppercase tracking-widest">{job.location}</span>
@@ -91,14 +94,12 @@ export function UserJobsView({ initialJobs = [] }: { initialJobs: Job[] }) {
                                     )}
                                 </div>
                             </div>
-                            
-
                         </Link>
                     </motion.div>
                 ))}
             </div>
 
-            {initialJobs.length === 0 && (
+            {filteredJobs.length === 0 && (
                 <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-white dark:bg-black/10">
                     <Briefcase className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-400 font-black uppercase tracking-[0.2em] italic">No active opportunities at the moment...</p>

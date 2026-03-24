@@ -3,10 +3,11 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Compass, ShieldCheck, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSlide } from "@prisma/client";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 interface HeroProps {
     slides: HeroSlide[];
@@ -15,6 +16,7 @@ interface HeroProps {
 
 export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
     const [current, setCurrent] = React.useState(0);
+    const [searchQuery, setSearchQuery] = React.useState("");
 
     if (!slides || slides.length === 0) return null;
 
@@ -55,7 +57,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                 </motion.div>
             </AnimatePresence>
 
-            <div className="relative z-20 max-w-7xl mx-auto px-6 text-center">
+            <div className="relative z-20 max-w-7xl mx-auto px-6 text-center w-full">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeSlide.id}
@@ -63,7 +65,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -30 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="space-y-6 md:space-y-8"
+                        className="space-y-6 md:space-y-10"
                     >
                         <div className="space-y-3 md:space-y-4">
                             {activeSlide.tagline && (
@@ -81,12 +83,9 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                                  {activeSlide.title}
                              </h1>
                          </div>
- 
-                         {activeSlide.subtitle && (
-                             <p className="max-w-xl md:max-w-2xl mx-auto text-base md:text-xl text-slate-200 font-medium leading-relaxed italic px-4">
-                                 {activeSlide.subtitle}
-                             </p>
-                         )}
+
+
+
  
                          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                              {activeSlide.primaryBtnText && (
@@ -115,7 +114,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                      </motion.div>
                  </AnimatePresence>
              </div>
- 
+  
              {/* Navigation Controls */}
              {slides.length > 1 && (
                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-30 flex justify-between px-4 md:px-10 pointer-events-none">
@@ -133,7 +132,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                      </button>
                  </div>
              )}
- 
+  
              {/* Slide Indicators */}
              {slides.length > 1 && (
                  <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex gap-3">
@@ -150,20 +149,20 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                      ))}
                  </div>
              )}
-
-            {/* Bottom Fade */}
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-slate-950 to-transparent z-20" />
-
-            {/* Floating Indicators */}
-            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-4">
-                <div className="w-px h-12 bg-gradient-to-b from-white to-transparent" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 vertical-text">Scroll</span>
-            </div>
-        </section>
-    );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function cn(...classes: any[]) {
-    return classes.filter(Boolean).join(" ");
-}
+ 
+             {/* Bottom Fade */}
+             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-slate-950 to-transparent z-20" />
+ 
+             {/* Floating Indicators */}
+             <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-4">
+                 <div className="w-px h-12 bg-gradient-to-b from-white to-transparent" />
+                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 vertical-text">Scroll</span>
+             </div>
+         </section>
+     );
+ }
+ 
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ function cn(...classes: any[]) {
+     return classes.filter(Boolean).join(" ");
+ }

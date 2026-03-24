@@ -23,8 +23,13 @@ export function useEventsForm() {
                 await addEvent(formData);
                 toast.success("Event added successfully!");
             }
-            setIsAddModalOpen(false);
             setEditingData(null);
+            setIsAddModalOpen(false);
+            
+            // Force a slight delay before reload to ensure DB is updated and toast is visible
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         } catch (error) {
             console.error("Error saving event:", error);
             toast.error("Failed to save event. Pakisuri uli pal.");

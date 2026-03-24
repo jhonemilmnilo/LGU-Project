@@ -18,8 +18,9 @@ export interface News {
 }
 
 export function UserNewsView({ initialNews = [] }: { initialNews: News[] }) {
+    const pageTitle = "Municipal News";
     return (
-        <div className="space-y-12 pb-20">
+        <div className="space-y-8 pb-20">
             <Breadcrumb>
                 <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm mb-6">
                     <BreadcrumbItem>
@@ -32,7 +33,7 @@ export function UserNewsView({ initialNews = [] }: { initialNews: News[] }) {
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">Municipal News</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -42,7 +43,7 @@ export function UserNewsView({ initialNews = [] }: { initialNews: News[] }) {
                     <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
                         <Newspaper className="w-6 h-6 text-white" />
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Municipal News</h1>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">{pageTitle}</h1>
                 </div>
                 <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
                     Official updates, press releases, and community stories directly from the Mapandan Municipal Information Office.
@@ -81,7 +82,7 @@ export function UserNewsView({ initialNews = [] }: { initialNews: News[] }) {
             )}
 
             {/* News Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-12 pb-10">
                 {initialNews.slice(1).map((item, idx) => (
                     <Link href={`/user/news/${item.id}`} key={item.id}>
                         <motion.div

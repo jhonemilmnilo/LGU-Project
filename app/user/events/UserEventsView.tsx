@@ -17,6 +17,7 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] }) {
+    const pageTitle = "Community Pulse";
     return (
         <div className="space-y-8 pb-20">
             <Breadcrumb>
@@ -31,7 +32,7 @@ export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] })
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="text-white/50" />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">Community Pulse</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -41,10 +42,10 @@ export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] })
                     <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/30">
                         <Calendar className="w-6 h-6 text-white" />
                     </div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Community Pulse</h1>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">{pageTitle}</h1>
                 </div>
                 <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
-                    Explore upcoming festivals, municipal celebrations, and community gatherings. Join the vibrant spirit of Mapandan.
+                    Explore upcoming festivals, municipal celebrations, and community gatherings across Mapandan.
                 </p>
             </div>
 
@@ -74,7 +75,8 @@ export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] })
                                     <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[9px] font-black uppercase tracking-widest">{event.category || "General Event"}</span>
                                     <span className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                                         <Clock className="w-3 h-3" />
-                                        {event.time || "8:00 AM"}
+                                        {new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {event.endDate && ` - ${new Date(event.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                     </span>
                                 </div>
                                 
@@ -99,7 +101,7 @@ export function UserEventsView({ initialEvents = [] }: { initialEvents: any[] })
             </div>
 
             {initialEvents.length === 0 && (
-                <div className="py-20 text-center opacity-50 italic">Seasonal updates coming soon...</div>
+                <div className="py-20 text-center opacity-50 italic">No upcoming events found for this area. Check back soon!</div>
             )}
         </div>
     );

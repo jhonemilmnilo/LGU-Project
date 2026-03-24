@@ -6,6 +6,7 @@ import { Megaphone, Calendar, Tag, ArrowRight, Pin, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
+import { format } from "date-fns";
 
 export interface Announcement {
     id: string;
@@ -18,19 +19,13 @@ export interface Announcement {
     expiryDate: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    barangay?: string | null;
 }
 
-import { useBarangay } from "@/components/providers/BarangayProvider";
-
 export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAnnouncements: Announcement[] }) {
-    const { selectedBarangay } = useBarangay();
+    const filteredAnnouncements = initialAnnouncements; // Show all municipalities
 
-    const filteredAnnouncements = React.useMemo(() => {
-        if (selectedBarangay === "All") {
-            return initialAnnouncements.filter((a: any) => !a.barangay);
-        }
-        return initialAnnouncements.filter((a: any) => a.barangay === selectedBarangay);
-    }, [initialAnnouncements, selectedBarangay]);
+    const pageTitle = "Public Announcements";
 
     return (
         <div className="space-y-12 pb-20">
@@ -46,7 +41,7 @@ export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAn
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">Public Announcements</BreadcrumbPage>
+                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">{pageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
@@ -57,7 +52,7 @@ export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAn
                         <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-red-500/30">
                             <Megaphone className="w-6 h-6 text-white" />
                         </div>
-                        <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Announcements</h1>
+                        <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">{pageTitle}</h1>
                     </div>
                     <p className="text-slate-500 font-medium italic max-w-xl">
                         Important notices, alerts, and priority bulletins from the municipal government.
@@ -115,7 +110,7 @@ export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAn
                                     <div className="flex items-center gap-3 text-slate-400">
                                         <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-widest">
                                             <Calendar className="w-3.5 h-3.5" />
-                                            {new Date(item.createdAt).toLocaleDateString()}
+                                            {format(new Date(item.createdAt), "MMM d, yyyy")}
                                         </div>
                                     </div>
                                     <Link href={`/user/announcements/${item.id}`}>

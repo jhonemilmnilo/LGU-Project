@@ -3,9 +3,9 @@ import { UserEventsView } from "./UserEventsView";
 
 export default async function UserEventsPage() {
     const events = await prisma.event.findMany({
-        orderBy: { startDate: "asc" },
+        where: { isPublished: true },
+        orderBy: { startDate: "asc" }
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <UserEventsView initialEvents={events as any} />;
+    return <UserEventsView initialEvents={events} />;
 }

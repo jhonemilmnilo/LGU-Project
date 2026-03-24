@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
-import { BarangaySelector } from "./BarangaySelector";
 
 interface NavbarProps {
     logoUrl?: string;
@@ -197,7 +196,7 @@ export function Navbar({
                     
                     <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
                     
-                    <BarangaySelector barangays={barangays} themeColor={themeColor} />
+                    
                     
                     <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
 
@@ -236,7 +235,6 @@ export function Navbar({
 
                 {/* Small Screen Controls (Desktop layout but smaller window) */}
                 <div className="flex min-[1100px]:hidden items-center gap-2 sm:gap-4">
-                    <BarangaySelector barangays={barangays} themeColor={themeColor} />
                     <ThemeToggle />
                     <button 
                         className="p-3 bg-white/5 dark:bg-black/5 rounded-xl border border-white/10"

@@ -4,10 +4,7 @@ import { UserAnnouncementsView, type Announcement } from "./UserAnnouncementsVie
 export default async function UserAnnouncementsPage() {
     const announcements = await prisma.announcement.findMany({
         where: { isActive: true },
-        orderBy: [
-            { isPinned: 'desc' },
-            { createdAt: 'desc' }
-        ],
+        orderBy: { createdAt: "desc" }
     });
 
     return <UserAnnouncementsView initialAnnouncements={announcements as Announcement[]} />;

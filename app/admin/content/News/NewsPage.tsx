@@ -12,11 +12,12 @@ import { Home, Newspaper } from "lucide-react";
 
 interface NewsPageProps {
     initialData: News[];
+    currentBarangay?: string;
 }
 
-export function NewsPage({ initialData }: NewsPageProps) {
+export function NewsPage({ initialData, currentBarangay }: NewsPageProps) {
     return (
-        <NewsProvider initialData={initialData}>
+        <NewsProvider initialData={initialData} currentBarangay={currentBarangay}>
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

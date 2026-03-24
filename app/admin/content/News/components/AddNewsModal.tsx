@@ -22,7 +22,7 @@ import { Image as ImageIcon, X, Loader2, Newspaper, Info, Calendar } from "lucid
 const categories = ["Announcement", "Local News", "Advisory", "Project Update", "Other"];
 
 export function AddNewsModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useNews();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useNews();
     const { handleSubmit, loading } = useNewsForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>("Local News");
@@ -185,6 +185,9 @@ export function AddNewsModal() {
                                                 name="category" 
                                                 value={selectedCategory === "Other" ? otherCategory : selectedCategory} 
                                             />
+                                            {currentBarangay && !editingData && (
+                                                <input type="hidden" name="barangay" value={currentBarangay} />
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Author</Label>

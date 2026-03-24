@@ -1,12 +1,12 @@
 import prisma from "@/lib/db/prisma";
 import { UserJobsView } from "./UserJobsView";
+import { Job } from "../../admin/jobs/providers/JobsProvider";
 
 export default async function UserJobsPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jobs = await (prisma as any).job.findMany({
+    const jobs = await prisma.job.findMany({
         where: { isActive: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "desc" }
     });
 
-    return <UserJobsView initialJobs={jobs} />;
+    return <UserJobsView initialJobs={jobs as Job[]} />;
 }

@@ -41,16 +41,14 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
 
     const filteredAnnouncements = React.useMemo(() => {
         if (selectedBarangay === "All") {
-            // Only show announcements that have NO barangay assigned (General LGU announcements)
-            return announcements.filter((a: any) => !a.barangay);
+            return announcements; // Show all (LGU + all barangays)
         }
         return announcements.filter((a: any) => a.barangay === selectedBarangay);
     }, [announcements, selectedBarangay]);
 
     const filteredNews = React.useMemo(() => {
         if (selectedBarangay === "All") {
-            // General News only
-            return news.filter((n: any) => !n.barangay);
+            return news; // Show all (LGU + all barangays)
         }
         return news.filter((n: any) => n.barangay === selectedBarangay);
     }, [news, selectedBarangay]);
@@ -128,7 +126,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                     )}
                 </div>
                 
-                <Link href="/user/announcements">
+                <Link href={selectedBarangay !== "All" ? `/user/announcements?barangay=${selectedBarangay}` : "/user/announcements"}>
                     <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-primary/25 active:scale-95 mt-6 flex items-center justify-center gap-3">
                         <Megaphone className="w-4 h-4" />
                         Archived Broadcasts
@@ -203,7 +201,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                     )}
                 </div>
 
-                <Link href="/user/news">
+                <Link href={selectedBarangay !== "All" ? `/user/news?barangay=${selectedBarangay}` : "/user/news"}>
                     <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-xl shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-3 group">
                         <Newspaper className="w-4 h-4" />
                         Explore All Stories

@@ -109,8 +109,7 @@ export default async function Home({
         // Fetch real data for News & Announcements
         prisma.announcement.findMany({
             where: { 
-                isActive: true,
-                barangay: barangayFilter || null
+                isActive: true
             },
             orderBy: [
                 { isPinned: 'desc' },
@@ -120,23 +119,20 @@ export default async function Home({
         }),
         prisma.event.findMany({
             where: { 
-                isPublished: true,
-                barangay: barangayFilter || null
+                isPublished: true
             },
             orderBy: { startDate: 'asc' }
         }),
         prisma.news.findMany({
             where: { 
-                isPublished: true,
-                barangay: barangayFilter || null
+                isPublished: true
             },
             orderBy: { publishDate: 'desc' },
             take: 4
         }),
         prisma.project.findMany({
             where: { 
-                isPublished: true,
-                barangay: barangayFilter || null
+                isPublished: true
             },
             orderBy: { createdAt: 'desc' },
             take: 3
@@ -144,8 +140,7 @@ export default async function Home({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).job.findMany({
             where: { 
-                isActive: true,
-                barangay: barangayFilter || null
+                isActive: true
             },
             orderBy: [
                 { deadline: 'asc' },
