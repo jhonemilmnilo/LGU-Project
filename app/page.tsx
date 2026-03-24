@@ -18,7 +18,15 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export default async function Home() {
+export default async function Home({
+    searchParams,
+}: {
+    searchParams: { barangay?: string | string[] };
+}) {
+    // Await searchParams for Next.js 15+ standard
+    const params = await (searchParams as any);
+    const barangayFilter = typeof params.barangay === "string" ? params.barangay : null;
+
     const session = await getServerSession(authOptions);
     const role = (session?.user as { role?: string })?.role;
 
@@ -100,7 +108,10 @@ export default async function Home() {
         }),
         // Fetch real data for News & Announcements
         prisma.announcement.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                barangay: barangayFilter || null
+            },
             orderBy: [
                 { isPinned: 'desc' },
                 { createdAt: 'desc' }
@@ -108,22 +119,34 @@ export default async function Home() {
             take: 3
         }),
         prisma.event.findMany({
-            where: { isPublished: true },
+            where: { 
+                isPublished: true,
+                barangay: barangayFilter || null
+            },
             orderBy: { startDate: 'asc' }
         }),
         prisma.news.findMany({
-            where: { isPublished: true },
+            where: { 
+                isPublished: true,
+                barangay: barangayFilter || null
+            },
             orderBy: { publishDate: 'desc' },
             take: 4
         }),
         prisma.project.findMany({
-            where: { isPublished: true },
+            where: { 
+                isPublished: true,
+                barangay: barangayFilter || null
+            },
             orderBy: { createdAt: 'desc' },
             take: 3
         }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).job.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                barangay: barangayFilter || null
+            },
             orderBy: [
                 { deadline: 'asc' },
                 { createdAt: 'desc' }

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 import { Newspaper, Calendar, Bell, ArrowRight, Clock, MapPin, Tag, User, Home } from "lucide-react";
 import Image from "next/image";
@@ -10,8 +11,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
  
+import { useBarangay } from "@/components/providers/BarangayProvider";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { initialNews: any[], initialEvents: any[] }) {
+    const { selectedBarangay } = useBarangay();
+
+    const filteredNews = React.useMemo(() => {
+        if (selectedBarangay === "All") {
+            return initialNews.filter((n: any) => !n.barangay);
+        }
+        return initialNews.filter((n: any) => n.barangay === selectedBarangay);
+    }, [initialNews, selectedBarangay]);
+
+    const filteredEvents = React.useMemo(() => {
+        if (selectedBarangay === "All") {
+            return initialEvents.filter((e: any) => !e.barangay);
+        }
+        return initialEvents.filter((e: any) => e.barangay === selectedBarangay);
+    }, [initialEvents, selectedBarangay]);
+
+    const featuredNews = filteredNews.length > 0 ? filteredNews[0] : null;
+    const remainingNews = filteredNews.slice(1);
     return (
         <div className="space-y-12 pb-20">
             <Breadcrumb>
@@ -58,15 +79,15 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
 
                 <TabsContent value="news" className="space-y-12 outline-none">
                     {/* Featured Article */}
-                    {initialNews.length > 0 && (
+                    {featuredNews && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="relative aspect-auto md:aspect-[21/9] min-h-[500px] md:min-h-0 rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden group cursor-pointer shadow-2xl"
                         >
                             <Image
-                                src={initialNews[0].imageUrl || "https://images.unsplash.com/photo-150471142745a-5099af501997?auto=format&fit=crop&q=80&w=1200"}
-                                alt={initialNews[0].title}
+                                src={featuredNews.imageUrl || "https://images.unsplash.com/photo-150471142745a-5099af501997?auto=format&fit=crop&q=80&w=1200"}
+                                alt={featuredNews.title}
                                 fill
                                 className="object-cover transition-transform duration-1000 group-hover:scale-105"
                             />
@@ -75,8 +96,8 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                              <div className="absolute inset-x-0 bottom-0 p-8 md:p-12 flex flex-col md:flex-row md:items-end justify-between gap-8 z-20">
                                 <div className="space-y-4 max-w-2xl">
                                     <span className="inline-block px-4 py-1.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg italic">Featured Bulletin</span>
-                                    <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">{initialNews[0].title}</h2>
-                                    <p className="text-slate-200 md:text-slate-300 font-medium italic line-clamp-2 text-base md:text-lg">{initialNews[0].content}</p>
+                                    <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-tight">{featuredNews.title}</h2>
+                                    <p className="text-slate-200 md:text-slate-300 font-medium italic line-clamp-2 text-base md:text-lg">{featuredNews.content}</p>
                                 </div>
                                 <Button className="h-16 px-10 bg-white text-primary hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest shadow-xl flex items-center gap-2 group/btn shrink-0">
                                     Read Full Story
@@ -87,7 +108,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-10">
-                        {initialNews.slice(1).map((item, idx) => (
+                        {remainingNews.map((item, idx) => (
                             <motion.div
                                 key={item.id}
                                 initial={{ opacity: 0, y: 20 }}
@@ -142,7 +163,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
 
                 <TabsContent value="events" className="outline-none">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                        {initialEvents.map((event, idx) => (
+                        {filteredEvents.map((event, idx) => (
                             <motion.div
                                 key={event.id}
                                 initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
@@ -190,7 +211,7 @@ export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { init
                         ))}
                     </div>
 
-                    {initialEvents.length === 0 && (
+                    {filteredEvents.length === 0 && (
                         <div className="py-20 text-center opacity-50 italic flex flex-col items-center gap-4">
                             <Calendar className="w-16 h-16 text-slate-300" />
                             <p className="font-black uppercase tracking-widest text-xs">No upcoming events scheduled</p>

@@ -2065,6 +2065,8 @@ export async function toggleDisasterMapStatus(id: string, isPublished: boolean) 
 export async function addAnnouncement(formData: FormData) {
     try {
         const expiryDate = formData.get("expiryDate") as string;
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const newAnnouncement = await (prisma as any).announcement.create({
             data: {
                 title: formData.get("title") as string,
@@ -2074,9 +2076,11 @@ export async function addAnnouncement(formData: FormData) {
                 isPinned: formData.get("isPinned") === "on",
                 isActive: formData.get("isActive") === "on",
                 expiryDate: expiryDate ? new Date(expiryDate) : null,
+                barangay: barangay || null,
             } as any,
         });
         revalidatePath("/admin/announcements");
+        revalidatePath("/");
         return { success: true, announcement: newAnnouncement };
     } catch (error) {
         return { success: false, error: "Failed to create announcement." };
@@ -2086,6 +2090,8 @@ export async function addAnnouncement(formData: FormData) {
 export async function updateAnnouncement(id: string, formData: FormData) {
     try {
         const expiryDate = formData.get("expiryDate") as string;
+        const barangay = formData.get("barangay") as string || await getSessionBarangay();
+
         const updated = await (prisma as any).announcement.update({
             where: { id },
             data: {
@@ -2096,9 +2102,11 @@ export async function updateAnnouncement(id: string, formData: FormData) {
                 isPinned: formData.get("isPinned") === "on",
                 isActive: formData.get("isActive") === "on",
                 expiryDate: expiryDate ? new Date(expiryDate) : null,
+                barangay: barangay || null,
             } as any,
         });
         revalidatePath("/admin/announcements");
+        revalidatePath("/");
         return { success: true, announcement: updated };
     } catch (error) {
         return { success: false, error: "Failed to update announcement." };

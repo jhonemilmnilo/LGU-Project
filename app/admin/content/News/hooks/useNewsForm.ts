@@ -23,8 +23,13 @@ export function useNewsForm() {
                 await addNews(formData);
                 toast.success("News published successfully!");
             }
-            setIsAddModalOpen(false);
             setEditingData(null);
+            setIsAddModalOpen(false);
+            
+            // Force a slight delay before reload to ensure DB is updated and toast is visible
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
         } catch (error) {
             console.error("Error saving news:", error);
             toast.error("Failed to save news. Please try again.");

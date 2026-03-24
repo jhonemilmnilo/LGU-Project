@@ -15,8 +15,8 @@ export function BarangaySelector({ barangays, themeColor }: BarangaySelectorProp
     const { selectedBarangay, setSelectedBarangay } = useBarangay();
     const [isOpen, setIsOpen] = useState(false);
 
-    // List of options including "All Barangays"
-    const options = ["All", ...barangays];
+    // List of options
+    const options = barangays;
 
     // Close selector when clicking outside
     useEffect(() => {
@@ -51,7 +51,7 @@ export function BarangaySelector({ barangays, themeColor }: BarangaySelectorProp
                         Viewing Area
                     </span>
                     <span className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[120px]">
-                        {selectedBarangay === "All" ? "All Barangays" : `Brgy. ${selectedBarangay}`}
+                        {selectedBarangay === "All" ? "Select Community" : `Brgy. ${selectedBarangay}`}
                     </span>
                 </div>
 
@@ -96,7 +96,7 @@ export function BarangaySelector({ barangays, themeColor }: BarangaySelectorProp
                                             "text-[12px] font-bold transition-colors",
                                             selectedBarangay === b ? "text-slate-900 dark:text-white" : "text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"
                                         )}>
-                                            {b === "All" ? "All Barangays" : b}
+                                            {b}
                                         </span>
                                     </div>
                                     {selectedBarangay === b && (
@@ -105,6 +105,26 @@ export function BarangaySelector({ barangays, themeColor }: BarangaySelectorProp
                                 </button>
                             ))}
                         </div>
+
+                        {/* Special action to go back to landing page */}
+                        {selectedBarangay !== "All" && (
+                            <div className="p-2 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                                <button
+                                    onClick={() => {
+                                        setSelectedBarangay("All");
+                                        setIsOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white dark:hover:bg-white/10 transition-all group border border-transparent hover:border-slate-200 dark:hover:border-white/10"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                        <Check className="w-4 h-4" />
+                                    </div>
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white italic">
+                                        Back to Landing Page
+                                    </span>
+                                </button>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 import { Megaphone, Calendar, Tag, ArrowRight, Pin, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,18 @@ export interface Announcement {
     updatedAt: Date;
 }
 
+import { useBarangay } from "@/components/providers/BarangayProvider";
+
 export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAnnouncements: Announcement[] }) {
+    const { selectedBarangay } = useBarangay();
+
+    const filteredAnnouncements = React.useMemo(() => {
+        if (selectedBarangay === "All") {
+            return initialAnnouncements.filter((a: any) => !a.barangay);
+        }
+        return initialAnnouncements.filter((a: any) => a.barangay === selectedBarangay);
+    }, [initialAnnouncements, selectedBarangay]);
+
     return (
         <div className="space-y-12 pb-20">
             <Breadcrumb>
@@ -55,7 +67,7 @@ export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAn
 
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {initialAnnouncements.map((item, idx) => {
+                {filteredAnnouncements.map((item, idx) => {
                     const priorityColors = {
                         Critical: "bg-red-600 text-white",
                         High: "bg-orange-600 text-white",
@@ -119,7 +131,7 @@ export function UserAnnouncementsView({ initialAnnouncements = [] }: { initialAn
                 })}
             </div>
             
-            {initialAnnouncements.length === 0 && (
+            {filteredAnnouncements.length === 0 && (
                 <div className="py-20 text-center space-y-4 opacity-50">
                     <Megaphone className="w-16 h-16 mx-auto text-slate-300" />
                     <h3 className="text-xl font-black text-slate-400 uppercase italic tracking-tighter">No announcements</h3>

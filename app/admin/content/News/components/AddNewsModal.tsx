@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNews } from "../providers/NewsProvider";
 import { useNewsForm } from "../hooks/useNewsForm";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Dialog,
     DialogContent,
@@ -18,19 +19,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Image as ImageIcon, X, Loader2, Newspaper, Info, Calendar } from "lucide-react";
 
+const categories = ["Announcement", "Local News", "Advisory", "Project Update", "Other"];
+
 export function AddNewsModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useNews();
     const { handleSubmit, loading } = useNewsForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>("Local News");
+    const [otherCategory, setOtherCategory] = useState<string>("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const url = editingData?.imageUrl || null;
-        if (imagePreview !== url) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setImagePreview(url);
+        if (editingData) {
+            // Only set preview from data if NOT already uploading a new one locally
+            if (editingData.imageUrl && !imagePreview?.startsWith("data:")) {
+                setImagePreview(editingData.imageUrl);
+            }
+            
+            // Handle editing existing category
+            if (editingData.category) {
+                if (categories.includes(editingData.category)) {
+                    setSelectedCategory(editingData.category);
+                    setOtherCategory("");
+                } else {
+                    setSelectedCategory("Other");
+                    setOtherCategory(editingData.category);
+                }
+            }
         }
-    }, [editingData, imagePreview]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editingData]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -43,7 +61,6 @@ export function AddNewsModal() {
         }
     };
 
-    const categories = ["Announcement", "Local News", "Advisory", "Project Update", "Other"];
 
     const formatDateForInput = (dateInput: Date | string | undefined) => {
         if (!dateInput) return "";
@@ -57,6 +74,8 @@ export function AddNewsModal() {
             if (!open) {
                 setEditingData(null);
                 setImagePreview(null);
+                setSelectedCategory("Local News");
+                setOtherCategory("");
             }
         }}>
             <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-[2.5rem]">
@@ -101,16 +120,71 @@ export function AddNewsModal() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category</Label>
-                                            <Select name="category" defaultValue={editingData?.category || "Local News"}>
-                                                <SelectTrigger className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px]">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                                                    {categories.map(cat => (
-                                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <AnimatePresence mode="wait">
+                                                {selectedCategory !== "Other" ? (
+                                                    <motion.div
+                                                        key="select-cat"
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: 10 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        <Select 
+                                                            name="category_trigger" 
+                                                            value={selectedCategory}
+                                                            onValueChange={(val) => {
+                                                                setSelectedCategory(val);
+                                                                if (val === "Other") setOtherCategory("");
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px]">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                                                {categories.map(cat => (
+                                                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </motion.div>
+                                                ) : (
+                                                    <motion.div
+                                                        key="input-cat"
+                                                        initial={{ opacity: 0, x: 10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: -10 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="relative"
+                                                    >
+                                                        <Input
+                                                            required
+                                                            autoFocus
+                                                            value={otherCategory}
+                                                            onChange={(e) => setOtherCategory(e.target.value)}
+                                                            placeholder="Specify Category..."
+                                                            className="h-14 bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 focus:ring-2 focus:ring-blue-500/20 rounded-xl font-bold italic pr-12"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                setSelectedCategory("Local News");
+                                                                setOtherCategory("");
+                                                            }}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                            title="Back to Dropdown"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </Button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                            <input 
+                                                type="hidden" 
+                                                name="category" 
+                                                value={selectedCategory === "Other" ? otherCategory : selectedCategory} 
+                                            />
                                         </div>
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Author</Label>

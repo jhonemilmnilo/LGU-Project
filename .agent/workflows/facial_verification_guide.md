@@ -2,33 +2,17 @@
 description: How to perform accurate facial verification for residents.
 ---
 
-# Facial Verification Best Practices
+### RULE: SMART BARANGAY-SCOPED CONTENT (RESIDENTS & ADMIN)
 
-To ensure the highest accuracy and avoid errors during the biometric registration process, please follow these guidelines:
-
-1. **Proper Lighting** 💡
-   - Facing a natural light source (like a window) is best.
-   - Avoid strong backlight (don't have a window or bright light behind you).
-   - Ensure there are no harsh shadows on your face.
-
-2. **Clear Face Visibility** 👓
-   - Remove sunglasses, hats, or masks.
-   - If your glasses have a strong glare, try tilting them slightly or removing them temporarily if possible.
-   - Keep hair away from your eyes and forehead.
-
-3. **Optimal Positioning** 📏
-   - Hold the device at eye level.
-   - Keep a distance of about 1-2 feet (30-60 cm) from the camera.
-   - Your face should fill the oval provided in the frame.
-
-4. **Neutral Expression** 😐
-   - Start with a neutral "passport-style" expression.
-   - Follow the on-screen prompts carefully (Look Left, Look Right, Blink).
-
-5. **Stability** 📍
-   - Keep your head steady until the prompt asks you to move.
-   - Move your head slowly and smoothly when looking left or right.
-
-6. **Environment** 🏠
-   - Avoid busy backgrounds with other people or faces.
-   - A plain wall background is ideal.
+1.  **Strict Content Isolation**:
+    *   **Landing Page (No Barangay Selector)**: ONLY show content (Announcements, News, Events, Projects, Jobs, etc.) where `barangay` is `null` or empty.
+    *   **Barangay Context (Search Parameter `?barangay=Name` in URL)**: ONLY show content specifically tagged with that `barangay`.
+2.  **Server-Side Scoping (Performance Rule)**:
+    *   Always fetch content using Prisma `where` clause for the specific barangay or `null` (General). 
+    *   NEVER fetch all data and then filter on the client side for landing page sections. This ensures `take: X` limits are accurate for the current view.
+3.  **Automatic Admin Tagging**:
+    *   All content (Announcements, News, etc.) created by a `BARANGAY_ADMIN` must be automatically tagged with their `managedBarangay` using [getSessionBarangay()](cci:1://file:///c:/Website%20Project/agno-portal/app/admin/actions.ts:15:0-23:1).
+    *   Content created by an `ADMIN` (Super Admin) defaults to no-barangay (General LGU) but should allow selecting a specific barangay if needed.
+4.  **UI Consistency**:
+    *   When a specific barangay is selected, the URL must reflect it (e.g., `location.pathname?barangay=Name`).
+    *   Always provide a "Back to Landing Page" option in the community selector to clear the `barangay` search parameter.

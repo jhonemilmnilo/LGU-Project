@@ -40,12 +40,18 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
     const { selectedBarangay } = useBarangay();
 
     const filteredAnnouncements = React.useMemo(() => {
-        if (selectedBarangay === "All") return announcements;
+        if (selectedBarangay === "All") {
+            // Only show announcements that have NO barangay assigned (General LGU announcements)
+            return announcements.filter((a: any) => !a.barangay);
+        }
         return announcements.filter((a: any) => a.barangay === selectedBarangay);
     }, [announcements, selectedBarangay]);
 
     const filteredNews = React.useMemo(() => {
-        if (selectedBarangay === "All") return news;
+        if (selectedBarangay === "All") {
+            // General News only
+            return news.filter((n: any) => !n.barangay);
+        }
         return news.filter((n: any) => n.barangay === selectedBarangay);
     }, [news, selectedBarangay]);
 
@@ -122,7 +128,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                     )}
                 </div>
                 
-                <Link href="/user/updates">
+                <Link href="/user/announcements">
                     <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-primary/25 active:scale-95 mt-6 flex items-center justify-center gap-3">
                         <Megaphone className="w-4 h-4" />
                         Archived Broadcasts
