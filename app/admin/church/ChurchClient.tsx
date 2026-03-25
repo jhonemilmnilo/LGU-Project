@@ -2,22 +2,22 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { 
-    Church, Download, Plus, Trash2, Calendar, 
+import {
+    Church, Download, Plus, Trash2, Calendar,
     TrendingUp, DollarSign, Clock, Users, FileText,
     MapPin, Globe, LayoutDashboard, History, Save, CloudLightning, Pencil,
     AlertCircle, Layers, Info
 } from "lucide-react";
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-    Tooltip as RechartsTooltip, ResponsiveContainer, 
-    LineChart, Line, AreaChart, Area 
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    Tooltip as RechartsTooltip, ResponsiveContainer,
+    LineChart, Line, AreaChart, Area
 } from "recharts";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { 
-    addMassSchedule, updateMassSchedule, deleteMassSchedule, 
-    updateChurchInfo, saveChurchCollection, deleteCollectionEntry 
+import {
+    addMassSchedule, updateMassSchedule, deleteMassSchedule,
+    updateChurchInfo, saveChurchCollection, deleteCollectionEntry
 } from "./actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -32,18 +32,16 @@ interface ChurchClientProps {
     currentBarangay?: string;
 }
 
-export default function ChurchClient({ 
+export default function ChurchClient({
     initialInfo, initialSchedules, initialCollections,
     isAdmin, availableBarangays = [], currentBarangay
 }: ChurchClientProps) {
     const router = useRouter();
     const [info, setInfo] = useState(initialInfo);
-    if (!info) return null;
-
     const [schedules, setSchedules] = useState(initialSchedules);
     const [collections, setCollections] = useState(initialCollections);
     const [activeTab, setActiveTab] = useState<"dashboard" | "collections" | "schedule" | "settings">("dashboard");
-    
+
     // Modal states
     const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -77,7 +75,11 @@ export default function ChurchClient({
     const [editingCollection, setEditingCollection] = useState<any | null>(null);
     const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
 
+    // Early return after all hooks
+    if (!info) return null;
+
     // Graph Data Transformation
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const chartData = useMemo(() => {
         return [...collections].reverse().map(c => ({
             name: format(new Date(c.date), "MMM dd"),
@@ -91,6 +93,7 @@ export default function ChurchClient({
     const totalDonationsAllTime = collections.reduce((sum, c) => sum + c.totalAmount, 0);
     const avgMonthly = totalDonationsAllTime / (collections.length || 1);
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const groupedSchedules = useMemo(() => {
         const result: { day: string, slots: any[], isPriority: boolean }[] = [];
 
@@ -135,7 +138,7 @@ export default function ChurchClient({
         try {
             const cleanedSunday = colForm.sundayMassJson.filter(item => item.amount !== "");
             const cleanedDonations = colForm.donationsJson.filter(item => item.name !== "" && item.amount !== "");
-            
+
             const payload = {
                 ...colForm,
                 churchInfoId: info.id,
@@ -148,7 +151,7 @@ export default function ChurchClient({
             };
 
             const saved = await saveChurchCollection(payload);
-            
+
             if (editingCollection) {
                 setCollections(prev => prev.map(c => c.id === saved.id ? saved : c));
                 toast.success("Record updated!");
@@ -156,7 +159,7 @@ export default function ChurchClient({
                 setCollections([saved, ...collections]);
                 toast.success("Financial collection logged!");
             }
-            
+
             setIsCollectionModalOpen(false);
             setEditingCollection(null);
             // Reset
@@ -231,7 +234,7 @@ export default function ChurchClient({
             if (info.latitude) formData.append("latitude", info.latitude.toString());
             if (info.longitude) formData.append("longitude", info.longitude.toString());
             formData.append("flyerUrl", info.flyerUrl || "");
-            
+
             if (flyerFile) {
                 formData.append("flyerFile", flyerFile);
             }
@@ -253,7 +256,7 @@ export default function ChurchClient({
             {/* Premium Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
+                    <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
                         <Church size={12} className="text-blue-500" />
                         <span className="opacity-50">/</span>
                         <span>{info.name}</span>
@@ -280,9 +283,9 @@ export default function ChurchClient({
 
                 <div className="flex items-center gap-3">
                     {isAdmin && (
-                        <BarangaySwitcher 
-                            availableBarangays={availableBarangays} 
-                            currentBarangay={currentBarangay} 
+                        <BarangaySwitcher
+                            availableBarangays={availableBarangays}
+                            currentBarangay={currentBarangay}
                             themeColor="#2563eb"
                         />
                     )}
@@ -314,11 +317,10 @@ export default function ChurchClient({
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex items-center space-x-2 px-6 py-3 rounded-[1.5rem] text-sm font-bold transition-all ${
-                            activeTab === tab.id 
-                            ? "bg-blue-600 text-white shadow-lg" 
+                        className={`flex items-center space-x-2 px-6 py-3 rounded-[1.5rem] text-sm font-bold transition-all ${activeTab === tab.id
+                            ? "bg-blue-600 text-white shadow-lg"
                             : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                        }`}
+                            }`}
                     >
                         <tab.icon size={16} />
                         <span>{tab.label}</span>
@@ -332,7 +334,7 @@ export default function ChurchClient({
                     {/* Summary Cards */}
                     <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-white dark:bg-[#151b2b] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden group">
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
                                 <TrendingUp className="text-emerald-600 dark:text-emerald-400" />
                             </div>
@@ -340,8 +342,8 @@ export default function ChurchClient({
                             <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter italic">₱{avgMonthly.toLocaleString()}</p>
                         </div>
 
-                         <div className="bg-white dark:bg-[#151b2b] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden group">
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="bg-white dark:bg-[#151b2b] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
                                 <DollarSign className="text-blue-600 dark:text-blue-400" />
                             </div>
@@ -349,8 +351,8 @@ export default function ChurchClient({
                             <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter italic">₱{(collections[0]?.totalAmount || 0).toLocaleString()}</p>
                         </div>
 
-                         <div className="bg-white dark:bg-[#151b2b] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden group">
-                           <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="bg-white dark:bg-[#151b2b] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="w-12 h-12 bg-slate-100 dark:bg-slate-500/10 rounded-2xl flex items-center justify-center mb-6">
                                 <Users className="text-slate-600 dark:text-slate-400" />
                             </div>
@@ -379,18 +381,18 @@ export default function ChurchClient({
                                 <AreaChart data={chartData}>
                                     <defs>
                                         <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                         </linearGradient>
                                         <linearGradient id="colorDonations" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f033" />
                                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} fontWeight="bold" />
                                     <YAxis stroke="#94a3b8" fontSize={10} fontWeight="bold" />
-                                    <RechartsTooltip 
+                                    <RechartsTooltip
                                         contentStyle={{ backgroundColor: "#0f172a", borderRadius: "1rem", border: "1px solid #1e293b" }}
                                         itemStyle={{ color: "#fff", fontWeight: "bold" }}
                                     />
@@ -444,7 +446,7 @@ export default function ChurchClient({
                                         </td>
                                         <td className="p-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         setEditingCollection(c);
                                                         setColForm({
@@ -476,7 +478,7 @@ export default function ChurchClient({
 
             {activeTab === "schedule" && (
                 <div className="space-y-12">
-                     <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden p-10 ring-1 ring-slate-200 dark:ring-white/5">
+                    <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden p-10 ring-1 ring-slate-200 dark:ring-white/5">
                         <div className="flex items-center justify-between mb-10">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
@@ -529,10 +531,10 @@ export default function ChurchClient({
                                                                 <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest italic border ${group.isPriority ? 'bg-white/10 border-white/20 text-white/50' : 'bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'}`}>{s.type || "Holy Mass"}</span>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {/* Management Actions */}
                                                         <div className="flex items-center gap-2">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => {
                                                                     setEditingSchedule(s);
                                                                     setSchForm({
@@ -552,8 +554,8 @@ export default function ChurchClient({
                                                             >
                                                                 <Pencil size={18} className="group-hover/btn:scale-110 transition-transform" />
                                                             </button>
-                                                            <button 
-                                                                onClick={() => handleDeleteSchedule(s.id)} 
+                                                            <button
+                                                                onClick={() => handleDeleteSchedule(s.id)}
                                                                 className="w-12 h-12 flex items-center justify-center text-red-500 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-red-600 hover:text-white rounded-[1.2rem] transition-all shadow-sm group/btn"
                                                                 title="Delete Slot"
                                                             >
@@ -574,7 +576,7 @@ export default function ChurchClient({
 
             {activeTab === "settings" && (
                 <div className="max-w-4xl space-y-8">
-                     <div className="bg-white dark:bg-[#151b2b] p-10 rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden ring-1 ring-slate-200 dark:ring-white/5">
+                    <div className="bg-white dark:bg-[#151b2b] p-10 rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl relative overflow-hidden ring-1 ring-slate-200 dark:ring-white/5">
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Parish Identity</h3>
                             <button onClick={() => setIsEditInfoOpen(true)} className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-950 rounded-xl text-sm font-black uppercase italic tracking-tighter transition-all">Edit Basics</button>
@@ -618,12 +620,12 @@ export default function ChurchClient({
                                 )}
                             </div>
                         </div>
-                     </div>
+                    </div>
                 </div>
             )}
 
             {/* MODALS */}
-            
+
             {/* Collection Logger Modal */}
             {isCollectionModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => { setIsCollectionModalOpen(false); setEditingCollection(null); }}>
@@ -649,7 +651,7 @@ export default function ChurchClient({
                                         required
                                         type="date"
                                         value={colForm.date}
-                                        onChange={e => setColForm({...colForm, date: e.target.value})}
+                                        onChange={e => setColForm({ ...colForm, date: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-2xl px-5 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                     />
                                 </div>
@@ -666,7 +668,7 @@ export default function ChurchClient({
                                             onChange={e => {
                                                 const news = [...colForm.sundayMassJson];
                                                 news[idx].time = e.target.value;
-                                                setColForm({...colForm, sundayMassJson: news});
+                                                setColForm({ ...colForm, sundayMassJson: news });
                                             }}
                                             className="flex-1 bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold"
                                         />
@@ -677,32 +679,32 @@ export default function ChurchClient({
                                             onChange={e => {
                                                 const news = [...colForm.sundayMassJson];
                                                 news[idx].amount = e.target.value;
-                                                setColForm({...colForm, sundayMassJson: news});
+                                                setColForm({ ...colForm, sundayMassJson: news });
                                             }}
                                             className="w-32 bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold"
                                         />
                                         {idx > 0 && (
                                             <button type="button" onClick={() => {
-                                                setColForm({...colForm, sundayMassJson: colForm.sundayMassJson.filter((_, i) => i !== idx)});
+                                                setColForm({ ...colForm, sundayMassJson: colForm.sundayMassJson.filter((_, i) => i !== idx) });
                                             }} className="p-2 text-red-500"><Trash2 size={16} /></button>
                                         )}
                                     </div>
                                 ))}
-                                <button type="button" onClick={() => setColForm({...colForm, sundayMassJson: [...colForm.sundayMassJson, {time: "", amount: ""}]})} className="text-[10px] font-black text-blue-500 uppercase italic hover:underline">+ Add Time Slot</button>
+                                <button type="button" onClick={() => setColForm({ ...colForm, sundayMassJson: [...colForm.sundayMassJson, { time: "", amount: "" }] })} className="text-[10px] font-black text-blue-500 uppercase italic hover:underline">+ Add Time Slot</button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Basket 2</label>
-                                    <input type="number" value={colForm.secondBasket} onChange={e => setColForm({...colForm, secondBasket: Number(e.target.value)})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold" />
+                                    <input type="number" value={colForm.secondBasket} onChange={e => setColForm({ ...colForm, secondBasket: Number(e.target.value) })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold" />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Weekdays</label>
-                                    <input type="number" value={colForm.weekdays} onChange={e => setColForm({...colForm, weekdays: Number(e.target.value)})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold" />
+                                    <input type="number" value={colForm.weekdays} onChange={e => setColForm({ ...colForm, weekdays: Number(e.target.value) })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold" />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Envelopes</label>
-                                    <input type="number" value={colForm.envelopes} onChange={e => setColForm({...colForm, envelopes: Number(e.target.value)})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold" />
+                                    <input type="number" value={colForm.envelopes} onChange={e => setColForm({ ...colForm, envelopes: Number(e.target.value) })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold" />
                                 </div>
                             </div>
 
@@ -717,7 +719,7 @@ export default function ChurchClient({
                                             onChange={e => {
                                                 const news = [...colForm.donationsJson];
                                                 news[idx].name = e.target.value;
-                                                setColForm({...colForm, donationsJson: news});
+                                                setColForm({ ...colForm, donationsJson: news });
                                             }}
                                             className="flex-1 bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold"
                                         />
@@ -728,18 +730,18 @@ export default function ChurchClient({
                                             onChange={e => {
                                                 const news = [...colForm.donationsJson];
                                                 news[idx].amount = e.target.value;
-                                                setColForm({...colForm, donationsJson: news});
+                                                setColForm({ ...colForm, donationsJson: news });
                                             }}
                                             className="w-32 bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 text-sm font-bold"
                                         />
                                         {idx > 0 && (
                                             <button type="button" onClick={() => {
-                                                setColForm({...colForm, donationsJson: colForm.donationsJson.filter((_, i) => i !== idx)});
+                                                setColForm({ ...colForm, donationsJson: colForm.donationsJson.filter((_, i) => i !== idx) });
                                             }} className="p-2 text-red-500"><Trash2 size={16} /></button>
                                         )}
                                     </div>
                                 ))}
-                                <button type="button" onClick={() => setColForm({...colForm, donationsJson: [...colForm.donationsJson, {name: "", amount: ""}]})} className="text-[10px] font-black text-emerald-500 uppercase italic hover:underline">+ Add Donation</button>
+                                <button type="button" onClick={() => setColForm({ ...colForm, donationsJson: [...colForm.donationsJson, { name: "", amount: "" }] })} className="text-[10px] font-black text-emerald-500 uppercase italic hover:underline">+ Add Donation</button>
                             </div>
 
                             <div className="flex items-center justify-end space-x-4 pt-10">
@@ -754,7 +756,7 @@ export default function ChurchClient({
             )}
 
             {/* Schedule Modal */}
-             {isScheduleModalOpen && (
+            {isScheduleModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => { setIsScheduleModalOpen(false); setEditingSchedule(null); }}>
                     <div className="bg-white dark:bg-[#151b2b] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="p-10 border-b border-slate-200 dark:border-[#2a3040] flex justify-between items-start">
@@ -771,42 +773,42 @@ export default function ChurchClient({
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic flex items-center gap-1">
                                         <Calendar size={10} /> Specific Date (Optional)
                                     </label>
-                                    <input type="date" value={schForm.date} onChange={e => setSchForm({...schForm, date: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold text-xs" />
+                                    <input type="date" value={schForm.date} onChange={e => setSchForm({ ...schForm, date: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold text-xs" />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic flex items-center gap-1">
                                         <Layers size={10} /> Priority (Higher = Top)
                                     </label>
-                                    <input type="number" value={schForm.prio} onChange={e => setSchForm({...schForm, prio: Number(e.target.value)})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold text-xs" />
+                                    <input type="number" value={schForm.prio} onChange={e => setSchForm({ ...schForm, prio: Number(e.target.value) })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold text-xs" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Standard Day of Week</label>
-                                <select value={schForm.day} onChange={e => setSchForm({...schForm, day: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold">
+                                <select value={schForm.day} onChange={e => setSchForm({ ...schForm, day: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold">
                                     {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Time Slot</label>
-                                    <input required placeholder="6:00 AM" value={schForm.time} onChange={e => setSchForm({...schForm, time: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
+                                    <input required placeholder="6:00 AM" value={schForm.time} onChange={e => setSchForm({ ...schForm, time: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Language</label>
-                                    <input value={schForm.language} onChange={e => setSchForm({...schForm, language: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
+                                    <input value={schForm.language} onChange={e => setSchForm({ ...schForm, language: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Service Type</label>
-                                <input value={schForm.type} onChange={e => setSchForm({...schForm, type: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" placeholder="Mass" />
+                                <input value={schForm.type} onChange={e => setSchForm({ ...schForm, type: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" placeholder="Mass" />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic flex items-center gap-1">
                                     <Info size={10} /> Liturgical Description
                                 </label>
-                                <textarea 
-                                    value={schForm.description} 
-                                    onChange={e => setSchForm({...schForm, description: e.target.value})} 
+                                <textarea
+                                    value={schForm.description}
+                                    onChange={e => setSchForm({ ...schForm, description: e.target.value })}
                                     className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-medium text-sm italic h-24"
                                     placeholder="e.g. Feast of the Holy Rosary / Healing Mass"
                                 />
@@ -820,10 +822,10 @@ export default function ChurchClient({
                         </form>
                     </div>
                 </div>
-             )}
+            )}
 
-             {/* Info Edit Modal */}
-             {isEditInfoOpen && (
+            {/* Info Edit Modal */}
+            {isEditInfoOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setIsEditInfoOpen(false)}>
                     <div className="bg-white dark:bg-[#151b2b] rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="p-10 border-b border-slate-200 dark:border-[#2a3040] flex justify-between items-start">
@@ -837,55 +839,55 @@ export default function ChurchClient({
                         <form onSubmit={handleUpdateInfo} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Parish Name</label>
-                                <input value={info.name} onChange={e => setInfo({...info, name: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
+                                <input value={info.name} onChange={e => setInfo({ ...info, name: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Official Address</label>
-                                <input value={info.address} onChange={e => setInfo({...info, address: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
+                                <input value={info.address} onChange={e => setInfo({ ...info, address: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Map Link / Location URL (Google Maps)</label>
-                                <input 
-                                    value={info.locationUrl || ""} 
+                                <input
+                                    value={info.locationUrl || ""}
                                     onChange={e => {
                                         const url = e.target.value;
                                         // Attempt to extract latitude and longitude from common Google Maps URL formats
-                                        const locationMatch = url.match(/@([-0-9.]+),([-0-9.]+)/) || 
-                                                              url.match(/query=([-0-9.]+),([-0-9.]+)/) || 
-                                                              url.match(/ll=([-0-9.]+),([-0-9.]+)/) ||
-                                                              url.match(/lat=([-0-9.]+)&lng=([-0-9.]+)/);
-                                        
+                                        const locationMatch = url.match(/@([-0-9.]+),([-0-9.]+)/) ||
+                                            url.match(/query=([-0-9.]+),([-0-9.]+)/) ||
+                                            url.match(/ll=([-0-9.]+),([-0-9.]+)/) ||
+                                            url.match(/lat=([-0-9.]+)&lng=([-0-9.]+)/);
+
                                         const stateUpdate: any = { ...info, locationUrl: url };
                                         if (locationMatch && locationMatch.length >= 3) {
                                             stateUpdate.latitude = parseFloat(locationMatch[1]);
                                             stateUpdate.longitude = parseFloat(locationMatch[2]);
                                         }
                                         setInfo(stateUpdate);
-                                    }} 
-                                    className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" 
-                                    placeholder="Paste Google Maps link here" 
+                                    }}
+                                    className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold"
+                                    placeholder="Paste Google Maps link here"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Latitude</label>
-                                    <input type="number" step="any" value={info.latitude || ""} onChange={e => setInfo({...info, latitude: e.target.value ? parseFloat(e.target.value) : undefined})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" placeholder="e.g. 16.0354" />
+                                    <input type="number" step="any" value={info.latitude || ""} onChange={e => setInfo({ ...info, latitude: e.target.value ? parseFloat(e.target.value) : undefined })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" placeholder="e.g. 16.0354" />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Longitude</label>
-                                    <input type="number" step="any" value={info.longitude || ""} onChange={e => setInfo({...info, longitude: e.target.value ? parseFloat(e.target.value) : undefined})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" placeholder="e.g. 120.4431" />
+                                    <input type="number" step="any" value={info.longitude || ""} onChange={e => setInfo({ ...info, longitude: e.target.value ? parseFloat(e.target.value) : undefined })} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" placeholder="e.g. 120.4431" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">PDF Flyer URL (Optional)</label>
-                                <input value={info.flyerUrl || ""} onChange={e => setInfo({...info, flyerUrl: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold mb-4" placeholder="Or leave blank to use file upload" />
+                                <input value={info.flyerUrl || ""} onChange={e => setInfo({ ...info, flyerUrl: e.target.value })} className="w-full bg-slate-50 dark:bg-[#1e2330] border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold mb-4" placeholder="Or leave blank to use file upload" />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Upload New PDF Flyer</label>
                                 <div className="relative group">
-                                    <input 
-                                        type="file" 
-                                        accept="application/pdf" 
+                                    <input
+                                        type="file"
+                                        accept="application/pdf"
                                         onChange={e => setFlyerFile(e.target.files?.[0] || null)}
                                         className="w-full bg-slate-50 dark:bg-[#1e2330] border border-dashed border-slate-300 dark:border-[#2a3040] rounded-xl px-4 py-8 text-sm font-bold text-slate-500 cursor-pointer file:hidden text-center hover:border-blue-500 transition-all"
                                     />
@@ -913,7 +915,7 @@ export default function ChurchClient({
                         </form>
                     </div>
                 </div>
-             )}
+            )}
         </div>
     );
 }

@@ -18,11 +18,15 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home({
     searchParams,
 }: {
-    searchParams: { barangay?: string | string[] };
+    searchParams: Promise<{ barangay?: string | string[] }>;
 }) {
+    // Await searchParams for Next.js 15+ standard but don't use it directly
+    await searchParams;
     // Await searchParams for Next.js 15+ standard
     await searchParams;
 
@@ -83,9 +87,9 @@ export default async function Home({
 
     // 2. Fetch Content
     const [
-        slides, tourismSpots, dining, lodging, 
-        announcements, events, news, projects, 
-        jobs, officials, hotlines, 
+        slides, tourismSpots, dining, lodging,
+        announcements, events, news, projects,
+        jobs, officials, hotlines,
         churchInfo, churchSchedules, latestCollection,
         barangays
     ] = await Promise.all([
@@ -107,7 +111,7 @@ export default async function Home({
         }),
         // Fetch real data for News & Announcements
         prisma.announcement.findMany({
-            where: { 
+            where: {
                 isActive: true
             },
             orderBy: [
@@ -117,20 +121,20 @@ export default async function Home({
             take: 3
         }),
         prisma.event.findMany({
-            where: { 
+            where: {
                 isPublished: true
             },
             orderBy: { startDate: 'asc' }
         }),
         prisma.news.findMany({
-            where: { 
+            where: {
                 isPublished: true
             },
             orderBy: { publishDate: 'desc' },
             take: 4
         }),
         prisma.project.findMany({
-            where: { 
+            where: {
                 isPublished: true
             },
             orderBy: { createdAt: 'desc' },
@@ -138,7 +142,7 @@ export default async function Home({
         }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).job.findMany({
-            where: { 
+            where: {
                 isActive: true
             },
             orderBy: [
@@ -148,7 +152,7 @@ export default async function Home({
             take: 3
         }),
         prisma.official.findMany({
-            where: { 
+            where: {
                 isActive: true,
                 OR: [
                     { category: 'LGU' },
@@ -166,18 +170,19 @@ export default async function Home({
             orderBy: { order: "asc" }
         }),
         // Fetch ONLY Main Church (Global) context for the Landing Page
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).churchInfo.findFirst({
             where: { OR: [{ barangay: null }, { barangay: "" }] },
             include: { schedules: true }
         }),
         (prisma as any).churchSchedule.findMany({
-            where: { 
+            where: {
                 churchInfo: { OR: [{ barangay: null }, { barangay: "" }] }
             },
             orderBy: [{ day: "asc" }, { time: "asc" }]
         }),
         (prisma as any).churchCollection.findMany({
-            where: { 
+            where: {
                 churchInfo: { OR: [{ barangay: null }, { barangay: "" }] }
             },
             orderBy: { date: "desc" },
@@ -241,10 +246,10 @@ export default async function Home({
             </div>
 
             {showChurch && (
-                <ParishCorner 
-                    info={churchInfo} 
-                    schedules={churchSchedules} 
-                    collections={latestCollection} 
+                <ParishCorner
+                    info={churchInfo}
+                    schedules={churchSchedules}
+                    collections={latestCollection}
                 />
             )}
             {showEmergency && <EmergencyReport initialHotlines={hotlines} showMap={showMap} />}

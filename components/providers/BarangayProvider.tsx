@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, use } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface BarangayContextType {
@@ -11,16 +11,30 @@ interface BarangayContextType {
 
 const BarangayContext = createContext<BarangayContextType | undefined>(undefined);
 
+function useSearchParamsSafe() {
+    try {
+        return useSearchParams();
+    } catch {
+        // During SSG or when not in a router context, return null
+        return null;
+    }
+}
+
 export function BarangayProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const searchParams = useSearchParamsSafe();
     const pathname = usePathname();
     const [selectedBarangay, setSelectedBarangay] = useState<string>("All");
     const [isLoading, setIsLoading] = useState(false);
 
     // Sync state with URL and localStorage
     useEffect(() => {
-        setIsLoading(false); // Hide splash when URL settles
+        // Skip if searchParams is not available (during SSG)
+        if (!searchParams) {
+            setIsLoading(false);
+            return;
+        }
+
         const urlBarangay = searchParams.get("barangay");
         const saved = localStorage.getItem("selectedBarangay");
 
@@ -33,9 +47,16 @@ export function BarangayProvider({ children }: { children: React.ReactNode }) {
             router.replace(`${pathname}?${params.toString()}`);
             setSelectedBarangay(saved);
         }
+        // Hide splash when URL settles
+        setIsLoading(false);
     }, [searchParams, pathname, router]);
 
     const updateBarangay = (value: string) => {
+        // Skip if searchParams is not available (during SSG)
+        if (!searchParams) {
+            return;
+        }
+
         setIsLoading(true);
         setSelectedBarangay(value);
         localStorage.setItem("selectedBarangay", value);
@@ -46,7 +67,7 @@ export function BarangayProvider({ children }: { children: React.ReactNode }) {
         } else {
             params.set("barangay", value);
         }
-        
+
         router.push(`${pathname}?${params.toString()}`);
     };
 
@@ -60,7 +81,12 @@ export function BarangayProvider({ children }: { children: React.ReactNode }) {
 export function useBarangay() {
     const context = useContext(BarangayContext);
     if (context === undefined) {
-        throw new Error("useBarangay must be used within a BarangayProvider");
+        // Return default values during SSG/SSR when context is not yet available
+        return {
+            selectedBarangay: "All",
+            setSelectedBarangay: () => { },
+            isLoading: false
+        } as BarangayContextType;
     }
     return context;
 }

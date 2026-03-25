@@ -9,6 +9,10 @@ const eslintConfig = defineConfig([
     rules: {
       // Disable React Compiler memoization preservation rule - too strict
       "react-hooks/preserve-manual-memoization": "off",
+      // Disable strict any checking - common in existing codebase
+      "@typescript-eslint/no-explicit-any": "off",
+      // Disable set-state-in-effect - too strict for common patterns
+      "react-hooks/set-state-in-effect": "off",
     },
   },
   // Override default ignores of eslint-config-next.

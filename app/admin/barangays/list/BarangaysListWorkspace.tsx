@@ -17,7 +17,7 @@ export function BarangaysListWorkspace({ initialData }: { initialData: any[] }) 
         <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 text-slate-900 dark:text-white">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                   <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
+                    <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
                         <MapPin size={12} className="text-blue-500" />
                         <span className="opacity-50">/</span>
                         <span>Infrastructure</span>
@@ -27,7 +27,7 @@ export function BarangaysListWorkspace({ initialData }: { initialData: any[] }) 
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">Manage Barangays</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Add and update the official list of Barangays setup in the municipality.</p>
                 </div>
-                <Button 
+                <Button
                     onClick={() => { setEditingItem(null); setIsAddModalOpen(true); }}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-wider text-xs px-6 py-6 rounded-2xl shadow-xl shadow-blue-500/20"
                 >
@@ -48,7 +48,7 @@ export function BarangaysListWorkspace({ initialData }: { initialData: any[] }) 
                         {initialData.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="h-40 text-center text-slate-500">
-                                    No Barangays found. Click "Register New Barangay" to add one.
+                                    No Barangays found. Click &quot;Register New Barangay&quot; to add one.
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -65,8 +65,8 @@ export function BarangaysListWorkspace({ initialData }: { initialData: any[] }) 
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button 
-                                            variant="ghost" 
+                                        <Button
+                                            variant="ghost"
                                             size="sm"
                                             className="font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl"
                                             onClick={() => { setEditingItem(item); setIsAddModalOpen(true); }}
@@ -82,9 +82,9 @@ export function BarangaysListWorkspace({ initialData }: { initialData: any[] }) 
             </div>
 
             {isAddModalOpen && (
-                <AddBarangayModal 
-                    isOpen={isAddModalOpen} 
-                    onClose={() => setIsAddModalOpen(false)} 
+                <AddBarangayModal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
                     editingItem={editingItem}
                 />
             )}
