@@ -3,11 +3,10 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, ShieldCheck, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react";
+import { Compass, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSlide } from "@prisma/client";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
 
 interface HeroProps {
     slides: HeroSlide[];
@@ -23,6 +22,13 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
     const next = () => setCurrent((prev) => (prev + 1) % slides.length);
     const prev = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
+    // Reset current if out of bounds (e.g., when slides change)
+    React.useEffect(() => {
+        if (current >= slides.length) {
+            setCurrent(0);
+        }
+    }, [slides.length, current]);
+
     // Auto-advance
 // eslint-disable-next-line react-hooks/rules-of-hooks
     React.useEffect(() => {
@@ -32,7 +38,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slides.length]);
 
-    const activeSlide = slides[current];
+    const activeSlide = slides[current] || slides[0];
 
     return (
         <section className="relative h-screen w-full overflow-hidden flex items-center justify-center bg-slate-950">
@@ -96,17 +102,6 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                                      >
                                          <Compass className="w-5 h-5" />
                                          {activeSlide.primaryBtnText}
-                                     </Button>
-                                 </Link>
-                             )}
-                             {activeSlide.secondaryBtnText && (
-                                 <Link href={activeSlide.secondaryBtnLink || "#"}>
-                                     <Button 
-                                         className="px-10 py-5 h-auto text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl active:scale-95 flex items-center gap-3 border-none hover:opacity-90"
-                                         style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}44` }}
-                                     >
-                                         <ShieldCheck className="w-5 h-5 text-white" />
-                                         {activeSlide.secondaryBtnText}
                                      </Button>
                                  </Link>
                              )}

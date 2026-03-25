@@ -12,7 +12,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
@@ -331,7 +330,8 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function HeroSlidesManager({ initialSlides, themeColor, managedBarangay }: { initialSlides: any[], themeColor: string, managedBarangay?: string }) {
     const [slides, setSlides] = useState(initialSlides);
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [editingSlide, setEditingSlide] = useState<any>(null);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this slide?")) return;
@@ -345,20 +345,21 @@ function HeroSlidesManager({ initialSlides, themeColor, managedBarangay }: { ini
         }
     };
 
-    const handleUpdate = async (id: string, formData: FormData) => {
-        const result = await updateHeroSlide(id, formData);
-        if (result.success) {
-            toast.success("Slide updated successfully!");
-        } else {
-            toast.error("Failed to update slide");
-        }
+    const handleEdit = (slide: any) => {
+        setEditingSlide(slide);
+        setShowModal(true);
+    };
+
+    const handleAdd = () => {
+        setEditingSlide(null);
+        setShowModal(true);
     };
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Active Slides</h3>
-                <Button onClick={() => setShowAddModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 gap-2 shadow-lg shadow-emerald-500/20">
+                <Button onClick={handleAdd} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 gap-2 shadow-lg shadow-emerald-500/20">
                     <Plus className="w-4 h-4" />
                     Add Slide
                 </Button>
@@ -366,13 +367,17 @@ function HeroSlidesManager({ initialSlides, themeColor, managedBarangay }: { ini
 
             <div className="grid grid-cols-1 gap-6">
                 {slides.map((slide) => (
-                    <SlideEditor key={slide.id} slide={slide} onSave={handleUpdate} onDelete={handleDelete} />
+                    <SlideEditor key={slide.id} slide={slide} onEdit={() => handleEdit(slide)} onDelete={handleDelete} />
                 ))}
             </div>
 
-            <AddHeroSlideModal
-                isOpen={showAddModal}
-                onClose={() => setShowAddModal(false)}
+            <HeroSlideModal
+                isOpen={showModal}
+                onClose={() => {
+                    setShowModal(false);
+                    setEditingSlide(null);
+                }}
+                slide={editingSlide}
                 order={slides.length}
                 themeColor={themeColor}
                 managedBarangay={managedBarangay}
@@ -381,9 +386,10 @@ function HeroSlidesManager({ initialSlides, themeColor, managedBarangay }: { ini
     );
 }
 
-interface AddHeroSlideModalProps {
+interface HeroSlideModalProps {
     isOpen: boolean;
     onClose: () => void;
+    slide?: any;
     order: number;
     themeColor: string;
     managedBarangay?: string;
@@ -480,7 +486,7 @@ function SectionVisibilityManager({ settings }: { settings: Record<string, strin
     );
 }
 
-function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideModalProps) {
+function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlideModalProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -491,9 +497,39 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
         imageUrl: "",
         primaryBtnText: "",
         primaryBtnLink: "",
-        secondaryBtnText: "Learn More",
-        secondaryBtnLink: "/about",
+        isActive: true,
+        order: 0
     });
+
+    useEffect(() => {
+        if (slide) {
+            setFormData({
+                title: slide.title || "",
+                subtitle: slide.subtitle || "",
+                tagline: slide.tagline || "",
+                imageUrl: slide.imageUrl || "",
+                primaryBtnText: slide.primaryBtnText || "",
+                primaryBtnLink: slide.primaryBtnLink || "",
+                isActive: slide.isActive ?? true,
+                order: slide.order || 0
+            });
+            setPreviewUrl(null);
+            setImageFile(null);
+        } else {
+            setFormData({
+                title: "",
+                subtitle: "",
+                tagline: "",
+                imageUrl: "",
+                primaryBtnText: "",
+                primaryBtnLink: "",
+                isActive: true,
+                order: order
+            });
+            setPreviewUrl(null);
+            setImageFile(null);
+        }
+    }, [slide, order]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -509,12 +545,10 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
         data.append("subtitle", formData.subtitle);
         data.append("tagline", formData.tagline);
         data.append("imageUrl", formData.imageUrl);
-        data.append("order", order.toString());
-        data.append("isActive", "true");
+        data.append("order", formData.order.toString());
+        data.append("isActive", formData.isActive.toString());
         data.append("primaryBtnText", formData.primaryBtnText);
         data.append("primaryBtnLink", formData.primaryBtnLink);
-        data.append("secondaryBtnText", formData.secondaryBtnText);
-        data.append("secondaryBtnLink", formData.secondaryBtnLink);
 
         if (imageFile) {
             data.append("imageFile", imageFile);
@@ -522,13 +556,16 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
 
         setIsSaving(true);
         try {
-            const result = await createHeroSlide(data);
+            const result = slide 
+                ? await updateHeroSlide(slide.id, data)
+                : await createHeroSlide(data);
+                
             if (result.success) {
-                toast.success("New slide added successfully!");
+                toast.success(slide ? "Slide updated successfully!" : "New slide added successfully!");
                 onClose();
                 window.location.reload();
             } else {
-                toast.error("Failed to add slide");
+                toast.error(slide ? "Failed to update slide" : "Failed to add slide");
             }
         } catch (error) {
             console.error(error);
@@ -550,8 +587,12 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             <ImageIcon className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Slide Configuration</DialogTitle>
-                            <DialogDescription className="text-xs text-slate-500 font-bold uppercase tracking-widest opacity-70">Creating a New Visual Narrative</DialogDescription>
+                            <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                                {slide ? "Edit Slide" : "New Slide"}
+                            </DialogTitle>
+                            <DialogDescription className="text-xs text-slate-500 font-bold uppercase tracking-widest opacity-70">
+                                {slide ? "Refining your visual message" : "Creating a New Visual Narrative"}
+                            </DialogDescription>
                         </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-12 w-12 hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -567,16 +608,27 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">Messaging & Copy</span>
                         </div>
                         <div className="grid grid-cols-1 gap-5">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Headline</Label>
-                                <Input 
-                                    placeholder="e.g. Welcome to Mapandan"
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-[#2a3040] font-black px-6 text-lg text-slate-900 dark:text-white"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                                <div className="md:col-span-3 space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Headline</Label>
+                                    <Input 
+                                        placeholder="e.g. Welcome to Mapandan"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-[#2a3040] font-black px-6 text-lg text-slate-900 dark:text-white"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Display Order</Label>
+                                    <Input 
+                                        type="number"
+                                        value={formData.order}
+                                        onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
+                                        className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-[#2a3040] font-black px-6 text-lg text-slate-900 dark:text-white text-center"
+                                    />
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tagline (Small Text)</Label>
                                     <Input 
@@ -609,13 +661,13 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                             {/* Preview Area */}
                             <div className="lg:col-span-5 space-y-4">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1">Dynamic Preview</Label>
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block ml-1 text-left">Dynamic Preview</Label>
                                 <div className="aspect-[16/10] rounded-3xl bg-slate-200 dark:bg-slate-950 overflow-hidden relative border-4 border-white dark:border-[#0f1117] shadow-2xl group">
                                     {previewUrl || formData.imageUrl ? (
                                         <>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={previewUrl || formData.imageUrl} alt="Preview" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end text-left">
                                                 <p className="text-white font-black text-lg leading-tight truncate">{formData.title || "Headline Here"}</p>
                                                 <p className="text-white/60 text-[10px] italic truncate">{formData.tagline || "Tagline preview..."}</p>
                                             </div>
@@ -630,7 +682,7 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             </div>
 
                             {/* Upload Area */}
-                            <div className="lg:col-span-7 space-y-6">
+                            <div className="lg:col-span-7 space-y-6 text-left">
                                 <div className="space-y-3">
                                     <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Native File Upload</Label>
                                     <Input 
@@ -656,6 +708,18 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                                         className="h-12 rounded-2xl bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] font-mono text-[10px] px-6"
                                     />
                                 </div>
+
+                                <div className="pt-4 flex items-center justify-between p-4 bg-slate-50 dark:bg-[#151b2b] rounded-2xl border border-slate-100 dark:border-[#2a3040]">
+                                    <div className="space-y-1">
+                                        <Label className="text-sm font-bold text-slate-900 dark:text-white">Active Status</Label>
+                                        <p className="text-[10px] text-slate-500 uppercase font-black opacity-60 italic tracking-tighter">Toggle visibility on the landing page</p>
+                                    </div>
+                                    <Switch
+                                        checked={formData.isActive}
+                                        onCheckedChange={(val) => setFormData({ ...formData, isActive: val })}
+                                        className="data-[state=checked]:bg-emerald-600 shadow-lg shadow-emerald-500/20"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -666,9 +730,9 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             <Send className="w-4 h-4 text-blue-600" />
                             <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">User Interactions</span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 gap-10 text-left">
                             <div className="p-6 bg-slate-50/50 dark:bg-[#151b2b]/50 rounded-[2rem] border border-slate-100 dark:border-[#2a3040] space-y-4">
-                                <Label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block">Primary Button</Label>
+                                <Label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block">Call to Action Button</Label>
                                 <div className="space-y-3">
                                     <Input 
                                         placeholder="Label (e.g. Learn More)"
@@ -681,23 +745,6 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                                         value={formData.primaryBtnLink}
                                         onChange={(e) => setFormData({ ...formData, primaryBtnLink: e.target.value })}
                                         className="rounded-xl h-10 bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] font-mono text-[10px] px-5"
-                                    />
-                                </div>
-                            </div>
-                            <div className="p-6 bg-slate-50/50 dark:bg-[#151b2b]/50 rounded-[2rem] border border-slate-100 dark:border-[#2a3040] space-y-4">
-                                <Label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block">Secondary Button (Ghost)</Label>
-                                <div className="space-y-3">
-                                    <Input 
-                                        placeholder="Label (e.g. See Events)"
-                                        value={formData.secondaryBtnText}
-                                        onChange={(e) => setFormData({ ...formData, secondaryBtnText: e.target.value })}
-                                        className="rounded-xl h-11 bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] px-5 opacity-70 focus:opacity-100"
-                                    />
-                                    <Input 
-                                        placeholder="Link (e.g. /events)"
-                                        value={formData.secondaryBtnLink}
-                                        onChange={(e) => setFormData({ ...formData, secondaryBtnLink: e.target.value })}
-                                        className="rounded-xl h-10 bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] font-mono text-[10px] px-5 opacity-70 focus:opacity-100"
                                     />
                                 </div>
                             </div>
@@ -725,7 +772,7 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
                             ) : (
                                 <>
                                     <Send className="w-5 h-5" />
-                                    Launch Slide
+                                    {slide ? "Save Changes" : "Launch Slide"}
                                 </>
                             )}
                         </span>
@@ -738,129 +785,74 @@ function AddHeroSlideModal({ isOpen, onClose, order, themeColor }: AddHeroSlideM
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SlideEditor({ slide, onSave, onDelete }: { slide: any, onSave: (id: string, formData: FormData) => void, onDelete: (id: string) => void }) {
-    const [data, setData] = useState(slide);
-    const [isSaving, setIsSaving] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
-    };
-
-    const handleLocalSave = async () => {
-        setIsSaving(true);
-        try {
-            const formData = new FormData();
-            formData.append("title", data.title || "");
-            formData.append("subtitle", data.subtitle || "");
-            formData.append("tagline", data.tagline || "");
-            formData.append("imageUrl", data.imageUrl || "");
-            formData.append("order", (data.order || 0).toString());
-            formData.append("isActive", data.isActive ? "true" : "false");
-            formData.append("primaryBtnText", data.primaryBtnText || "");
-            formData.append("primaryBtnLink", data.primaryBtnLink || "");
-            formData.append("secondaryBtnText", data.secondaryBtnText || "");
-            formData.append("secondaryBtnLink", data.secondaryBtnLink || "");
-
-            if (imageFile) {
-                formData.append("imageFile", imageFile);
-            }
-
-            await onSave(slide.id, formData);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
+function SlideEditor({ slide, onEdit, onDelete }: { slide: any, onEdit: () => void, onDelete: (id: string) => void }) {
     return (
         <Card className="border-slate-200 dark:border-[#2a3040] shadow-sm overflow-hidden group hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 rounded-[2rem] bg-white dark:bg-[#0f1117]">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-0 min-h-[220px]">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-0 min-h-[200px]">
                 {/* Image Preview Side */}
                 <div className="md:col-span-4 relative aspect-[16/10] md:aspect-auto bg-slate-50 dark:bg-[#151b2b] flex items-center justify-center overflow-hidden">
-                    {(previewUrl || data.imageUrl) ? (
+                    {slide.imageUrl ? (
                         <>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={previewUrl || data.imageUrl} alt="Slide Preview" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            <img src={slide.imageUrl} alt="Slide Preview" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                             <div className="absolute inset-0 bg-gradient-to-tr from-black/50 via-black/10 to-transparent" />
                         </>
                     ) : (
                         <div className="flex flex-col items-center gap-2 text-slate-300 dark:text-slate-800">
                             <ImageIcon className="w-8 h-8 opacity-20" />
-                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Visual Required</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">No Image</span>
                         </div>
                     )}
                     <div className="absolute top-4 left-4 z-10">
                          <span className={cn(
                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl backdrop-blur-md",
-                            data.isActive ? "bg-emerald-500/90 text-white" : "bg-slate-500/90 text-white"
+                            slide.isActive ? "bg-emerald-500/90 text-white" : "bg-slate-500/90 text-white"
                         )}>
-                            {data.isActive ? "Live" : "Draft"}
+                            {slide.isActive ? "Live" : "Draft"}
                         </span>
                     </div>
+                    {slide.order !== undefined && (
+                        <div className="absolute bottom-4 left-4 z-10">
+                            <span className="px-3 py-1 rounded-lg bg-black/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-tighter">
+                                Priority #{slide.order}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Editor Side */}
-                <div className="md:col-span-8 p-8 space-y-6 flex flex-col justify-between">
+                {/* Info Side */}
+                <div className="md:col-span-8 p-8 flex flex-col justify-between text-left">
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="space-y-1 flex-1">
-                                <Label className="text-[10px] font-black uppercase text-blue-600 tracking-widest ml-1">Title</Label>
-                                <Input 
-                                    value={data.title} 
-                                    onChange={(e) => setData({ ...data, title: e.target.value })} 
-                                    className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-none font-bold" 
-                                />
-                            </div>
-                            <div className="w-24 space-y-1">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Priority</Label>
-                                <Input 
-                                    type="number" 
-                                    value={data.order} 
-                                    onChange={(e) => setData({ ...data, order: e.target.value })} 
-                                    className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-none text-center font-black" 
-                                />
-                            </div>
+                        <div className="space-y-1">
+                            {slide.tagline && (
+                                <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">{slide.tagline}</span>
+                            )}
+                            <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{slide.title || "Untitled Slide"}</h4>
+                            {slide.subtitle && (
+                                <p className="text-sm text-slate-500 dark:text-slate-400 italic line-clamp-2">{slide.subtitle}</p>
+                            )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Backdrop Source</Label>
-                                <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleFileChange}
-                                    className="h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-none text-[10px] file:bg-blue-600 file:text-white file:text-[9px] file:font-black file:uppercase file:mr-2 file:h-full file:px-3"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Toggle Visibility</Label>
-                                <div className="h-10 flex items-center px-4 bg-slate-50 dark:bg-slate-900 rounded-xl justify-between">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Visible on Landing</span>
-                                    <Switch checked={data.isActive} onCheckedChange={(val) => setData({ ...data, isActive: val })} className="scale-75 data-[state=checked]:bg-emerald-600" />
-                                </div>
-                            </div>
+                        <div className="flex flex-wrap gap-2">
+                             {slide.primaryBtnText && (
+                                <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] font-bold text-slate-500 dark:text-slate-400">
+                                    [BTN] {slide.primaryBtnText}
+                                </span>
+                             )}
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-slate-100 dark:border-[#2a3040]">
+                    <div className="flex items-center gap-3 pt-6 border-t border-slate-100 dark:border-[#2a3040] mt-4">
                         <Button
-                            onClick={handleLocalSave}
-                            disabled={isSaving}
-                            className="bg-slate-900 dark:bg-white dark:text-slate-950 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest text-[10px] gap-2 flex-grow sm:flex-grow-0 transition-transform active:scale-[0.98]"
+                            onClick={onEdit}
+                            className="bg-slate-900 dark:bg-white dark:text-slate-950 text-white rounded-2xl px-8 h-11 font-black uppercase tracking-widest text-[10px] gap-2 transition-transform active:scale-[0.98]"
                         >
-                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Commit Changes
+                            Edit Slide
                         </Button>
                         <Button
                             variant="ghost"
-                            disabled={isSaving}
                             onClick={() => onDelete(slide.id)}
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-2xl px-6 h-12 font-black uppercase tracking-widest text-[10px] gap-2 flex-grow sm:flex-grow-0"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-2xl px-6 h-11 font-black uppercase tracking-widest text-[10px] gap-2"
                         >
                             <Trash2 className="w-4 h-4" />
                             Remove

@@ -148,8 +148,6 @@ export async function createHeroSlide(formData: FormData) {
                 isActive: formData.get("isActive") === "true",
                 primaryBtnText: formData.get("primaryBtnText") as string,
                 primaryBtnLink: formData.get("primaryBtnLink") as string,
-                secondaryBtnText: formData.get("secondaryBtnText") as string,
-                secondaryBtnLink: formData.get("secondaryBtnLink") as string,
                 barangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
             } as any
         });
@@ -202,8 +200,6 @@ export async function updateHeroSlide(id: string, formData: FormData) {
                 isActive: formData.get("isActive") === "true",
                 primaryBtnText: formData.get("primaryBtnText") as string,
                 primaryBtnLink: formData.get("primaryBtnLink") as string,
-                secondaryBtnText: formData.get("secondaryBtnText") as string,
-                secondaryBtnLink: formData.get("secondaryBtnLink") as string,
                 barangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
             } as any
         });
