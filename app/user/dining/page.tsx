@@ -1,9 +1,19 @@
 import prisma from "@/lib/db/prisma";
 import UserDiningView, { type Dining } from "./UserDiningView";
 
-export default async function UserDiningPage() {
+export default async function UserDiningPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ barangay?: string }>;
+}) {
+    const { barangay } = await searchParams;
+    const isFiltered = barangay && barangay !== "All";
+
     const diningData = await prisma.dining.findMany({
-        where: { isPublished: true },
+        where: { 
+            isPublished: true,
+            ...(isFiltered ? { barangay } : {})
+        } as any,
         orderBy: { createdAt: "desc" }
     });
 

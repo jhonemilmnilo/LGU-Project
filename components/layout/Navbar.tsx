@@ -10,14 +10,15 @@ import {
     ChevronDown, Briefcase, 
     
     Newspaper, PhoneCall, Info,
-    
-    Compass
+    Compass, MapPin, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
+import { useBarangay } from "@/components/providers/BarangayProvider";
+import { BarangaySelectionModal } from "@/components/shared/BarangaySelectionModal";
 
 interface NavbarProps {
     logoUrl?: string;
@@ -37,6 +38,8 @@ export function Navbar({
     const { data: session, status } = useSession();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = React.useState(false);
+    const [isBarangayModalOpen, setIsBarangayModalOpen] = React.useState(false);
+    const { selectedBarangay } = useBarangay();
     const { scrollY } = useScroll();
     const isTransparentNavPage = pathname === "/";
     
@@ -156,6 +159,27 @@ export function Navbar({
 
                 {/* Desktop Navigation - Responsive Breakpoints */}
                 <nav className="hidden xl:flex items-center gap-1 bg-white/5 dark:bg-black/5 p-1 rounded-full backdrop-blur-sm">
+                    <button
+                        onClick={() => setIsBarangayModalOpen(true)}
+                        className="relative px-5 py-2 group overflow-hidden flex items-center gap-2 transition-all hover:bg-slate-50 dark:hover:bg-white/5 rounded-full"
+                    >
+                        <MapPin
+                            className="w-3.5 h-3.5"
+                            style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}
+                        />
+                        <div className="flex flex-col items-start leading-none">
+                            <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Jurisdiction</span>
+                            <span
+                                className="text-[11px] font-bold uppercase tracking-wider"
+                                style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}
+                            >
+                                {selectedBarangay === "All" ? "Mapandan" : selectedBarangay}
+                            </span>
+                        </div>
+                    </button>
+
+                    <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-2" />
+
                     {currentLinks.map((link) => {
                         const isActive = pathname === link.href;
                         return (
@@ -258,6 +282,27 @@ export function Navbar({
                         className="lg:hidden absolute top-full left-0 right-0 h-screen bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 shadow-2xl overflow-y-auto"
                     >
                         <div className="px-6 py-12 flex flex-col gap-8 max-w-lg mx-auto">
+                            {/* Barangay Switcher Card */}
+                            <button 
+                                onClick={() => { setIsBarangayModalOpen(true); setIsOpen(false); }}
+                                className="w-full p-6 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-between group active:scale-[0.98] transition-all"
+                            >
+                                <div className="flex items-center gap-5">
+                                    <div className="w-14 h-14 rounded-3xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary shadow-xl">
+                                        <MapPin className="w-7 h-7" style={{ color: themeColor }} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Select Jurisdiction</p>
+                                        <p className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none" style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}>
+                                            {selectedBarangay === "All" ? "Municipality" : selectedBarangay}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-white/5">
+                                    <Globe className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
+                                </div>
+                            </button>
+
                             <div className="space-y-2">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Main Navigation</p>
                                 <div className="grid grid-cols-1 gap-2">
@@ -326,6 +371,13 @@ export function Navbar({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <BarangaySelectionModal
+                isOpen={isBarangayModalOpen}
+                onClose={() => setIsBarangayModalOpen(false)}
+                barangays={barangays}
+                themeColor={themeColor}
+            />
         </motion.header>
     );
 }

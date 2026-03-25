@@ -19,10 +19,10 @@ export interface Official {
     order: number;
 }
 
-export function UserOfficialsView({ initialOfficials = [], activeBarangays = [] }: { initialOfficials: Official[], activeBarangays?: string[] }) {
-    const [selectedView, setSelectedView] = useState("LGU");
+export function UserOfficialsView({ initialOfficials = [], activeBarangays = [], currentView = "LGU" }: { initialOfficials: Official[], activeBarangays?: string[], currentView?: string }) {
+    const [selectedView, setSelectedView] = useState(currentView === "All" ? "LGU" : currentView);
 
-    const barangayList = useMemo(() => ["LGU", ...activeBarangays.sort()], [activeBarangays]);
+    const barangayList = useMemo(() => ["LGU", ...activeBarangays.sort()], [activeBarangays, currentView]);
 
     const displayedOfficials = useMemo(() => {
         if (selectedView === "LGU") {

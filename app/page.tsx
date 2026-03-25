@@ -25,10 +25,9 @@ export default async function Home({
 }: {
     searchParams: Promise<{ barangay?: string | string[] }>;
 }) {
-    // Await searchParams for Next.js 15+ standard but don't use it directly
-    await searchParams;
-    // Await searchParams for Next.js 15+ standard
-    await searchParams;
+    const { barangay } = await searchParams;
+    const selectedBarangay = typeof barangay === "string" ? barangay : "All";
+    const isFiltered = selectedBarangay !== "All";
 
     const session = await getServerSession(authOptions);
     const role = (session?.user as { role?: string })?.role;
@@ -85,7 +84,6 @@ export default async function Home({
     const showChurch = settings.get("section_church") !== "false";
     const showMap = settings.get("section_map") !== "false";
 
-    // 2. Fetch Content
     const [
         slides, tourismSpots, dining, lodging,
         announcements, events, news, projects,
@@ -96,30 +94,36 @@ export default async function Home({
         prisma.heroSlide.findMany({
             where: { 
                 isActive: true,
-                OR: [
-                    { barangay: null },
-                    { barangay: "" }
-                ]
+                ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
             } as any,
             orderBy: { order: 'asc' }
         }),
         prisma.tourismSpot.findMany({
-            where: { isPublished: true },
+            where: { 
+                isPublished: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             take: 5
         }),
         prisma.dining.findMany({
-            where: { isPublished: true },
+            where: { 
+                isPublished: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             take: 4
         }),
         prisma.accommodation.findMany({
-            where: { isPublished: true },
+            where: { 
+                isPublished: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             take: 4
         }),
-        // Fetch real data for News & Announcements
         prisma.announcement.findMany({
             where: {
-                isActive: true
-            },
+                isActive: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             orderBy: [
                 { isPinned: 'desc' },
                 { createdAt: 'desc' }
@@ -128,28 +132,32 @@ export default async function Home({
         }),
         prisma.event.findMany({
             where: {
-                isPublished: true
-            },
+                isPublished: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             orderBy: { startDate: 'asc' }
         }),
         prisma.news.findMany({
             where: {
-                isPublished: true
-            },
+                isPublished: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             orderBy: { publishDate: 'desc' },
             take: 4
         }),
         prisma.project.findMany({
             where: {
-                isPublished: true
-            },
+                isPublished: true,
+                 ...(isFiltered ? { barangay: selectedBarangay } : {})
+            } as any,
             orderBy: { createdAt: 'desc' },
             take: 3
         }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).job.findMany({
             where: {
-                isActive: true
+                isActive: true,
+                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             },
             orderBy: [
                 { deadline: 'asc' },
@@ -160,12 +168,8 @@ export default async function Home({
         prisma.official.findMany({
             where: {
                 isActive: true,
-                OR: [
-                    { category: 'LGU' },
-                    { barangay: null },
-                    { barangay: "" }
-                ]
-            },
+                ...(isFiltered ? { barangay: selectedBarangay, category: { in: ['Barangay Council', 'SK Council', 'Barangay', 'SK'] } } : {})
+            } as any,
             orderBy: [
                 { order: "asc" },
                 { createdAt: "asc" }
@@ -178,19 +182,25 @@ export default async function Home({
         // Fetch ONLY Main Church (Global) context for the Landing Page
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).churchInfo.findFirst({
-            where: { OR: [{ barangay: null }, { barangay: "" }] },
+            where: { 
+                ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
+            } as any,
             include: { schedules: true }
         }),
         (prisma as any).churchSchedule.findMany({
             where: {
-                churchInfo: { OR: [{ barangay: null }, { barangay: "" }] }
-            },
+                churchInfo: { 
+                    ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
+                }
+            } as any,
             orderBy: [{ day: "asc" }, { time: "asc" }]
         }),
         (prisma as any).churchCollection.findMany({
             where: {
-                churchInfo: { OR: [{ barangay: null }, { barangay: "" }] }
-            },
+                churchInfo: { 
+                    ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
+                }
+            } as any,
             orderBy: { date: "desc" },
             take: 4
         }),
@@ -247,7 +257,7 @@ export default async function Home({
                 {showLGUProjects && <LGUProjects projects={projects} />}
 
                 {showJobs && <JobBoard jobs={jobs} />}
-                {showGovernment && <Government officials={officials} />}
+                {showGovernment && <Government officials={officials} barangay={selectedBarangay} />}
                 {showServices && <Services />}
             </div>
 

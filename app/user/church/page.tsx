@@ -4,22 +4,15 @@ import { UserChurchView } from "./UserChurchView";
 export default async function UserChurchPage(props: { searchParams: Promise<{ barangay?: string }> }) {
     const params = await props.searchParams;
     const barangay = params.barangay;
+    const isFiltered = barangay && barangay !== "All";
     
     // Determine the active church context
-    const whereClause = barangay ? { barangay } : { barangay: null };
+    const whereClause = isFiltered ? { barangay } : { OR: [{ barangay: null }, { barangay: "" }] };
     
-    let churchInfo = await (prisma as any).churchInfo.findFirst({
+    const churchInfo = await (prisma as any).churchInfo.findFirst({
         where: whereClause,
         include: { schedules: true }
     });
-
-    // Fallback for global context if legacy record exists as ""
-    if (!churchInfo && !barangay) {
-        churchInfo = await (prisma as any).churchInfo.findFirst({
-            where: { barangay: "" },
-            include: { schedules: true }
-        });
-    }
 
     if (!churchInfo) {
         return (

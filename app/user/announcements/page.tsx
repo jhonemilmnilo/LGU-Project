@@ -1,9 +1,19 @@
 import prisma from "@/lib/db/prisma";
 import { UserAnnouncementsView, type Announcement } from "./UserAnnouncementsView";
 
-export default async function UserAnnouncementsPage() {
+export default async function UserAnnouncementsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ barangay?: string }>;
+}) {
+    const { barangay } = await searchParams;
+    const isFiltered = barangay && barangay !== "All";
+
     const announcements = await prisma.announcement.findMany({
-        where: { isActive: true },
+        where: { 
+            isActive: true,
+            ...(isFiltered ? { barangay } : {})
+        } as any,
         orderBy: { createdAt: "desc" }
     });
 

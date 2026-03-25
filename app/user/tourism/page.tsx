@@ -1,8 +1,19 @@
 import prisma from "@/lib/db/prisma";
 import { UserTourismView, type TourismSpot } from "./UserTourismView";
 
-export default async function UserTourismPage() {
+export default async function UserTourismPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ barangay?: string }>;
+}) {
+    const { barangay } = await searchParams;
+    const isFiltered = barangay && barangay !== "All";
+
     const tourismSpots = await prisma.tourismSpot.findMany({
+        where: { 
+            isPublished: true,
+            ...(isFiltered ? { barangay } : {})
+        } as any,
         orderBy: { name: "asc" }
     });
 

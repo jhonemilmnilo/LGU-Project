@@ -1,9 +1,19 @@
 import prisma from "@/lib/db/prisma";
 import { UserEventsView } from "./UserEventsView";
 
-export default async function UserEventsPage() {
+export default async function UserEventsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ barangay?: string }>;
+}) {
+    const { barangay } = await searchParams;
+    const isFiltered = barangay && barangay !== "All";
+
     const events = await prisma.event.findMany({
-        where: { isPublished: true },
+        where: { 
+            isPublished: true,
+            ...(isFiltered ? { barangay } : {})
+        } as any,
         orderBy: { startDate: "asc" }
     });
 
