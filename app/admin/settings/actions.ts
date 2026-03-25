@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function deleteUploadedFile(imageUrl: string | null | undefined) {
     if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
@@ -132,6 +134,10 @@ export async function createHeroSlide(formData: FormData) {
     try {
         const imageUrl = await processImageUpload(formData);
         
+        const session = await getServerSession(authOptions);
+        const role = (session?.user as any)?.role;
+        const managedBarangay = (session?.user as any)?.managedBarangay;
+
         await prisma.heroSlide.create({
             data: {
                 title: formData.get("title") as string,
@@ -144,7 +150,8 @@ export async function createHeroSlide(formData: FormData) {
                 primaryBtnLink: formData.get("primaryBtnLink") as string,
                 secondaryBtnText: formData.get("secondaryBtnText") as string,
                 secondaryBtnLink: formData.get("secondaryBtnLink") as string,
-            }
+                barangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
+            } as any
         });
         revalidatePath("/");
         revalidatePath("/admin/settings");
@@ -180,6 +187,10 @@ export async function updateHeroSlide(id: string, formData: FormData) {
             await deleteUploadedFile(oldSlide.imageUrl);
         }
 
+        const session = await getServerSession(authOptions);
+        const role = (session?.user as any)?.role;
+        const managedBarangay = (session?.user as any)?.managedBarangay;
+
         await prisma.heroSlide.update({
             where: { id },
             data: {
@@ -193,7 +204,8 @@ export async function updateHeroSlide(id: string, formData: FormData) {
                 primaryBtnLink: formData.get("primaryBtnLink") as string,
                 secondaryBtnText: formData.get("secondaryBtnText") as string,
                 secondaryBtnLink: formData.get("secondaryBtnLink") as string,
-            }
+                barangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
+            } as any
         });
         revalidatePath("/");
         revalidatePath("/admin/settings");

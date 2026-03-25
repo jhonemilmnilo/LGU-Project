@@ -100,6 +100,7 @@ export function Sidebar({
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
         { href: "/admin/hotlines", label: "Hotlines", icon: Phone },
+        { href: "/admin/settings?tab=hero", label: "Banner Slider", icon: Layers, category: "Content" },
         { href: "/admin/resident-approvals", label: "Resident Approvals", icon: UserCheck, category: "Citizens & Services", badge: pendingResidentsCount },
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
@@ -134,6 +135,7 @@ export function Sidebar({
         "Council Members",
         "Resident Approvals",
         "Resident Registry",
+        "Banner Slider"
     ];
 
     let menuItems = allMenuItems;

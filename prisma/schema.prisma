@@ -448,6 +448,8 @@ model HeroSlide {
   secondaryBtnText String?
   secondaryBtnLink String?
   
+  barangay    String? // Null for main admin/global slides
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
