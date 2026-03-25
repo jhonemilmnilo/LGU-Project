@@ -12,6 +12,35 @@ const Marker = dynamic(() => import("react-leaflet").then(mod => mod.Marker), { 
 const Popup = dynamic(() => import("react-leaflet").then(mod => mod.Popup), { ssr: false });
 const GeoJSON = dynamic(() => import("react-leaflet").then(mod => mod.GeoJSON), { ssr: false });
 const MapClickTracker = dynamic(() => import("./MapClickTracker"), { ssr: false });
+const MarkerClusterGroup = dynamic(() => import("react-leaflet-cluster"), { ssr: false });
+import * as turf from "@turf/turf";
+import { Feature, FeatureCollection, Polygon } from "geojson";
+
+const BARANGAY_CENTERS = [
+    { name: "Amanoaoac", lat: 16.0177, lng: 120.4461 },
+    { name: "Apaya", lat: 16.0242, lng: 120.4459 },
+    { name: "Aserda", lat: 16.0230, lng: 120.4624 },
+    { name: "Baloling", lat: 16.0378, lng: 120.4565 },
+    { name: "Coral", lat: 16.0311, lng: 120.4518 },
+    { name: "Golden", lat: 16.0223, lng: 120.4419 },
+    { name: "Jimenez", lat: 16.0099, lng: 120.4653 },
+    { name: "Lambayan", lat: 16.0005, lng: 120.4699 },
+    { name: "Luyan", lat: 16.0128, lng: 120.4742 },
+    { name: "Nilombot", lat: 16.0288, lng: 120.4366 },
+    { name: "Pias", lat: 16.0363, lng: 120.4463 },
+    { name: "Poblacion", lat: 16.0262, lng: 120.4520 },
+    { name: "Primicias", lat: 15.9963, lng: 120.4799 },
+    { name: "Santa Maria", lat: 16.0285, lng: 120.4680 },
+    { name: "Torres", lat: 16.0151, lng: 120.4661 }
+];
+
+const OUTER_WORLD = [
+    [180, 90],
+    [-180, 90],
+    [-180, -90],
+    [180, -90],
+    [180, 90]
+];
 
 function MapLoading() {
     return (
@@ -32,13 +61,14 @@ export function HouseholdMapView() {
     const { households, searchQuery, selectedBarangay, selectedRiskLevel, viewMode } = useHousehold();
     const [mounted, setMounted] = useState(false);
     const [iconsLoaded, setIconsLoaded] = useState(false);
-    const [agnoBorder, setAgnoBorder] = useState<GeoJSON.FeatureCollection | null>(null);
 
     useEffect(() => {
-        // Fetch Agno Border GeoJSON
-        fetch('/agno-border.json')
+        // Fetch Mapandan Border GeoJSON
+        fetch('/mapandan-border.json')
             .then(res => res.json())
-            .then(data => setAgnoBorder(data))
+            .then(() => {
+                setIconsLoaded(true);
+            })
             .catch(err => console.error("Failed to load Mapandan border:", err));
 
         setMounted(true);
@@ -91,9 +121,9 @@ export function HouseholdMapView() {
         return matchesSearch && matchesBarangay && matchesRisk;
     });
 
-    // Default center to Agno, Pangasinan if no data
-    const centerLat = filteredHouseholds.length > 0 ? filteredHouseholds[0].latitude : 16.1158;
-    const centerLng = filteredHouseholds.length > 0 ? filteredHouseholds[0].longitude : 119.7997;
+    // Default center to Mapandan, Pangasinan if no data
+    const centerLat = filteredHouseholds.length > 0 ? filteredHouseholds[0].latitude : 16.0264;
+    const centerLng = filteredHouseholds.length > 0 ? filteredHouseholds[0].longitude : 120.4537;
 
     return (
         <div className="w-full bg-white dark:bg-[#151b2b] p-4 rounded-2xl border border-slate-200 dark:border-[#2a3040] shadow-sm relative z-0">
@@ -111,74 +141,74 @@ export function HouseholdMapView() {
                         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     />
 
-                    {agnoBorder && (
-                        <GeoJSON
-                            data={agnoBorder}
-                            style={{
-                                color: '#3b82f6',
-                                weight: 2,
-                                opacity: 0.8,
-                                fillOpacity: 0.05
-                            }}
-                        />
-                    )}
-
                     <MapClickTracker />
 
-                    {filteredHouseholds.map((h) => {
-                        const isRisk = ["High Risk", "Flood Prone", "Landslide Prone"].includes(h.riskLevel);
-                        const iconToUse = isRisk && RiskIcon ? RiskIcon : (SafeIcon || undefined);
+                    <MarkerClusterGroup
+                        chunkedLoading
+                        polygonOptions={{
+                            fillColor: '#3b82f6',
+                            color: '#3b82f6',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.1,
+                        }}
+                        maxClusterRadius={60}
+                    >
+                        {filteredHouseholds.map((h) => {
+                            const isRisk = ["High Risk", "Flood Prone", "Landslide Prone"].includes(h.riskLevel);
+                            const iconToUse = isRisk && RiskIcon ? RiskIcon : (SafeIcon || undefined);
 
-                        return (
-                            <Marker
-                                key={h.id}
-                                position={[h.latitude, h.longitude]}
-                                icon={iconToUse}
-                            >
-                                <Popup className="custom-popup">
-                                    <div className="p-1 min-w-[200px]">
-                                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
-                                            {isRisk ? (
-                                                <AlertTriangle className="w-4 h-4 text-red-500" />
-                                            ) : (
-                                                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                                            )}
-                                            <h3 className="font-bold text-slate-800 m-0">{h.headOfFamily}</h3>
-                                        </div>
+                            return (
+                                <Marker
+                                    key={h.id}
+                                    position={[h.latitude, h.longitude]}
+                                    icon={iconToUse}
+                                >
+                                    <Popup className="custom-popup">
+                                        <div className="p-1 min-w-[200px]">
+                                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
+                                                {isRisk ? (
+                                                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                                                ) : (
+                                                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                                                )}
+                                                <h3 className="font-bold text-slate-800 m-0">{h.headOfFamily}</h3>
+                                            </div>
 
-                                        <div className="space-y-1.5 text-sm mb-3">
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-500">Barangay:</span>
-                                                <span className="font-semibold text-slate-700">{h.barangay}</span>
+                                            <div className="space-y-1.5 text-sm mb-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Barangay:</span>
+                                                    <span className="font-semibold text-slate-700">{h.barangay}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-slate-500">Household:</span>
+                                                    <span className="font-semibold text-slate-700 flex items-center bg-slate-100 px-2 rounded-md">
+                                                        <Users className="w-3 h-3 mr-1" /> {h.householdSize}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Risk Level:</span>
+                                                    <span className={`font-semibold ${isRisk ? 'text-red-600' : 'text-emerald-600'}`}>{h.riskLevel}</span>
+                                                </div>
+                                                {h.contactNumber && (
+                                                    <div className="flex justify-between items-center pt-1 border-t border-slate-100 mt-1">
+                                                        <span className="text-slate-500"><Phone className="w-3 h-3" /></span>
+                                                        <span className="font-semibold text-slate-700">{h.contactNumber}</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-slate-500">Household:</span>
-                                                <span className="font-semibold text-slate-700 flex items-center bg-slate-100 px-2 rounded-md">
-                                                    <Users className="w-3 h-3 mr-1" /> {h.householdSize}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-500">Risk Level:</span>
-                                                <span className={`font-semibold ${isRisk ? 'text-red-600' : 'text-emerald-600'}`}>{h.riskLevel}</span>
-                                            </div>
-                                            {h.contactNumber && (
-                                                <div className="flex justify-between items-center pt-1 border-t border-slate-100 mt-1">
-                                                    <span className="text-slate-500"><Phone className="w-3 h-3" /></span>
-                                                    <span className="font-semibold text-slate-700">{h.contactNumber}</span>
+
+                                            {h.specialSectors && (
+                                                <div className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded border border-purple-100 mb-2">
+                                                    <strong>Notes:</strong> {h.specialSectors}
                                                 </div>
                                             )}
                                         </div>
-
-                                        {h.specialSectors && (
-                                            <div className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded border border-purple-100 mb-2">
-                                                <strong>Notes:</strong> {h.specialSectors}
-                                            </div>
-                                        )}
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
+                                    </Popup>
+                                </Marker>
+                            );
+                        })}
+                    </MarkerClusterGroup>
                 </MapContainer>
             </div>
 

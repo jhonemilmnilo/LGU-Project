@@ -94,7 +94,13 @@ export default async function Home({
         barangays
     ] = await Promise.all([
         prisma.heroSlide.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                OR: [
+                    { barangay: null },
+                    { barangay: "" }
+                ]
+            } as any,
             orderBy: { order: 'asc' }
         }),
         prisma.tourismSpot.findMany({

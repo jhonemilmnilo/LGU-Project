@@ -51,6 +51,7 @@ export default async function SettingsPage() {
                     settings={finalSettings}
                     slides={slides}
                     role={role}
+                    managedBarangay={managedBarangay}
                 />
             </Suspense>
         </div>

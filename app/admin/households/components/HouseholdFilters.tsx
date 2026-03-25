@@ -1,5 +1,6 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useHousehold } from "../providers/HouseholdProvider";
 import { Input } from "@/components/ui/input";
 import { Search, Map, List } from "lucide-react";
@@ -7,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 
 export function HouseholdFilters() {
+    const { data: session } = useSession();
+    const role = (session?.user as any)?.role;
+
     const {
         searchQuery,
         setSearchQuery,
@@ -23,7 +27,7 @@ export function HouseholdFilters() {
     const barangays = Array.from(new Set(households.map(h => h.barangay))).sort();
 
     // Default standard barangays if DB is empty
-    const defaultBarangays = ["Poblacion", "Aloleng", "Bangan-Oda", "Gayaman", "Macaboboni", "Patar", "Sabangan"];
+    const defaultBarangays = ["Amanoaoac", "Apaya", "Aserda", "Baloling", "Coral", "Golden", "Jimenez", "Lambayan", "Luyan South", "Nilombot", "Pias", "Poblacion", "Primicias", "Sta. Maria", "Torres"];
     const displayBarangays = barangays.length > 0 ? barangays : defaultBarangays;
 
     const riskLevels = ["Safe", "Low Risk", "Moderate Risk", "High Risk", "Flood Prone", "Landslide Prone"];
@@ -45,18 +49,20 @@ export function HouseholdFilters() {
                     />
                 </div>
 
-                {/* Barangay Filter */}
-                <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
-                    <SelectTrigger className="w-full sm:w-[200px] h-12 bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] shadow-sm rounded-xl">
-                        <SelectValue placeholder="All Barangays" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                        <SelectItem value="All">All Barangays</SelectItem>
-                        {displayBarangays.map((barangay) => (
-                            <SelectItem key={barangay} value={barangay}>{barangay}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {/* Barangay Filter (only for Main Admin) */}
+                {role !== "BARANGAY_ADMIN" && (
+                    <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                        <SelectTrigger className="w-full sm:w-[200px] h-12 bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] shadow-sm rounded-xl">
+                            <SelectValue placeholder="All Barangays" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                            <SelectItem value="All">All Barangays</SelectItem>
+                            {displayBarangays.map((barangay) => (
+                                <SelectItem key={barangay} value={barangay}>{barangay}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
 
                 {/* Risk Level Filter */}
                 <Select value={selectedRiskLevel} onValueChange={setSelectedRiskLevel}>

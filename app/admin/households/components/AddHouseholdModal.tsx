@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useHousehold } from "../providers/HouseholdProvider";
 import { useHouseholdForm } from "../hooks/useHouseholdForm";
 import {
@@ -22,10 +23,14 @@ import { getHeadDetails } from "../../actions";
 import LocationPicker from "./LocationPicker";
 
 export function AddHouseholdModal() {
+    const { data: session } = useSession();
+    const managedBarangay = (session?.user as any)?.managedBarangay;
+    const role = (session?.user as any)?.role;
+
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, selectedCoords, setSelectedCoords } = useHousehold();
     const { handleSubmit, loading } = useHouseholdForm();
 
-    const barangays = ["Aloleng", "Bangan-Oda", "Baracbac", "Boboy", "Buar", "Cabaruan", "Cayungnan", "Macaboboni", "Poblacion", "Patar", "Sabangan", "San Vicente", "Tupa"];
+    const barangays = ["Amanoaoac", "Apaya", "Aserda", "Baloling", "Coral", "Golden", "Jimenez", "Lambayan", "Luyan South", "Nilombot", "Pias", "Poblacion", "Primicias", "Sta. Maria", "Torres"];
     const riskLevels = ["Safe", "Low Risk", "Moderate Risk", "High Risk", "Flood Prone", "Landslide Prone"];
 
     // Form State
@@ -60,7 +65,7 @@ export function AddHouseholdModal() {
                     setLng("");
                     setHeadId("");
                     setHeadName("");
-                    setSelectedBarangay("");
+                    setSelectedBarangay(managedBarangay || "");
                     setHouseholdSize("1");
                     setContactNumber("");
                 }
@@ -144,7 +149,12 @@ export function AddHouseholdModal() {
 
                                 <div className="space-y-2">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Barangay</Label>
-                                    <Select name="barangay" value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                                    <Select 
+                                        name="barangay" 
+                                        value={selectedBarangay} 
+                                        onValueChange={setSelectedBarangay}
+                                        disabled={!!managedBarangay && role === "BARANGAY_ADMIN"}
+                                    >
                                         <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold">
                                             <SelectValue placeholder="Select Barangay" />
                                         </SelectTrigger>

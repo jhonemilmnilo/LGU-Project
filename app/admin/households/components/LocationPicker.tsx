@@ -10,6 +10,34 @@ const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapCo
 const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import("react-leaflet").then(mod => mod.Marker), { ssr: false });
 const GeoJSON = dynamic(() => import("react-leaflet").then(mod => mod.GeoJSON), { ssr: false });
+import * as turf from "@turf/turf";
+import { Feature, FeatureCollection, Polygon } from "geojson";
+
+const BARANGAY_CENTERS = [
+    { name: "Amanoaoac", lat: 16.0177, lng: 120.4461 },
+    { name: "Apaya", lat: 16.0242, lng: 120.4459 },
+    { name: "Aserda", lat: 16.0230, lng: 120.4624 },
+    { name: "Baloling", lat: 16.0378, lng: 120.4565 },
+    { name: "Coral", lat: 16.0311, lng: 120.4518 },
+    { name: "Golden", lat: 16.0223, lng: 120.4419 },
+    { name: "Jimenez", lat: 16.0099, lng: 120.4653 },
+    { name: "Lambayan", lat: 16.0005, lng: 120.4699 },
+    { name: "Luyan", lat: 16.0128, lng: 120.4742 },
+    { name: "Nilombot", lat: 16.0288, lng: 120.4366 },
+    { name: "Pias", lat: 16.0363, lng: 120.4463 },
+    { name: "Poblacion", lat: 16.0262, lng: 120.4520 },
+    { name: "Primicias", lat: 15.9963, lng: 120.4799 },
+    { name: "Santa Maria", lat: 16.0285, lng: 120.4680 },
+    { name: "Torres", lat: 16.0151, lng: 120.4661 }
+];
+
+const OUTER_WORLD = [
+    [180, 90],
+    [-180, 90],
+    [-180, -90],
+    [180, -90],
+    [180, 90]
+];
 // Note: useMapEvents is used inside LocationMarker with dynamic import to avoid SSR issues
 interface GeoJSONData {
     type: "Feature" | "FeatureCollection" | "Point" | "MultiPoint" | "LineString" | "MultiLineString" | "Polygon" | "MultiPolygon" | "GeometryCollection";
@@ -56,15 +84,14 @@ interface LocationPickerProps {
 
 export default function LocationPicker({ initialLat, initialLng, onSelect, onClose }: LocationPickerProps) {
     const [mounted, setMounted] = useState(false);
-    const [position, setPosition] = useState<[number, number]>([initialLat || 16.1158, initialLng || 119.7997]);
-    const [agnoBorder, setAgnoBorder] = useState<GeoJSONData | null>(null);
+    const [position, setPosition] = useState<[number, number]>([initialLat || 16.0264, initialLng || 120.4537]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
             setMounted(true);
-            fetch('/agno-border.json')
+            fetch('/mapandan-border.json')
                 .then(res => res.json())
-                .then(data => setAgnoBorder(data))
+                .then(() => {})
                 .catch(err => console.error("Failed to load Mapandan border:", err));
         }, 0);
 
@@ -99,18 +126,6 @@ export default function LocationPicker({ initialLat, initialLng, onSelect, onClo
                         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     />
                     
-                    {agnoBorder && (
-                        <GeoJSON
-                            data={agnoBorder}
-                            style={{
-                                color: '#3b82f6',
-                                weight: 2,
-                                opacity: 0.6,
-                                fillOpacity: 0.05
-                            }}
-                        />
-                    )}
-
                     <LocationMarker position={position} setPosition={setPosition} />
                 </MapContainer>
 

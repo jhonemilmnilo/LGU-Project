@@ -1277,7 +1277,7 @@ export async function updateHousehold(id: string, formData: FormData) {
             where: { id },
             data: {
                 headId: headId || null,
-                barangay: formData.get("barangay") as string,
+                barangay: (formData.get("barangay") as string) || (await getSessionBarangay()),
                 latitude: lat,
                 longitude: lng,
                 householdSize: parseInt(formData.get("householdSize") as string || "1", 10),

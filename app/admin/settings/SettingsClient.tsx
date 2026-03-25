@@ -27,9 +27,10 @@ interface SettingsClientProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     slides: any[];
     role?: string;
+    managedBarangay?: string;
 }
 
-export function SettingsClient({ settings, slides, role }: SettingsClientProps) {
+export function SettingsClient({ settings, slides, role, managedBarangay }: SettingsClientProps) {
     const isBarangayAdmin = role === "BARANGAY_ADMIN";
     const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenance_mode === "true");
     const [logoUrl, setLogoUrl] = useState(settings.site_logo || "");
@@ -314,7 +315,7 @@ export function SettingsClient({ settings, slides, role }: SettingsClientProps) 
                 )}
 
                 <TabsContent value="hero" className="space-y-6">
-                    <HeroSlidesManager initialSlides={slides} themeColor={themeColor} />
+                    <HeroSlidesManager initialSlides={slides} themeColor={themeColor} managedBarangay={managedBarangay} />
                 </TabsContent>
 
                 {!isBarangayAdmin && (
@@ -328,7 +329,7 @@ export function SettingsClient({ settings, slides, role }: SettingsClientProps) 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function HeroSlidesManager({ initialSlides, themeColor }: { initialSlides: any[], themeColor: string }) {
+function HeroSlidesManager({ initialSlides, themeColor, managedBarangay }: { initialSlides: any[], themeColor: string, managedBarangay?: string }) {
     const [slides, setSlides] = useState(initialSlides);
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -374,6 +375,7 @@ function HeroSlidesManager({ initialSlides, themeColor }: { initialSlides: any[]
                 onClose={() => setShowAddModal(false)}
                 order={slides.length}
                 themeColor={themeColor}
+                managedBarangay={managedBarangay}
             />
         </div>
     );
@@ -384,6 +386,7 @@ interface AddHeroSlideModalProps {
     onClose: () => void;
     order: number;
     themeColor: string;
+    managedBarangay?: string;
 }
 
 // Section Visibility Manager Component

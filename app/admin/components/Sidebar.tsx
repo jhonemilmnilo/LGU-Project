@@ -135,7 +135,8 @@ export function Sidebar({
         "Council Members",
         "Resident Approvals",
         "Resident Registry",
-        "Banner Slider"
+        "Banner Slider",
+        "Household Map"
     ];
 
     let menuItems = allMenuItems;

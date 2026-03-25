@@ -2,9 +2,20 @@ import prisma from "@/lib/db/prisma";
 import { HouseholdProvider } from "./providers";
 import { HouseholdsPage } from "./HouseholdsPage";
 import { Household } from "./providers/HouseholdProvider";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function Page() {
-    const data = await prisma.household.findMany({
+    const session = await getServerSession(authOptions);
+    const managedBarangay = (session?.user as any)?.managedBarangay;
+
+    const where: any = {};
+    if (managedBarangay) {
+        where.barangay = managedBarangay;
+    }
+
+    const data = await (prisma as any).household.findMany({
+        where,
         include: {
             head: true
         },
@@ -13,13 +24,13 @@ export default async function Page() {
         }
     });
 
-    const households: Household[] = data.map(h => ({
+    const households: Household[] = data.map((h: any) => ({
         id: h.id,
         headId: h.headId,
         headOfFamily: h.head ? `${h.head.firstName} ${h.head.lastName}` : "No Head Assigned",
         barangay: h.barangay,
-        latitude: h.latitude || 16.1158,
-        longitude: h.longitude || 119.7997,
+        latitude: h.latitude || 16.0264,
+        longitude: h.longitude || 120.4537,
         householdSize: h.householdSize,
         contactNumber: h.contactNumber,
         riskLevel: h.riskLevel,
