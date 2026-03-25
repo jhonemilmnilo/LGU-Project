@@ -1,21 +1,28 @@
 "use client";
 
 import { Users, X as XIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { BARANGAYS } from "../../constants";
 import { HeadSearch } from "../HeadSearch";
 import { ResidentSearch } from "../ResidentSearch";
 import { toast } from "sonner";
 import { useResident, Resident } from "../../providers/ResidentProvider";
+import { useSession } from "next-auth/react";
+import { getBarangayList } from "../../../actions";
 
 export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
+    const { data: session } = useSession();
+    const role = (session?.user as any)?.role;
+    const managedBarangay = (session?.user as any)?.managedBarangay;
+    const isBarangayAdmin = role === "BARANGAY_ADMIN";
+
     const { 
         currentFamilyMembers: familyMembers, 
-        setCurrentFamilyMembers: setFamilyMembers 
+        setCurrentFamilyMembers: setFamilyMembers,
+        formCategoryName
     } = useResident();
 
     const [isHead, setIsHead] = useState(data?.isHead || false);
@@ -24,8 +31,55 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
         name: data?.headName || "" 
     });
 
+    // Resident Type Logic (linked to Category)
+    const [isGuest, setIsGuest] = useState(false);
+    const [barangayList, setBarangayList] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchBarangays = async () => {
+            const res = await getBarangayList();
+            if (res.success && res.data && res.data.length > 0) {
+                setBarangayList(res.data);
+            }
+        };
+        fetchBarangays();
+    }, []);
+
+    // Sync isGuest with category selection
+    useEffect(() => {
+        if (formCategoryName?.toLowerCase().includes("guest")) {
+            setIsGuest(true);
+        } else {
+            // Also check initial data if no category name is set yet (during mount)
+            if (!formCategoryName && data?.municipality && data.municipality.toLowerCase() !== "mapandan") {
+                setIsGuest(true);
+            } else {
+                setIsGuest(false);
+            }
+        }
+    }, [formCategoryName, data?.municipality]);
+
+    const defaultBrgy = data?.barangay || (isBarangayAdmin ? managedBarangay : "");
+
     return (
         <div className="space-y-6">
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resident Address Context</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                            Category: <span className="text-blue-600 dark:text-blue-400 uppercase">{formCategoryName || "Not Specified"}</span>
+                        </p>
+                    </div>
+                </div>
+                {isGuest && (
+                    <div className="mt-2 py-1 px-3 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 animate-in slide-in-from-left-2 transition-all">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                        Guest Mode Active: Manual Address Entry Enabled
+                    </div>
+                )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">House Number</label>
@@ -47,25 +101,76 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Barangay *</label>
-                    <Select name="barangay" defaultValue={data?.barangay}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Barangay" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {BARANGAYS.map(b => (
-                                <SelectItem key={b} value={b}>{b}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <label className="text-sm font-semibold text-blue-600 dark:text-blue-400">Barangay *</label>
+                    {isGuest ? (
+                        <Input 
+                            name="barangay" 
+                            defaultValue={data?.barangay || ""} 
+                            placeholder="Enter Village/Barangay" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            required 
+                        />
+                    ) : (
+                        isBarangayAdmin ? (
+                            <>
+                                <Input 
+                                    value={managedBarangay || ""} 
+                                    readOnly 
+                                    className="bg-slate-50 dark:bg-slate-900 font-bold border-blue-100 dark:border-blue-900 cursor-not-allowed"
+                                />
+                                <input type="hidden" name="barangay" value={managedBarangay || ""} />
+                            </>
+                        ) : (
+                            <Select name="barangay" defaultValue={defaultBrgy}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Barangay" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {barangayList.map(b => (
+                                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )
+                    )}
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Municipality</label>
-                    <Input name="municipality" defaultValue={data?.municipality || "MAPANDAN"} readOnly className="bg-slate-50 cursor-not-allowed font-bold" />
+                    {isGuest ? (
+                        <Input 
+                            name="municipality" 
+                            defaultValue={data?.municipality || ""} 
+                            placeholder="Enter City/Municipality" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            required 
+                        />
+                    ) : (
+                        <Input 
+                            name="municipality" 
+                            defaultValue={data?.municipality || "Mapandan"} 
+                            readOnly 
+                            className="bg-slate-100 dark:bg-slate-800 cursor-not-allowed font-bold" 
+                        />
+                    )}
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Province</label>
-                    <Input name="province" defaultValue={data?.province || "PANGASINAN"} readOnly className="bg-slate-50 cursor-not-allowed font-bold" />
+                    {isGuest ? (
+                        <Input 
+                            name="province" 
+                            defaultValue={data?.province || ""} 
+                            placeholder="Enter Province" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            required 
+                        />
+                    ) : (
+                        <Input 
+                            name="province" 
+                            defaultValue={data?.province || "Pangasinan"} 
+                            readOnly 
+                            className="bg-slate-100 dark:bg-slate-800 cursor-not-allowed font-bold" 
+                        />
+                    )}
                 </div>
             </div>
 
@@ -76,7 +181,6 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                 </div>
             </div>
 
-            {/* Household Selection */}
             <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl space-y-4 border border-blue-100 dark:border-blue-800">
                 <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -99,7 +203,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Search Household Head</label>
                             <HeadSearch 
-                                onSelect={(id, name) => setHeadInfo({ id, name })} 
+                                onSelect={(id: string, name: string) => setHeadInfo({ id, name })} 
                                 defaultValue={headInfo.name} 
                             />
                             <input type="hidden" name="headId" value={headInfo.id} />
@@ -113,7 +217,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                                 Link Existing Family Members
                             </label>
                             <ResidentSearch 
-                                onSelect={(resident) => {
+                                onSelect={(resident: any) => {
                                     if (familyMembers.find(m => m.id === resident.id)) {
                                         toast.error("Resident already added to family list");
                                         return;
@@ -180,4 +284,3 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
         </div>
     );
 }
-

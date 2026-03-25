@@ -26,7 +26,10 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
   const idFrontInputRef = useRef<HTMLInputElement>(null);
   const idBackInputRef = useRef<HTMLInputElement>(null);
   const portraitInputRef = useRef<HTMLInputElement>(null);
-  const [idTypeVal, setIdTypeVal] = useState(data?.idType || "");
+  const [idTypeVal, setIdTypeVal] = useState(() => {
+    if (!data?.idType) return "";
+    return ID_TYPES.includes(data.idType) ? data.idType : "Other";
+  });
 
   // Sync previews when data changes (e.g. during edit)
   useEffect(() => {
@@ -143,31 +146,39 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
 
       <div className="space-y-2">
         <label className="text-sm font-semibold flex items-center gap-1.5">
-            Government Issued ID Type <span className="text-red-500">*</span>
+            Government Issued ID Type
         </label>
-        <Select 
-            name="idType" 
-            onValueChange={setIdTypeVal}
-            defaultValue={data?.idType || undefined}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select ID Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {ID_TYPES.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        {idTypeVal === "Other" && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+        {idTypeVal === "Other" ? (
+            <div className="relative flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
                 <Input 
-                    name="otherIdType" 
-                    placeholder="Specify other ID type" 
-                    defaultValue={data?.otherIdType || ""}
+                    name="idType" 
+                    placeholder="Specify ID type" 
+                    defaultValue={(data?.idType === "Other" ? "" : data?.idType) || ""}
                     required 
-                    className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                    className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                    autoFocus
                 />
+                <button 
+                  type="button" 
+                  onClick={() => setIdTypeVal(ID_TYPES[0])}
+                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
+                </button>
             </div>
+        ) : (
+            <Select 
+                name="idType" 
+                onValueChange={setIdTypeVal}
+                defaultValue={data?.idType || undefined}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select ID Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {ID_TYPES.map(id => <SelectItem key={id} value={id}>{id}</SelectItem>)}
+              </SelectContent>
+            </Select>
         )}
       </div>
 

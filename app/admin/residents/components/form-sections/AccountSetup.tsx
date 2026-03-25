@@ -30,8 +30,7 @@ export function AccountSetupSection({ data }: AccountSetupSectionProps) {
                             type="email"
                             defaultValue={data?.email || ""}
                             className="h-12 pl-12 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
-                            placeholder="resident@example.com"
-                            required
+                            placeholder="resident@example.com (Optional for minors)"
                         />
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium italic mt-1">This will also serve as the login username.</p>

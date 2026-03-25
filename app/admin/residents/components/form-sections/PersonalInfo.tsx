@@ -1,9 +1,11 @@
+"use client";
+
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GENDERS, CIVIL_STATUSES } from "../../constants";
 import { useState, useEffect } from "react";
 import { getResidentCategories } from "../../../actions";
-import { Resident } from "../../providers/ResidentProvider";
+import { useResident, Resident } from "../../providers/ResidentProvider";
 
 interface ResidentCategory {
     id: string;
@@ -11,10 +13,22 @@ interface ResidentCategory {
 }
 
 export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
-    const [genderVal, setGenderVal] = useState(data?.gender || "Male");
-    const [civilStatusVal, setCivilStatusVal] = useState(data?.civilStatus || "Single");
+    const { 
+        formCategoryId: selectedId, 
+        setFormCategoryId: setSelectedId,
+        setFormCategoryName
+    } = useResident();
+
+    const [genderVal, setGenderVal] = useState(() => {
+        if (!data?.gender) return "Male";
+        return GENDERS.includes(data.gender) ? data.gender : "Other";
+    });
+    const [civilStatusVal, setCivilStatusVal] = useState(() => {
+        if (!data?.civilStatus) return "Single";
+        return CIVIL_STATUSES.includes(data.civilStatus) ? data.civilStatus : "Other";
+    });
+
     const [dob, setDob] = useState(data?.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : "");
-    // const [isDead, setIsDead] = useState(data?.isDead || false); // Removed to fix lint warning
 
     const calculateAge = (birthDateStr: string) => {
         if (!birthDateStr) return "";
@@ -30,9 +44,6 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
 
     const age = calculateAge(dob);
     const [categories, setCategories] = useState<ResidentCategory[]>([]);
-    const [selectedId, setSelectedId] = useState<string | null>(
-        data?.categoryId || null
-    );
 
     useEffect(() => {
         getResidentCategories().then((res: { success: boolean; categories?: ResidentCategory[]; error?: string }) => {
@@ -42,8 +53,14 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
         });
     }, []);
 
-    const selectCategory = (id: string) => {
-        setSelectedId(prev => prev === id ? null : id);
+    const selectCategory = (id: string, name: string) => {
+        if (selectedId === id) {
+            setSelectedId(null);
+            setFormCategoryName(null);
+        } else {
+            setSelectedId(id);
+            setFormCategoryName(name);
+        }
     };
 
     return (
@@ -72,29 +89,38 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                     <label className="text-sm font-semibold flex items-center gap-1.5">
                         Gender <span className="text-red-500">*</span>
                     </label>
-                    <Select 
-                        name="gender" 
-                        onValueChange={(val) => setGenderVal(val)}
-                        defaultValue={data?.gender || "Male"}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {GENDERS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    
-                    {genderVal === "Other" && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+                    {genderVal === "Other" ? (
+                        <div className="relative flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
                             <Input 
-                                name="otherGender" 
-                                placeholder="Please specify gender" 
-                                defaultValue={data?.otherGender || ""}
+                                name="gender" 
+                                placeholder="Specify gender" 
+                                defaultValue={(data?.gender === "Other" ? "" : data?.gender) || ""}
                                 required 
-                                className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                                className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                                autoFocus
                             />
+                            <button 
+                                type="button" 
+                                onClick={() => setGenderVal(GENDERS[0])}
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                title="Back to list"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
+                            </button>
                         </div>
+                    ) : (
+                        <Select 
+                            name="gender" 
+                            onValueChange={(val) => setGenderVal(val)}
+                            defaultValue={data?.gender || "Male"}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {GENDERS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     )}
                 </div>
                 <div className="space-y-2">
@@ -118,29 +144,38 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                     <label className="text-sm font-semibold flex items-center gap-1.5">
                         Civil Status <span className="text-red-500">*</span>
                     </label>
-                    <Select 
-                        name="civilStatus" 
-                        onValueChange={(val) => setCivilStatusVal(val)}
-                        defaultValue={data?.civilStatus || "Single"}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {CIVIL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    
-                    {civilStatusVal === "Other" && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+                    {civilStatusVal === "Other" ? (
+                        <div className="relative flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
                             <Input 
-                                name="otherCivilStatus" 
-                                placeholder="Please specify status" 
-                                defaultValue={data?.otherCivilStatus || ""}
+                                name="civilStatus" 
+                                placeholder="Specify status" 
+                                defaultValue={(data?.civilStatus === "Other" ? "" : data?.civilStatus) || ""}
                                 required 
-                                className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                                className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                                autoFocus
                             />
+                            <button 
+                                type="button" 
+                                onClick={() => setCivilStatusVal(CIVIL_STATUSES[0])}
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                title="Back to list"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
+                            </button>
                         </div>
+                    ) : (
+                        <Select 
+                            name="civilStatus" 
+                            onValueChange={(val) => setCivilStatusVal(val)}
+                            defaultValue={data?.civilStatus || "Single"}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {CIVIL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     )}
                 </div>
                 <div className="space-y-2">
@@ -185,7 +220,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 key={cat.id} 
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    selectCategory(cat.id);
+                                    selectCategory(cat.id, cat.name);
                                 }}
                                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all cursor-pointer select-none group ${
                                     isSelected
@@ -195,7 +230,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                             >
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                                     isSelected ? 'bg-white border-white' : 'border-slate-300 dark:border-slate-600 group-hover:border-blue-400'
-                                }`}>
+                                }}`}>
                                     {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600 animate-in zoom-in-50 duration-200" />}
                                 </div>
                                 <span className="text-xs font-black uppercase tracking-tight">

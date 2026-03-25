@@ -1,4 +1,4 @@
-export const BARANGAYS = ["Aloleng", "Bangan-Oda", "Baruan", "Boboy", "Cayungnan", "Dangley", "Gayusan", "Macaboboni", "Magsaysay", "Namuac", "Poblacion East", "Poblacion West", "Patar", "Sablig", "San Juan", "Tupa"];
+
 
 export const CIVIL_STATUSES = ["Single", "Married", "Widowed", "Separated", "Annulled", "Live-in", "Other"];
 

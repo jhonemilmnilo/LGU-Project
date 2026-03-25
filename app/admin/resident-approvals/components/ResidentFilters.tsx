@@ -5,8 +5,9 @@ import { Search, Filter, Clock, CheckCircle, XCircle, Users } from "lucide-react
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { getResidentCategories } from "../../actions";
+import { getResidentCategories, getBarangayList } from "../../actions";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 const STATUS_TABS = [
     { value: "All", label: "All", icon: Users, color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
@@ -16,6 +17,11 @@ const STATUS_TABS = [
 ];
 
 export function ResidentFilters() {
+    const { data: session } = useSession();
+    const role = (session?.user as any)?.role;
+    const managedBarangay = (session?.user as any)?.managedBarangay;
+    const isBarangayAdmin = role === "BARANGAY_ADMIN";
+
     const {
         searchQuery, setSearchQuery,
         selectedBarangay, setSelectedBarangay,
@@ -27,6 +33,7 @@ export function ResidentFilters() {
 
     const [mounted, setMounted] = useState(false);
     const [categories, setCategories] = useState<ResidentCategory[]>([]);
+    const [barangayList, setBarangayList] = useState<string[]>([]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -36,11 +43,22 @@ export function ResidentFilters() {
                     setCategories(res.categories);
                 }
             });
+            getBarangayList().then(res => {
+                if (res.success && res.data) {
+                    setBarangayList(res.data);
+                }
+            });
         }, 0);
         return () => clearTimeout(timer);
     }, []);
 
-    const barangays = ["All", "Aloleng", "Bangan-Oda", "Baruan", "Boboy", "Cayungnan", "Dangley", "Gayusan", "Macaboboni", "Magsaysay", "Namuac", "Poblacion East", "Poblacion West", "Patar", "Sablig", "San Juan", "Tupa"];
+    // Force selection for Barangay Admins
+    useEffect(() => {
+        if (isBarangayAdmin && managedBarangay && selectedBarangay !== managedBarangay) {
+            setSelectedBarangay(managedBarangay);
+        }
+    }, [isBarangayAdmin, managedBarangay, selectedBarangay, setSelectedBarangay]);
+
     const genders = ["All", "Male", "Female", "Other"];
 
     const getCount = (status: string) => {
@@ -55,7 +73,7 @@ export function ResidentFilters() {
     return (
         <div className="flex flex-col border-b border-slate-200 dark:border-[#2a3040] bg-slate-50/50 dark:bg-[#151b2b]">
             {/* Status Tabs */}
-            <div className="px-4 pt-4 flex items-center gap-2 flex-wrap">
+            <div className="px-4 pt-4 flex items-center gap-2 flex-wrap text-blue-500">
                 {STATUS_TABS.map(tab => {
                     const Icon = tab.icon;
                     const isActive = selectedStatus === tab.value;
@@ -98,17 +116,25 @@ export function ResidentFilters() {
                     </div>
 
                     <div className="w-full sm:w-auto flex flex-wrap gap-2">
-                        <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
-                            <SelectTrigger className="h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl flex items-center min-w-[130px]">
-                                <Filter className="w-4 h-4 mr-2 text-slate-400" />
-                                <SelectValue placeholder="Barangay" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] max-h-[300px]">
-                                {barangays.map(bg => (
-                                    <SelectItem key={bg} value={bg}>{bg}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {!isBarangayAdmin ? (
+                            <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                                <SelectTrigger className="h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl flex items-center min-w-[130px]">
+                                    <Filter className="w-4 h-4 mr-2 text-slate-400" />
+                                    <SelectValue placeholder="Barangay" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] max-h-[300px]">
+                                    <SelectItem value="All">All Barangays</SelectItem>
+                                    {barangayList.map(bg => (
+                                        <SelectItem key={bg} value={bg}>{bg}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <div className="h-11 px-4 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center gap-2 border border-slate-200 dark:border-slate-700">
+                                <Filter className="w-3 h-3 text-blue-500" />
+                                <span className="text-xs font-black uppercase text-slate-600 dark:text-slate-400">{managedBarangay}</span>
+                            </div>
+                        )}
 
                         <Select value={selectedGender} onValueChange={setSelectedGender}>
                             <SelectTrigger className="h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl flex items-center min-w-[100px]">

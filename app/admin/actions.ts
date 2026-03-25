@@ -139,14 +139,21 @@ export async function getResidentCategories() {
 
 export async function searchHeads(query: string) {
     try {
+        const managedBarangay = await getSessionBarangay();
+        const where: any = {
+            isHead: true,
+            OR: [
+                { firstName: { contains: query, mode: 'insensitive' } },
+                { lastName: { contains: query, mode: 'insensitive' } },
+            ]
+        };
+
+        if (managedBarangay) {
+            where.barangay = managedBarangay;
+        }
+
         const residents = await (prisma as any).resident.findMany({
-            where: {
-                isHead: true,
-                OR: [
-                    { firstName: { contains: query, mode: 'insensitive' } },
-                    { lastName: { contains: query, mode: 'insensitive' } },
-                ]
-            },
+            where,
             take: 10,
             select: {
                 id: true,
@@ -164,13 +171,20 @@ export async function searchHeads(query: string) {
 
 export async function searchResidents(query: string) {
     try {
+        const managedBarangay = await getSessionBarangay();
+        const where: any = {
+            OR: [
+                { firstName: { contains: query, mode: 'insensitive' } },
+                { lastName: { contains: query, mode: 'insensitive' } },
+            ]
+        };
+
+        if (managedBarangay) {
+            where.barangay = managedBarangay;
+        }
+
         const residents = await (prisma as any).resident.findMany({
-            where: {
-                OR: [
-                    { firstName: { contains: query, mode: 'insensitive' } },
-                    { lastName: { contains: query, mode: 'insensitive' } },
-                ]
-            },
+            where,
             take: 10,
             select: {
                 id: true,
@@ -2204,6 +2218,19 @@ export async function addCommunityReport(formData: FormData) {
     } catch (error) {
         console.error("Failed to submit report:", error);
         return { success: false, error: "Failed to submit report. Please try again." };
+    }
+}
+
+export async function getBarangayList() {
+    try {
+        const barangays = await prisma.barangayInfo.findMany({
+            select: { name: true },
+            orderBy: { name: 'asc' }
+        });
+        return { success: true, data: barangays.map(b => b.name) };
+    } catch (error) {
+        console.error("Failed to fetch barangays:", error);
+        return { success: false, error: "Failed to fetch barangay list" };
     }
 }
 

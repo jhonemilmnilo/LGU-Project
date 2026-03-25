@@ -1,9 +1,11 @@
+"use client";
+
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GENDERS, CIVIL_STATUSES } from "../../constants";
 import { useState, useEffect } from "react";
 import { getResidentCategories } from "../../../actions";
-import { Resident } from "../../providers/ResidentProvider";
+import { useResident, Resident } from "../../providers/ResidentProvider";
 
 interface ResidentCategory {
     id: string;
@@ -11,10 +13,15 @@ interface ResidentCategory {
 }
 
 export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
+    const { 
+        formCategoryId: selectedId, 
+        setFormCategoryId: setSelectedId,
+        setFormCategoryName
+    } = useResident();
+
     const [genderVal, setGenderVal] = useState(data?.gender || "Male");
     const [civilStatusVal, setCivilStatusVal] = useState(data?.civilStatus || "Single");
     const [dob, setDob] = useState(data?.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : "");
-    // const [isDead, setIsDead] = useState(data?.isDead || false); // Removed to fix lint warning
 
     const calculateAge = (birthDateStr: string) => {
         if (!birthDateStr) return "";
@@ -30,9 +37,6 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
 
     const age = calculateAge(dob);
     const [categories, setCategories] = useState<ResidentCategory[]>([]);
-    const [selectedId, setSelectedId] = useState<string | null>(
-        data?.categoryId || null
-    );
 
     useEffect(() => {
         getResidentCategories().then((res: { success: boolean; categories?: ResidentCategory[]; error?: string }) => {
@@ -42,8 +46,14 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
         });
     }, []);
 
-    const selectCategory = (id: string) => {
-        setSelectedId(prev => prev === id ? null : id);
+    const selectCategory = (id: string, name: string) => {
+        if (selectedId === id) {
+            setSelectedId(null);
+            setFormCategoryName(null);
+        } else {
+            setSelectedId(id);
+            setFormCategoryName(name);
+        }
     };
 
     return (
@@ -185,7 +195,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 key={cat.id} 
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    selectCategory(cat.id);
+                                    selectCategory(cat.id, cat.name);
                                 }}
                                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all cursor-pointer select-none group ${
                                     isSelected
@@ -195,7 +205,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                             >
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                                     isSelected ? 'bg-white border-white' : 'border-slate-300 dark:border-slate-600 group-hover:border-blue-400'
-                                }`}>
+                                }}`}>
                                     {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600 animate-in zoom-in-50 duration-200" />}
                                 </div>
                                 <span className="text-xs font-black uppercase tracking-tight">

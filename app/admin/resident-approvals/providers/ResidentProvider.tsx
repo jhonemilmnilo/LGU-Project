@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export type ResidentStatus = "PENDING" | "APPROVED" | "DRAFT" | "REJECTED";
 
@@ -140,6 +140,12 @@ type ResidentContextType = {
     setViewMode: (mode: ViewMode) => void;
     currentFamilyMembers: FamilyMember[];
     setCurrentFamilyMembers: React.Dispatch<React.SetStateAction<FamilyMember[]>>;
+    
+    // Form Selection State
+    formCategoryId: string | null;
+    setFormCategoryId: (id: string | null) => void;
+    formCategoryName: string | null;
+    setFormCategoryName: (name: string | null) => void;
 };
 
 const ResidentContext = createContext<ResidentContextType | undefined>(undefined);
@@ -162,6 +168,21 @@ export function ResidentProvider({
     const [viewMode, setViewMode] = useState<ViewMode>("table");
     const [currentFamilyMembers, setCurrentFamilyMembers] = useState<FamilyMember[]>([]);
 
+    // Form Selection State
+    const [formCategoryId, setFormCategoryId] = useState<string | null>(editingData?.categoryId || null);
+    const [formCategoryName, setFormCategoryName] = useState<string | null>(editingData?.category?.name || null);
+
+    // Sync formCategoryId with editingData when it changes
+    useEffect(() => {
+        if (editingData) {
+            setFormCategoryId(editingData.categoryId || null);
+            setFormCategoryName(editingData.category?.name || null);
+        } else {
+            setFormCategoryId(null);
+            setFormCategoryName(null);
+        }
+    }, [editingData]);
+
     return (
         <ResidentContext.Provider value={{
             residents,
@@ -183,7 +204,11 @@ export function ResidentProvider({
             viewMode,
             setViewMode,
             currentFamilyMembers,
-            setCurrentFamilyMembers
+            setCurrentFamilyMembers,
+            formCategoryId,
+            setFormCategoryId,
+            formCategoryName,
+            setFormCategoryName
         }}>
             {children}
         </ResidentContext.Provider>

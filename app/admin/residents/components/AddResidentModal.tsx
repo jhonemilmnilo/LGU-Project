@@ -120,8 +120,10 @@ export function AddResidentModal() {
 
         if (stepIndex === 5) { // Account
             const email = formData.get("email") as string;
-            if (!email) { toast.error("Email Address is required for account setup."); return false; }
-            if (!email.includes("@")) { toast.error("Please enter a valid email."); return false; }
+            if (email && !email.includes("@")) { 
+                toast.error("Please enter a valid email."); 
+                return false; 
+            }
         }
 
         if (stepIndex === 6) { // Sectors and Consent
