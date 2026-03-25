@@ -32,9 +32,10 @@ interface PastMayorsExhibitProps {
     mayors: Mayor[];
     brandWord1?: string;
     brandWord2?: string;
+    isBarangayView?: boolean;
 }
 
-export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 = "" }: PastMayorsExhibitProps) {
+export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 = "", isBarangayView }: PastMayorsExhibitProps) {
     const [[page, direction], setPage] = React.useState([0, 0]);
     const [isPaused, setIsPaused] = React.useState(false);
 
@@ -107,7 +108,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
             className="relative w-full bg-[#080810] text-[#f8f9fa] overflow-hidden flex flex-col py-10 md:py-10 font-sans selection:bg-white/20"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            aria-label="Historical Timeline of Past Mayors"
+            aria-label={isBarangayView ? "Historical Timeline of Past Captains" : "Historical Timeline of Past Mayors"}
         >
             {/* Dark Ambient Glow Bottom */}
             <div 
@@ -128,7 +129,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                     <div className="h-px w-8 bg-white/20" />
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
-                    Past <span className="opacity-50">Mayors</span>
+                    Past <span className="opacity-50">{isBarangayView ? "Captains" : "Mayors"}</span>
                 </h2>
                 <div className="w-px h-12 bg-gradient-to-b from-white/20 to-transparent" />
             </div>
@@ -141,7 +142,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                     size="icon" 
                     onClick={() => paginate(-1)}
                     className="absolute left-4 lg:left-8 z-30 rounded-full w-12 h-12 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white backdrop-blur-sm hidden md:flex"
-                    aria-label="Previous Mayor"
+                    aria-label={isBarangayView ? "Previous Captain" : "Previous Mayor"}
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </Button>
@@ -252,7 +253,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                     size="icon" 
                     onClick={() => paginate(1)}
                     className="absolute right-4 lg:right-8 z-30 rounded-full w-12 h-12 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white backdrop-blur-sm hidden md:flex"
-                    aria-label="Next Mayor"
+                    aria-label={isBarangayView ? "Next Captain" : "Next Mayor"}
                 >
                     <ChevronRight className="w-5 h-5" />
                 </Button>
@@ -286,7 +287,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
                                     isActive ? "w-12 opacity-100" : "w-2 bg-white/20 hover:bg-white/40 opacity-50"
                                 )}
                                 style={isActive ? { backgroundColor: currentColor, boxShadow: `0 0 10px ${currentColor}50` } : {}}
-                                aria-label={`Go to mayor ${idx + 1}`}
+                                aria-label={isBarangayView ? `Go to captain ${idx + 1}` : `Go to mayor ${idx + 1}`}
                             />
                         );
                     })}

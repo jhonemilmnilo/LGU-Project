@@ -3,136 +3,155 @@
 import prisma from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { processImageUpload, deleteUploadedFile } from "@/app/admin/settings/actions";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export async function getAboutPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getAboutData(barangayName?: string | null) {
+    if (barangayName) {
+        return await (prisma as any).barangayInfo.findUnique({
+            where: { name: barangayName }
+        });
+    }
     return await (prisma as any).aboutPage.findFirst();
 }
 
-export async function upsertAboutPage(formData: FormData) {
+export async function getLeaders(barangayName?: string | null) {
+    return await (prisma as any).pastMayor.findMany({
+        where: {
+            barangay: barangayName || null
+        },
+        orderBy: { order: 'asc' }
+    });
+}
+
+export async function upsertAboutData(formData: FormData) {
+    const session = await getServerSession(authOptions);
+    const role = (session?.user as any)?.role;
+    const managedBarangay = (session?.user as any)?.managedBarangay;
+    const isBarangayAdmin = role === "BARANGAY_ADMIN";
+    const targetBarangay = isBarangayAdmin ? managedBarangay : formData.get("barangayName") as string;
+
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const existing = await (prisma as any).aboutPage.findFirst();
-        
-        let mayorImageUrl = formData.get("mayorImageUrl")?.toString() || "";
-        
-        // Let's try to upload if there is a file
-        const uploadedImageUrl = await processImageUpload(formData, "mayorImageFile");
-        if (uploadedImageUrl && typeof uploadedImageUrl === "string" && uploadedImageUrl !== mayorImageUrl) {
-            mayorImageUrl = uploadedImageUrl;
-        }
+        if (targetBarangay) {
+            const logoUrl = await processImageUpload(formData, "logo");
+            const coverImageUrl = await processImageUpload(formData, "coverImage");
+            const captainImageUrl = await processImageUpload(formData, "captainImage");
 
-        // If the old image URL in the DB is different from the newly finalized mayorImageUrl
-        // (which means they uploaded a new image OR explicitly reset/deleted the image),
-        // we should delete the old file from the server storage to save space.
-        if (existing?.mayorImageUrl && existing.mayorImageUrl !== mayorImageUrl) {
-            await deleteUploadedFile(existing.mayorImageUrl);
-        }
-
-        const data = {
-            history: formData.get("history")?.toString() || "",
-            mission: formData.get("mission")?.toString() || "",
-            vision: formData.get("vision")?.toString() || "",
-            coreValues: formData.get("coreValues")?.toString() || "",
-            mayorMessage: formData.get("mayorMessage")?.toString() || "",
-            geographyOrDemographics: formData.get("geographyOrDemographics")?.toString() || "",
-            mayorImageUrl: mayorImageUrl.length > 0 ? mayorImageUrl : null,
-        };
-
-        if (existing) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (prisma as any).aboutPage.update({
-                where: { id: existing.id },
-                data
+            await (prisma as any).barangayInfo.upsert({
+                where: { name: targetBarangay },
+                update: {
+                    description: formData.get("description") as string,
+                    logoUrl: logoUrl || (formData.get("logoUrl") as string),
+                    coverImageUrl: coverImageUrl || (formData.get("coverImageUrl") as string),
+                    captainName: formData.get("captainName") as string,
+                    captainMessage: formData.get("captainMessage") as string,
+                    captainImageUrl: captainImageUrl || (formData.get("captainImageUrl") as string),
+                    history: formData.get("history") as string,
+                    mission: formData.get("mission") as string,
+                    vision: formData.get("vision") as string,
+                    coreValues: formData.get("coreValues") as string,
+                    geographyOrDemographics: formData.get("geographyOrDemographics") as string,
+                } as any,
+                create: {
+                    name: targetBarangay,
+                    description: formData.get("description") as string,
+                    logoUrl: logoUrl || (formData.get("logoUrl") as string),
+                    coverImageUrl: coverImageUrl || (formData.get("coverImageUrl") as string),
+                    captainName: formData.get("captainName") as string,
+                    captainMessage: formData.get("captainMessage") as string,
+                    captainImageUrl: captainImageUrl || (formData.get("captainImageUrl") as string),
+                    history: formData.get("history") as string,
+                    mission: formData.get("mission") as string,
+                    vision: formData.get("vision") as string,
+                    coreValues: formData.get("coreValues") as string,
+                    geographyOrDemographics: formData.get("geographyOrDemographics") as string,
+                } as any
             });
         } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (prisma as any).aboutPage.create({
-                data
-            });
+            const mayorImageUrl = await processImageUpload(formData, "mayorImage");
+            const existing = await (prisma as any).aboutPage.findFirst();
+            const data = {
+                history: formData.get("history") as string,
+                mission: formData.get("mission") as string,
+                vision: formData.get("vision") as string,
+                coreValues: formData.get("coreValues") as string,
+                geographyOrDemographics: formData.get("geographyOrDemographics") as string,
+                mayorName: formData.get("mayorName") as string,
+                mayorMessage: formData.get("mayorMessage") as string,
+                mayorImageUrl: mayorImageUrl || (formData.get("mayorImageUrl") as string),
+            };
+
+            if (existing) {
+                await (prisma as any).aboutPage.update({
+                    where: { id: existing.id },
+                    data
+                });
+            } else {
+                await (prisma as any).aboutPage.create({ data });
+            }
         }
 
         revalidatePath("/about");
         revalidatePath("/admin/about");
+        revalidatePath("/admin/about/past-mayors");
         return { success: true };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-        console.error("Error upserting about page:", error);
-        return { success: false, error: `Failed: ${error.message || error.toString()}` };
+        console.error("Error updating about:", error);
+        return { success: false, error: error.message };
     }
 }
 
-export async function getPastMayors() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return await (prisma as any).pastMayor.findMany({
-        orderBy: { order: 'asc' } // Or you could order by termStart later if preferred
-    });
+export async function getPastMayors(barangayName?: string | null) {
+    return await getLeaders(barangayName);
 }
 
 export async function upsertPastMayor(id: string | null, formData: FormData) {
     try {
-        let imageUrl = formData.get("imageUrl")?.toString() || "";
-        
-        const uploadedImageUrl = await processImageUpload(formData, "imageFile");
-        if (uploadedImageUrl && typeof uploadedImageUrl === "string" && uploadedImageUrl !== imageUrl) {
-            imageUrl = uploadedImageUrl;
-        }
+        const imageUrl = await processImageUpload(formData, "imageFile");
+        const session = await getServerSession(authOptions);
+        const role = (session?.user as any)?.role;
+        const managedBarangay = (session?.user as any)?.managedBarangay;
 
         const data = {
-            name: formData.get("name")?.toString() || "",
-            termStart: formData.get("termStart")?.toString() || "",
-            termEnd: formData.get("termEnd")?.toString() || "",
-            description: formData.get("description")?.toString() || "",
-            order: parseInt(formData.get("order")?.toString() || "0"),
-            imageUrl: imageUrl || null
+            name: formData.get("name") as string,
+            termStart: formData.get("termStart") as string,
+            termEnd: formData.get("termEnd") as string,
+            description: formData.get("description") as string,
+            order: parseInt(formData.get("order") as string) || 0,
+            imageUrl: imageUrl || (formData.get("imageUrl") as string) || "",
+            barangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
         };
 
         if (id) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const existing = await (prisma as any).pastMayor.findUnique({ where: { id } });
-            if (existing?.imageUrl && existing.imageUrl !== imageUrl) {
-                await deleteUploadedFile(existing.imageUrl);
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (prisma as any).pastMayor.update({
                 where: { id },
-                data
+                data: data as any
             });
         } else {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (prisma as any).pastMayor.create({
-                data
+                data: data as any
             });
         }
 
         revalidatePath("/about");
         revalidatePath("/admin/about");
+        revalidatePath("/admin/about/past-mayors");
         return { success: true };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-        console.error("Error saving past mayor:", error);
         return { success: false, error: error.message };
     }
 }
 
 export async function deletePastMayor(id: string) {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const existing = await (prisma as any).pastMayor.findUnique({ where: { id } });
-        if (existing?.imageUrl) {
-            await deleteUploadedFile(existing.imageUrl);
-        }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (prisma as any).pastMayor.delete({
-            where: { id }
-        });
-        
+        const item = await (prisma as any).pastMayor.findUnique({ where: { id } });
+        if (item?.imageUrl) await deleteUploadedFile(item.imageUrl);
+        await (prisma as any).pastMayor.delete({ where: { id } });
         revalidatePath("/about");
         revalidatePath("/admin/about");
+        revalidatePath("/admin/about/past-mayors");
         return { success: true };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-        console.error("Error deleting past mayor:", error);
-        return { success: false, error: error.message };
+    } catch (error) {
+        return { success: false };
     }
 }

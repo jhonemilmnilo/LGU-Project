@@ -7,25 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Edit2, Plus, Trash2, Image as ImageIcon, X, History as HistoryIcon, Loader2, User, Calendar, ListOrdered, FileText } from "lucide-react";
+import { Edit2, Plus, Trash2, Image as ImageIcon } from "lucide-react";
 import { upsertPastMayor, deletePastMayor } from "./actions";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
+export function PastMayorsClient({ initialMayors, isBarangayAdmin }: { initialMayors: any[], isBarangayAdmin?: boolean }) {
     const router = useRouter();
     const [mayors, setMayors] = useState(initialMayors);
     const [showAddModal, setShowAddModal] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingMayor, setEditingMayor] = useState<any | null>(null);
 
+    useEffect(() => {
+        setMayors(initialMayors);
+    }, [initialMayors]);
+
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this specific record?")) return;
+        if (!confirm(`Are you sure you want to delete this specific ${isBarangayAdmin ? "captain" : "mayor"} record?`)) return;
 
         const result = await deletePastMayor(id);
         if (result.success) {
-            toast.success("Past Mayor removed");
+            toast.success(`${isBarangayAdmin ? "Past Captain" : "Past Mayor"} removed`);
             setMayors(mayors.filter(s => s.id !== id));
         } else {
             toast.error("Failed to delete record");
@@ -42,18 +46,22 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Historical Leaders</h3>
-                    <p className="text-sm text-slate-500 font-medium">Manage the timeline of honorable mayors who served.</p>
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
+                        {isBarangayAdmin ? "Past Captains Timeline" : "Historical Leaders"}
+                    </h3>
+                    <p className="text-sm text-slate-500 font-medium">
+                        {isBarangayAdmin ? "Manage the timeline of honorable captains who served." : "Manage the timeline of honorable mayors who served."}
+                    </p>
                 </div>
                 <Button onClick={() => { setEditingMayor(null); setShowAddModal(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-6 gap-2 shadow-lg shadow-emerald-500/20">
                     <Plus className="w-4 h-4" />
-                    Add Leader
+                    {isBarangayAdmin ? "Add Captain" : "Add Leader"}
                 </Button>
             </div>
 
             {mayors.length === 0 ? (
                 <div className="text-center p-12 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-                    <p className="text-slate-500 font-medium">No past mayors added yet.</p>
+                    <p className="text-slate-500 font-medium">No results found for {isBarangayAdmin ? "past captains" : "past mayors"}.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -100,13 +108,14 @@ export function PastMayorsClient({ initialMayors }: { initialMayors: any[] }) {
                     router.refresh();
                 }}
                 initialData={editingMayor}
+                isBarangayAdmin={isBarangayAdmin}
             />
         </div>
     );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, onClose: () => void, initialData: any }) {
+function MayorEditorModal({ isOpen, onClose, initialData, isBarangayAdmin }: { isOpen: boolean, onClose: () => void, initialData: any, isBarangayAdmin?: boolean }) {
     const [isSaving, setIsSaving] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
@@ -185,20 +194,18 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
-                                <HistoryIcon className="w-5 h-5 text-white" />
-                            </div>
                             <div>
                                 <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                    {initialData ? "Edit Mayor Profile" : "Add Past Mayor"}
+                                    {initialData 
+                                      ? (isBarangayAdmin ? "Edit Captain Profile" : "Edit Mayor Profile") 
+                                      : (isBarangayAdmin ? "Add Past Captain" : "Add Past Mayor")}
                                 </DialogTitle>
                                 <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
-                                    Record the legacy of those who served our municipality.
+                                    {isBarangayAdmin 
+                                      ? "Record the legacy of those who served our barangay." 
+                                      : "Record the legacy of those who served our municipality."}
                                 </DialogDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={onClose} className="absolute top-8 right-8 rounded-full h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400">
-                                <X className="w-4 h-4" />
-                            </Button>
                         </div>
                     </DialogHeader>
 
@@ -207,8 +214,8 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                             {/* Left side form fields */}
                             <div className="space-y-6">
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
-                                        <User className="w-4 h-4 text-blue-500" /> Full Name
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">
+                                        Full Name
                                     </Label>
                                     <Input
                                         placeholder="e.g. Hon. Juan De La Cruz"
@@ -221,8 +228,8 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-emerald-500" /> Term Start
+                                        <Label className="text-slate-700 dark:text-slate-300 font-bold">
+                                            Term Start
                                         </Label>
                                         <Input
                                             placeholder="1990"
@@ -233,8 +240,8 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-emerald-500" /> Term End
+                                        <Label className="text-slate-700 dark:text-slate-300 font-bold">
+                                            Term End
                                         </Label>
                                         <Input
                                             placeholder="1995"
@@ -247,8 +254,8 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
-                                        <ListOrdered className="w-4 h-4 text-amber-500" /> Display Order
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">
+                                        Display Order
                                     </Label>
                                     <Input
                                         type="number"
@@ -260,8 +267,8 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-purple-500" /> Key Highlights
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">
+                                        Key Highlights
                                     </Label>
                                     <Textarea
                                         placeholder="• Accomplishment one&#10;• Accomplishment two"
@@ -285,7 +292,6 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                                         <img src={previewUrl || formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="text-slate-400 flex flex-col items-center">
-                                            <ImageIcon className="w-12 h-12 mb-3 opacity-30" />
                                             <span className="text-xs uppercase font-black tracking-widest opacity-50">Upload Portrait</span>
                                         </div>
                                     )}
@@ -320,7 +326,7 @@ function MayorEditorModal({ isOpen, onClose, initialData }: { isOpen: boolean, o
                             className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {isSaving ? (
-                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                                "Saving..."
                             ) : (
                                 initialData ? "Update Record" : "Add Record"
                             )}

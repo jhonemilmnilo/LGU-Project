@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
+    DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users, Quote, Target, Eye, Building2 } from "lucide-react";
 import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -117,6 +118,32 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-[1.2rem] h-auto mb-8 flex flex-wrap gap-1">
+                    {!isBarangayAdmin && (
+                        <>
+                            <TabsTrigger value="general" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
+                                <Globe className="w-3.5 h-3.5 mr-2" />
+                                General
+                            </TabsTrigger>
+                            <TabsTrigger value="credentials" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
+                                <ShieldAlert className="w-3.5 h-3.5 mr-2" />
+                                Credentials
+                            </TabsTrigger>
+                        </>
+                    )}
+                    <TabsTrigger value="hero" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
+                        <Layout className="w-3.5 h-3.5 mr-2" />
+                        {isBarangayAdmin ? "Banners" : "Hero Sections"}
+                    </TabsTrigger>
+
+                    {!isBarangayAdmin && (
+                        <TabsTrigger value="sections" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
+                            <Users className="w-3.5 h-3.5 mr-2" />
+                            Sections
+                        </TabsTrigger>
+                    )}
+                </TabsList>
+
                 {!isBarangayAdmin && (
                     <>
                         <TabsContent value="general" className="space-y-6">
@@ -314,7 +341,11 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                 )}
 
                 <TabsContent value="hero" className="space-y-6">
-                    <HeroSlidesManager initialSlides={slides} themeColor={themeColor} managedBarangay={managedBarangay} />
+                    <HeroSlidesManager
+                        initialSlides={slides}
+                        themeColor={themeColor}
+                        managedBarangay={managedBarangay}
+                    />
                 </TabsContent>
 
                 {!isBarangayAdmin && (
@@ -328,10 +359,23 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function HeroSlidesManager({ initialSlides, themeColor, managedBarangay }: { initialSlides: any[], themeColor: string, managedBarangay?: string }) {
+function HeroSlidesManager({
+    initialSlides,
+    themeColor,
+    managedBarangay,
+}: {
+    initialSlides: any[];
+    themeColor: string;
+    managedBarangay?: string;
+}) {
     const [slides, setSlides] = useState(initialSlides);
     const [showModal, setShowModal] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingSlide, setEditingSlide] = useState<any>(null);
+
+    useEffect(() => {
+        setSlides(initialSlides);
+    }, [initialSlides]);
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this slide?")) return;

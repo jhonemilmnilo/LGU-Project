@@ -32,11 +32,12 @@ interface AboutClientViewProps {
     themeColor: string;
     brandWord1: string;
     brandWord2: string;
+    isBarangayView?: boolean;
 }
 
 
 
-export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1, brandWord2 }: AboutClientViewProps) {
+export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1, brandWord2, isBarangayView }: AboutClientViewProps) {
     const fadeIn: Variants = {
         hidden: { opacity: 0, y: 30 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
@@ -84,7 +85,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="text-white/50" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">About Our Town</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">{isBarangayView ? "About Our Barangay" : "About Our Town"}</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
@@ -110,7 +111,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     >
                         Welcome to
                         <br />
-                        <span style={{ color: themeColor }}>{brandWord1}&nbsp;{brandWord2}</span>
+                        <span style={{ color: themeColor }}>{isBarangayView ? `Barangay ${brandWord2}` : `${brandWord1} ${brandWord2}`}</span>
                     </motion.h1>
 
                     <motion.p 
@@ -152,10 +153,10 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                                     </div>
                                 </div>
                             ) : (
-                                <div className="lg:w-1/3 bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-12">
+                                 <div className="lg:w-1/3 bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-12">
                                     <div className="text-center opacity-50 space-y-4">
                                         <Building2 className="w-20 h-20 mx-auto" />
-                                        <p className="text-xs font-bold uppercase tracking-widest">Office of the Mayor</p>
+                                        <p className="text-xs font-bold uppercase tracking-widest">{isBarangayView ? "Barangay Office" : "Office of the Mayor"}</p>
                                     </div>
                                 </div>
                             )}
@@ -170,7 +171,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                                 </div>
                                 
                                 <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-10 tracking-tighter leading-none">
-                                    Mayor&apos;s <br/><span style={{ color: themeColor }}>Message</span>
+                                    {isBarangayView ? "Captain's" : "Mayor's"} <br/><span style={{ color: themeColor }}>Message</span>
                                 </h3>
                                 
                                 <div className="relative">
@@ -302,6 +303,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                         mayors={pastMayors} 
                         brandWord1={brandWord1} 
                         brandWord2={brandWord2} 
+                        isBarangayView={isBarangayView}
                     />
                 </div>
             )}

@@ -9,6 +9,7 @@ export default async function SettingsPage() {
     const session = await getServerSession(authOptions);
     const role = (session?.user as any)?.role;
     const managedBarangay = (session?.user as any)?.managedBarangay;
+    const isBarangayAdmin = role === "BARANGAY_ADMIN";
 
     // Sequential fetch to avoid "MaxClientsInSessionMode" error on some DB providers
     const settingsList = await prisma.systemSetting.findMany();
@@ -16,7 +17,7 @@ export default async function SettingsPage() {
     // Filter slides based on role
     const slides = await prisma.heroSlide.findMany({
         where: {
-            barangay: role === "BARANGAY_ADMIN" ? managedBarangay : null
+            barangay: isBarangayAdmin ? managedBarangay : null
         } as any,
         orderBy: { order: 'asc' }
     });

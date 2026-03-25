@@ -211,3 +211,5 @@ export async function updateHeroSlide(id: string, formData: FormData) {
         return { success: false, error: "Failed to update slide" };
     }
 }
+
+// End of settings actions

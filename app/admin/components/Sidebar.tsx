@@ -73,7 +73,7 @@ export function Sidebar({
             onToggle: () => setIsAboutOpen(!isAboutOpen),
             subItems: [
                 { href: "/admin/about", label: "Platform Info" },
-                { href: "/admin/about/past-mayors", label: "Past Mayors" },
+                { href: "/admin/about/past-mayors", label: role === "BARANGAY_ADMIN" ? "Past Captains" : "Past Mayors" },
             ]
         },
         {
@@ -123,6 +123,7 @@ export function Sidebar({
 
     const barangayAdminAllowed = [
         "Dashboard",
+        "About Us Content",
         "Announcements",
         "News & Updates",
         "Events",

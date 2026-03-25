@@ -4,7 +4,10 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AboutClientView } from "./AboutClientView";
 
-export default async function AboutPage() {
+export default async function AboutPage(props: { searchParams: Promise<{ barangay?: string }> }) {
+    const searchParams = await props.searchParams;
+    const barangay = searchParams.barangay;
+
     const settings = await getMultipleSystemSettings([
         "site_logo",
         "brand_word_1",
@@ -14,12 +17,48 @@ export default async function AboutPage() {
 
     const themeColor = settings.get("theme_color") || "#2563eb";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const aboutData = await (prisma as any).aboutPage.findFirst();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pastMayors = await (prisma as any).pastMayor.findMany({
-        orderBy: { order: 'asc' }
-    });
+    let aboutData: any = null;
+    let pastMayors: any[] = [];
+    let isBarangayView = false;
+
+    if (barangay) {
+        // Fetch Barangay specific info
+        const barangayInfo = await (prisma as any).barangayInfo.findUnique({
+            where: { name: barangay }
+        });
+
+        if (barangayInfo) {
+            isBarangayView = true;
+            // Adapter: Map BarangayInfo fields to what AboutClientView expects
+            aboutData = {
+                ...barangayInfo,
+                mayorMessage: barangayInfo.captainMessage || "",
+                mayorImageUrl: barangayInfo.captainImageUrl || null,
+                // Ensure other AboutPage fields are handled
+                coreValues: barangayInfo.coreValues || "",
+                history: barangayInfo.history || "",
+                mission: barangayInfo.mission || "",
+                vision: barangayInfo.vision || "",
+                geographyOrDemographics: barangayInfo.geographyOrDemographics || "",
+                coverImages: barangayInfo.coverImages || []
+            };
+
+            // Fetch past leaders for the barangay
+            pastMayors = await (prisma as any).pastMayor.findMany({
+                where: { barangay: barangay },
+                orderBy: { order: 'asc' }
+            });
+        }
+    }
+
+    // Fallback if not on a barangay page or if barangay info not found
+    if (!aboutData) {
+        aboutData = await (prisma as any).aboutPage.findFirst();
+        pastMayors = await (prisma as any).pastMayor.findMany({
+            where: { barangay: null },
+            orderBy: { order: 'asc' }
+        });
+    }
 
     if (!aboutData) {
         return (
@@ -57,8 +96,9 @@ export default async function AboutPage() {
                 aboutData={aboutData} 
                 pastMayors={pastMayors}
                 themeColor={themeColor} 
-                brandWord1={settings.get("brand_word_1") || "LGU"} 
-                brandWord2={settings.get("brand_word_2") || "Portal"} 
+                brandWord1={isBarangayView ? "Barangay" : (settings.get("brand_word_1") || "LGU")} 
+                brandWord2={isBarangayView ? (barangay || "") : (settings.get("brand_word_2") || "Portal")} 
+                isBarangayView={isBarangayView}
             />
 
             <Footer 
