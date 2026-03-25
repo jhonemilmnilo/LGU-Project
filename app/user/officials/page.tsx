@@ -6,5 +6,16 @@ export default async function UserOfficialsPage() {
         orderBy: { order: "asc" },
     });
 
-    return <UserOfficialsView initialOfficials={officials as Official[]} />;
+    const activeBarangays = Array.from(
+        new Set(
+            officials
+                .map((o: any) => o.barangay)
+                .filter(Boolean)
+        )
+    ) as string[];
+
+    return <UserOfficialsView 
+        initialOfficials={officials as Official[]} 
+        activeBarangays={activeBarangays} 
+    />;
 }

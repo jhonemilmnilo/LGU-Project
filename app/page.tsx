@@ -148,7 +148,14 @@ export default async function Home({
             take: 3
         }),
         prisma.official.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                OR: [
+                    { category: 'LGU' },
+                    { barangay: null },
+                    { barangay: "" }
+                ]
+            },
             orderBy: [
                 { order: "asc" },
                 { createdAt: "asc" }

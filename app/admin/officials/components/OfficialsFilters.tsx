@@ -7,7 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus } from "lucide-react";
 
 export function OfficialsFilters() {
-    const { searchTerm, setSearchTerm, setIsAddModalOpen, selectedPosition, setSelectedPosition, officialsData } = useOfficials();
+    const { 
+        searchTerm, setSearchTerm, setIsAddModalOpen, 
+        selectedPosition, setSelectedPosition, 
+        selectedCategory, setSelectedCategory,
+        officialsData 
+    } = useOfficials();
 
     // Get unique positions from current officials to populate the dropdown filter dynamically
     const positions = Array.from(new Set(officialsData.map(o => o.position))).filter(Boolean);
@@ -30,10 +35,22 @@ export function OfficialsFilters() {
                             <SelectValue placeholder="Position" />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                            <SelectItem value="All">All Positions</SelectItem>
+                            <SelectItem value="All">Positions</SelectItem>
                             {positions.map(pos => (
                                 <SelectItem key={pos} value={pos}>{pos}</SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                            <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                            <SelectItem value="All">All Categories</SelectItem>
+                            <SelectItem value="LGU">Municipal (LGU)</SelectItem>
+                            <SelectItem value="Barangay Council">Brgy Council</SelectItem>
+                            <SelectItem value="SK Council">SK Members</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

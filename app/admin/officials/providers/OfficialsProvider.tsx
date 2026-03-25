@@ -19,6 +19,8 @@ export interface Official {
     termEnd: Date | null;
     order: number;
     isActive: boolean;
+    barangay: string | null;
+    category: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -34,6 +36,8 @@ interface OfficialsContextType {
     setEditingData: (data: Official | null) => void;
     selectedPosition: string;
     setSelectedPosition: (position: string) => void;
+    selectedCategory: string;
+    setSelectedCategory: (category: string) => void;
 }
 
 const OfficialsContext = createContext<OfficialsContextType | undefined>(undefined);
@@ -45,6 +49,7 @@ export function OfficialsProvider({ children, initialData }: { children: ReactNo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedPosition, setSelectedPosition] = useState("All");
+    const [selectedCategory, setSelectedCategory] = useState("All");
 
     useEffect(() => {
         setOfficialsData(initialData);
@@ -63,6 +68,8 @@ export function OfficialsProvider({ children, initialData }: { children: ReactNo
                 setEditingData,
                 selectedPosition,
                 setSelectedPosition,
+                selectedCategory,
+                setSelectedCategory,
             }}
         >
             {children}

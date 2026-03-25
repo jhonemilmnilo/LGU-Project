@@ -5,11 +5,17 @@ import { Users, UserCheck, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function OfficialsCards() {
-    const { officialsData } = useOfficials();
+    const { officialsData, selectedCategory } = useOfficials();
 
-    const totalOfficials = officialsData.length;
-    const activeOfficials = officialsData.filter(o => o.isActive).length;
-    const mayorsAndVice = officialsData.filter(o => o.position.toLowerCase().includes("mayor")).length;
+    // Filter by category first if not "All"
+    const displayData = selectedCategory === "All" ? officialsData : officialsData.filter(o => o.category === selectedCategory);
+
+    const totalOfficials = displayData.length;
+    const activeOfficials = displayData.filter(o => o.isActive).length;
+    const mayorsAndVice = displayData.filter(o => {
+        const pos = o.position.toLowerCase();
+        return pos.includes("mayor") || pos.includes("captain") || pos.includes("chairman");
+    }).length;
 
     const cards = [
         {

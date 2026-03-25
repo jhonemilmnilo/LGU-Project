@@ -9,16 +9,21 @@ import { Switch } from "@/components/ui/switch";
 import { Edit2, Trash2, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export function OfficialsTable() {
-    const { officialsData, searchTerm, setEditingData, setIsAddModalOpen, selectedPosition } = useOfficials();
+    const { 
+        officialsData, searchTerm, setEditingData, 
+        setIsAddModalOpen, selectedPosition, selectedCategory 
+    } = useOfficials();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
-    const filteredData = officialsData.filter(item => {
+    const filteredData = (officialsData as any[]).filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesPosition = selectedPosition === "All" || item.position === selectedPosition;
-        return matchesSearch && matchesPosition;
+        const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+        return matchesSearch && matchesPosition && matchesCategory;
     }).sort((a, b) => a.order - b.order);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,9 +106,19 @@ export function OfficialsTable() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                                    <ShieldCheck className="w-4 h-4 mr-1.5 text-blue-500" />
-                                    {item.position}
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center text-slate-700 dark:text-slate-300 font-semibold text-sm">
+                                        <ShieldCheck className="w-4 h-4 mr-1.5 text-blue-500" />
+                                        {item.position}
+                                    </div>
+                                    <span className={cn(
+                                        "w-fit px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tight border",
+                                        item.category === "LGU" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
+                                        item.category === "SK Council" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : 
+                                        "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    )}>
+                                        {item.category === "LGU" ? "Municipal" : item.category === "SK Council" ? "SK Member" : "Brgy Council"}
+                                    </span>
                                 </div>
                             </TableCell>
                             <TableCell className="text-center">

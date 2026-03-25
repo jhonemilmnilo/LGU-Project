@@ -101,6 +101,14 @@ export function Government({ officials = [] }: { officials?: Official[] }) {
                         </Link>
                     ))}
                 </div>
+                <div className="pt-12 text-center w-full flex justify-center">
+                    <Link
+                        href="/user/officials"
+                        className="inline-flex items-center justify-center h-12 px-8 bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-primary/20 rounded-full transition-all hover:scale-105"
+                    >
+                        View Council Directory
+                    </Link>
+                </div>
             </div>
         </section>
     );

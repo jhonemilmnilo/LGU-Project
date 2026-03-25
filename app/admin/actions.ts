@@ -921,6 +921,7 @@ export async function addOfficial(formData: FormData) {
                 imageUrl: imageUrl,
                 isActive: true,
                 barangay: barangay || null,
+                category: formData.get("category") as string || "LGU",
             } as any,
         });
 
@@ -964,6 +965,7 @@ export async function updateOfficial(id: string, formData: FormData) {
                 termEnd: formData.get("termEnd") ? new Date(formData.get("termEnd") as string) : null,
                 order: isNaN(parsedOrder) ? 99 : parsedOrder,
                 imageUrl: imageUrl || (formData.get("imageUrl") as string) || null,
+                category: formData.get("category") as string || "LGU",
             } as any,
         });
 

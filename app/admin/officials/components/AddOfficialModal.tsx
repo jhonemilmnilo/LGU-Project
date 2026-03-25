@@ -17,6 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Image as ImageIcon, X, Loader2, Users, Phone, Mail, Calendar, Hash, GraduationCap, Trophy, Quote, Globe, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // -----------------------------------------------------------------------
 // Inner form component — given a unique `key` by the parent so that it
@@ -26,6 +34,15 @@ import { useEffect } from "react";
 // -----------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
+    const { data: session } = useSession();
+    const role = (session?.user as any)?.role;
+    const managedBarangay = (session?.user as any)?.managedBarangay;
+
+    // Determine default category and options
+    const isBrgyAdmin = role === "BARANGAY_ADMIN";
+    const defaultCategory = editingData?.category || (isBrgyAdmin ? "Barangay Council" : "LGU");
+    const [category, setCategory] = useState(defaultCategory);
+
     // Initialise directly from editingData — safe because the component is
     // remounted with a fresh key each time the modal context changes.
     const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
@@ -75,6 +92,8 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
     return (
         <form id="officialForm" onSubmit={handleSubmit} className="space-y-8">
             <input type="hidden" name="links" value={JSON.stringify(links)} />
+            <input type="hidden" name="category" value={category} />
+            {isBrgyAdmin && <input type="hidden" name="barangay" value={managedBarangay || ""} />}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* Profile Photo Upload */}
                 <div className="lg:col-span-1 space-y-6">
@@ -160,6 +179,20 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                             placeholder="e.g. Municipal Mayor, SB Member"
                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Category / Council Group</Label>
+                        <Select value={category} onValueChange={setCategory}>
+                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                                <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {!isBrgyAdmin && <SelectItem value="LGU">Municipal Government (LGU)</SelectItem>}
+                                <SelectItem value="Barangay Council">Sangguniang Barangay (Council)</SelectItem>
+                                <SelectItem value="SK Council">Sangguniang Kabataan (SK)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -354,7 +387,7 @@ export function AddOfficialModal() {
                             </div>
                             <div>
                                 <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                    {editingData ? "Edit Official Profile" : "Add Municipal Official"}
+                                    {editingData ? "Edit Official Profile" : "Add Council Member"}
                                 </DialogTitle>
                                 <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
                                     Manage the details of elected or appointed council members.
