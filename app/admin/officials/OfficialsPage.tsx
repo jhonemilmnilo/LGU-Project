@@ -12,11 +12,17 @@ import { Home, Users } from "lucide-react";
 
 interface OfficialsPageProps {
     initialData: Official[];
+    barangays: string[];
+    managedBarangay?: string | null;
 }
 
-export function OfficialsPage({ initialData }: OfficialsPageProps) {
+export function OfficialsPage({ initialData, barangays, managedBarangay }: OfficialsPageProps) {
     return (
-        <OfficialsProvider initialData={initialData}>
+        <OfficialsProvider 
+            initialData={initialData} 
+            barangays={barangays} 
+            managedBarangay={managedBarangay}
+        >
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

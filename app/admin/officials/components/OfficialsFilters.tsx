@@ -11,7 +11,8 @@ export function OfficialsFilters() {
         searchTerm, setSearchTerm, setIsAddModalOpen, 
         selectedPosition, setSelectedPosition, 
         selectedCategory, setSelectedCategory,
-        officialsData 
+        selectedBarangay, setSelectedBarangay,
+        barangays, officialsData 
     } = useOfficials();
 
     // Get unique positions from current officials to populate the dropdown filter dynamically
@@ -30,6 +31,19 @@ export function OfficialsFilters() {
                             className="pl-9 h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500"
                         />
                     </div>
+
+                    <Select value={selectedBarangay} onValueChange={setSelectedBarangay}>
+                        <SelectTrigger className="w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic">
+                            <SelectValue placeholder="Select Area" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                            <SelectItem value="LGU" className="font-bold italic text-blue-600">Municipal (LGU)</SelectItem>
+                            {barangays.map(b => (
+                                <SelectItem key={b} value={b} className="font-bold italic">Bgy. {b}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     <Select value={selectedPosition} onValueChange={setSelectedPosition}>
                         <SelectTrigger className="w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
                             <SelectValue placeholder="Position" />

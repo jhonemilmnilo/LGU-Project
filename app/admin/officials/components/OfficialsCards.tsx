@@ -5,10 +5,22 @@ import { Users, UserCheck, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function OfficialsCards() {
-    const { officialsData, selectedCategory } = useOfficials();
+    const { officialsData, selectedCategory, selectedBarangay } = useOfficials();
 
-    // Filter by category first if not "All"
-    const displayData = selectedCategory === "All" ? officialsData : officialsData.filter(o => o.category === selectedCategory);
+    // Apply the same filtering logic as the table
+    const displayData = (officialsData as any[]).filter(item => {
+        const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+        
+        // Barangay Filtering Logic
+        let matchesBarangay = false;
+        if (selectedBarangay === "LGU") {
+            matchesBarangay = item.category === "LGU" || !item.barangay;
+        } else {
+            matchesBarangay = item.barangay === selectedBarangay;
+        }
+
+        return matchesCategory && matchesBarangay;
+    });
 
     const totalOfficials = displayData.length;
     const activeOfficials = displayData.filter(o => o.isActive).length;

@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 export function OfficialsTable() {
     const { 
         officialsData, searchTerm, setEditingData, 
-        setIsAddModalOpen, selectedPosition, selectedCategory 
+        setIsAddModalOpen, selectedPosition, selectedCategory,
+        selectedBarangay
     } = useOfficials();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -23,7 +24,16 @@ export function OfficialsTable() {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesPosition = selectedPosition === "All" || item.position === selectedPosition;
         const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-        return matchesSearch && matchesPosition && matchesCategory;
+        
+        // Barangay Filtering Logic
+        let matchesBarangay = false;
+        if (selectedBarangay === "LGU") {
+            matchesBarangay = item.category === "LGU" || !item.barangay;
+        } else {
+            matchesBarangay = item.barangay === selectedBarangay;
+        }
+
+        return matchesSearch && matchesPosition && matchesCategory && matchesBarangay;
     }).sort((a, b) => a.order - b.order);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

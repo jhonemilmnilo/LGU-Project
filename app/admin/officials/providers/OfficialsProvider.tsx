@@ -38,11 +38,24 @@ interface OfficialsContextType {
     setSelectedPosition: (position: string) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    selectedBarangay: string;
+    setSelectedBarangay: (barangay: string) => void;
+    barangays: string[];
 }
 
 const OfficialsContext = createContext<OfficialsContextType | undefined>(undefined);
 
-export function OfficialsProvider({ children, initialData }: { children: ReactNode; initialData: Official[] }) {
+export function OfficialsProvider({ 
+    children, 
+    initialData, 
+    barangays, 
+    managedBarangay 
+}: { 
+    children: ReactNode; 
+    initialData: Official[]; 
+    barangays: string[];
+    managedBarangay?: string | null;
+}) {
     const [officialsData, setOfficialsData] = useState<Official[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -50,6 +63,7 @@ export function OfficialsProvider({ children, initialData }: { children: ReactNo
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedPosition, setSelectedPosition] = useState("All");
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [selectedBarangay, setSelectedBarangay] = useState(managedBarangay || "LGU");
 
     useEffect(() => {
         setOfficialsData(initialData);
@@ -70,6 +84,9 @@ export function OfficialsProvider({ children, initialData }: { children: ReactNo
                 setSelectedPosition,
                 selectedCategory,
                 setSelectedCategory,
+                selectedBarangay,
+                setSelectedBarangay,
+                barangays,
             }}
         >
             {children}

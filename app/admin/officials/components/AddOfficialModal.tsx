@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Image as ImageIcon, X, Loader2, Users, Phone, Mail, Calendar, Hash, GraduationCap, Trophy, Quote, Globe, Plus, Trash2 } from "lucide-react";
+import { Image as ImageIcon, X, Loader2, Users, Phone, Mail, Calendar, Hash, GraduationCap, Trophy, Quote, Globe, Plus, Trash2, MapPin } from "lucide-react";
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
@@ -35,6 +35,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
     const { data: session } = useSession();
+    const { selectedBarangay, barangays } = useOfficials();
     const role = (session?.user as any)?.role;
     const managedBarangay = (session?.user as any)?.managedBarangay;
 
@@ -42,6 +43,12 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
     const isBrgyAdmin = role === "BARANGAY_ADMIN";
     const defaultCategory = editingData?.category || (isBrgyAdmin ? "Barangay Council" : "LGU");
     const [category, setCategory] = useState(defaultCategory);
+
+    // If Super Admin, allow choosing a barangay
+    const [barangay, setBarangay] = useState(
+        editingData?.barangay || 
+        (isBrgyAdmin ? (managedBarangay || "") : (selectedBarangay !== "LGU" ? selectedBarangay : ""))
+    );
 
     // Initialise directly from editingData — safe because the component is
     // remounted with a fresh key each time the modal context changes.
@@ -93,7 +100,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
         <form id="officialForm" onSubmit={handleSubmit} className="space-y-8">
             <input type="hidden" name="links" value={JSON.stringify(links)} />
             <input type="hidden" name="category" value={category} />
-            {isBrgyAdmin && <input type="hidden" name="barangay" value={managedBarangay || ""} />}
+            <input type="hidden" name="barangay" value={barangay} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* Profile Photo Upload */}
                 <div className="lg:col-span-1 space-y-6">
@@ -180,20 +187,37 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                         />
                     </div>
-
                     <div className="space-y-2">
                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Category / Council Group</Label>
                         <Select value={category} onValueChange={setCategory}>
                             <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
                                 <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                 {!isBrgyAdmin && <SelectItem value="LGU">Municipal Government (LGU)</SelectItem>}
                                 <SelectItem value="Barangay Council">Sangguniang Barangay (Council)</SelectItem>
                                 <SelectItem value="SK Council">Sangguniang Kabataan (SK)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {!isBrgyAdmin && category !== "LGU" && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                                <MapPin className="w-4 h-4 mr-1 text-blue-500" /> Target Barangay (Area)
+                            </Label>
+                            <Select value={barangay} onValueChange={setBarangay}>
+                                <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic">
+                                    <SelectValue placeholder="Select Barangay" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                    {barangays.map(b => (
+                                        <SelectItem key={b} value={b} className="font-bold italic">Bgy. {b}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
