@@ -1,0 +1,191 @@
+﻿
+> agno-portal@0.1.0 lint
+> eslint
+
+
+C:\Website Project\agno-portal\app\admin\accommodation\page.tsx
+  21:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\barangays\list\BarangaysListWorkspace.tsx
+   4:16  warning  'Building2' is defined but never used                            @typescript-eslint/no-unused-vars
+  51:63  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  51:85  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Website Project\agno-portal\app\admin\barangays\list\components\AddBarangayModal.tsx
+  36:18  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\admin\church\ChurchClient.tsx
+    8:46  warning  'Save' is defined but never used                                                                                             @typescript-eslint/no-unused-vars
+    9:5   warning  'AlertCircle' is defined but never used                                                                                      @typescript-eslint/no-unused-vars
+   12:5   warning  'BarChart' is defined but never used                                                                                         @typescript-eslint/no-unused-vars
+   12:15  warning  'Bar' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+   14:5   warning  'LineChart' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+   14:16  warning  'Line' is defined but never used                                                                                             @typescript-eslint/no-unused-vars
+   38:11  warning  'router' is assigned a value but never used                                                                                  @typescript-eslint/no-unused-vars
+   42:39  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   43:43  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   44:39  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   47:63  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   48:59  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   49:49  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   50:39  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   52:39  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   55:35  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   65:35  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   76:55  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   77:51  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+   80:23  error    React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render   react-hooks/rules-of-hooks
+  132:18  warning  'err' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+  155:18  warning  'err' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+  168:18  warning  'err' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+  179:18  warning  'err' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+  205:18  warning  'err' is defined but never used                                                                                              @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\admin\components\Sidebar.tsx
+  7:40  warning  'Navigation' is defined but never used  @typescript-eslint/no-unused-vars
+  9:89  warning  'Layers' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\admin\content\Accommodation\components\AddAccommodationModal.tsx
+  29:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Website Project\agno-portal\app\admin\content\Accommodation\components\AddAccommodationModal.tsx:29:13
+  27 |     useEffect(() => {
+  28 |         if (editingData?.imageUrl) {
+> 29 |             setImagePreview(editingData.imageUrl);
+     |             ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |         } else {
+  31 |             setImagePreview(null);
+  32 |         }  react-hooks/set-state-in-effect
+
+C:\Website Project\agno-portal\app\admin\content\Events\EventsPage.tsx
+   3:26  warning  'Event' is defined but never used         @typescript-eslint/no-unused-vars
+  14:18  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\content\Tourism\components\AddTourismModal.tsx
+  30:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Website Project\agno-portal\app\admin\content\Tourism\components\AddTourismModal.tsx:30:13
+  28 |     useEffect(() => {
+  29 |         if (editingData?.imageUrl) {
+> 30 |             setImagePreview(editingData.imageUrl);
+     |             ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |         } else {
+  32 |             setImagePreview(null);
+  33 |         }  react-hooks/set-state-in-effect
+
+C:\Website Project\agno-portal\app\admin\jobs\page.tsx
+  28:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\admin\resident-approvals\components\FacialVerification.tsx
+  257:8  warning  React Hook useCallback has an unnecessary dependency: 'onClose'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Website Project\agno-portal\app\admin\residents\components\FacialVerification.tsx
+  257:8  warning  React Hook useCallback has an unnecessary dependency: 'onClose'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Website Project\agno-portal\app\admin\tourism\page.tsx
+  21:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\page.tsx
+   27:11  warning  'params' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   27:43  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  162:20  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  166:20  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  172:20  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  179:20  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  182:24  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  182:47  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\accommodation\page.tsx
+   2:38  warning  'Accommodation' is defined but never used  @typescript-eslint/no-unused-vars
+  16:54  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\church\UserChurchView.tsx
+   18:21  warning  'useSearchParams' is defined but never used        @typescript-eslint/no-unused-vars
+  114:11  warning  'publicMapUrl' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  407:91  warning  'idx' is defined but never used                    @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\user\church\page.tsx
+  11:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  46:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\events\UserEventsView.tsx
+   5:28  warning  'Tag' is defined but never used           @typescript-eslint/no-unused-vars
+  19:20  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\jobs\page.tsx
+   3:10  warning  'Job' is defined but never used           @typescript-eslint/no-unused-vars
+  18:34  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\projects\UserProjectsView.tsx
+  17:10  warning  'useBarangay' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\app\user\tourism\page.tsx
+   2:32  warning  'TourismSpot' is defined but never used   @typescript-eslint/no-unused-vars
+  16:45  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\app\user\updates\UserUpdatesView.tsx
+  22:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\components\layout\Navbar.tsx
+  35:5  warning  'barangays' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\components\maps\MapandanMap.tsx
+  67:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\components\providers\BarangayProvider.tsx
+  23:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Website Project\agno-portal\components\providers\BarangayProvider.tsx:23:9
+  21 |     // Sync state with URL and localStorage
+  22 |     useEffect(() => {
+> 23 |         setIsLoading(false); // Hide splash when URL settles
+     |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  24 |         const urlBarangay = searchParams.get("barangay");
+  25 |         const saved = localStorage.getItem("selectedBarangay");
+  26 |  react-hooks/set-state-in-effect
+
+C:\Website Project\agno-portal\components\sections\landing\Hero.tsx
+   6:59  warning  'Search' is defined but never used                   @typescript-eslint/no-unused-vars
+   6:67  warning  'MapPin' is defined but never used                   @typescript-eslint/no-unused-vars
+  10:10  warning  'Input' is defined but never used                    @typescript-eslint/no-unused-vars
+  19:12  warning  'searchQuery' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  19:25  warning  'setSearchQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\components\sections\landing\JobBoard.tsx
+  47:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Website Project\agno-portal\components\sections\landing\ParishCorner.tsx
+   6:62  warning  'CreditCard' is defined but never used        @typescript-eslint/no-unused-vars
+   6:88  warning  'ArrowRight' is defined but never used        @typescript-eslint/no-unused-vars
+  61:11  warning  'history' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Website Project\agno-portal\components\shared\GlobalLoading.tsx
+  10:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 83 problems (46 errors, 37 warnings)
+

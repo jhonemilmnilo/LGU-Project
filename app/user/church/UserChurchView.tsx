@@ -15,15 +15,41 @@ import {
 import { format } from "date-fns";
 import * as React from "react";
 
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
 interface UserChurchViewProps {
     info: any;
     schedules: any[];
     collections: any[];
+    availableBarangays?: string[];
+    currentBarangay?: string;
 }
 
-export function UserChurchView({ info, schedules = [], collections = [] }: UserChurchViewProps) {
+export function UserChurchView({
+    info,
+    schedules = [],
+    collections = [],
+    availableBarangays = [],
+    currentBarangay
+}: UserChurchViewProps) {
+    const router = useRouter();
     const latest = collections[0];
     const [selectedMonth, setSelectedMonth] = React.useState<string>("all");
+
+    const onSectorChange = (val: string) => {
+        if (val === "global") {
+            router.push("/user/church");
+        } else {
+            router.push(`/user/church?barangay=${val}`);
+        }
+    };
 
     const availableMonths = React.useMemo(() => {
         const safeCollections = [...collections];
@@ -90,33 +116,73 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Breadcrumb section */}
-            <Breadcrumb>
-                <BreadcrumbList className="bg-slate-950/90 backdrop-blur-xl px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-2xl">
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white hover:opacity-80 transition-opacity">
-                                <Home className="w-3.5 h-3.5 mb-0.5" />
-                                Home
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="text-white/20" />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Spiritual Core / Parish</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <Breadcrumb>
+                    <BreadcrumbList className="bg-slate-950/90 backdrop-blur-xl px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-2xl">
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white hover:opacity-80 transition-opacity">
+                                    <Home className="w-3.5 h-3.5 mb-0.5" />
+                                    Home
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="text-white/20" />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/church" className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors italic">Main Parish</Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        {info.barangay && (
+                            <>
+                                <BreadcrumbSeparator className="text-white/20" />
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Sector: {info.barangay}</BreadcrumbPage>
+                                </BreadcrumbItem>
+                            </>
+                        )}
+                    </BreadcrumbList>
+                </Breadcrumb>
+
+                {/* Sector Switcher UI */}
+                <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-xl">
+                    <div className="px-4">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Exploring Locations</p>
+                    </div>
+                    <Select value={currentBarangay || "global"} onValueChange={onSectorChange}>
+                        <SelectTrigger className="w-[180px] bg-slate-950 text-white border-white/10 rounded-xl font-bold uppercase italic text-[10px] tracking-widest h-10 shadow-2xl">
+                            <SelectValue placeholder="Select Parish Sector" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-950 text-white border-white/10 rounded-xl">
+                            <SelectItem value="global" className="font-bold uppercase italic text-[10px] tracking-widest">Mapandan Main Parish</SelectItem>
+                            {availableBarangays.map((b) => (
+                                <SelectItem key={b} value={b} className="font-bold uppercase italic text-[10px] tracking-widest">
+                                    Sector: {b}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
 
             {/* Premium Header Header Area */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-[22px] flex items-center justify-center shadow-2xl transform -rotate-2 hover:rotate-0 transition-transform" style={{ background: `linear-gradient(to bottom right, ${info.themeColor || '#2563eb'}, ${info.themeColor || '#1e40af'}dd)`, boxShadow: `0 25px 50px -12px ${info.themeColor}66` }}>
-                            <Church className="w-8 h-8 text-white" />
+                            {info.barangay ? (
+                                <Navigation className="w-8 h-8 text-white" />
+                            ) : (
+                                <Church className="w-8 h-8 text-white" />
+                            )}
                         </div>
                         <div className="space-y-0.5">
-                            <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">{info.name}</h1>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] ml-1" style={{ color: info.themeColor || '#2563eb' }}>Legacy of Faith & Service</p>
+                            <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
+                                {info.name || (info.barangay ? `${info.barangay} Sector` : "Holy Rosary Parish")}
+                            </h1>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.4em] ml-1" style={{ color: info.themeColor || '#2563eb' }}>
+                                {info.barangay ? `Community Outreach • ${info.barangay}` : "The Mother Parish of Mapandan"}
+                            </p>
                         </div>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-3xl text-lg leading-relaxed">
@@ -160,7 +226,7 @@ export function UserChurchView({ info, schedules = [], collections = [] }: UserC
                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${info.themeColor || '#2563eb'}1a` }}>
                                     <Clock className="w-5 h-5" style={{ color: info.themeColor || '#2563eb' }} />
                                 </div>
-                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Liturgical Timetable</h3>
+                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Mass Schedule</h3>
                             </div>
                         </div>
 

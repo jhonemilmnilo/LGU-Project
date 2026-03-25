@@ -7,18 +7,19 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
 
-import { useBarangay } from "../../providers/BarangayProvider";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function JobBoard({ jobs = [] }: { jobs: any[] }) {
-    const { selectedBarangay } = useBarangay();
+interface Job {
+    id: string;
+    title: string;
+    department: string;
+    description: string;
+    employmentType: string;
+    deadline?: Date | string;
+    createdAt: Date | string;
+}
 
-    const filteredJobs = React.useMemo(() => {
-        if (selectedBarangay === "All") return jobs;
-        return jobs.filter((j: any) => j.barangay === selectedBarangay);
-    }, [jobs, selectedBarangay]);
-
-    const hasJobs = filteredJobs.length > 0;
+export function JobBoard({ jobs = [] }: { jobs: Job[] }) {
+    const hasJobs = jobs.length > 0;
 
     if (!hasJobs) {
         return (
@@ -37,7 +38,7 @@ export function JobBoard({ jobs = [] }: { jobs: any[] }) {
     }
 
     // Only take the first 3 (closest to deadline)
-    const limitedJobs = filteredJobs.slice(0, 3);
+    const limitedJobs = jobs.slice(0, 3);
 
     return (
         <section id="careers" className="py-24 px-6 bg-slate-50 dark:bg-white/5 border-y border-slate-100 dark:border-white/5">
@@ -52,7 +53,7 @@ export function JobBoard({ jobs = [] }: { jobs: any[] }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {limitedJobs.map((job, idx) => (
+                    {limitedJobs.map((job: Job, idx: number) => (
                         <motion.div
                             key={job.id}
                             initial={{ opacity: 0, y: 20 }}

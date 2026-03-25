@@ -24,8 +24,7 @@ export default async function Home({
     searchParams: { barangay?: string | string[] };
 }) {
     // Await searchParams for Next.js 15+ standard
-    const params = await (searchParams as any);
-    const barangayFilter = typeof params.barangay === "string" ? params.barangay : null;
+    await searchParams;
 
     const session = await getServerSession(authOptions);
     const role = (session?.user as { role?: string })?.role;
@@ -159,16 +158,21 @@ export default async function Home({
             where: { isActive: true },
             orderBy: { order: "asc" }
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // Fetch ONLY Main Church (Global) context for the Landing Page
         (prisma as any).churchInfo.findFirst({
+            where: { OR: [{ barangay: null }, { barangay: "" }] },
             include: { schedules: true }
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).churchSchedule.findMany({
+            where: { 
+                churchInfo: { OR: [{ barangay: null }, { barangay: "" }] }
+            },
             orderBy: [{ day: "asc" }, { time: "asc" }]
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (prisma as any).churchCollection.findMany({
+            where: { 
+                churchInfo: { OR: [{ barangay: null }, { barangay: "" }] }
+            },
             orderBy: { date: "desc" },
             take: 4
         }),

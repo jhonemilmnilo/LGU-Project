@@ -14,20 +14,32 @@ import {
     LineChart, Line, AreaChart, Area 
 } from "recharts";
 import { format } from "date-fns";
+import { motion } from "framer-motion";
 import { 
     addMassSchedule, updateMassSchedule, deleteMassSchedule, 
     updateChurchInfo, saveChurchCollection, deleteCollectionEntry 
 } from "./actions";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { BarangaySwitcher } from "../components/BarangaySwitcher";
 
 interface ChurchClientProps {
     initialInfo: any;
     initialSchedules: any[];
     initialCollections: any[];
+    isAdmin?: boolean;
+    availableBarangays?: string[];
+    currentBarangay?: string;
 }
 
-export default function ChurchClient({ initialInfo, initialSchedules, initialCollections }: ChurchClientProps) {
+export default function ChurchClient({ 
+    initialInfo, initialSchedules, initialCollections,
+    isAdmin, availableBarangays = [], currentBarangay
+}: ChurchClientProps) {
+    const router = useRouter();
     const [info, setInfo] = useState(initialInfo);
+    if (!info) return null;
+
     const [schedules, setSchedules] = useState(initialSchedules);
     const [collections, setCollections] = useState(initialCollections);
     const [activeTab, setActiveTab] = useState<"dashboard" | "collections" | "schedule" | "settings">("dashboard");
@@ -79,6 +91,44 @@ export default function ChurchClient({ initialInfo, initialSchedules, initialCol
     const totalDonationsAllTime = collections.reduce((sum, c) => sum + c.totalAmount, 0);
     const avgMonthly = totalDonationsAllTime / (collections.length || 1);
 
+    const groupedSchedules = useMemo(() => {
+        const result: { day: string, slots: any[], isPriority: boolean }[] = [];
+
+        schedules.forEach(s => {
+            const isPriority = (s.prio || 0) > 0;
+            const dayKey = s.date ? format(new Date(s.date), "MMMM dd, yyyy") : s.day;
+
+            const existing = result.find(g => g.day === dayKey && g.isPriority === isPriority);
+            if (existing) {
+                existing.slots.push(s);
+            } else {
+                result.push({ day: dayKey, slots: [s], isPriority });
+            }
+        });
+
+        result.forEach(g => {
+            g.slots.sort((a, b) => (b.prio || 0) - (a.prio || 0));
+        });
+
+        const dayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        return result.sort((a, b) => {
+            // Priority First
+            if (a.isPriority && !b.isPriority) return -1;
+            if (!a.isPriority && b.isPriority) return 1;
+
+            const idxA = dayOrder.indexOf(a.day);
+            const idxB = dayOrder.indexOf(b.day);
+
+            if (idxA !== -1 && idxB !== -1) {
+                return idxA - idxB;
+            }
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return 0;
+        });
+    }, [schedules]);
+
     const handleSaveCollection = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -88,6 +138,7 @@ export default function ChurchClient({ initialInfo, initialSchedules, initialCol
             
             const payload = {
                 ...colForm,
+                churchInfoId: info.id,
                 id: editingCollection?.id,
                 sundayMassJson: cleanedSunday.map(i => ({ ...i, amount: Number(i.amount) })),
                 donationsJson: cleanedDonations.map(i => ({ ...i, amount: Number(i.amount) })),
@@ -205,18 +256,36 @@ export default function ChurchClient({ initialInfo, initialSchedules, initialCol
                   <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
                         <Church size={12} className="text-blue-500" />
                         <span className="opacity-50">/</span>
-                        <span>Holy Parish</span>
+                        <span>{info.name}</span>
                         <span className="opacity-50">/</span>
                         <span className="text-blue-600 dark:text-blue-400 font-bold">Management</span>
                     </div>
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic flex items-center">
-                        <Church className="mr-3 text-blue-600 w-10 h-10" />
-                        Parish Records Hub
+                        {info.barangay ? (
+                            <>
+                                <MapPin className="mr-3 text-blue-600 w-10 h-10" />
+                                {info.barangay} Sector Records
+                            </>
+                        ) : (
+                            <>
+                                <Globe className="mr-3 text-blue-600 w-10 h-10" />
+                                Mapandan Main Parish Hub
+                            </>
+                        )}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Transparency ledger, schedules, and digital mass flyers management.</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">
+                        {info.barangay ? `Administrative transparency for local ${info.barangay} parish works.` : "Centralized administrative ledger and global schedules for Agno Parish."}
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {isAdmin && (
+                        <BarangaySwitcher 
+                            availableBarangays={availableBarangays} 
+                            currentBarangay={currentBarangay} 
+                            themeColor="#2563eb"
+                        />
+                    )}
                     <button
                         onClick={() => setIsCollectionModalOpen(true)}
                         className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-black shadow-lg shadow-emerald-500/30 transition-all select-none cursor-pointer uppercase text-xs"
@@ -406,98 +475,99 @@ export default function ChurchClient({ initialInfo, initialSchedules, initialCol
             )}
 
             {activeTab === "schedule" && (
-                <div className="space-y-12 pb-20">
-                    {/* Summary Stat */}
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-1 h-8 bg-blue-600 rounded-full" />
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Weekly Timetable</h3>
-                        <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Scroll and Manage Liturgy</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-12">
-                        {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => {
-                            const daySchedules = schedules.filter(s => s.day === day && !s.date);
-                            const specificSchedules = schedules.filter(s => s.date && format(new Date(s.date), "EEEE") === day);
-                            const allForDay = [...daySchedules, ...specificSchedules].sort((a,b) => (b.prio || 0) - (a.prio || 0));
-
-                            if (allForDay.length === 0) return null;
-
-                            return (
-                                <div key={day} className="space-y-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full text-xs font-black uppercase tracking-[0.2em] italic shadow-xl">
-                                            {day}
-                                        </div>
-                                        <div className="h-[1px] flex-1 bg-slate-200 dark:bg-white/10" />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {allForDay.map((s) => (
-                                            <div key={s.id} className="bg-white dark:bg-[#151b2b] p-8 rounded-[3rem] border border-slate-200 dark:border-[#2a3040] shadow-xl relative group hover:border-blue-500/50 transition-all duration-500">
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center">
-                                                        <Clock className="text-blue-600 dark:text-blue-400 w-6 h-6" />
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingSchedule(s);
-                                                                setSchForm({
-                                                                    id: s.id,
-                                                                    day: s.day,
-                                                                    time: s.time,
-                                                                    language: s.language || "",
-                                                                    type: s.type || "",
-                                                                    prio: s.prio || 0,
-                                                                    date: s.date ? format(new Date(s.date), "yyyy-MM-dd") : "",
-                                                                    description: s.description || ""
-                                                                });
-                                                                setIsScheduleModalOpen(true);
-                                                            }}
-                                                            className="w-10 h-10 flex items-center justify-center text-blue-500 bg-blue-50 dark:bg-blue-500/5 hover:bg-blue-500 hover:text-white rounded-xl transition-all shadow-sm"
-                                                            title="Edit Slot"
-                                                        >
-                                                            <Pencil size={18} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDeleteSchedule(s.id);
-                                                            }} 
-                                                            className="w-10 h-10 flex items-center justify-center text-red-500 bg-red-50 dark:bg-red-500/5 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm"
-                                                            title="Delete Slot"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="space-y-1">
-                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                                        {s.date ? format(new Date(s.date), "MMM dd, yyyy") : (s.prio > 0 ? `Priority P${s.prio}` : "Standard Time")}
-                                                    </h4>
-                                                    <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic">{s.time}</p>
-                                                </div>
-
-                                                {s.description && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-3 leading-relaxed font-medium">
-                                                            {s.description}
-                                                        </p>
-                                                    </div>
-                                                )}
-
-                                                <div className="mt-6 flex flex-wrap gap-2">
-                                                    <span className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-white/5 text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest italic border border-slate-100 dark:border-white/5">{s.language || "English"}</span>
-                                                    <span className="px-3 py-1.5 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[10px] font-black text-blue-500 uppercase tracking-widest italic">{s.type || "Mass"}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                <div className="space-y-12">
+                     <div className="bg-white dark:bg-[#0f1117] rounded-[3.5rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden p-10 ring-1 ring-slate-200 dark:ring-white/5">
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                                    <Clock className="w-5 h-5 text-blue-500" />
                                 </div>
-                            );
-                        })}
+                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Liturgical Timetable</h3>
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Management Mode</span>
+                        </div>
+
+                        <div className="space-y-6 max-h-[750px] overflow-y-auto custom-scrollbar pr-2 pb-6">
+                            {groupedSchedules.map((group, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: idx * 0.1 }}
+                                    className={`rounded-[2.5rem] border overflow-hidden ${group.isPriority ? 'bg-slate-900 border-white/10 ring-2 ring-amber-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}
+                                >
+                                    <div className={`${group.isPriority ? 'bg-white/5' : 'bg-slate-100 dark:bg-white/5'} px-8 py-4 flex items-center justify-between border-b border-white/5`}>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className={`w-4 h-4 ${group.isPriority ? 'text-amber-500' : 'text-blue-500'}`} />
+                                            <span className={`text-[10px] font-black uppercase italic tracking-widest ${group.isPriority ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>
+                                                {group.day} {group.isPriority ? '• Liturgical Highlight' : ''}
+                                            </span>
+                                        </div>
+                                        <span className={`text-[9px] font-black uppercase tracking-widest italic ${group.isPriority ? 'text-white/30' : 'text-slate-400'}`}>
+                                            ECCLESIASTICAL ORDER
+                                        </span>
+                                    </div>
+                                    <div className="p-8 space-y-6">
+                                        {group.slots.map((s, sIdx) => {
+                                            const isPriority = (s.prio || 0) > 0;
+                                            return (
+                                                <div key={sIdx} className={`relative pl-8 border-l-2 last:border-0 pb-4 ${isPriority ? 'border-amber-500/50' : 'border-blue-500/20'}`}>
+                                                    <div className={`absolute top-0 left-[-5px] w-2.5 h-2.5 rounded-full ${isPriority ? 'bg-amber-500 scale-125 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.5)]'}`} />
+                                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                        <div className="space-y-2 flex-1">
+                                                            <div className="flex items-center gap-3">
+                                                                <p className={`text-4xl font-black tracking-tighter uppercase italic leading-none ${group.isPriority ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{s.time}</p>
+                                                            </div>
+                                                            {s.description && (
+                                                                <div className="flex items-start gap-2 opacity-90">
+                                                                    <Info className="w-3.5 h-3.5 text-blue-500 mt-1 shrink-0" />
+                                                                    <p className={`text-xs italic font-medium leading-relaxed ${group.isPriority ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>{s.description}</p>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex items-center gap-3 mt-4">
+                                                                <span className="px-3 py-1.5 rounded-xl bg-slate-950/50 text-[9px] font-black text-blue-400 uppercase tracking-widest italic border border-blue-500/20">{s.language || "English"}</span>
+                                                                <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest italic border ${group.isPriority ? 'bg-white/10 border-white/20 text-white/50' : 'bg-white/50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'}`}>{s.type || "Holy Mass"}</span>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Management Actions */}
+                                                        <div className="flex items-center gap-2">
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setEditingSchedule(s);
+                                                                    setSchForm({
+                                                                        id: s.id,
+                                                                        day: s.day,
+                                                                        time: s.time,
+                                                                        language: s.language || "",
+                                                                        type: s.type || "",
+                                                                        prio: s.prio || 0,
+                                                                        date: s.date ? format(new Date(s.date), "yyyy-MM-dd") : "",
+                                                                        description: s.description || ""
+                                                                    });
+                                                                    setIsScheduleModalOpen(true);
+                                                                }}
+                                                                className="w-12 h-12 flex items-center justify-center text-blue-500 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-blue-600 hover:text-white rounded-[1.2rem] transition-all shadow-sm group/btn"
+                                                                title="Edit Slot"
+                                                            >
+                                                                <Pencil size={18} className="group-hover/btn:scale-110 transition-transform" />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDeleteSchedule(s.id)} 
+                                                                className="w-12 h-12 flex items-center justify-center text-red-500 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-red-600 hover:text-white rounded-[1.2rem] transition-all shadow-sm group/btn"
+                                                                title="Delete Slot"
+                                                            >
+                                                                <Trash2 size={18} className="group-hover/btn:scale-110 transition-transform" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
@@ -764,7 +834,7 @@ export default function ChurchClient({ initialInfo, initialSchedules, initialCol
                                 <Plus className="rotate-45" size={24} />
                             </button>
                         </div>
-                        <form onSubmit={handleUpdateInfo} className="p-10 space-y-6">
+                        <form onSubmit={handleUpdateInfo} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic">Parish Name</label>
                                 <input value={info.name} onChange={e => setInfo({...info, name: e.target.value})} className="w-full bg-slate-50 dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl px-4 py-3 font-bold" />

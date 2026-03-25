@@ -517,14 +517,15 @@ model PastMayor {
 
 model ChurchInfo {
   id          String   @id @default(cuid())
-  name        String   @default("Our Lady of the Holy Rosary Parish")
-  address     String?  @default("Mapandan, Pangasinan")
+  name        String
+  address     String?
   locationUrl String?  @db.Text
   latitude    Float?
   longitude   Float?
   barangay    String?
   flyerUrl    String?  @db.Text // URL for the weekly PDF flyer
   schedules   ChurchSchedule[]
+  collections ChurchCollection[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -546,6 +547,8 @@ model ChurchSchedule {
 
 model ChurchCollection {
   id                String   @id @default(cuid())
+  churchInfoId      String?
+  churchInfo        ChurchInfo? @relation(fields: [churchInfoId], references: [id], onDelete: Cascade)
   date              DateTime @default(now())
   sundayMassJson    Json?    // Array of { time: string, amount: number }
   secondBasket      Float    @default(0)

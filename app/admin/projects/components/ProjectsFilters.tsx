@@ -4,10 +4,33 @@ import { useProjects } from "../providers/ProjectsProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, MapPin } from "lucide-react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 
 export function ProjectsFilters() {
-    const { searchTerm, setSearchTerm, setIsAddModalOpen, selectedCategory, setSelectedCategory, selectedStatus, setSelectedStatus } = useProjects();
+    const { searchTerm, setSearchTerm, setIsAddModalOpen, selectedCategory, setSelectedCategory, selectedStatus, setSelectedStatus, currentBarangay, activeBarangays = [] } = useProjects();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Re-use logic to update URL params
+    const createQueryString = useCallback(
+        (name: string, value: string) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (value === "All") {
+                params.delete(name);
+            } else {
+                params.set(name, value);
+            }
+            return params.toString();
+        },
+        [searchParams]
+    );
+
+    const handleBarangayChange = (value: string) => {
+        router.push(pathname + "?" + createQueryString("barangay", value));
+    };
 
     const categories = ["Infrastructure", "Health", "Education", "Social Services", "Economic", "Environment", "Other"];
     const statuses = ["Planned", "Ongoing", "Completed", "Suspended"];
@@ -49,6 +72,25 @@ export function ProjectsFilters() {
                             ))}
                         </SelectContent>
                     </Select>
+
+                    {/* Barangay Filter for Super Admins */}
+                    {activeBarangays.length > 0 && (
+                        <Select 
+                            value={currentBarangay || "All"} 
+                            onValueChange={handleBarangayChange}
+                        >
+                            <SelectTrigger className="w-full sm:w-[160px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic text-[11px] uppercase tracking-wider">
+                                <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                                <SelectValue placeholder="Barangay" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                <SelectItem value="All" className="font-bold italic text-blue-600">All Locations</SelectItem>
+                                {activeBarangays.map(b => (
+                                    <SelectItem key={b} value={b} className="font-bold italic">{b}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}

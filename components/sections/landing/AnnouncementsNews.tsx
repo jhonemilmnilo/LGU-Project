@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Megaphone, Newspaper, Tag, Pin, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { useBarangay } from "@/components/providers/BarangayProvider";
 import Link from "next/link";
 
 interface Announcement {
@@ -34,24 +35,10 @@ interface AnnouncementsNewsProps {
     news: News[];
 }
 
-import { useBarangay } from "../../providers/BarangayProvider";
-
 export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProps) {
     const { selectedBarangay } = useBarangay();
-
-    const filteredAnnouncements = React.useMemo(() => {
-        if (selectedBarangay === "All") {
-            return announcements; // Show all (LGU + all barangays)
-        }
-        return announcements.filter((a: any) => a.barangay === selectedBarangay);
-    }, [announcements, selectedBarangay]);
-
-    const filteredNews = React.useMemo(() => {
-        if (selectedBarangay === "All") {
-            return news; // Show all (LGU + all barangays)
-        }
-        return news.filter((n: any) => n.barangay === selectedBarangay);
-    }, [news, selectedBarangay]);
+    const filteredAnnouncements = announcements;
+    const filteredNews = news;
 
     return (
         <section id="news" className="py-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -70,9 +57,9 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
                     {filteredAnnouncements.length === 0 ? (
-                        <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-[2.5rem] p-12 text-center">
+                        <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-[2rem] p-12 text-center">
                             <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No urgent notices for this area.</p>
                         </div>
                     ) : (
@@ -83,9 +70,9 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    className="group bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
+                                    className="group bg-slate-50 dark:bg-white/5 rounded-[2rem] p-6 border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
                                 >
-                                    <div className="space-y-4 relative z-10">
+                                    <div className="space-y-3 relative z-10">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 {item.isPinned && (
@@ -148,9 +135,9 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-5">
                     {filteredNews.length === 0 ? (
-                        <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-[2.5rem] p-12 text-center">
+                        <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-[2rem] p-12 text-center">
                             <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">No news updates for this area.</p>
                         </div>
                     ) : (
@@ -160,7 +147,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                     initial={{ opacity: 0, x: 20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    className="flex flex-col md:flex-row items-center gap-8 group cursor-pointer bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] hover:border-primary transition-all shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden"
+                                    className="flex flex-col md:flex-row items-center gap-6 group cursor-pointer bg-white dark:bg-[#0f1117] p-5 rounded-[2rem] border border-slate-200 dark:border-[#2a3040] hover:border-primary transition-all shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden"
                                 >
                                     <div className="relative min-w-[140px] w-full md:w-auto h-40 md:h-32 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border border-slate-200 dark:border-white/10 shrink-0 ring-1 ring-slate-200 dark:ring-white/5">
                                         <Image
@@ -171,7 +158,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
                                         />
                                         <div className="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors" />
                                     </div>
-                                    <div className="space-y-3 relative z-10">
+                                    <div className="space-y-2 relative z-10">
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                                                 <Calendar className="w-2.5 h-2.5" />

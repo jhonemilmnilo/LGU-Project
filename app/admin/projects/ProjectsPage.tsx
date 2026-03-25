@@ -12,11 +12,17 @@ import { Home, FolderKanban } from "lucide-react";
 
 interface ProjectsPageProps {
     initialData: Project[];
+    currentBarangay?: string;
+    activeBarangays?: string[];
 }
 
-export function ProjectsPage({ initialData }: ProjectsPageProps) {
+export function ProjectsPage({ initialData, currentBarangay, activeBarangays }: ProjectsPageProps) {
     return (
-        <ProjectsProvider initialData={initialData}>
+        <ProjectsProvider 
+            initialData={initialData} 
+            currentBarangay={currentBarangay}
+            activeBarangays={activeBarangays}
+        >
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

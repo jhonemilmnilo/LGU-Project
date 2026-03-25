@@ -33,11 +33,23 @@ interface ProjectsContextType {
     setSelectedCategory: (category: string) => void;
     selectedStatus: string;
     setSelectedStatus: (status: string) => void;
+    currentBarangay?: string;
+    activeBarangays?: string[];
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
 
-export function ProjectsProvider({ children, initialData }: { children: ReactNode; initialData: Project[] }) {
+export function ProjectsProvider({ 
+    children, 
+    initialData, 
+    currentBarangay, 
+    activeBarangays = [] 
+}: { 
+    children: ReactNode; 
+    initialData: Project[]; 
+    currentBarangay?: string; 
+    activeBarangays?: string[] 
+}) {
     const [projectsData, setProjectsData] = useState<Project[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -65,7 +77,9 @@ export function ProjectsProvider({ children, initialData }: { children: ReactNod
                 setSelectedCategory,
                 selectedStatus,
                 setSelectedStatus,
-                }}
+                currentBarangay,
+                activeBarangays
+            }}
         >
             {children}
         </ProjectsContext.Provider>

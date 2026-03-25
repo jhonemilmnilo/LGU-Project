@@ -1,196 +1,173 @@
-import { Download, Plus } from "lucide-react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import prisma from "@/lib/db/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getMultipleSystemSettings } from "@/lib/settings";
+import { BarangaySwitcher } from "../components/BarangaySwitcher";
+import { Download, Plus, Users, Briefcase, AlertTriangle, Hammer, MapPin } from "lucide-react";
 
-export default function AdminDashboard() {
+export default async function AdminDashboard(props: { searchParams: Promise<{ barangay?: string }> }) {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+    const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
+    const isAdmin = user?.role === "ADMIN";
+
+    const params = await props.searchParams;
+    const selectedBarangay = isBarangayAdmin ? user.managedBarangay : params.barangay;
+
+    const [settings, residentsCount, jobsCount, reportsCount, projectsCount, activeBarangays] = await Promise.all([
+        getMultipleSystemSettings(["theme_color"]),
+        prisma.resident.count({ where: selectedBarangay ? { barangay: selectedBarangay } : {} }),
+        prisma.job.count({ where: selectedBarangay ? { barangay: selectedBarangay } : {} }),
+        prisma.report.count({ where: { status: "PENDING" } }),
+        prisma.project.count({ where: selectedBarangay ? { barangay: selectedBarangay } : {} }),
+        isAdmin ? prisma.barangayInfo.findMany({ orderBy: { name: "asc" }, select: { name: true } }) : []
+    ]);
+
+    const themeColor = settings.get("theme_color") || "#2563eb";
+
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-[#2a3040]">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-1 transition-colors">Dashboard Overview</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Welcome back, Administrator. Here is what&apos;s happening in Mapandan today.</p>
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-2 italic">
+                        <MapPin size={12} />
+                        <span>System Scope: {selectedBarangay || "Global Mapandan"}</span>
+                    </div>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
+                        Command Center
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium italic">
+                        Welcome, {user.name || "Administrator"}. Viewing data for <span className="text-slate-900 dark:text-white font-bold">{selectedBarangay || "all administrative sectors"}</span>.
+                    </p>
                 </div>
-                <div className="flex items-center space-x-3">
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-[#2a3040] hover:bg-slate-100 dark:hover:bg-[#343b4f] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#3a4155] rounded-lg text-sm font-medium transition-colors shadow-sm dark:shadow-none">
-                        <Download size={16} />
-                        <span>Export Report</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
-                        <Plus size={16} />
-                        <span>Create Post</span>
-                    </button>
+
+                <div className="flex flex-wrap items-center gap-4">
+                    {isAdmin && (
+                        <BarangaySwitcher 
+                            availableBarangays={activeBarangays.map(b => b.name)} 
+                            currentBarangay={selectedBarangay} 
+                            themeColor={themeColor} 
+                        />
+                    )}
+                    <div className="flex items-center space-x-3">
+                        <button className="flex items-center space-x-2 px-5 py-3 bg-white dark:bg-[#1e2330] hover:bg-slate-50 dark:hover:bg-[#2a3040] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#2a3040] rounded-2xl text-xs font-black uppercase italic tracking-tighter transition-all shadow-sm">
+                            <Download size={14} />
+                            <span>Export Ledger</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Stat Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* Card 1 */}
-                <div className="bg-white dark:bg-[#1e2330] rounded-xl p-6 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-sm dark:shadow-none transition-colors">
-                    <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-700 opacity-20 transform group-hover:scale-110 transition-transform">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Residents Card */}
+                <div className="bg-white dark:bg-[#1e2330] rounded-[2.5rem] p-8 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-xl transition-all hover:-translate-y-1">
+                    <div className="absolute -top-4 -right-4 text-blue-100 dark:text-blue-500/10 transition-transform group-hover:scale-110">
+                        <Users size={120} strokeWidth={1} />
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 transition-colors">Total Gallery Visitors (Est)</p>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 transition-colors">12,450</h2>
-                    <div className="flex items-center text-xs">
-                        <span className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded flex items-center font-medium transition-colors">
-                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                            15%
-                        </span>
-                        <span className="text-slate-500 ml-2 transition-colors">vs last month</span>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1 italic">Total Registry</p>
+                    <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter italic leading-none mb-4">{residentsCount.toLocaleString()}</h2>
+                    <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-blue-600 italic">
+                        <span className="bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-full">Validated Records</span>
                     </div>
                 </div>
 
-                {/* Card 2 */}
-                <div className="bg-white dark:bg-[#1e2330] rounded-xl p-6 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-sm dark:shadow-none transition-colors">
-                    <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-700 opacity-20 transform group-hover:scale-110 transition-transform">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                {/* Jobs Card */}
+                <div className="bg-white dark:bg-[#1e2330] rounded-[2.5rem] p-8 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-xl transition-all hover:-translate-y-1">
+                     <div className="absolute -top-4 -right-4 text-emerald-100 dark:text-emerald-500/10 transition-transform group-hover:scale-110">
+                        <Briefcase size={120} strokeWidth={1} />
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 transition-colors">Active Job Postings</p>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 transition-colors">8</h2>
-                    <div className="flex items-center text-xs">
-                        <span className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded flex items-center font-medium transition-colors">
-                            <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                            2%
-                        </span>
-                        <span className="text-slate-500 ml-2 transition-colors">vs last month</span>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1 italic">Occupation Hub</p>
+                    <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter italic leading-none mb-4">{jobsCount.toLocaleString()}</h2>
+                    <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-emerald-600 italic">
+                        <span className="bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">Active Opportunities</span>
                     </div>
                 </div>
 
-                {/* Card 3 */}
-                <div className="bg-white dark:bg-[#1e2330] rounded-xl p-6 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-sm dark:shadow-none transition-colors">
-                    <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-700 opacity-20 transform group-hover:scale-110 transition-transform">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                {/* Reports Card */}
+                <div className="bg-white dark:bg-[#1e2330] rounded-[2.5rem] p-8 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-xl transition-all hover:-translate-y-1">
+                    <div className="absolute -top-4 -right-4 text-orange-100 dark:text-orange-500/10 transition-transform group-hover:scale-110">
+                        <AlertTriangle size={120} strokeWidth={1} />
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 transition-colors">Pending Public Reports</p>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 transition-colors">24</h2>
-                    <div className="flex items-center text-xs">
-                        <span className="bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 px-2 py-0.5 rounded flex items-center font-medium transition-colors">
-                            ! Attention Needed
-                        </span>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1 italic">Public Reports</p>
+                    <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter italic leading-none mb-4">{reportsCount.toLocaleString()}</h2>
+                    <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-orange-600 italic">
+                        <span className="bg-orange-50 dark:bg-orange-500/10 px-2 py-1 rounded-full">Pending Response</span>
                     </div>
                 </div>
 
-                {/* Card 4 */}
-                <div className="bg-white dark:bg-[#1e2330] rounded-xl p-6 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-sm dark:shadow-none transition-colors">
-                    <div className="absolute top-4 right-4 text-slate-300 dark:text-slate-700 opacity-20 transform group-hover:scale-110 transition-transform">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                {/* Projects Card */}
+                <div className="bg-white dark:bg-[#1e2330] rounded-[2.5rem] p-8 border border-slate-200 dark:border-[#2a3040] relative overflow-hidden group shadow-xl transition-all hover:-translate-y-1">
+                    <div className="absolute -top-4 -right-4 text-purple-100 dark:text-purple-500/10 transition-transform group-hover:scale-110">
+                        <Hammer size={120} strokeWidth={1} />
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-1 transition-colors">Active Projects</p>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 transition-colors">5</h2>
-                    <div className="flex items-center text-xs">
-                        <span className="bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded flex items-center font-medium transition-colors">
-                            - Stable
-                        </span>
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1 italic">Infra Tracker</p>
+                    <h2 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter italic leading-none mb-4">{projectsCount.toLocaleString()}</h2>
+                    <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-purple-600 italic">
+                         <span className="bg-purple-50 dark:bg-purple-500/10 px-2 py-1 rounded-full">Active Works</span>
                     </div>
                 </div>
             </div>
 
             {/* Middle Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Quick Actions (Col-span 2) */}
-                <div className="lg:col-span-2">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 transition-colors">Quick Actions</h3>
-                    <div className="bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl flex flex-col shadow-sm dark:shadow-none transition-colors">
-
-                        {/* Action 1 */}
-                        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-[#2a3040] gap-4 transition-colors">
-                            <div className="flex items-start space-x-4">
-                                <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0 transition-colors">
-                                    <svg className="w-6 h-6 text-blue-600 dark:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+                <div className="lg:col-span-2 space-y-6">
+                    <h3 className="text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Strategic Operations</h3>
+                    <div className="bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-[#2a3040] rounded-[3rem] shadow-xl overflow-hidden">
+                        {[
+                            { title: "Manage Content", desc: "Create announcements or town hall updates.", icon: Plus, color: "blue", action: "Add News Post" },
+                            { title: "Infrastructure Hub", desc: "Update road works and construction progress.", icon: Hammer, color: "purple", action: "Review Projects" },
+                            { title: "Gallery Management", desc: "Feature local spots or businesses.", icon: MapPin, color: "emerald", action: "Update Gallery" }
+                        ].map((item, idx) => (
+                            <div key={idx} className="p-8 flex flex-col sm:flex-row sm:items-center justify-between border-b last:border-0 border-slate-100 dark:border-[#2a3040] gap-4 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/5">
+                                <div className="flex items-start space-x-6">
+                                    <div className={`w-14 h-14 rounded-2xl bg-${item.color}-50 dark:bg-${item.color}-500/10 flex items-center justify-center shrink-0`}>
+                                        <item.icon className={`w-7 h-7 text-${item.color}-600`} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xl font-bold text-slate-900 dark:text-white leading-tight uppercase italic">{item.title}</h4>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium italic mt-1">{item.desc}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="text-slate-900 dark:text-white font-medium mb-1 transition-colors">Manage Content</h4>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Create new announcements regarding town hall meetings or local events.</p>
-                                </div>
+                                <button className={`whitespace-nowrap px-6 py-3 bg-${item.color === 'blue' ? 'blue-600' : 'white'} ${item.color === 'blue' ? 'text-white' : 'dark:bg-[#1e2330] text-slate-700 dark:text-slate-200'} rounded-2xl text-xs font-black uppercase italic transition-all shadow-lg active:scale-95`}>
+                                    {item.action}
+                                </button>
                             </div>
-                            <button className="whitespace-nowrap px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
-                                Add New News Post
-                            </button>
-                        </div>
-
-                        {/* Action 2 */}
-                        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-[#2a3040] gap-4 transition-colors">
-                            <div className="flex items-start space-x-4">
-                                <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center shrink-0 transition-colors">
-                                    <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                                </div>
-                                <div>
-                                    <h4 className="text-slate-900 dark:text-white font-medium mb-1 transition-colors">Infrastructure Projects</h4>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Update the progress bars and photos for ongoing road works.</p>
-                                </div>
-                            </div>
-                            <button className="whitespace-nowrap px-4 py-2 bg-white dark:bg-[#2a3040] hover:bg-slate-100 dark:hover:bg-[#343b4f] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#3a4155] rounded-lg text-sm font-medium transition-colors">
-                                Update Project Progress
-                            </button>
-                        </div>
-
-                        {/* Action 3 */}
-                        <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-start space-x-4">
-                                <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0 transition-colors">
-                                    <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                </div>
-                                <div>
-                                    <h4 className="text-slate-900 dark:text-white font-medium mb-1 transition-colors">Gallery Highlights</h4>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Feature a new local business or scenic spot on the homepage.</p>
-                                </div>
-                            </div>
-                            <button className="whitespace-nowrap px-4 py-2 bg-white dark:bg-[#2a3040] hover:bg-slate-100 dark:hover:bg-[#343b4f] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#3a4155] rounded-lg text-sm font-medium transition-colors">
-                                Feature Spot
-                            </button>
-                        </div>
-
+                        ))}
                     </div>
                 </div>
 
                 {/* Recent Activity (Col-span 1) */}
-                <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white transition-colors">Recent Activity</h3>
-                        <button className="text-blue-600 dark:text-blue-500 text-sm hover:text-blue-500 dark:hover:text-blue-400 transition-colors">View All</button>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Activity Logs</h3>
+                        <button className="text-blue-600 dark:text-blue-500 text-[10px] font-black uppercase tracking-widest italic hover:opacity-80 transition-all">Audit Trail</button>
                     </div>
 
-                    <div className="bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl p-5 shadow-sm dark:shadow-none transition-colors">
-                        <ul className="space-y-5 relative before:absolute before:inset-y-0 before:left-[11px] before:w-px before:bg-slate-200 dark:before:bg-[#2a3040]">
-                            <li className="relative pl-8">
-                                <span className="absolute left-[8px] top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-white dark:ring-[#1e2330] transition-colors"></span>
-                                <p className="text-slate-700 dark:text-slate-300 text-sm transition-colors"><strong className="text-slate-900 dark:text-white">Maria Santos</strong> submitted a new public report regarding &quot;Street Light Repair&quot;.</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors">10 minutes ago</p>
-                            </li>
-                            <li className="relative pl-8">
-                                <span className="absolute left-[8px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-[#1e2330] transition-colors"></span>
-                                <p className="text-slate-700 dark:text-slate-300 text-sm transition-colors">New job application received for <strong className="text-slate-900 dark:text-white">Administrative Assistant</strong>.</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors">2 hours ago</p>
-                            </li>
-                            <li className="relative pl-8">
-                                <span className="absolute left-[8px] top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-white dark:ring-[#1e2330] transition-colors"></span>
-                                <p className="text-slate-700 dark:text-slate-300 text-sm transition-colors">System backup completed successfully.</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors">5 hours ago</p>
-                            </li>
-                            <li className="relative pl-8">
-                                <span className="absolute left-[8px] top-1.5 w-2 h-2 rounded-full bg-orange-500 ring-4 ring-white dark:ring-[#1e2330] transition-colors"></span>
-                                <p className="text-slate-700 dark:text-slate-300 text-sm transition-colors">Updated <strong className="text-slate-900 dark:text-white">Sabangan Beach</strong> details in Gallery module.</p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 transition-colors">1 day ago</p>
-                            </li>
+                    <div className="bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-[#2a3040] rounded-[3rem] p-8 shadow-xl relative min-h-[400px]">
+                        <ul className="space-y-8 relative before:absolute before:inset-y-0 before:left-[11px] before:w-1 before:bg-slate-100 dark:before:bg-[#2a3040] before:rounded-full">
+                            {[
+                                { user: "Maria Santos", type: "Report", action: "submitted a new public report", details: "Street Light Repair", time: "10 mins ago", color: "blue" },
+                                { user: "Admin", type: "Job", action: "New application received for", details: "Administrative Assistant", time: "2 hours ago", color: "emerald" },
+                                { user: "System", type: "System", action: "System backup completed successfully", details: null, time: "5 hours ago", color: "blue" },
+                                { user: "Admin", type: "Project", action: "Updated details for", details: "Sabangan Beach Project", time: "1 day ago", color: "orange" }
+                            ].map((activity, idx) => (
+                                <li key={idx} className="relative pl-10 group cursor-default">
+                                    <span className={`absolute left-[8px] top-1.5 w-3 h-3 rounded-full bg-${activity.color}-500 ring-4 ring-white dark:ring-[#151b2b] shadow-xl group-hover:scale-125 transition-transform`}></span>
+                                    <p className="text-slate-700 dark:text-slate-300 text-sm font-medium italic leading-relaxed">
+                                        <strong className="text-slate-900 dark:text-white not-italic">{activity.user}</strong> {activity.action} {activity.details && <strong className="text-slate-900 dark:text-white not-italic">{activity.details}</strong>}.
+                                    </p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-2 opacity-60 italic">{activity.time}</p>
+                                </li>
+                            ))}
                         </ul>
                     </div>
                 </div>
             </div>
-
-            {/* Visitor Heatmap Placeholder */}
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 transition-colors">Visitor Heatmap</h3>
-            <div className="bg-white dark:bg-[#1e2330] border border-slate-200 dark:border-[#2a3040] rounded-xl overflow-hidden relative h-64 flex items-center justify-center shadow-sm dark:shadow-none transition-colors">
-                {/* Abstract background map lines for styling effect */}
-                <div className="absolute inset-x-0 bottom-0 h-full opacity-5 dark:opacity-10 transition-opacity" style={{ backgroundImage: "linear-gradient(rgba(59, 130, 246, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.2) 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
-
-                <p className="text-slate-400 dark:text-slate-500 font-medium tracking-widest text-sm z-10 transition-colors">INTERACTIVE MAP UNAVAILABLE IN PREVIEW</p>
-
-                {/* Fake pinpoint dots */}
-                <div className="absolute top-1/3 left-1/4 w-3 h-3 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.7)]"></div>
-                <div className="absolute top-1/2 left-1/2 w-4 h-4 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] flex items-center justify-center"><div className="w-1.5 h-1.5 bg-red-200 rounded-full"></div></div>
-                <div className="absolute bottom-1/4 right-1/4 w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.6)]"></div>
-            </div>
-
         </div>
     );
 }
+

@@ -103,6 +103,7 @@ export async function saveChurchCollection(data: any) {
     }
 
     const payload = {
+        churchInfoId: data.churchInfoId,
         date: new Date(data.date),
         sundayMassJson: data.sundayMassJson,
         secondBasket: Number(data.secondBasket || 0),

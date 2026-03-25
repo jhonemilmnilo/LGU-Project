@@ -6,7 +6,7 @@ import * as React from "react";
 import {
     LayoutDashboard, Users, Newspaper, Navigation,
     Briefcase, MapPin, Map,
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck, CloudLightning,
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
     ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church
 } from "lucide-react";
 import { signOut } from "next-auth/react";

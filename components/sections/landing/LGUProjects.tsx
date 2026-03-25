@@ -25,15 +25,8 @@ interface LGUProjectsProps {
     projects: Project[];
 }
 
-import { useBarangay } from "../../providers/BarangayProvider";
-
 export function LGUProjects({ projects }: LGUProjectsProps) {
-    const { selectedBarangay } = useBarangay();
-
-    const filteredProjects = React.useMemo(() => {
-        if (selectedBarangay === "All") return projects;
-        return projects.filter((p: any) => p.barangay === selectedBarangay);
-    }, [projects, selectedBarangay]);
+    const filteredProjects = projects;
 
     if (!projects || filteredProjects.length === 0) return null;
 

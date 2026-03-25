@@ -25,15 +25,8 @@ interface EventsCalendarSectionProps {
     events: Event[];
 }
 
-import { useBarangay } from "../../providers/BarangayProvider";
-
 export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
-    const { selectedBarangay } = useBarangay();
-
-    const filteredEvents = React.useMemo(() => {
-        if (selectedBarangay === "All") return events;
-        return events.filter((e: any) => e.barangay === selectedBarangay);
-    }, [events, selectedBarangay]);
+    const filteredEvents = events;
 
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [selectedDate, setSelectedDate] = React.useState(new Date());
