@@ -89,7 +89,7 @@ export default async function Home({
         announcements, events, news, projects,
         jobs, officials, hotlines,
         churchInfo, churchSchedules, latestCollection,
-        barangays
+        barangays, brgyServices
     ] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { 
@@ -207,9 +207,16 @@ export default async function Home({
         (prisma as any).barangayInfo.findMany({
             select: { name: true },
             orderBy: { name: 'asc' }
-        }).then((list: any[]) => list.map((b: any) => b.name))
+        }).then((list: any[]) => list.map((b: any) => b.name)),
+        (prisma as any).brgyService.findMany({
+            where: {
+                isPublished: true,
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
+            },
+            take: 4,
+            orderBy: { createdAt: 'desc' }
+        })
     ]);
-
 
     // Merge and shuffle discovery items
     const discoveryItems = [
@@ -258,7 +265,7 @@ export default async function Home({
 
                 {showJobs && <JobBoard jobs={jobs} />}
                 {showGovernment && <Government officials={officials} barangay={selectedBarangay} />}
-                {showServices && <Services />}
+                {showServices && <Services services={brgyServices as any[]} />}
             </div>
 
             {showChurch && (

@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, Newspaper, Navigation,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church
+    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -103,6 +103,7 @@ export function Sidebar({
         { href: "/admin/settings?tab=hero", label: "Banner Slider", icon: Layers, category: "Content" },
         { href: "/admin/resident-approvals", label: "Resident Approvals", icon: UserCheck, category: "Citizens & Services", badge: pendingResidentsCount },
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
+        { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
@@ -136,6 +137,7 @@ export function Sidebar({
         "Council Members",
         "Resident Approvals",
         "Resident Registry",
+        "Barangay Services",
         "Banner Slider",
         "Household Map"
     ];

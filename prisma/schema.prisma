@@ -31,6 +31,7 @@ model User {
   reports           Report[]
   
   updatedAt         DateTime           @updatedAt
+  brgyServiceRequests BrgyServiceRequest[]
 }
 
 enum UserRole {
@@ -583,4 +584,54 @@ model BarangayInfo {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+enum BrgyServiceStatus {
+  PENDING
+  PROCESSING
+  FOR_PICKUP
+  FOR_DELIVERY
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum BrgyServiceMethod {
+  PICKUP
+  DELIVER
+}
+
+model BrgyService {
+  id               String               @id @default(cuid())
+  name             String
+  description      String?              @db.Text
+  icon             String?              // Optional Lucide icon name or emoji
+  requirements     Json?                // Array of { label: string, type: 'TEXT'|'NUMBER'|'FILE', required: boolean }
+  fee              Float?               @default(0)
+  barangay         String               // Barangay name
+  isPublished      Boolean              @default(true)
+  requests         BrgyServiceRequest[]
+  
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model BrgyServiceRequest {
+  id               String               @id @default(cuid())
+  serviceId        String
+  service          BrgyService          @relation(fields: [serviceId], references: [id])
+  userId           String
+  user             User                 @relation(fields: [userId], references: [id])
+  barangay         String               // redundant but useful for filtering
+  
+  method           BrgyServiceMethod    @default(PICKUP)
+  status           BrgyServiceStatus    @default(PENDING)
+  
+  submissions      Json?                // User's answers corresponding to requirements: { [fieldLabel]: value }
+  paymentDetail    Json?                // { amount: number, method: string, reference?: string, paidAt: string }
+  
+  adminNotes       String?              @db.Text
+  
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 }
