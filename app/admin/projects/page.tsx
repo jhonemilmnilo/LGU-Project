@@ -8,7 +8,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
     const params = await searchParams;
     const barangayParam = params.barangay || null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const user = session?.user as any;
     const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
 

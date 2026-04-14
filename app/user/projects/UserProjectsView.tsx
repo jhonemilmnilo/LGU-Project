@@ -14,10 +14,9 @@ import {
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useBarangay } from "@/components/providers/BarangayProvider";
 import React from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function UserProjectsView({ initialProjects = [] }: { initialProjects: any[] }) {
     const filteredProjects = initialProjects;
 

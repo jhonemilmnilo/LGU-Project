@@ -22,7 +22,7 @@ export interface Official {
 export function UserOfficialsView({ initialOfficials = [], activeBarangays = [], currentView = "LGU" }: { initialOfficials: Official[], activeBarangays?: string[], currentView?: string }) {
     const [selectedView, setSelectedView] = useState(currentView === "All" ? "LGU" : currentView);
 
-    const barangayList = useMemo(() => ["LGU", ...activeBarangays.sort()], [activeBarangays, currentView]);
+    const barangayList = useMemo(() => ["LGU", ...activeBarangays.sort()], [activeBarangays]);
 
     const displayedOfficials = useMemo(() => {
         if (selectedView === "LGU") {

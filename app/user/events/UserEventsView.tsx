@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Tag, ArrowRight, Home, Search, Filter } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Home, Search, Filter } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Input } from "@/components/ui/input";
 import { 

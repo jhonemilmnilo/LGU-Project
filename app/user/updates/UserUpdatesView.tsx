@@ -13,7 +13,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
  
 import { useBarangay } from "@/components/providers/BarangayProvider";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function UserUpdatesView({ initialNews = [], initialEvents = [] }: { initialNews: any[], initialEvents: any[] }) {
     const { selectedBarangay } = useBarangay();
 

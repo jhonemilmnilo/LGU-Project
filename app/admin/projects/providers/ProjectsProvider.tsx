@@ -53,7 +53,7 @@ export function ProjectsProvider({
     const [projectsData, setProjectsData] = useState<Project[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedStatus, setSelectedStatus] = useState("All");

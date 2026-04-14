@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { addBarangay, updateBarangay, deleteBarangay } from "../../../actions";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function AddBarangayModal({ isOpen, onClose, editingItem }: { isOpen: boolean; onClose: () => void; editingItem?: any }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -33,7 +33,7 @@ export function AddBarangayModal({ isOpen, onClose, editingItem }: { isOpen: boo
             } else {
                 toast.error(result.error || "Action failed");
             }
-        } catch (error) {
+        } catch {
             toast.error("An unexpected error occurred.");
         } finally {
             setIsSubmitting(false);

@@ -151,7 +151,7 @@ export async function deletePastMayor(id: string) {
         revalidatePath("/admin/about");
         revalidatePath("/admin/about/past-mayors");
         return { success: true };
-    } catch (error) {
+    } catch {
         return { success: false };
     }
 }

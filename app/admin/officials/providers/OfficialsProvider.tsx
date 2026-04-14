@@ -8,7 +8,7 @@ export interface Official {
     position: string;
     contactNumber: string | null;
     email: string | null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     links: any;
     bio: string | null;
     education: string | null;
@@ -59,7 +59,7 @@ export function OfficialsProvider({
     const [officialsData, setOfficialsData] = useState<Official[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedPosition, setSelectedPosition] = useState("All");
     const [selectedCategory, setSelectedCategory] = useState("All");

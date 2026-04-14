@@ -1,17 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 "use client";
 
 import React, { useState, useMemo } from "react";
 import {
     Church, Download, Plus, Trash2, Calendar,
     TrendingUp, DollarSign, Clock, Users, FileText,
-    MapPin, Globe, LayoutDashboard, History, Save, CloudLightning, Pencil,
-    AlertCircle, Layers, Info
+    MapPin, Globe, LayoutDashboard, History, CloudLightning, Pencil,
+    Layers, Info
 } from "lucide-react";
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    XAxis, YAxis, CartesianGrid,
     Tooltip as RechartsTooltip, ResponsiveContainer,
-    LineChart, Line, AreaChart, Area
+    AreaChart, Area
 } from "recharts";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -19,7 +19,6 @@ import {
     addMassSchedule, updateMassSchedule, deleteMassSchedule,
     updateChurchInfo, saveChurchCollection, deleteCollectionEntry
 } from "./actions";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BarangaySwitcher } from "../components/BarangaySwitcher";
 
@@ -36,7 +35,6 @@ export default function ChurchClient({
     initialInfo, initialSchedules, initialCollections,
     isAdmin, availableBarangays = [], currentBarangay
 }: ChurchClientProps) {
-    const router = useRouter();
     const [info, setInfo] = useState(initialInfo);
     const [schedules, setSchedules] = useState(initialSchedules);
     const [collections, setCollections] = useState(initialCollections);
@@ -171,7 +169,7 @@ export default function ChurchClient({
                 envelopes: 0,
                 donationsJson: [{ name: "", amount: "" }]
             });
-        } catch (err) {
+        } catch {
             toast.error("Failed to save records.");
         } finally {
             setIsLoading(false);
@@ -194,7 +192,7 @@ export default function ChurchClient({
             setIsScheduleModalOpen(false);
             setEditingSchedule(null);
             setSchForm({ id: "", day: "Sunday", time: "", language: "Ilocano", type: "Mass", date: "", prio: 0, description: "" });
-        } catch (err) {
+        } catch {
             toast.error("Failed to save schedule.");
         } finally {
             setIsLoading(false);
@@ -207,7 +205,7 @@ export default function ChurchClient({
             await deleteMassSchedule(id);
             setSchedules(prev => prev.filter(s => s.id !== id));
             toast.success("Schedule removed.");
-        } catch (err) {
+        } catch {
             toast.error("Delete failed.");
         }
     };
@@ -218,7 +216,7 @@ export default function ChurchClient({
             await deleteCollectionEntry(id);
             setCollections(prev => prev.filter(c => c.id !== id));
             toast.success("Record deleted.");
-        } catch (err) {
+        } catch {
             toast.error("Delete failed.");
         }
     };
@@ -244,7 +242,7 @@ export default function ChurchClient({
             setFlyerFile(null);
             setIsEditInfoOpen(false);
             toast.success("Church details updated.");
-        } catch (err) {
+        } catch {
             toast.error("Failed to update info.");
         } finally {
             setIsLoading(false);

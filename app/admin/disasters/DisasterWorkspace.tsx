@@ -16,7 +16,7 @@ export function DisasterWorkspace({
     initialMaps = [] 
 }: { 
     initialHouseholds: Household[],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     initialMaps?: any[]
 }) {
     const [selectedMap, setSelectedMap] = useState(initialMaps[0] || null);

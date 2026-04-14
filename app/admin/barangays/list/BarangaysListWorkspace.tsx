@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Building2, MapPin } from "lucide-react";
+import { Plus, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AddBarangayModal } from "./components/AddBarangayModal";
 
 // Define the type since Prisma auto-gen might be lagging for the client
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function BarangaysListWorkspace({ initialData }: { initialData: any[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingItem, setEditingItem] = useState<any | null>(null);
 
     return (

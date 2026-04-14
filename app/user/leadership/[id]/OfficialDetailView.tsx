@@ -22,7 +22,7 @@ interface Official {
     imageUrl?: string | null;
     contactNumber?: string | null;
     email?: string | null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     links?: any;
     termStart?: string | Date | null;
     termEnd?: string | Date | null;

@@ -10,37 +10,9 @@ const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapCo
 const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
 const Marker = dynamic(() => import("react-leaflet").then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then(mod => mod.Popup), { ssr: false });
-const GeoJSON = dynamic(() => import("react-leaflet").then(mod => mod.GeoJSON), { ssr: false });
 const MapClickTracker = dynamic(() => import("./MapClickTracker"), { ssr: false });
 const MarkerClusterGroup = dynamic(() => import("react-leaflet-cluster"), { ssr: false });
-import * as turf from "@turf/turf";
-import { Feature, FeatureCollection, Polygon } from "geojson";
 
-const BARANGAY_CENTERS = [
-    { name: "Amanoaoac", lat: 16.0177, lng: 120.4461 },
-    { name: "Apaya", lat: 16.0242, lng: 120.4459 },
-    { name: "Aserda", lat: 16.0230, lng: 120.4624 },
-    { name: "Baloling", lat: 16.0378, lng: 120.4565 },
-    { name: "Coral", lat: 16.0311, lng: 120.4518 },
-    { name: "Golden", lat: 16.0223, lng: 120.4419 },
-    { name: "Jimenez", lat: 16.0099, lng: 120.4653 },
-    { name: "Lambayan", lat: 16.0005, lng: 120.4699 },
-    { name: "Luyan", lat: 16.0128, lng: 120.4742 },
-    { name: "Nilombot", lat: 16.0288, lng: 120.4366 },
-    { name: "Pias", lat: 16.0363, lng: 120.4463 },
-    { name: "Poblacion", lat: 16.0262, lng: 120.4520 },
-    { name: "Primicias", lat: 15.9963, lng: 120.4799 },
-    { name: "Santa Maria", lat: 16.0285, lng: 120.4680 },
-    { name: "Torres", lat: 16.0151, lng: 120.4661 }
-];
-
-const OUTER_WORLD = [
-    [180, 90],
-    [-180, 90],
-    [-180, -90],
-    [180, -90],
-    [180, 90]
-];
 
 function MapLoading() {
     return (
@@ -75,7 +47,7 @@ export function HouseholdMapView() {
         // We only require leaflet dynamically on the client side
         import("leaflet").then(L => {
             // Fix default icon path issues
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             delete (L.Icon.Default.prototype as any)._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',

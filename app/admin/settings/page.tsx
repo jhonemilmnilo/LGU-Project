@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     });
 
     // Convert settings list to a key-value object
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const settings = settingsList.reduce((acc: any, curr: { key: string; value: string }) => {
         acc[curr.key] = curr.value;
         return acc;

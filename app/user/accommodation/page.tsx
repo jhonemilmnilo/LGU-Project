@@ -1,5 +1,5 @@
 import prisma from "@/lib/db/prisma";
-import { UserAccommodationView, type Accommodation } from "./UserAccommodationView";
+import { UserAccommodationView } from "./UserAccommodationView";
 
 export default async function UserAccommodationPage({
     searchParams,

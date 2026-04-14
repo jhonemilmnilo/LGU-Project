@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 "use client";
 
 import { motion } from "framer-motion";
@@ -15,7 +15,7 @@ import {
 import { format } from "date-fns";
 import * as React from "react";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
     Select,
     SelectContent,
@@ -105,13 +105,7 @@ export function UserChurchView({
         });
     }, [schedules]);
 
-    const addressSuffix = info.address?.toLowerCase().includes("mapandan") ? "" : ", Mapandan, Pangasinan";
-    const mapQuery = info.latitude && info.longitude
-        ? `${info.latitude},${info.longitude}`
-        : `${info.name}${info.address ? `, ${info.address}` : ""}${addressSuffix}`;
 
-    // Updated to use same zoom (15) and added iwloc=A to force the pin
-    const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=A&output=embed`;
 
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -404,7 +398,7 @@ export function UserChurchView({
                         </div>
 
                         <div className="space-y-1 flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
-                            {filteredCollections.length > 0 ? filteredCollections.map((c, idx) => (
+                            {filteredCollections.length > 0 ? filteredCollections.map((c) => (
                                 <div key={c.id} className="group p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all flex items-center justify-between">
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-widest group-hover:opacity-100 transition-colors italic" style={{ color: info.themeColor || '#2563eb' }}>Report Log</p>

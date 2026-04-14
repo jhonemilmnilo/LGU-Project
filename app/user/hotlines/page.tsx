@@ -6,6 +6,6 @@ export default async function UserHotlinesPage() {
         orderBy: { order: "asc" },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     return <UserHotlinesView initialHotlines={hotlines as any} />;
 }

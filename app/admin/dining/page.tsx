@@ -11,7 +11,7 @@ export default async function DiningPage({ searchParams }: { searchParams: Promi
     const params = await searchParams;
     const barangayParam = params.barangay || null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const user = session?.user as any;
     if (!session || (user.role !== "ADMIN" && user.role !== "BARANGAY_ADMIN")) {
         redirect("/auth/login");

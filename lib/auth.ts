@@ -54,12 +54,12 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 token.role = (user as any).role;
                 token.id = user.id;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 token.isPasswordChanged = (user as any).isPasswordChanged;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 token.managedBarangay = (user as any).managedBarangay;
             }
 
@@ -80,13 +80,13 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 (session.user as any).role = token.role;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 (session.user as any).id = token.id;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 (session.user as any).isPasswordChanged = token.isPasswordChanged;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 (session.user as any).managedBarangay = token.managedBarangay;
             }
             return session;

@@ -4,15 +4,13 @@ import * as React from "react";
 import { 
     Dialog, 
     DialogContent, 
-    DialogHeader, 
     DialogTitle,
     DialogDescription 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, X, Info, CheckCircle2 } from "lucide-react";
+import { Search, MapPin, Info, CheckCircle2 } from "lucide-react";
 import { useBarangay } from "@/components/providers/BarangayProvider";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface BarangaySelectionModalProps {
@@ -65,7 +63,7 @@ export function BarangaySelectionModal({
                             <Info className="w-4 h-4 text-amber-600 dark:text-amber-500" />
                         </div>
                         <p className="text-[11px] sm:text-xs font-bold text-amber-900/80 dark:text-amber-400 italic leading-relaxed">
-                            "After selecting a barangay all the details will be base in that barangay only. This filters events, announcements, and local services specifically for your community."
+                            &quot;After selecting a barangay all the details will be base in that barangay only. This filters events, announcements, and local services specifically for your community.&quot;
                         </p>
                     </div>
 

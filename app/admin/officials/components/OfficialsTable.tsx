@@ -36,7 +36,7 @@ export function OfficialsTable() {
         return matchesSearch && matchesPosition && matchesCategory && matchesBarangay;
     }).sort((a, b) => a.order - b.order);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const handleEdit = (item: any) => {
         setEditingData(item);
         setIsAddModalOpen(true);

@@ -1,6 +1,6 @@
 "use server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import prisma from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 import { processFileUpload, deleteUploadedFile } from "@/app/admin/settings/actions";

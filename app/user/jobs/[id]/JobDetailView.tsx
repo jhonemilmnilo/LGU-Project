@@ -173,7 +173,7 @@ export function JobDetailView({ job }: { job: Job }) {
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 italic">External Links & Application</p>
                                 <div className="flex flex-col gap-3">
                                     {links.length > 0 ? links.map((
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                         
                                         link: any, idx: number) => (
                                         <Link 
                                             key={idx}

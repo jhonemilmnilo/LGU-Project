@@ -47,7 +47,7 @@ export function AccommodationProvider({
     const [accommodationData, setAccommodationData] = useState<Accommodation[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingData, setEditingData] = useState<any | null>(null);
 
     useEffect(() => {

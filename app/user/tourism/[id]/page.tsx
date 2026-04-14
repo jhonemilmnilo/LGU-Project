@@ -93,7 +93,7 @@ export default async function PlaceDetail({ params }: { params: Promise<{ id: st
     return <DetailContent item={item} />;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function DetailContent({ item }: { item: any }) {
     const hasMap = item.googleMapsUrl || (item.latitude && item.longitude);
     const mapQuery = item.latitude && item.longitude 

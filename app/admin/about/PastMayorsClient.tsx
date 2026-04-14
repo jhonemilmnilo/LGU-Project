@@ -12,12 +12,12 @@ import { upsertPastMayor, deletePastMayor } from "./actions";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function PastMayorsClient({ initialMayors, isBarangayAdmin }: { initialMayors: any[], isBarangayAdmin?: boolean }) {
     const router = useRouter();
     const [mayors, setMayors] = useState(initialMayors);
     const [showAddModal, setShowAddModal] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingMayor, setEditingMayor] = useState<any | null>(null);
 
     useEffect(() => {
@@ -36,7 +36,7 @@ export function PastMayorsClient({ initialMayors, isBarangayAdmin }: { initialMa
         }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const handleEdit = (mayor: any) => {
         setEditingMayor(mayor);
         setShowAddModal(true);
@@ -114,7 +114,7 @@ export function PastMayorsClient({ initialMayors, isBarangayAdmin }: { initialMa
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function MayorEditorModal({ isOpen, onClose, initialData, isBarangayAdmin }: { isOpen: boolean, onClose: () => void, initialData: any, isBarangayAdmin?: boolean }) {
     const [isSaving, setIsSaving] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -179,7 +179,7 @@ function MayorEditorModal({ isOpen, onClose, initialData, isBarangayAdmin }: { i
             } else {
                 toast.error(`Failed: ${result.error}`);
             }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         } catch (error: any) {
             console.error(error);
             toast.error("An error occurred");

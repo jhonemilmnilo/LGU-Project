@@ -12,19 +12,17 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users, Quote, Target, Eye, Building2 } from "lucide-react";
+import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users } from "lucide-react";
 import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 
 interface SettingsClientProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     settings: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     slides: any[];
     role?: string;
     managedBarangay?: string;
@@ -358,7 +356,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function HeroSlidesManager({
     initialSlides,
     themeColor,
@@ -370,7 +368,7 @@ function HeroSlidesManager({
 }) {
     const [slides, setSlides] = useState(initialSlides);
     const [showModal, setShowModal] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingSlide, setEditingSlide] = useState<any>(null);
 
     useEffect(() => {
@@ -828,7 +826,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function SlideEditor({ slide, onEdit, onDelete }: { slide: any, onEdit: () => void, onDelete: (id: string) => void }) {
     return (
         <Card className="border-slate-200 dark:border-[#2a3040] shadow-sm overflow-hidden group hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 rounded-[2rem] bg-white dark:bg-[#0f1117]">

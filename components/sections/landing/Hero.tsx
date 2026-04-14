@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Compass, ChevronLeft, ChevronRight, Search, MapPin } from "lucide-react";
+import { Compass, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSlide } from "@prisma/client";
 import Link from "next/link";
@@ -15,9 +15,7 @@ interface HeroProps {
 
 export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
     const [current, setCurrent] = React.useState(0);
-    const [searchQuery, setSearchQuery] = React.useState("");
 
-    if (!slides || slides.length === 0) return null;
 
     const next = () => setCurrent((prev) => (prev + 1) % slides.length);
     const prev = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
@@ -30,13 +28,14 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
     }, [slides.length, current]);
 
     // Auto-advance
-// eslint-disable-next-line react-hooks/rules-of-hooks
     React.useEffect(() => {
         if (slides.length <= 1) return;
         const timer = setInterval(next, 8000);
         return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slides.length]);
+
+    if (!slides || slides.length === 0) return null;
 
     const activeSlide = slides[current] || slides[0];
 
@@ -157,7 +156,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
      );
  }
  
- // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  
  function cn(...classes: any[]) {
      return classes.filter(Boolean).join(" ");
  }

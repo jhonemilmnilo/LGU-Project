@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ barangay?: string }> }) {
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const user = session?.user as any;
     const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
 

@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 "use client";
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Church, Clock, TrendingUp, Download, MapPin, Globe, CreditCard, CalendarDays, ArrowRight, Heart, Info } from "lucide-react";
+import { Church, Clock, TrendingUp, Download, MapPin, Globe, CalendarDays, Heart, Info } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,6 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
     if (!info) return null;
 
     const latest = collections[0];
-    const history = collections.slice(1);
 
     return (
         <section id="church" className="py-24 px-6 bg-white dark:bg-slate-950 relative overflow-hidden">

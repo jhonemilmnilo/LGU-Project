@@ -1,6 +1,6 @@
 "use client";
 
-import { EventsProvider, Event } from "./providers/EventsProvider";
+import { EventsProvider } from "./providers/EventsProvider";
 import {
     EventsCards,
     EventsFilters,

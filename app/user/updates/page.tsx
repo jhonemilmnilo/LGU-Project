@@ -12,6 +12,6 @@ export default async function UserUpdatesPage() {
     });
 
      
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     return <UserUpdatesView initialNews={news as any} initialEvents={events as any} />;
 }

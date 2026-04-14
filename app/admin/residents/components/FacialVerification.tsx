@@ -254,7 +254,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
         } finally {
             isProcessing.current = false;
         }
-    }, [modelsLoaded, step, liveness, showGuide, onVerified, onClose, resetVerification]);
+    }, [modelsLoaded, step, liveness, showGuide, onVerified, resetVerification]);
 
     // Interval Management (Ultra-Fast for Mediapipe)
     const handleRef = useRef(handleVerification);

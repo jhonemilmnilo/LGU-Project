@@ -14,7 +14,7 @@ export interface Job {
     salary: string | null;
     employmentType: string;
     deadline: Date | string | null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     links: any;
     barangay: string | null;
     isActive: boolean;

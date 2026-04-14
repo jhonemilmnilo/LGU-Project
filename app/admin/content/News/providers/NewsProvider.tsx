@@ -37,7 +37,7 @@ export function NewsProvider({ children, initialData, currentBarangay, activeBar
     const [newsData, setNewsData] = useState<News[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
 

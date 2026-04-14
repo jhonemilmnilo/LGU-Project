@@ -1,6 +1,5 @@
 import prisma from "@/lib/db/prisma";
 import { UserJobsView } from "./UserJobsView";
-import { Job } from "../../admin/jobs/providers/JobsProvider";
 
 export default async function UserJobsPage({
     searchParams,

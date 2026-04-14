@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function SectorsAndConsentSection({ data }: { data?: any }) {
     const [sectors, setSectors] = useState({
         isSenior: data?.isSenior || false,

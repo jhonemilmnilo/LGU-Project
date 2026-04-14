@@ -82,7 +82,7 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
         })
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const textStaggerVariants: any = {
         hidden: { opacity: 0, y: 20 },
         visible: (custom: number) => ({

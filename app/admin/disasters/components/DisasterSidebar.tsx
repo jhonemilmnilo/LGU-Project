@@ -57,7 +57,7 @@ export function DisasterSidebar() {
 
         const result = await addDisasterZone(defaultZone);
         if (result.success && result.zone) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             addZone(result.zone as any);
             setActiveZoneId(result.zone.id);
             toast.success("New Risk Zone Added!");
@@ -67,7 +67,7 @@ export function DisasterSidebar() {
         setIsAdding(false);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const handleUpdateZone = async (id: string, updates: any) => {
         if (!activeZone) return;
         const updatedData = { ...activeZone, ...updates };
@@ -157,7 +157,7 @@ export function DisasterSidebar() {
                                             const level = e.target.value;
                                             handleUpdateZone(activeZone.id, {
                                                 riskLevel: level,
-                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                 
                                                 riskColor: (riskColors as any)[level]
                                             });
                                         }}

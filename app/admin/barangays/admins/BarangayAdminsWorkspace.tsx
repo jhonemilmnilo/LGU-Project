@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { AddBarangayAdminModal } from "./components/AddBarangayAdminModal";
 
 interface BarangayAdminsWorkspaceProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     initialAdmins: any[];
     barangays: string[];
 }

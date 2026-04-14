@@ -89,7 +89,7 @@ export default async function Home({
         announcements, events, news, projects,
         jobs, officials, hotlines,
         churchInfo, churchSchedules, latestCollection,
-        barangays, brgyServices
+        barangays
     ] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { 
@@ -153,7 +153,7 @@ export default async function Home({
             orderBy: { createdAt: 'desc' },
             take: 3
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (prisma as any).job.findMany({
             where: {
                 isActive: true,
@@ -180,7 +180,7 @@ export default async function Home({
             orderBy: { order: "asc" }
         }),
         // Fetch ONLY Main Church (Global) context for the Landing Page
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         (prisma as any).churchInfo.findFirst({
             where: { 
                 ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
@@ -207,26 +207,18 @@ export default async function Home({
         (prisma as any).barangayInfo.findMany({
             select: { name: true },
             orderBy: { name: 'asc' }
-        }).then((list: any[]) => list.map((b: any) => b.name)),
-        (prisma as any).brgyService.findMany({
-            where: {
-                isPublished: true,
-                ...(isFiltered ? { barangay: selectedBarangay } : {})
-            },
-            take: 4,
-            orderBy: { createdAt: 'desc' }
-        })
+        }).then((list: any[]) => list.map((b: any) => b.name))
     ]);
 
     // Merge and shuffle discovery items
     const discoveryItems = [
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         ...dining.map((d: any) => ({
             ...d,
             itemType: "kainan" as const,
             cuisineType: d.cuisineType || undefined
         })),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         ...lodging.map((l: any) => ({
             ...l,
             itemType: "tuluyan" as const,
@@ -265,7 +257,7 @@ export default async function Home({
 
                 {showJobs && <JobBoard jobs={jobs} />}
                 {showGovernment && <Government officials={officials} barangay={selectedBarangay} />}
-                {showServices && <Services services={brgyServices as any[]} />}
+                {showServices && <Services services={[]} />}
             </div>
 
             {showChurch && (

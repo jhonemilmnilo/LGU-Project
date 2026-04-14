@@ -73,7 +73,7 @@ export function AddHouseholdModal() {
             }, 0);
             return () => clearTimeout(timer);
         }
-    }, [isAddModalOpen, editingData, selectedCoords]);
+    }, [isAddModalOpen, editingData, selectedCoords, managedBarangay]);
 
     const handleHeadSelect = async (id: string, name: string) => {
         setHeadId(id);

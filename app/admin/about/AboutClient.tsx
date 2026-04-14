@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 interface AboutClientProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     aboutData: any;
     isBarangayAdmin: boolean;
     managedBarangay?: string | null;

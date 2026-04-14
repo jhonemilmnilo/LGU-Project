@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function FamilyBackgroundSection({ data }: { data?: any }) {
 
     return (

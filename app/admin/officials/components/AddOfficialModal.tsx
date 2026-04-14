@@ -32,7 +32,7 @@ import {
 // different record (or open fresh after a save). This avoids the need for
 // useEffect + setState, which the lint rules prohibit.
 // -----------------------------------------------------------------------
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
     const { data: session } = useSession();
     const { selectedBarangay, barangays } = useOfficials();

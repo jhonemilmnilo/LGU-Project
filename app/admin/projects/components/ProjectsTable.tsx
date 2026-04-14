@@ -25,7 +25,7 @@ export function ProjectsTable() {
         return matchesSearch && matchesCategory && matchesStatus;
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const handleEdit = (item: any) => {
         setEditingData(item);
         setIsAddModalOpen(true);
