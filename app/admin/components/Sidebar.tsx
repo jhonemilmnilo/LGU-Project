@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList
+    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList, CreditCard
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ interface SidebarProps {
     themeColor?: string;
     pendingReportsCount?: number;
     pendingResidentsCount?: number;
+    pendingTransactionsCount?: number;
 }
 
 export function Sidebar({
@@ -38,7 +39,8 @@ export function Sidebar({
     brandWord2 = "Mapandan",
     themeColor = "#2563eb",
     pendingReportsCount = 0,
-    pendingResidentsCount = 0
+    pendingResidentsCount = 0,
+    pendingTransactionsCount = 0
 }: SidebarProps) {
     const pathname = usePathname();
     const role = session?.user?.role || "ADMIN";
@@ -105,6 +107,7 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
+        { href: "/admin/treasury", label: "Treasury Services", icon: CreditCard, category: "Citizens & Services", badge: pendingTransactionsCount },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
@@ -147,6 +150,8 @@ export function Sidebar({
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
+    } else if (role === "TREASURY_STAFF") {
+        menuItems = allMenuItems.filter(item => ["Treasury Services"].includes(item.label));
     }
 
     return (

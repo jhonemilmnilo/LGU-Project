@@ -9,54 +9,38 @@ datasource db {
 }
 
 model User {
-  id                String             @id @default(cuid())
+  id                String    @id @default(cuid())
   name              String?
-  email             String?            @unique
+  email             String?   @unique
   emailVerified     DateTime?
   password          String?
-  role              UserRole           @default(USER)
-  isEmailVerified   Boolean            @default(false)
+  role              UserRole  @default(USER)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  isEmailVerified   Boolean   @default(false)
+  isPasswordChanged Boolean   @default(false)
+  managedBarangay   String?
   accounts          Account[]
-  sessions          Session[]
-  
-  // Link to full resident profile
-  residentProfile   Resident?
-  
-  isPasswordChanged Boolean            @default(false)
-  
-  managedBarangay   String? // For BARANGAY_ADMIN
-
-  
-  createdAt         DateTime           @default(now())
   reports           Report[]
-  
-  updatedAt         DateTime           @updatedAt
+  residentProfile   Resident?
+  sessions          Session[]
+  transactions      Transaction[]
 }
-
-enum UserRole {
-  ADMIN
-  CONTENT_ADMIN
-  BARANGAY_ADMIN
-  USER
-}
-
-
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -80,74 +64,65 @@ model VerificationToken {
 model Dining {
   id            String   @id @default(cuid())
   name          String
-  description   String?  @db.Text
+  description   String?
   address       String
   cuisineType   String?
   openingHours  String?
   contactNumber String?
   facebookUrl   String?
   imageUrl      String?
-  
   latitude      Float?
   longitude     Float?
-  googleMapsUrl String?  @db.Text
-
-  barangay      String?
-
+  googleMapsUrl String?
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  barangay      String?
 }
 
 model Accommodation {
   id            String   @id @default(cuid())
   name          String
-  description   String?  @db.Text
+  description   String?
   address       String
   type          String
   priceRange    String?
-  amenities     String?  @db.Text
+  amenities     String?
   contactNumber String?
   websiteUrl    String?
   imageUrl      String?
-
   latitude      Float?
   longitude     Float?
-  googleMapsUrl String?  @db.Text
-
-  barangay      String?
-
+  googleMapsUrl String?
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  barangay      String?
 }
 
 model TourismSpot {
-  id            String   @id @default(cuid())
-  name          String
-  category      String
-  description   String?  @db.Text
-  address       String
-  entranceFee   String?
+  id              String   @id @default(cuid())
+  name            String
+  category        String
+  description     String?
+  address         String
+  entranceFee     String?
   bestTimeToVisit String?
-  contactNumber String?
-  imageUrl      String?
-
-  latitude      Float?
-  longitude     Float?
-  googleMapsUrl String?  @db.Text
-
-  barangay      String?
-
-  isPublished   Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  contactNumber   String?
+  imageUrl        String?
+  latitude        Float?
+  longitude       Float?
+  googleMapsUrl   String?
+  isPublished     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  barangay        String?
 }
 
 model Event {
   id            String   @id @default(cuid())
   title         String
-  description   String?  @db.Text
+  description   String?
   category      String
   startDate     DateTime
   endDate       DateTime
@@ -156,64 +131,60 @@ model Event {
   contactNumber String?
   imageUrl      String?
   reminders     String[] @default([])
-
   latitude      Float?
   longitude     Float?
-  googleMapsUrl String?  @db.Text
-
-  barangay      String?
-
+  googleMapsUrl String?
   isPublished   Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  barangay      String?
 }
 
 model News {
   id          String   @id @default(cuid())
   title       String
-  content     String   @db.Text
+  content     String
   author      String?
   category    String   @default("Announcement")
   imageUrl    String?
   publishDate DateTime @default(now())
-  barangay    String?
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  barangay    String?
 }
 
 model Announcement {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.Text
-  priority    String   @default("Normal")
-  category    String   @default("General")
-  isPinned    Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  expiryDate  DateTime?
-  barangay    String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  title      String
+  content    String
+  priority   String    @default("Normal")
+  category   String    @default("General")
+  isPinned   Boolean   @default(false)
+  isActive   Boolean   @default(true)
+  expiryDate DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  barangay   String?
 }
 
 model Job {
   id             String    @id @default(cuid())
   title          String
   department     String
-  location       String?
-  description    String    @db.Text
-  qualifications String    @db.Text
-  requirements   String    @db.Text
+  description    String
+  qualifications String
+  requirements   String
   salary         String?
   employmentType String
   deadline       DateTime?
-  links          Json?     @default("[]")
-  mapUrl         String?   @db.Text
-  barangay       String?
   isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  links          Json?     @default("[]")
+  location       String?
+  mapUrl         String?
+  barangay       String?
 }
 
 model Official {
@@ -221,171 +192,327 @@ model Official {
   name          String
   position      String
   contactNumber String?
-  email         String?
-  links         Json?     @default("[]")
-  bio           String?   @db.Text
-  education     String?   @db.Text
-  motto         String?
-  achievements  String?   @db.Text
+  bio           String?
   imageUrl      String?
   termStart     DateTime?
   termEnd       DateTime?
   order         Int       @default(99)
   isActive      Boolean   @default(true)
-  barangay      String?
-  category      String    @default("LGU") // LGU, Barangay Council, SK Council
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  achievements  String?
+  education     String?
+  email         String?
+  links         Json?     @default("[]")
+  motto         String?
+  barangay      String?
+  category      String    @default("LGU")
 }
 
 model Hotline {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
   category     String
   mobileNumber String?
   telephone    String?
   address      String?
-  order        Int       @default(0)
-  isActive      Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Project {
-  id           String    @id @default(cuid())
-  title        String
-  description  String    @db.Text
-  category     String
-  status       String
-  location     String
-  budget       String?
-  contractor   String?
-  startDate    DateTime?
-  endDate      DateTime?
-  progress     Int       @default(0)
-  imageUrl     String?
-  barangay     String?
-  isPublished  Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  category    String
+  status      String
+  location    String
+  budget      String?
+  contractor  String?
+  startDate   DateTime?
+  endDate     DateTime?
+  progress    Int       @default(0)
+  imageUrl    String?
+  isPublished Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  barangay    String?
 }
 
 model Household {
-  id             String    @id @default(cuid())
-  headId         String?   @unique
-  head           Resident? @relation("HouseholdHead", fields: [headId], references: [id])
-  
-  barangay       String
-  latitude       Float?
-  longitude      Float?
-  householdSize  Int       @default(1)
-  contactNumber  String?
-  riskLevel      String    @default("Safe")
-  notes          String?   @db.Text
-  
-  members        Resident[] @relation("HouseholdMembers")
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id            String     @id @default(cuid())
+  headId        String?    @unique
+  barangay      String
+  latitude      Float?
+  longitude     Float?
+  householdSize Int        @default(1)
+  contactNumber String?
+  riskLevel     String     @default("Safe")
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  head          Resident?  @relation("HouseholdHead", fields: [headId], references: [id])
+  members       Resident[] @relation("HouseholdMembers")
 }
 
 model Resident {
-  id                     String    @id @default(cuid())
-  userId                 String?   @unique
-  user                   User?     @relation(fields: [userId], references: [id])
-  
-  firstName              String
-  lastName               String
-  middleName             String?
-  suffix                 String?
-  gender                 String
-  dateOfBirth            DateTime
-  age                    Int?
-  placeOfBirth           String?
-  civilStatus            String
-  citizenship            String    @default("Filipino")
-  height                 String?
-  weight                 String?
-  religion               String?
-  bloodType              String?
+  id                    String            @id @default(cuid())
+  userId                String?           @unique
+  firstName             String
+  lastName              String
+  middleName            String?
+  suffix                String?
+  gender                String
+  dateOfBirth           DateTime
+  age                   Int?
+  placeOfBirth          String?
+  civilStatus           String
+  citizenship           String            @default("Filipino")
+  height                String?
+  weight                String?
+  religion              String?
+  bloodType             String?
+  houseNumber           String?
+  street                String?
+  sitio                 String?
+  purok                 String?
+  barangay              String
+  municipality          String            @default("Mapandan")
+  province              String            @default("Pangasinan")
+  contactNumber         String?
+  email                 String?
+  isHead                Boolean           @default(false)
+  relationshipToHead    String?
+  householdId           String?
+  tin                   String?
+  gsis                  String?
+  sss                   String?
+  occupation            String?
+  employer              String?
+  motherFirstName       String?
+  motherMiddleName      String?
+  motherLastName        String?
+  fatherFirstName       String?
+  fatherMiddleName      String?
+  fatherLastName        String?
+  idType                String?
+  idFrontUrl            String?
+  idBackUrl             String?
+  livenessUrl           String?
+  educationalAttainment String?
+  employmentStatus      String?
+  monthlyIncome         String?
+  isSenior              Boolean           @default(false)
+  isPWD                 Boolean           @default(false)
+  isSoloParent          Boolean           @default(false)
+  isIndigenous          Boolean           @default(false)
+  is4Ps                 Boolean           @default(false)
+  otherSector           String?
+  dataPrivacyConsent    Boolean           @default(false)
+  consentTimestamp      DateTime?
+  receivedBy            String?
+  officialPosition      String?
+  dateReceived          DateTime?
+  imageUrl              String?
+  registeredAt          DateTime          @default(now())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  facialRecognition     Json?
+  isDead                Boolean           @default(false)
+  registrationStatus    ResidentStatus    @default(PENDING)
+  registrationType      String?           @default("SELF")
+  rfid                  String?           @unique
+  familyHeadId          String?
+  latitude              Float?
+  longitude             Float?
+  categoryId            String?
+  rejectionRemarks      String?
+  reviewedAt            DateTime?
+  reviewedBy            String?
+  ownedHousehold        Household?        @relation("HouseholdHead")
+  category              ResidentCategory? @relation("ResidentCategory", fields: [categoryId], references: [id])
+  familyHead            Resident?         @relation("FamilyLink", fields: [familyHeadId], references: [id])
+  familyMembers         Resident[]        @relation("FamilyLink")
+  household             Household?        @relation("HouseholdMembers", fields: [householdId], references: [id])
+  user                  User?             @relation(fields: [userId], references: [id])
+}
 
-  houseNumber            String?
-  street                 String?
-  sitio                  String?
-  purok                  String?
-  barangay               String
-  municipality           String    @default("Mapandan")
-  province               String    @default("Pangasinan")
-  contactNumber          String?
-  email                  String?
+model DisasterMap {
+  id          String         @id @default(cuid())
+  title       String
+  location    String?
+  description String?
+  imagePath   String?
+  riskLevel   String?
+  isPublished Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  zones       DisasterZone[]
+}
 
-  latitude               Float?
-  longitude              Float?
+model DisasterZone {
+  id            String       @id @default(cuid())
+  disasterMapId String?
+  type          String
+  typeColor     String
+  riskLevel     String
+  riskColor     String
+  shapes        Json         @default("[]")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  disasterMap   DisasterMap? @relation(fields: [disasterMapId], references: [id])
+}
 
-  isHead                 Boolean   @default(false)
-  relationshipToHead     String?
-  
-  categoryId             String?
-  category               ResidentCategory? @relation("ResidentCategory", fields: [categoryId], references: [id])
-  
-  householdId            String?
-  household              Household? @relation("HouseholdMembers", fields: [householdId], references: [id])
-  ownedHousehold         Household? @relation("HouseholdHead")
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
 
-  // Family Linking (Self-Relation)
-  familyHeadId           String?
-  familyHead             Resident? @relation("FamilyLink", fields: [familyHeadId], references: [id])
-  familyMembers          Resident[] @relation("FamilyLink")
+model HeroSlide {
+  id               String   @id @default(cuid())
+  title            String
+  subtitle         String?
+  tagline          String?
+  imageUrl         String
+  order            Int      @default(0)
+  isActive         Boolean  @default(true)
+  primaryBtnText   String?
+  primaryBtnLink   String?
+  secondaryBtnText String?
+  secondaryBtnLink String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  barangay         String?
+}
 
-  tin                    String?
-  gsis                   String?
-  sss                    String?
-  occupation             String?
-  employer               String?
+model ResidentCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  residents   Resident[] @relation("ResidentCategory")
+}
 
-  motherFirstName        String?
-  motherMiddleName       String?
-  motherLastName         String?
-  fatherFirstName        String?
-  fatherMiddleName       String?
-  fatherLastName         String?
-  
-  registrationStatus     ResidentStatus @default(PENDING)
-  registrationType       String?   @default("SELF") // SELF or HEAD
-  facialRecognition      Json?     // Stores biometric descriptors
-  isDead                 Boolean   @default(false)
-  rfid                   String?   @unique
+model Report {
+  id           String       @id @default(cuid())
+  userId       String
+  category     String
+  description  String
+  status       ReportStatus @default(PENDING)
+  images       String[]     @default([])
+  latitude     Float?
+  longitude    Float?
+  address      String?
+  adminComment String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User         @relation(fields: [userId], references: [id])
+}
 
-  idType                 String?
-  idFrontUrl             String?
-  idBackUrl              String?
-  livenessUrl            String?
+model AboutPage {
+  id                      String   @id @default(cuid())
+  history                 String
+  mission                 String
+  vision                  String
+  coreValues              String
+  mayorMessage            String
+  mayorImageUrl           String?
+  geographyOrDemographics String?
+  coverImages             Json?    @default("[]")
+  updatedAt               DateTime @updatedAt
+  createdAt               DateTime @default(now())
+}
 
-  educationalAttainment  String?
-  employmentStatus       String?
-  monthlyIncome          String?
+model PastMayor {
+  id          String   @id @default(cuid())
+  name        String
+  termStart   String
+  termEnd     String
+  imageUrl    String?
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  barangay    String?
+}
 
-  isSenior               Boolean   @default(false)
-  isPWD                  Boolean   @default(false)
-  isSoloParent           Boolean   @default(false)
-  isIndigenous           Boolean   @default(false)
-  is4Ps                  Boolean   @default(false)
-  otherSector            String?
+model ChurchInfo {
+  id          String             @id @default(cuid())
+  name        String
+  address     String?
+  locationUrl String?
+  flyerUrl    String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  latitude    Float?
+  longitude   Float?
+  barangay    String?
+  collections ChurchCollection[]
+  schedules   ChurchSchedule[]
+}
 
-  dataPrivacyConsent     Boolean   @default(false)
-  consentTimestamp       DateTime?
-  receivedBy             String?
-  officialPosition       String?
-  dateReceived           DateTime?
+model ChurchSchedule {
+  id           String     @id @default(cuid())
+  churchInfoId String
+  day          String
+  time         String
+  language     String?
+  type         String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  date         DateTime?
+  description  String?
+  prio         Int        @default(0)
+  churchInfo   ChurchInfo @relation(fields: [churchInfoId], references: [id], onDelete: Cascade)
+}
 
-  rejectionRemarks       String?   @db.Text
-  reviewedAt             DateTime?
-  reviewedBy             String?   // User ID of admin who reviewed
+model ChurchCollection {
+  id             String      @id @default(cuid())
+  date           DateTime    @default(now())
+  sundayMassJson Json?
+  secondBasket   Float       @default(0)
+  weekdays       Float       @default(0)
+  envelopes      Float       @default(0)
+  donationsJson  Json?
+  totalAmount    Float       @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  churchInfoId   String?
+  churchInfo     ChurchInfo? @relation(fields: [churchInfoId], references: [id], onDelete: Cascade)
+}
 
-  imageUrl               String?
-  registeredAt           DateTime  @default(now())
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+model BarangayInfo {
+  id                      String   @id @default(cuid())
+  name                    String   @unique
+  description             String?
+  logoUrl                 String?
+  coverImageUrl           String?
+  captainName             String?
+  captainMessage          String?
+  captainImageUrl         String?
+  history                 String?
+  mission                 String?
+  vision                  String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  coreValues              String?
+  coverImages             Json?    @default("[]")
+  geographyOrDemographics String?
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  CONTENT_ADMIN
+  BARANGAY_ADMIN
+  TREASURY_STAFF
+  ADMIN_AIDE
 }
 
 enum ResidentStatus {
@@ -393,74 +520,6 @@ enum ResidentStatus {
   APPROVED
   DRAFT
   REJECTED
-}
-
-model DisasterMap {
-  id          String   @id @default(cuid())
-  title       String
-  location    String?
-  description String?  @db.Text
-  imagePath   String?
-  riskLevel   String?
-  isPublished Boolean  @default(true)
-  
-  zones       DisasterZone[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model DisasterZone {
-  id            String       @id @default(cuid())
-  disasterMapId String?
-  disasterMap   DisasterMap? @relation(fields: [disasterMapId], references: [id])
-  
-  type        String
-  typeColor   String
-  riskLevel   String
-  riskColor   String
-  
-  shapes      Json     @default("[]")
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model SystemSetting {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String   @db.Text
-  description String?
-  updatedAt   DateTime @updatedAt
-}
-
-
-model HeroSlide {
-  id          String   @id @default(cuid())
-  title       String
-  subtitle    String?  @db.Text
-  tagline     String?
-  imageUrl    String
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  primaryBtnText String?
-  primaryBtnLink String?
-  secondaryBtnText String?
-  secondaryBtnLink String?
-  
-  barangay    String? // Null for main admin/global slides
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model ResidentCategory {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  description String?
-  residents   Resident[] @relation("ResidentCategory")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
 }
 
 enum ReportStatus {
@@ -471,117 +530,105 @@ enum ReportStatus {
   REJECTED
 }
 
-model Report {
-  id           String       @id @default(cuid())
-  userId       String
-  user         User         @relation(fields: [userId], references: [id])
+model TransactionType {
+  id            String   @id @default(cuid())
+  code          String   @unique // e.g., "CEDULA_IND", "CEDULA_JUR", "BRGY_CLEARANCE"
+  name          String   // Official Title (e.g., "Community Tax Certificate - Individual")
+  description   String?  @db.Text
+  level         Int      @default(1) // 1: Municipality, 2: Barangay
+  category      String   // "Treasurer", "Permits", "Civil Registry"
   
-  category     String
-  description  String       @db.Text
-  status       ReportStatus @default(PENDING)
+  // Fees
+  baseFee       Float    @default(0)
+  deliveryFee   Float    @default(0)
+  isFixed       Boolean  @default(true) // false = triggers custom math (like Cedula)
   
-  images       String[]     @default([]) // Array of storage URLs
+  // Dynamic Configuration
+  requiredDocs  Json     @default("[]") // e.g., ["Valid ID", "Proof of Income"]
+  formSchema    Json     @default("{}") // Definitions for extra fields needed
+  logicCode     String?  // Code-hook for backend calculator (e.g., "cedula_calc_v1")
   
-  latitude     Float?
-  longitude    Float?
-  address      String?      @db.Text
+  // Operations
+  slaDays       Int      @default(3)
+  processorRole UserRole @default(TREASURY_STAFF)
+  isActive      Boolean  @default(true)
   
-  adminComment String?      @db.Text // Feedback from LGU
-  
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  transactions  Transaction[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-model AboutPage {
-  id                      String   @id @default(cuid())
-  history                 String   @db.Text
-  mission                 String   @db.Text
-  vision                  String   @db.Text
-  coreValues              String   @db.Text
-  mayorMessage            String   @db.Text
-  mayorImageUrl           String?
-  geographyOrDemographics String?  @db.Text
-  coverImages             Json?    @default("[]")
+model Transaction {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  typeId            String
+  type              TransactionType   @relation(fields: [typeId], references: [id])
+  status            TransactionStatus @default(DRAFT)
   
-  updatedAt               DateTime @updatedAt
-  createdAt               DateTime @default(now())
-}
-
-model PastMayor {
-  id           String   @id @default(cuid())
-  name         String
-  termStart    String
-  termEnd      String
-  imageUrl     String?
-  description  String?  @db.Text
-  order        Int      @default(0)
-  barangay     String? // Null for Mayors, String for Captains
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model ChurchInfo {
-  id          String   @id @default(cuid())
-  name        String
-  address     String?
-  locationUrl String?  @db.Text
-  latitude    Float?
-  longitude   Float?
-  barangay    String?
-  flyerUrl    String?  @db.Text // URL for the weekly PDF flyer
-  schedules   ChurchSchedule[]
-  collections ChurchCollection[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model ChurchSchedule {
-  id           String     @id @default(cuid())
-  churchInfoId String
-  churchInfo   ChurchInfo @relation(fields: [churchInfoId], references: [id], onDelete: Cascade)
-  day          String     // e.g. Sunday, Monday
-  time         String     // e.g. 6:00 AM
-  language     String?    // e.g. Ilocano, English
-  type         String?    // e.g. Mass, Special Service
-  date         DateTime?  // Optional specific date for special services
-  prio         Int        @default(0) // Higher number = top priority in the card
-  description  String?    @db.Text
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-}
-
-model ChurchCollection {
-  id                String   @id @default(cuid())
-  churchInfoId      String?
-  churchInfo        ChurchInfo? @relation(fields: [churchInfoId], references: [id], onDelete: Cascade)
-  date              DateTime @default(now())
-  sundayMassJson    Json?    // Array of { time: string, amount: number }
-  secondBasket      Float    @default(0)
-  weekdays          Float    @default(0)
-  envelopes         Float    @default(0)
-  donationsJson     Json?    // Array of { name: string, amount: number }
-  totalAmount       Float    @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-}
-
-model BarangayInfo {
-  id              String   @id @default(cuid())
-  name            String   @unique // Target barangay name
-  description     String?  @db.Text
-  logoUrl         String?
-  coverImageUrl   String?
-  captainName     String?
-  captainMessage  String?  @db.Text
-  captainImageUrl String?
-  history         String?  @db.Text
-  mission         String?  @db.Text
-  vision          String?  @db.Text
-  coreValues      String?  @db.Text
-  geographyOrDemographics String? @db.Text
-  coverImages     Json?    @default("[]")
+  // Data Snapshots
+  residentSnapshot  Json              // Captured Name, Address, etc. from Resident table
+  additionalData    Json              // Inputs for extra fields (e.g., Gross Income)
   
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // Fulfillment & Payment
+  fulfillmentType   FulfillmentType   @default(PICK_UP)
+  deliveryAddress   String?           // Editable during application
+  paymentType       PaymentType       @default(CASH)
+  paymentReference  String?           // Reference No. for E-Payments
+  
+  // Financials (Final computed amounts)
+  totalAmount       Float             @default(0)
+  
+  // Audit & Workflow
+  processedBy       String?           // User ID of the Treasury Staff who handled it
+  rejectionRemarks  String?
+  deliveryProofUrl  String?
+  deliveryProofAt   DateTime?
+  
+  cedula            Cedula?           // One-to-one link to the issued document
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
+model Cedula {
+  id             String      @id @default(cuid())
+  transactionId  String      @unique
+  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  ctcNumber      String?     @unique // The physical serial number from the booklet
+  taxYear        Int         // e.g., 2026
+  dateIssued     DateTime    @default(now())
+  expiryDate     DateTime    // Automatically calculated based on tax year
+  
+  // Official Tax Breakdown (For Certificate Printing)
+  basicTax       Float
+  additionalTax  Float
+  penalty        Float
+  totalPaid      Float
+  
+  issuedBy       String      // Name of the Treasury Personnel
+  verificationId String      @unique @default(cuid()) // Unique hash for the QR Code
+}
+
+enum TransactionStatus {
+  DRAFT
+  FOR_REQUESTING
+  FOR_PROCESSING
+  EVALUATED
+  UNPAID
+  PAID
+  RELEASED
+  REJECTED
+}
+
+enum FulfillmentType {
+  PICK_UP
+  DELIVERY
+}
+
+enum PaymentType {
+  CASH
+  E_PAYMENT
+  BANK_TRANSFER
+}

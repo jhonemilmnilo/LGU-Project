@@ -16,7 +16,7 @@ export default async function AdminLayout({
         redirect("/auth/login");
     }
     const role = (session.user as { role?: string })?.role;
-    if (role !== "ADMIN" && role !== "CONTENT_ADMIN" && role !== "BARANGAY_ADMIN") {
+    if (role !== "ADMIN" && role !== "CONTENT_ADMIN" && role !== "BARANGAY_ADMIN" && role !== "TREASURY_STAFF") {
         redirect("/auth/login");
     }
 
@@ -27,9 +27,10 @@ export default async function AdminLayout({
         "theme_color"
     ]);
 
-    const [pendingReportsCount, pendingResidentsCount] = await Promise.all([
+    const [pendingReportsCount, pendingResidentsCount, pendingTransactionsCount] = await Promise.all([
         prisma.report.count({ where: { status: "PENDING" } }),
         prisma.resident.count({ where: { registrationStatus: "PENDING" } }),
+        prisma.transaction.count({ where: { status: { in: ["FOR_REQUESTING", "PAID"] } } }),
     ]);
 
     return (
@@ -45,6 +46,7 @@ export default async function AdminLayout({
                 themeColor={settings.get("theme_color")}
                 pendingReportsCount={pendingReportsCount}
                 pendingResidentsCount={pendingResidentsCount}
+                pendingTransactionsCount={pendingTransactionsCount}
             />
 
             {/* Main Content Area */}

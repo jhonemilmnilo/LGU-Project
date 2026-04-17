@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 
 interface Service {
     id: string;
+    code: string;
     name: string;
     description: string;
     fee: number;
@@ -71,7 +72,7 @@ export function Services({ services = [] }: ServicesProps) {
                                 viewport={{ once: true }}
                                 className="group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative"
                             >
-                                <Link href={`/user/services/${service.id}`} className="block p-8 h-full">
+                                <Link href={service.code.startsWith("CEDULA") ? "/user/services/cedula" : `/user/services/${service.id}`} className="block p-8 h-full">
                                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 blur-2xl -mr-12 -mt-12 transition-all group-hover:bg-blue-600/10" />
                                     
                                     <div className="space-y-6 relative z-10">

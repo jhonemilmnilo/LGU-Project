@@ -89,7 +89,7 @@ export default async function Home({
         announcements, events, news, projects,
         jobs, officials, hotlines,
         churchInfo, churchSchedules, latestCollection,
-        barangays
+        barangays, transactionTypes
     ] = await Promise.all([
         prisma.heroSlide.findMany({
             where: { 
@@ -207,8 +207,24 @@ export default async function Home({
         (prisma as any).barangayInfo.findMany({
             select: { name: true },
             orderBy: { name: 'asc' }
-        }).then((list: any[]) => list.map((b: any) => b.name))
+        }).then((list: any[]) => list.map((b: any) => b.name)),
+        prisma.transactionType.findMany({
+            where: {
+                isActive: true,
+                code: "CEDULA_IND",
+                level: isFiltered ? 2 : 1
+            },
+            orderBy: { name: "asc" }
+        })
     ]);
+
+    const services = (transactionTypes as any[]).map(t => ({
+        id: t.id,
+        code: t.code,
+        name: t.name,
+        description: t.description || "",
+        fee: t.baseFee
+    }));
 
     // Merge and shuffle discovery items
     const discoveryItems = [
@@ -257,7 +273,7 @@ export default async function Home({
 
                 {showJobs && <JobBoard jobs={jobs} />}
                 {showGovernment && <Government officials={officials} barangay={selectedBarangay} />}
-                {showServices && <Services services={[]} />}
+                {showServices && <Services services={services} />}
             </div>
 
             {showChurch && (

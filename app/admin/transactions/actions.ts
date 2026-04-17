@@ -1,0 +1,327 @@
+"use server";
+
+import prisma from "@/lib/db/prisma";
+import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { calculateCedula } from "@/lib/cedula";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import fs from "fs";
+import { FulfillmentType, PaymentType } from "@prisma/client";
+
+// --- HELPERS ---
+
+async function getSession() {
+    return await getServerSession(authOptions);
+}
+
+/**
+ * Fetches the current logged -in user's resident profile
+ */
+export async function getCurrentUserResident() {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const resident = await prisma.resident.findFirst({
+            where: { userId: session.user.id }
+        });
+
+        return { success: true, data: resident };
+    } catch (error) {
+        console.error("Get current resident error:", error);
+        return { success: false, error: "Failed to fetch resident profile" };
+    }
+}
+
+/**
+ * Seed or ensure Cedula Transaction Types exist
+ */
+export async function ensureCedulaTransactionTypes() {
+    try {
+        const types = [
+            {
+                code: "CEDULA_IND",
+                name: "Community Tax Certificate - Individual",
+                description: "Tax certificate for individuals including employees, self-employed, and property owners.",
+                level: 1,
+                category: "Treasurer",
+                baseFee: 5.00,
+                deliveryFee: 50.00,
+                isFixed: false,
+                requiredDocs: ["Valid Government ID", "Proof of Income (Payslip/BIR 2316)"],
+                formSchema: {
+                    applicantType: "INDIVIDUAL",
+                    fields: ["income", "propertyValue"]
+                },
+                logicCode: "cedula_calc_v1"
+            },
+            {
+                code: "CEDULA_JUR",
+                name: "Community Tax Certificate - Juridical",
+                description: "Tax certificate for corporations, partnerships, and other juridical entities.",
+                level: 1,
+                category: "Treasurer",
+                baseFee: 500.00,
+                deliveryFee: 50.00,
+                isFixed: false,
+                requiredDocs: ["Valid ID of Representative", "Business Income Statement"],
+                formSchema: {
+                    applicantType: "JURIDICAL",
+                    fields: ["businessName", "income", "propertyValue"]
+                },
+                logicCode: "cedula_calc_v1"
+            }
+        ];
+
+        for (const t of types) {
+            await prisma.transactionType.upsert({
+                where: { code: t.code },
+                update: {},
+                create: t
+            });
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Ensure transaction types error:", error);
+        return { success: false, error: "Failed to initialize service types" };
+    }
+}
+
+async function processFileUpload(file: File, folder: string = "transactions"): Promise<string | null> {
+    if (!file || file.size === 0) return null;
+
+    try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
+        const uploadsDir = path.join(process.cwd(), "public/uploads", folder);
+        const filepath = path.join(uploadsDir, filename);
+
+        if (!fs.existsSync(uploadsDir)) {
+            await mkdir(uploadsDir, { recursive: true });
+        }
+
+        await writeFile(filepath, buffer);
+        return `/uploads/${folder}/${filename}`;
+    } catch (error) {
+        console.error("File upload error:", error);
+        return null;
+    }
+}
+
+// --- ACTIONS ---
+
+/**
+ * Fetch available transaction types (services)
+ */
+export async function getTransactionTypes(level?: number) {
+    try {
+        const where: any = { isActive: true };
+        if (level) where.level = level;
+
+        const types = await prisma.transactionType.findMany({
+            where,
+            orderBy: { name: "asc" }
+        });
+        return { success: true, data: types };
+    } catch (error) {
+        console.error("Fetch transaction types error:", error);
+        return { success: false, error: "Failed to fetch services" };
+    }
+}
+
+/**
+ * Submit a new transaction request (Citizen side)
+ */
+export async function submitTransaction(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const typeId = formData.get("typeId") as string;
+        const fulfillmentType = formData.get("fulfillmentType") as FulfillmentType;
+        const paymentType = formData.get("paymentType") as PaymentType;
+        const deliveryAddress = formData.get("deliveryAddress") as string;
+
+        // Snapshots and Data
+        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
+        const additionalData = JSON.parse(formData.get("additionalData") as string);
+
+        // Files
+        const idFile = formData.get("idFile") as File;
+        const proofFile = formData.get("proofFile") as File;
+
+        const idUrl = await processFileUpload(idFile, "ids");
+        const proofUrl = await processFileUpload(proofFile, "proofs");
+
+        // Merge file URLs into additionalData
+        const updatedAdditionalData = {
+            ...additionalData,
+            validIdUrl: idUrl,
+            proofOfIncomeUrl: proofUrl
+        };
+
+        const transaction = await prisma.transaction.create({
+            data: {
+                userId: session.user.id,
+                typeId,
+                status: "FOR_REQUESTING",
+                fulfillmentType,
+                paymentType,
+                deliveryAddress: fulfillmentType === "DELIVERY" ? deliveryAddress : null,
+                residentSnapshot,
+                additionalData: updatedAdditionalData,
+                totalAmount: 0, // Will be set during evaluation
+            }
+        });
+
+        revalidatePath("/user/services");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Submit transaction error:", error);
+        return { success: false, error: "Failed to submit request" };
+    }
+}
+
+/**
+ * Evaluate a Cedula Transaction (Treasury Staff side)
+ */
+export async function evaluateCedulaTransaction(id: string, adminNotes?: string) {
+    try {
+        const session = await getSession();
+        // Check for TREASURY_STAFF or ADMIN role
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+        if (transaction.type.code.indexOf("CEDULA") === -1) {
+            return { success: false, error: "Not a Cedula transaction" };
+        }
+
+        const additionalData = transaction.additionalData as any;
+
+        // Compute the tax
+        const result = calculateCedula({
+            type: additionalData.applicantType || "INDIVIDUAL",
+            income: additionalData.income || 0,
+            propertyValue: additionalData.propertyValue || 0,
+            fulfillmentType: transaction.fulfillmentType,
+            deliveryFee: transaction.type.deliveryFee
+        });
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "EVALUATED",
+                totalAmount: result.totalAmount,
+                processedBy: user.id,
+                rejectionRemarks: adminNotes
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction, calculation: result };
+    } catch (error) {
+        console.error("Evaluate transaction error:", error);
+        return { success: false, error: "Failed to evaluate transaction" };
+    }
+}
+
+/**
+ * Confirm Payment (Treasury Staff side)
+ */
+export async function confirmTransactionPayment(id: string, referenceNo?: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "TREASURY_STAFF" && user.role !== "ADMIN") {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const transaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "PAID",
+                paymentReference: referenceNo,
+                updatedAt: new Date()
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Confirm payment error:", error);
+        return { success: false, error: "Failed to confirm payment" };
+    }
+}
+
+/**
+ * Release Cedula (Treasury Staff side)
+ */
+export async function releaseCedula(id: string, ctcNumber: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "TREASURY_STAFF" && user.role !== "ADMIN") {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true }
+        });
+
+        if (!transaction || transaction.status !== "PAID") {
+            return { success: false, error: "Transaction must be paid before release" };
+        }
+
+        const additionalData = transaction.additionalData as any;
+        const calc = calculateCedula({
+            type: additionalData.applicantType || "INDIVIDUAL",
+            income: additionalData.income || 0,
+            propertyValue: additionalData.propertyValue || 0,
+            fulfillmentType: transaction.fulfillmentType,
+            deliveryFee: transaction.type.deliveryFee
+        });
+
+        // Create the Cedula record
+        const now = new Date();
+        const cedula = await prisma.cedula.create({
+            data: {
+                transactionId: id,
+                ctcNumber,
+                taxYear: now.getFullYear(),
+                dateIssued: now,
+                expiryDate: new Date(now.getFullYear(), 11, 31), // Dec 31 of current year
+                basicTax: calc.basicTax,
+                additionalTax: calc.additionalTax,
+                penalty: calc.penalty,
+                totalPaid: transaction.totalAmount,
+                issuedBy: user.name || "System Administrator",
+                verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+            }
+        });
+
+        // Update transaction status
+        await prisma.transaction.update({
+            where: { id },
+            data: { status: "RELEASED" }
+        });
+
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services");
+        return { success: true, data: cedula };
+    } catch (error) {
+        console.error("Release cedula error:", error);
+        return { success: false, error: "Failed to release document" };
+    }
+}
