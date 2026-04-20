@@ -1,0 +1,193 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { 
+    Clock, 
+    CheckCircle2, 
+    XCircle, 
+    Home,
+    FileText,
+    Activity,
+    ChevronRight,
+    DollarSign,
+    Search
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { cn } from "@/lib/utils";
+import { getUserTransactions } from "@/app/admin/transactions/actions";
+import RequestDetailModal from "./RequestDetailModal";
+import { Input } from "@/components/ui/input";
+
+export default function UserServiceRequestsPage() {
+    const [requests, setRequests] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedRequest, setSelectedRequest] = useState<any>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        async function fetchRequests() {
+            try {
+                const res = await getUserTransactions();
+                if (res.success) {
+                    setRequests(res.data || []);
+                }
+            } catch (err) {
+                console.error("Failed to load requests:", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchRequests();
+    }, []);
+
+    const getStatusStyle = (status: string) => {
+        switch (status) {
+            case "FOR_REQUESTING": return { color: "text-amber-600", bg: "bg-amber-100", border: "border-amber-200", icon: Clock, label: "PENDING" };
+            case "EVALUATED": return { color: "text-blue-600", bg: "bg-blue-100", border: "border-blue-200", icon: DollarSign, label: "EVALUATED" };
+            case "PAID": return { color: "text-indigo-600", bg: "bg-indigo-100", border: "border-indigo-200", icon: Activity, label: "PROCESSING" };
+            case "RELEASED": return { color: "text-emerald-600", bg: "bg-emerald-100", border: "border-emerald-200", icon: CheckCircle2, label: "COMPLETED" };
+            case "REJECTED": return { color: "text-red-600", bg: "bg-red-100", border: "border-red-200", icon: XCircle, label: "REJECTED" };
+            default: return { color: "text-slate-500", bg: "bg-slate-100", border: "border-slate-200", icon: Clock, label: status };
+        }
+    };
+
+    const filteredRequests = requests.filter(r => 
+        r.type?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.id.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (loading) {
+        return (
+            <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Synchronizing Records...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-white dark:bg-[#0a0c10] pb-32">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+                
+                {/* Modern Header Hierarchy */}
+                <div className="space-y-8">
+                    <Breadcrumb>
+                        <BreadcrumbList className="bg-slate-50 dark:bg-white/5 px-6 py-2 rounded-xl border border-slate-100 dark:border-white/5 w-fit">
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                                        <Home className="w-3.5 h-3.5" />
+                                        Portal
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">My Service Requests</BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
+
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
+                                    Service <span className="text-primary underline decoration-primary/20 underline-offset-8 decoration-4">Requests</span>
+                                </h1>
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-2 italic">Official LGU Tracking Dashboard</p>
+                            </div>
+                            <p className="text-slate-500 font-medium italic text-lg leading-relaxed max-w-2xl">
+                                Monitor the real-time status of your official document applications, tax certificates, and public service requests.
+                            </p>
+                        </div>
+                        
+                        <div className="relative w-full md:w-80 group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                            <Input 
+                                placeholder="Search by ID or Type..." 
+                                className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 font-bold italic transition-all focus:ring-2 focus:ring-primary/20"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Wide Request List */}
+                <div className="space-y-4">
+                    {filteredRequests.length > 0 ? filteredRequests.map((req) => {
+                        const style = getStatusStyle(req.status);
+                        const StatusIcon = style.icon;
+                        
+                        return (
+                            <div 
+                                key={req.id} 
+                                onClick={() => setSelectedRequest(req)}
+                                className="group bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-white/5 p-4 hover:border-primary/40 hover:shadow-xl hover:shadow-slate-200/40 dark:hover:shadow-none transition-all cursor-pointer select-none active:scale-[0.995] flex flex-col md:flex-row items-center gap-6"
+                            >
+                                <div className="flex items-center gap-5 flex-1 w-full">
+                                    <div className="space-y-1 min-w-0">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white italic truncate group-hover:text-primary transition-colors">
+                                                {req.type?.name || "Service Request"}
+                                            </h3>
+                                            <Badge variant="outline" className="text-[7.5px] font-black uppercase tracking-widest text-slate-400 rounded-full border-slate-200 px-2 py-0">
+                                                ID: {req.id.slice(-8).toUpperCase()}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-4 text-slate-400">
+                                            <span className="text-[9px] font-black uppercase tracking-widest italic">{format(new Date(req.createdAt), "MMMM d, yyyy")}</span>
+                                            <div className="h-1 w-1 rounded-full bg-slate-200" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest italic">{req.fulfillmentType?.replace("_", " ")}</span>
+                                            <div className="h-1 w-1 rounded-full bg-slate-200" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest italic">{req.paymentType?.replace("_", " ")}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 dark:border-white/5">
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Fee</p>
+                                        <p className="text-lg font-black text-slate-900 dark:text-white italic">₱{(req.totalAmount || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1.5 min-w-[110px]">
+                                        <Badge className={cn("inline-flex items-center gap-1.5 font-black uppercase tracking-widest text-[8px] italic px-4 py-1.5 rounded-full border border-opacity-30 w-full justify-center", style.color, style.bg, style.border)}>
+                                            <StatusIcon className="w-3 h-3" />
+                                            {style.label}
+                                        </Badge>
+                                        <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic">Phase {req.status === "RELEASED" ? "4/4" : req.status === "PAID" ? "3/4" : req.status === "EVALUATED" ? "2/4" : "1/4"}</span>
+                                    </div>
+                                    <div className="h-10 w-10 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                                        <ChevronRight className="w-5 h-5" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }) : (
+                        <div className="py-40 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-slate-50/50 dark:bg-white/5">
+                            <FileText className="w-20 h-20 text-slate-200 dark:text-slate-800 mx-auto mb-6" />
+                            <h3 className="text-xl font-black uppercase tracking-widest text-slate-400 italic">No Service Requests Found</h3>
+                            <p className="text-sm text-slate-400 mt-2 font-medium italic">Your active applications will appear here for tracking.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <RequestDetailModal 
+                isOpen={!!selectedRequest}
+                onClose={() => setSelectedRequest(null)}
+                request={selectedRequest}
+            />
+        </div>
+    );
+}

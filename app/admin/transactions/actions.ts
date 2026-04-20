@@ -325,3 +325,109 @@ export async function releaseCedula(id: string, ctcNumber: string) {
         return { success: false, error: "Failed to release document" };
     }
 }
+/**
+ * Fetch all transactions relevant to Treasury (category: 'Treasurer')
+ */
+export async function getTreasuryTransactions(status?: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const where: any = {
+            type: { category: "Treasurer" }
+        };
+
+        if (status && status !== "ALL") {
+            where.status = status;
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where,
+            include: {
+                user: true,
+                type: true,
+                cedula: true
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return { success: true, data: transactions };
+    } catch (error) {
+        console.error("Fetch treasury transactions error:", error);
+        return { success: false, error: "Failed to fetch transactions" };
+    }
+}
+
+/**
+ * Get count of transactions needing immediate treasury attention
+ */
+export async function getPendingTreasuryCount() {
+    try {
+        const count = await prisma.transaction.count({
+            where: {
+                type: { category: "Treasurer" },
+                status: { in: ["FOR_REQUESTING", "PAID"] } // Needs evaluation or Needs release
+            }
+        });
+        return { success: true, count };
+    } catch (error) {
+        console.error("Fetch pending count error:", error);
+        return { success: false, count: 0 };
+    }
+}
+
+/**
+ * Reject a transaction (Treasury/Admin side)
+ */
+export async function rejectTransaction(id: string, remarks: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const transaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "REJECTED",
+                rejectionRemarks: remarks,
+                processedBy: user.id
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Reject transaction error:", error);
+        return { success: false, error: "Failed to reject transaction" };
+    }
+}
+
+/**
+ * Fetch all transactions for the currently logged-in resident
+ */
+export async function getUserTransactions() {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transactions = await prisma.transaction.findMany({
+            where: { userId: session.user.id },
+            include: {
+                type: true,
+                cedula: true
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return { success: true, data: transactions };
+    } catch (error) {
+        console.error("Fetch user transactions error:", error);
+        return { success: false, error: "Failed to fetch your requests" };
+    }
+}

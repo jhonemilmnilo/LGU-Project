@@ -10,7 +10,7 @@ import {
     ChevronDown, Briefcase,
 
     Newspaper, PhoneCall, Info,
-    Compass, MapPin, Globe
+    Compass, MapPin, Globe, Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -108,6 +108,7 @@ export function Navbar({
     const authLinks = [
         ...mainLinks,
         { name: "My Archive", href: "/user/reports", icon: Globe },
+        { name: "My Requests", href: "/user/services/requests", icon: Activity },
     ];
 
     const currentLinks = isAuth ? authLinks : mainLinks;
@@ -250,13 +251,13 @@ export function Navbar({
                             </Button>
                         </div>
                     ) : (
-                        <Link href="/auth/login" className="active:scale-95 transition-all">
+                        <Link href={isAuth ? "/user/services/requests" : "/auth/login"} className="active:scale-95 transition-all">
                             <Button
                                 style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
                                 className="text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 flex items-center gap-2 text-[10px] border-none"
                             >
-                                <LogIn className="w-4 h-4" />
-                                Access Resident Hub
+                                {isAuth ? <Activity className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+                                {isAuth ? "Resident Hub" : "Access Resident Hub"}
                             </Button>
                         </Link>
                     )}

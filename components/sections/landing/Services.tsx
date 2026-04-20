@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { FileText, ArrowUpRight, ShieldCheck, Briefcase, Zap } from "lucide-react";
+import { FileText, ArrowUpRight, ShieldCheck, Briefcase, Zap, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ interface Service {
 
 interface ServicesProps {
     services: Service[];
+    isAuth?: boolean;
 }
 
 const colors = [
@@ -26,7 +27,7 @@ const colors = [
     { color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-500/10" },
 ];
 
-export function Services({ services = [] }: ServicesProps) {
+export function Services({ services = [], isAuth = false }: ServicesProps) {
     const displayServices = services.length > 0 ? services : [];
 
     return (
@@ -61,6 +62,38 @@ export function Services({ services = [] }: ServicesProps) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {/* Dynamic Resident Tracking Hub Card */}
+                    {isAuth && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            className="group bg-slate-900 dark:bg-primary rounded-[2.5rem] p-8 shadow-2xl shadow-blue-500/20 border-none flex flex-col justify-between h-full relative overflow-hidden active:scale-95 transition-all lg:col-span-1"
+                        >
+                            <Link href="/user/services/requests" className="absolute inset-0 z-20" />
+                            <div className="space-y-4 relative z-10">
+                                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white">
+                                    <Activity className="w-8 h-8" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">
+                                        Resident <span className="text-primary italic">Hub</span>
+                                    </h3>
+                                    <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">Tracking Center</p>
+                                </div>
+                                <p className="text-xs font-bold text-white/80 italic leading-relaxed">
+                                    Monitor your active applications and service requests in real-time.
+                                </p>
+                            </div>
+                            <div className="pt-6 flex items-center justify-between border-t border-white/10 relative z-10">
+                                <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] italic">Go to Dashboard</span>
+                                <div className="w-8 h-8 bg-white text-slate-900 rounded-full flex items-center justify-center">
+                                    <ArrowUpRight className="w-4 h-4" />
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {displayServices.map((service, idx) => {
                         const style = colors[idx % colors.length];
                         return (

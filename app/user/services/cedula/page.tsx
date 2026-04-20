@@ -198,7 +198,7 @@ export default function CedulaApplicationPage() {
             const res = await submitTransaction(submitData);
             if (res.success) {
                 toast.success("Application submitted successfully!");
-                router.push("/user/reports"); // Re-routing to tracking page
+                router.push("/user/services/requests"); // Re-routing to tracking page
             } else {
                 toast.error(res.error || "Submission failed");
             }

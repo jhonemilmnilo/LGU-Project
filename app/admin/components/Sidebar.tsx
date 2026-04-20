@@ -107,7 +107,7 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        { href: "/admin/treasury", label: "Treasury Services", icon: CreditCard, category: "Citizens & Services", badge: pendingTransactionsCount },
+        { href: "/admin/treasury", label: "Treasury Hub", icon: CreditCard, category: "Citizens & Services", badge: pendingTransactionsCount },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
@@ -151,7 +151,7 @@ export function Sidebar({
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
     } else if (role === "TREASURY_STAFF") {
-        menuItems = allMenuItems.filter(item => ["Treasury Services"].includes(item.label));
+        menuItems = allMenuItems.filter(item => ["Dashboard", "Treasury Hub"].includes(item.label));
     }
 
     return (
