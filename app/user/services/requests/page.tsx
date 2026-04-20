@@ -127,7 +127,6 @@ export default function UserServiceRequestsPage() {
                 <div className="space-y-4">
                     {filteredRequests.length > 0 ? filteredRequests.map((req) => {
                         const style = getStatusStyle(req.status);
-                        const StatusIcon = style.icon;
                         
                         return (
                             <div 
@@ -162,7 +161,6 @@ export default function UserServiceRequestsPage() {
                                     </div>
                                     <div className="flex flex-col items-center gap-1.5 min-w-[110px]">
                                         <Badge className={cn("inline-flex items-center gap-1.5 font-black uppercase tracking-widest text-[8px] italic px-4 py-1.5 rounded-full border border-opacity-30 w-full justify-center", style.color, style.bg, style.border)}>
-                                            <StatusIcon className="w-3 h-3" />
                                             {style.label}
                                         </Badge>
                                         <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic">Phase {req.status === "RELEASED" ? "4/4" : req.status === "PAID" ? "3/4" : req.status === "EVALUATED" ? "2/4" : "1/4"}</span>

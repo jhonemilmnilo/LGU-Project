@@ -66,18 +66,8 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
     };
 
     const statusConfig = getStatusConfig(request.status);
-    const StatusIcon = statusConfig.icon;
     const additionalData = request.additionalData || {};
     const residentData = request.residentSnapshot || {};
-
-    const steps = [
-        { id: "FOR_REQUESTING", label: "Requested" },
-        { id: "EVALUATED", label: "Evaluated" },
-        { id: "PAID", label: "Paid" },
-        { id: "RELEASED", label: "Released" }
-    ];
-
-    const currentStepIndex = steps.findIndex(s => s.id === request.status);
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -104,39 +94,6 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                 Official records and real-time tracking for your service request.
                             </DialogDescription>
                         </div>
-                        <div className="text-right hidden lg:block">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic mb-1">Current Milestone</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{statusConfig.label}</p>
-                        </div>
-                    </div>
-
-                    {/* Progress Steps Integration */}
-                    <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {steps.map((step, idx) => (
-                            <div key={step.id} className="space-y-3">
-                                <div className="h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                                    <div 
-                                        className={cn(
-                                            "h-full transition-all duration-1000 ease-out",
-                                            idx <= currentStepIndex ? "bg-primary" : "bg-transparent"
-                                        )}
-                                        style={{ width: idx <= currentStepIndex ? '100%' : '0%' }}
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className={cn(
-                                        "w-2 h-2 rounded-full",
-                                        idx <= currentStepIndex ? "bg-primary animate-pulse" : "bg-slate-300 dark:bg-white/10"
-                                    )} />
-                                    <p className={cn(
-                                        "text-[9px] font-black uppercase tracking-[0.2em] italic",
-                                        idx <= currentStepIndex ? "text-primary" : "text-slate-400"
-                                    )}>
-                                        {step.label}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
                     </div>
                 </div>
 
@@ -160,7 +117,6 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                                 Application Summary
                                             </h3>
                                             <Badge variant="outline" className={cn("inline-flex items-center gap-2 w-fit px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] italic rounded-full border-2", statusConfig.color)}>
-                                                <StatusIcon className="w-3 h-3" />
                                                 REQUEST STATUS: {statusConfig.label}
                                             </Badge>
                                         </div>
