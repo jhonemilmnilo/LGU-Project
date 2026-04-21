@@ -580,18 +580,20 @@ export default function CedulaApplicationPage() {
                                             <Input
                                                 value={formData.residentData?.contactNumber || ""}
                                                 onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
-                                                readOnly={!!initialResident?.contactNumber}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.contactNumber && "bg-slate-50 text-slate-400")}
+                                                className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
                                                 placeholder="09xx xxx xxxx"
                                             />
+                                            <p className="text-[9px] text-slate-400 font-bold italic ml-1">
+                                                * We will use this number to contact you about your request status.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div className="bg-primary/5 border border-primary/10 p-4 rounded-3xl flex items-start gap-3">
-                                    <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                                <div className="bg-primary/5 border border-primary/10 p-4 rounded-3xl flex items-center gap-3">
+                                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
                                     <p className="text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
-                                        Note: Filling in missing details here will automatically update your permanent Resident Profile after successful transaction.
+                                        Note: Any changes you make here will automatically update your permanent Resident Profile upon successful transaction submission.
                                     </p>
                                 </div>
                             </div>
