@@ -1,22 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
     User, MapPin, Calculator, CreditCard, CheckCircle2, 
     FileText, ExternalLink,
-    AlertCircle, Printer
+    AlertCircle, BadgeCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -25,6 +22,10 @@ import {
     releaseCedula,
     rejectTransaction 
 } from "@/app/admin/transactions/actions";
+import { cn } from "@/lib/utils";
+import { calculateCedula, getCedulaPenaltyRateLabel } from "@/lib/cedula";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface TransactionDetailModalProps {
     transaction: any;
@@ -36,27 +37,51 @@ interface TransactionDetailModalProps {
 export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh }: TransactionDetailModalProps) {
     const [loading, setLoading] = useState(false);
     const [remarks, setRemarks] = useState("");
-    const [ctcNumber, setCtcNumber] = useState("");
+    const remarksRef = useRef<HTMLTextAreaElement>(null);
+    const [ctcNumber] = useState("");
     const [isRejecting, setIsRejecting] = useState(false);
+
+    // Live Calculator State
+    const additional = (transaction as any).additionalData || {};
+    
+    const [income] = useState(Number(additional.income || 0));
+    const [propertyValue] = useState(Number(additional.propertyValue || 0));
+    const [deliveryFee, setDeliveryFee] = useState(
+        transaction.fulfillmentType === "DELIVERY" ? 
+        (transaction.totalAmount > 0 ? (transaction as any).deliveryFee || transaction.type.deliveryFee : transaction.type.deliveryFee) : 0
+    );
+
+    const calcResult = calculateCedula({
+        type: additional.applicantType || "INDIVIDUAL",
+        income,
+        propertyValue,
+        fulfillmentType: transaction.fulfillmentType,
+        deliveryFee
+    });
+
+    useEffect(() => {
+        if (isRejecting) {
+            remarksRef.current?.focus();
+        }
+    }, [isRejecting]);
 
     if (!transaction) return null;
 
     const resident = transaction.residentSnapshot || {};
-    const additional = transaction.additionalData || {};
-    const isCedula = transaction.type?.code?.startsWith("CEDULA");
 
     const handleEvaluate = async () => {
         setLoading(true);
         try {
-            const res = await evaluateCedulaTransaction(transaction.id, remarks);
+            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks);
             if (res.success) {
-                toast.success("Transaction evaluated successfully!");
+                toast.success("Transaction evaluated and fees computed.");
                 onRefresh();
+                onClose();
             } else {
-                toast.error(res.error || "Evaluation failed");
+                toast.error(res.error || "Evaluation failed.");
             }
         } catch {
-            toast.error("An error occurred during evaluation");
+            toast.error("An error occurred during evaluation.");
         } finally {
             setLoading(false);
         }
@@ -80,10 +105,12 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
     };
 
     const handleRelease = async () => {
+        /* 
         if (!ctcNumber) {
             toast.error("Please enter the CTC Serial Number");
             return;
-        }
+        } 
+        */
         setLoading(true);
         try {
             const res = await releaseCedula(transaction.id, ctcNumber);
@@ -123,179 +150,130 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "FOR_REQUESTING": return <Badge className="bg-amber-500 italic uppercase">Pending Evaluation</Badge>;
-            case "EVALUATED": return <Badge className="bg-blue-500 italic uppercase">Pending Payment</Badge>;
-            case "PAID": return <Badge className="bg-emerald-500 italic uppercase">Ready for Release</Badge>;
-            case "RELEASED": return <Badge className="bg-slate-900 italic uppercase">Completed</Badge>;
-            case "REJECTED": return <Badge variant="destructive" className="italic uppercase">Rejected</Badge>;
-            default: return <Badge variant="outline">{status}</Badge>;
-        }
-    };
 
+    const steps = [
+        { id: "FOR_REQUESTING", label: "Evaluation", icon: Calculator },
+        { id: "EVALUATED", label: "Payment", icon: CreditCard },
+        { id: "FOR_CLAIM", label: "Release", icon: CheckCircle2 },
+        { id: "PAID", label: "Release", icon: CheckCircle2 },
+        { id: "RELEASED", label: "Completed", icon: BadgeCheck },
+    ];
+
+    const currentStepIdx = steps.findIndex(s => s.id === transaction.status);
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar border-none shadow-2xl p-0 bg-white dark:bg-slate-950 rounded-[2.5rem]">
-                <div className="p-8 space-y-8">
-                    {/* Header Side */}
-                    <DialogHeader className="flex flex-col md:flex-row justify-between items-start gap-4">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">Transaction <span className="text-primary tracking-normal">#{transaction.id.slice(-6)}</span></DialogTitle>
-                                {getStatusBadge(transaction.status)}
+            <DialogContent className="sm:max-w-[1400px] w-[95vw] max-h-[92vh] overflow-hidden border-none shadow-[0_0_100px_rgba(0,0,0,0.2)] p-0 bg-white dark:bg-[#0c111d] rounded-[2rem] transition-all duration-500 ring-1 ring-slate-200/50 dark:ring-white/5">
+                <div className="h-full max-h-[92vh] overflow-y-auto custom-scrollbar">
+                    <div className="p-10 md:p-14 space-y-12">
+                    {/* Top Control Bar */}
+                    <div className="flex justify-between items-center bg-slate-50 dark:bg-white/5 -m-10 md:-m-14 mb-12 p-8 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-[1.25rem] text-primary">
+                                <AlertCircle className="w-6 h-6" />
                             </div>
-                            <p className="text-sm text-slate-500 font-medium italic">Applied on {new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString()}</p>
+                            <div className="space-y-0.5">
+                                <DialogTitle className="text-sm font-black uppercase text-slate-400 tracking-widest italic leading-none">Governance Control</DialogTitle>
+                                <p className="text-[10px] font-bold text-slate-500 italic uppercase tracking-tighter">Treasury Application Portfolio</p>
+                            </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Service Type</span>
-                            <span className="text-sm font-bold uppercase italic text-slate-900 dark:text-white px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full">{transaction.type?.name}</span>
-                        </div>
-                    </DialogHeader>
+                    </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Left Column: Identity & Financials */}
-                        <div className="space-y-8">
-                            {/* Resident Info Card */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-primary">
-                                    <User className="w-5 h-5" />
-                                    <h3 className="text-xs font-black uppercase tracking-widest italic">Applicant Identity</h3>
-                                </div>
-                                <div className="bg-slate-50 dark:bg-white/5 rounded-[2rem] p-6 border border-slate-100 dark:border-white/5 space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <Label className="text-[10px] font-black text-slate-400 uppercase italic">Full Name</Label>
-                                            <p className="text-sm font-bold uppercase italic">{resident.firstName} {resident.middleName} {resident.lastName} {resident.suffix}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-[10px] font-black text-slate-400 uppercase italic">Civil Status</Label>
-                                            <p className="text-sm font-bold uppercase italic">{resident.civilStatus}</p>
-                                        </div>
+                    {/* Progress Hub */}
+                    <div className="relative flex justify-between w-full max-w-6xl mx-auto py-8">
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 dark:bg-white/5 -translate-y-1/2" />
+                        {steps.map((step, idx) => {
+                            const isPast = idx < currentStepIdx;
+                            const isCurrent = idx === currentStepIdx;
+                            const Icon = step.icon;
+                            return (
+                                <div key={idx} className="relative z-10 flex flex-col items-center gap-4 group">
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-[1.25rem] flex items-center justify-center transition-all duration-700 shadow-2xl relative",
+                                        isPast ? "bg-primary text-white scale-90 opacity-40" : 
+                                        isCurrent ? "bg-white dark:bg-slate-900 border-2 border-primary text-primary scale-125 ring-[12px] ring-primary/5" : 
+                                        "bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/5 text-slate-300"
+                                    )}>
+                                        <Icon className={cn("w-5 h-5", isCurrent && "animate-pulse")} />
                                     </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px] font-black text-slate-400 uppercase italic">Full Address</Label>
-                                        <div className="flex items-start gap-2">
-                                            <MapPin className="w-3.5 h-3.5 text-slate-400 mt-1 shrink-0" />
-                                            <p className="text-sm font-medium italic text-slate-600 dark:text-slate-400">
-                                                {resident.houseNumber} {resident.street}, {resident.barangay}, Agno, Pangasinan
+                                    <div className="text-center space-y-1">
+                                        <span className={cn(
+                                            "text-[10px] font-black uppercase tracking-[0.2em] italic block",
+                                            isCurrent ? "text-primary" : "text-slate-400"
+                                        )}>{step.label}</span>
+                                        {isCurrent && <span className="text-[8px] font-bold text-emerald-500 uppercase">Input Required</span>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        {/* Column 1: Identity & Logistics */}
+                        <div className="space-y-10">
+                            {/* Applicant Identity */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <User className="text-primary w-5 h-5" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-400">Applicant Identity</h3>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-8 shadow-sm">
+                                    <div className="space-y-6">
+                                        <div className="space-y-1">
+                                            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-50">Legal Full Name</Label>
+                                            <p className="text-xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-tight">
+                                                {resident.firstName} {resident.lastName}
                                             </p>
                                         </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <Label className="text-[10px] font-black text-slate-400 uppercase italic">Citizenship</Label>
-                                            <p className="text-sm font-bold uppercase italic">{resident.citizenship}</p>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-1">
+                                                <Label className="text-[9px] font-black text-slate-400 uppercase italic">Status</Label>
+                                                <p className="text-sm font-bold uppercase italic text-slate-700 dark:text-slate-300">{resident.civilStatus}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[9px] font-black text-slate-400 uppercase italic">Citizenship</Label>
+                                                <p className="text-sm font-bold uppercase italic text-slate-700 dark:text-slate-300">{resident.citizenship}</p>
+                                            </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <Label className="text-[10px] font-black text-slate-400 uppercase italic">Contact</Label>
-                                            <p className="text-xs font-bold font-mono tracking-widest">{resident.contactNumber}</p>
+                                            <Label className="text-[9px] font-black text-slate-400 uppercase italic">Primary Contact</Label>
+                                            <p className="text-lg font-black font-mono tracking-[0.2em] text-primary">{resident.contactNumber}</p>
+                                        </div>
+                                        <div className="space-y-2 pt-4 border-t border-slate-200/50 dark:border-white/5">
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="w-3.5 h-3.5 text-primary mt-1 shrink-0" />
+                                                <p className="text-xs font-medium italic text-slate-500 leading-relaxed">
+                                                    {resident.houseNumber} {resident.street}, {resident.barangay}, Agno, Pangasinan
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Financial Declaration (Only for Cedula) */}
-                            {isCedula && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-primary">
-                                        <Calculator className="w-5 h-5" />
-                                        <h3 className="text-xs font-black uppercase tracking-widest italic">Financial Declaration</h3>
-                                    </div>
-                                    <div className="bg-slate-900 dark:bg-black rounded-[2rem] p-6 text-white space-y-6 shadow-xl overflow-hidden relative">
-                                        <div className="grid grid-cols-2 gap-6 relative z-10">
-                                            <div className="space-y-1">
-                                                <Label className="text-[9px] font-black text-primary uppercase italic tracking-widest">Annual Gross Income</Label>
-                                                <p className="text-xl font-black italic italic">₱{Number(additional.income || 0).toLocaleString()}</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[9px] font-black text-primary uppercase italic tracking-widest">Real Property AV</Label>
-                                                <p className="text-xl font-black italic italic">₱{Number(additional.propertyValue || 0).toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        {transaction.totalAmount > 0 && (
-                                            <div className="pt-4 border-t border-white/10 flex justify-between items-end relative z-10">
-                                                <span className="text-[10px] font-black uppercase text-slate-400 italic">Total Computed Amount</span>
-                                                <span className="text-3xl font-black italic italic text-primary tracking-tighter">₱{transaction.totalAmount.toLocaleString()}</span>
-                                            </div>
-                                        )}
-                                        <Calculator className="absolute -bottom-4 -right-4 w-24 h-24 text-white opacity-5 rotate-12" />
-                                    </div>
+                            {/* Service Logistics */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <CreditCard className="text-primary w-5 h-5" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-400">Service Logistics</h3>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Right Column: Documents & Status */}
-                        <div className="space-y-8">
-                            {/* Attachments Card */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-primary">
-                                    <FileText className="w-5 h-5" />
-                                    <h3 className="text-xs font-black uppercase tracking-widest italic">Verified Attachments</h3>
-                                </div>
-                                <div className="grid grid-cols-1 gap-3">
-                                    {additional.validIdUrl ? (
-                                        <a 
-                                            href={additional.validIdUrl} 
-                                            target="_blank" 
-                                            className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 group transition-colors hover:border-primary/20"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                                                    <FileText className="w-4 h-4" />
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase italic italic text-slate-700 dark:text-slate-300">Valid Government ID</span>
-                                            </div>
-                                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
-                                        </a>
-                                    ) : (
-                                        <div className="p-4 rounded-2xl border border-dashed text-center text-slate-400 text-[10px] font-black uppercase italic italic">No ID Attached</div>
-                                    )}
-
-                                    {additional.proofOfIncomeUrl ? (
-                                        <a 
-                                            href={additional.proofOfIncomeUrl} 
-                                            target="_blank" 
-                                            className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 group transition-colors hover:border-primary/20"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                                                    <FileText className="w-4 h-4" />
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase italic italic text-slate-700 dark:text-slate-300">Proof of Income / 2316</span>
-                                            </div>
-                                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
-                                        </a>
-                                    ) : (
-                                        <div className="p-4 rounded-2xl border border-dashed text-center text-slate-400 text-[10px] font-black uppercase italic italic">No Proof Attached</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Logistics Card */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-primary">
-                                    <CreditCard className="w-5 h-5" />
-                                    <h3 className="text-xs font-black uppercase tracking-widest italic">Logistics & Payment</h3>
-                                </div>
-                                <div className="bg-slate-50 dark:bg-white/5 rounded-[2rem] p-6 border border-slate-100 dark:border-white/5 space-y-4">
+                                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-6 shadow-sm">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase text-slate-400 italic">Method</span>
-                                        <Badge variant="outline" className="italic font-bold uppercase">{transaction.fulfillmentType}</Badge>
+                                        <span className="text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Fulfillment</span>
+                                        <Badge variant="outline" className="italic font-bold uppercase rounded-xl px-4">{transaction.fulfillmentType}</Badge>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black uppercase text-slate-400 italic">Payment</span>
-                                        <Badge variant="outline" className="italic font-bold uppercase">{transaction.paymentType?.replace("_", " ")}</Badge>
+                                    <div className="flex justify-between items-center pb-6 border-b border-slate-200/50 dark:border-white/5">
+                                        <span className="text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Payment Type</span>
+                                        <Badge variant="outline" className="italic font-bold uppercase rounded-xl px-4">{transaction.paymentType?.replace("_", " ")}</Badge>
                                     </div>
                                     {transaction.fulfillmentType === "DELIVERY" && (
-                                        <div className="space-y-1">
-                                            <Label className="text-[10px] font-black text-slate-400 uppercase italic">Delivery Address</Label>
-                                            <p className="text-xs font-semibold italic text-primary">
+                                        <div className="space-y-2">
+                                            <Label className="text-[9px] font-black text-slate-400 uppercase italic">Target Delivery Point</Label>
+                                            <p className="text-xs font-black italic text-primary leading-relaxed uppercase tracking-tighter">
                                                 {(() => {
                                                     const addr = transaction.deliveryAddress;
                                                     if (!addr) return "No address specified";
                                                     if (typeof addr === "string") return addr;
-                                                    return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
+                                                    return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.barangay}, ${addr.municipality}`.trim();
                                                 })()}
                                             </p>
                                         </div>
@@ -303,126 +281,271 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <Separator className="opacity-50" />
+                        {/* Column 2: Assessment Inputs & Authenticators */}
+                        <div className="space-y-10">
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <Calculator className="text-primary w-5 h-5" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-400">Financial Declaration</h3>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-6 shadow-sm">
+                                    <div className="grid grid-cols-1 gap-6">
+                                        {/* Inputs (Read-only) */}
+                                        <div className="space-y-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-70">Total Annual Gross Income</Label>
+                                                <div className="relative group">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black italic">₱</span>
+                                                    <Input 
+                                                        type="number"
+                                                        value={income}
+                                                        readOnly
+                                                        className="pl-10 h-14 rounded-2xl bg-white dark:bg-white/5 cursor-not-allowed border-slate-100 dark:border-white/5 text-lg font-black italic tracking-tighter opacity-70 shadow-inner"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-70">Real Property Assessed Value</Label>
+                                                <div className="relative group">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black italic">₱</span>
+                                                    <Input 
+                                                        type="number"
+                                                        value={propertyValue}
+                                                        readOnly
+                                                        className="pl-10 h-14 rounded-2xl bg-white dark:bg-white/5 cursor-not-allowed border-slate-100 dark:border-white/5 text-lg font-black italic tracking-tighter opacity-70 shadow-inner"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    {/* Action Hub */}
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2 text-primary">
-                                    <AlertCircle className="w-5 h-5" />
-                                    <h3 className="text-xs font-black uppercase tracking-widest italic">Treasury Actions</h3>
+                            {/* Authenticators */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="text-primary w-5 h-5" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-400">Authenticators</h3>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-6 shadow-sm">
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {[
+                                            { label: "Valid Government ID", url: additional.validIdUrl },
+                                            { label: "Financial Evidence / 2316", url: additional.proofOfIncomeUrl }
+                                        ].map((doc, i) => (
+                                            <div key={i}>
+                                                {doc.url ? (
+                                                    <div className="flex items-center gap-4 p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm group">
+                                                        <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200/50 dark:border-white/10">
+                                                            <Image 
+                                                                src={doc.url} 
+                                                                alt={doc.label}
+                                                                fill
+                                                                className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                                            />
+                                                            <a 
+                                                                href={doc.url} 
+                                                                target="_blank" 
+                                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4 text-white" />
+                                                            </a>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <span className="text-[9px] font-black uppercase italic tracking-widest text-slate-400 block leading-none">Registered</span>
+                                                            <span className="text-[10px] font-black uppercase italic text-slate-700 dark:text-slate-300 leading-tight">{doc.label}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-6 rounded-[1.5rem] border border-dashed border-slate-200 dark:border-white/5 flex flex-col items-center justify-center gap-2 opacity-50 grayscale">
+                                                        <AlertCircle className="w-5 h-5 text-slate-300" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest italic text-slate-400">Not Provided</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {!isRejecting ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Next Logical Action */}
-                                {transaction.status === "FOR_REQUESTING" && (
-                                    <Button 
-                                        onClick={handleEvaluate}
-                                        disabled={loading}
-                                        className="h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-[0.2em] shadow-xl hover:shadow-primary/20 transition-all active:scale-[0.98]"
-                                    >
-                                        {loading ? <Calculator className="animate-spin" /> : "Evaluate & Compute Tax"}
-                                    </Button>
-                                )}
-
-                                {transaction.status === "EVALUATED" && (
-                                    <Button 
-                                        onClick={handleConfirmPayment}
-                                        disabled={loading}
-                                        className="h-16 rounded-2xl bg-emerald-600 text-white font-black italic uppercase tracking-[0.2em] shadow-xl hover:shadow-emerald/20 transition-all active:scale-[0.98]"
-                                    >
-                                        {loading ? <CreditCard className="animate-spin" /> : "Confirm Official Payment"}
-                                    </Button>
-                                )}
-
-                                {transaction.status === "PAID" && (
-                                    <div className="border-2 border-primary/20 rounded-[2rem] p-6 space-y-4">
-                                        <div className="space-y-1.5 text-center">
-                                            <Label className="text-[10px] font-black uppercase text-primary tracking-widest italic">Input CTC Serial Number</Label>
-                                            <Input 
-                                                value={ctcNumber}
-                                                onChange={(e) => setCtcNumber(e.target.value)}
-                                                placeholder="e.g. 09182374"
-                                                className="h-12 rounded-xl text-center text-xl font-black italic italic tracking-[0.3em] border-primary/20 focus:ring-primary"
-                                            />
+                        {/* Column 3: Final Computation Breakdown */}
+                        <div className="space-y-10">
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <BadgeCheck className="text-primary w-5 h-5" />
+                                    <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-400">Compensation Breakdown</h3>
+                                </div>
+                                
+                                {/* Calculator Card */}
+                                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden border border-white/5 space-y-6">
+                                    <div className="space-y-4 relative z-10">
+                                        <div className="flex justify-between items-center group">
+                                            <span className="text-[10px] font-bold uppercase text-slate-400 italic">Basic Community Tax</span>
+                                            <span className="font-black italic tracking-tighter text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
                                         </div>
+                                        <div className="flex justify-between items-center group">
+                                            <span className="text-[10px] font-bold uppercase text-slate-400 italic">Additional Tax</span>
+                                            <span className="font-black italic tracking-tighter text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center group">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-[10px] font-bold uppercase text-orange-500 italic">Penalty ({getCedulaPenaltyRateLabel()} Int.)</span>
+                                                <AlertCircle className="w-3 h-3 text-orange-500/50" />
+                                            </div>
+                                            <span className="font-black italic tracking-tighter text-orange-500">₱{calcResult.penalty.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center group border-t border-white/5 pt-4">
+                                            <span className="text-[10px] font-bold uppercase text-slate-400 italic">Delivery Fee</span>
+                                            <div className="relative w-24">
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black italic text-primary">₱</span>
+                                                <Input 
+                                                    type="number"
+                                                    value={deliveryFee}
+                                                    disabled={transaction.fulfillmentType !== "DELIVERY"}
+                                                    onChange={(e) => setDeliveryFee(Number(e.target.value))}
+                                                    className="h-8 pl-6 pr-2 rounded-lg bg-white/10 border-white/5 text-right font-black italic text-xs text-primary"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative z-10 pt-6 border-t border-white/10 flex justify-between items-end">
+                                        <div className="space-y-1">
+                                            <p className="text-[11px] font-black uppercase text-emerald-500 tracking-[0.2em] italic">Estimated Total Due</p>
+                                            <p className="text-[7px] font-medium text-slate-500 uppercase leading-none">* Final assessment is subject to administrative evaluation</p>
+                                        </div>
+                                        <p className="text-4xl font-black italic tracking-tighter text-white">₱{calcResult.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                    </div>
+                                    <Calculator className="absolute -bottom-6 -right-6 w-32 h-32 text-white/5 rotate-12" />
+                                </div>
+
+                                {/* Official Document Record Section (Commented out for now) */}
+                                {/* 
+                                {["PAID", "FOR_CLAIM", "RELEASED"].includes(transaction.status) && (
+                                    <div className="bg-white dark:bg-white/5 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                                                <Archive className="w-4 h-4 text-orange-600" />
+                                            </div>
+                                            <h3 className="text-[10px] font-black uppercase tracking-widest italic text-slate-400">Official Issuance Record</h3>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="relative group">
+                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center transition-colors group-focus-within:bg-orange-500/10">
+                                                    <span className="text-[10px] font-black text-slate-400 group-focus-within:text-orange-600">NO.</span>
+                                                </div>
+                                                <Input 
+                                                    value={ctcNumber}
+                                                    onChange={(e) => setCtcNumber(e.target.value)}
+                                                    placeholder="Enter CTC Serial Number..."
+                                                    disabled={transaction.status === "RELEASED"}
+                                                    className="h-14 pl-16 pr-6 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-bold text-sm tracking-widest focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500/50 transition-all shadow-sm"
+                                                />
+                                            </div>
+                                            <p className="text-[8px] font-medium text-slate-400 italic px-2">
+                                                * This serial number will be permanently recorded on the physical document and in our blockchain-verified ledger.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                */}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Decision Center Console */}
+                    <div className="pt-10 border-t border-slate-100 dark:border-white/5 space-y-6">
+                        {!isRejecting ? (
+                            <div className="flex flex-col md:flex-row gap-6 items-center justify-end">
+                                {/* Dynamic Status Action */}
+                                <div className="flex-1 md:max-w-md w-full">
+                                    {transaction.status === "FOR_REQUESTING" && (
+                                        <Button 
+                                            onClick={handleEvaluate}
+                                            disabled={loading}
+                                            className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(var(--primary-rgb),0.3)] active:scale-95 hover:scale-[1.02] transition-all text-xs"
+                                        >
+                                            {loading ? <Calculator className="animate-spin" /> : "Approve & Compute Fees"}
+                                        </Button>
+                                    )}
+                                    {transaction.status === "EVALUATED" && (
+                                        <Button 
+                                            onClick={handleConfirmPayment}
+                                            disabled={loading}
+                                            className="w-full h-16 rounded-2xl bg-emerald-600 text-white font-black italic uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(16,185,129,0.3)] active:scale-95 hover:scale-[1.02] transition-all text-xs"
+                                        >
+                                            {loading ? <CreditCard className="animate-spin" /> : "Confirm Payment"}
+                                        </Button>
+                                    )}
+                                    {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
                                         <Button 
                                             onClick={handleRelease}
                                             disabled={loading}
-                                            className="w-full h-14 rounded-xl bg-orange-600 text-white font-black italic uppercase tracking-[0.1em] shadow-lg active:scale-[0.98]"
+                                            className="w-full h-16 rounded-2xl bg-orange-600 text-white font-black italic uppercase tracking-widest active:scale-95 hover:scale-[1.02] shadow-[0_10px_30px_rgba(249,115,22,0.3)] transition-all text-xs"
                                         >
-                                            {loading ? <CheckCircle2 className="animate-spin" /> : "Issue & Release Cedula"}
+                                            {loading ? <CheckCircle2 className="animate-spin" /> : 
+                                                transaction.status === "FOR_CLAIM" ? "Claimed & Released" : "Release Document"}
                                         </Button>
-                                    </div>
-                                )}
+                                    )}
+                                    
+                                    {["RELEASED", "REJECTED"].includes(transaction.status) && (
+                                        <div className="h-16 px-10 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-dashed border-slate-200 dark:border-white/10">
+                                            <p className="text-[10px] font-black uppercase text-slate-400 italic tracking-[0.3em]">Transaction Locked • Entry Official</p>
+                                        </div>
+                                    )}
+                                </div>
 
-                                {/* Rejected/Released View */}
-                                {["RELEASED", "REJECTED"].includes(transaction.status) && (
-                                    <div className="p-4 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center border border-dashed border-slate-300">
-                                        <p className="text-[10px] font-black uppercase text-slate-500 italic">No Actions Available for {transaction.status} status</p>
-                                    </div>
-                                )}
-
-                                {/* Always show Reject and Remarks */}
-                                <div className="space-y-4">
-                                    <Textarea 
-                                        placeholder="Add internal remarks or rejection reason..."
-                                        value={remarks}
-                                        onChange={(e) => setRemarks(e.target.value)}
-                                        className="min-h-[100px] rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium"
-                                    />
+                                {/* Common Reject Button */}
+                                {!["RELEASED", "REJECTED"].includes(transaction.status) && (
                                     <Button 
-                                        variant="ghost" 
                                         onClick={() => setIsRejecting(true)}
-                                        className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 font-black italic uppercase tracking-widest text-[10px]"
+                                        variant="outline"
+                                        className="h-16 px-12 border-2 border-red-600/20 text-red-600 hover:bg-red-600 hover:text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl active:scale-95 transition-all w-full md:w-auto shadow-sm"
                                     >
                                         Reject Transaction
                                     </Button>
-                                </div>
+                                )}
                             </div>
                         ) : (
-                            <div className="bg-red-50 dark:bg-red-950/20 p-6 rounded-[2rem] border border-red-100 dark:border-red-950/50 space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                                <h4 className="text-sm font-black text-red-600 uppercase italic tracking-widest">Confirm Rejection</h4>
-                                <p className="text-xs text-red-500 italic leading-relaxed">By rejecting this transaction, the applicant will be notified including the remarks provided above. This action is recorded.</p>
-                                <div className="flex gap-3">
+                            <div className="bg-red-50 dark:bg-red-950/20 p-10 rounded-[2rem] border border-red-100 dark:border-red-900/50 space-y-8 animate-in fade-in zoom-in duration-500">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle className="w-5 h-5 text-red-600" />
+                                        <h4 className="text-sm font-black text-red-600 uppercase italic tracking-widest">Provide Rejection Remarks</h4>
+                                    </div>
+                                    <Textarea 
+                                        ref={remarksRef}
+                                        placeholder="Type the official reason for rejection here... This will be sent to the resident."
+                                        value={remarks}
+                                        onChange={(e) => setRemarks(e.target.value)}
+                                        className="min-h-[120px] rounded-2xl border-red-200 dark:border-white/10 dark:bg-white/5 italic font-medium p-6 text-slate-900 dark:text-white"
+                                    />
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-4">
                                     <Button 
                                         onClick={handleReject}
                                         disabled={loading}
-                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase"
+                                        className="flex-1 h-16 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-xl transition-all active:scale-95"
                                     >
-                                        {loading ? "Rejecting..." : "Yes, Reject Transaction"}
+                                        {loading ? "Processing..." : "Confirm Final Rejection"}
                                     </Button>
                                     <Button 
                                         variant="outline" 
                                         onClick={() => setIsRejecting(false)}
-                                        className="flex-1 font-black italic uppercase"
+                                        className="h-16 px-12 font-black italic uppercase tracking-widest rounded-2xl border-2"
                                     >
-                                        Cancel
+                                        Back
                                     </Button>
                                 </div>
                             </div>
                         )}
                     </div>
-
-                    {/* Final Status Info */}
-                    {transaction.status === "RELEASED" && transaction.cedula && (
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem] flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-emerald-500 p-3 rounded-[1.25rem] text-white">
-                                    <Printer className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase text-emerald-600 italic">Issued Successfully</p>
-                                    <p className="text-sm font-bold italic tracking-widest text-emerald-900 dark:text-emerald-400">CTC SN: {transaction.cedula.ctcNumber}</p>
-                                </div>
-                            </div>
-                            <Button className="bg-emerald-600 text-white font-black italic uppercase tracking-widest rounded-xl">Print Preview</Button>
-                        </div>
-                    )}
                 </div>
-            </DialogContent>
+            </div>
+        </DialogContent>
         </Dialog>
     );
 }

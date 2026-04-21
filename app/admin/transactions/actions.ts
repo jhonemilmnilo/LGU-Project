@@ -9,6 +9,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import fs from "fs";
 import { FulfillmentType, PaymentType } from "@prisma/client";
+import { sendEmail } from "@/lib/mail";
 
 // --- HELPERS ---
 
@@ -228,7 +229,7 @@ export async function submitTransaction(formData: FormData) {
 /**
  * Evaluate a Cedula Transaction (Treasury Staff side)
  */
-export async function evaluateCedulaTransaction(id: string, adminNotes?: string) {
+export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string) {
     try {
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
@@ -255,18 +256,34 @@ export async function evaluateCedulaTransaction(id: string, adminNotes?: string)
             income: additionalData.income || 0,
             propertyValue: additionalData.propertyValue || 0,
             fulfillmentType: transaction.fulfillmentType,
-            deliveryFee: transaction.type.deliveryFee
+            deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : transaction.type.deliveryFee
         });
+
+        // Determine New Status
+        const isForClaim = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH";
+        const newStatus = (isForClaim ? "FOR_CLAIM" : "EVALUATED") as any;
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
             data: {
-                status: "EVALUATED",
+                status: newStatus,
                 totalAmount: result.totalAmount,
                 processedBy: user.id,
                 rejectionRemarks: adminNotes
-            }
-        });
+            },
+            include: { user: true } // Include user to get email
+        }) as any;
+
+        // Trigger Email Notification if it's FOR_CLAIM
+        if (isForClaim && updatedTransaction.user?.email) {
+            const resident = transaction.residentSnapshot as any;
+            await sendEmail({
+                type: "FOR_CLAIM",
+                to: updatedTransaction.user.email,
+                name: `${resident.firstName} ${resident.lastName}`,
+                transactionId: id.slice(-8).toUpperCase() // Use short ID for reference
+            });
+        }
 
         revalidatePath("/admin/treasury");
         return { success: true, data: updatedTransaction, calculation: result };
@@ -320,8 +337,8 @@ export async function releaseCedula(id: string, ctcNumber: string) {
             include: { type: true }
         });
 
-        if (!transaction || transaction.status !== "PAID") {
-            return { success: false, error: "Transaction must be paid before release" };
+        if (!transaction || !["PAID", "FOR_CLAIM"].includes(transaction.status as any)) {
+            return { success: false, error: "Transaction must be paid or ready for claiming before release" };
         }
 
         const additionalData = transaction.additionalData as any;
@@ -381,7 +398,11 @@ export async function getTreasuryTransactions(status?: string) {
         };
 
         if (status && status !== "ALL") {
-            where.status = status;
+            if (status === "PAID") {
+                where.status = { in: ["PAID", "FOR_CLAIM"] as any };
+            } else {
+                where.status = status;
+            }
         }
 
         const transactions = await prisma.transaction.findMany({
@@ -409,7 +430,7 @@ export async function getPendingTreasuryCount() {
         const count = await prisma.transaction.count({
             where: {
                 type: { category: "Treasurer" },
-                status: { in: ["FOR_REQUESTING", "PAID"] } // Needs evaluation or Needs release
+                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM"] as any } // Needs evaluation or Needs release/claim
             }
         });
         return { success: true, count };

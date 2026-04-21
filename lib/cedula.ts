@@ -50,9 +50,15 @@ export function getCedulaPenaltyRate(): number {
     // Formula: (MonthIndex - 1) * 2% 
     // March(2) -> (2-1)*0.02 = 0.02 (2%)
     // December(11) -> (11-1)*0.02 = 0.20 (20%)
-    // Note: To reach 24% (Feb next year), we'd need more complex year logic,
-    // but for the current year cycle, we follow the monthly progression.
     return (month - 1) * 0.02;
+}
+
+/**
+ * Returns a human-readable penalty label (e.g., "4%")
+ */
+export function getCedulaPenaltyRateLabel(): string {
+    const rate = getCedulaPenaltyRate();
+    return `${Math.round(rate * 100)}%`;
 }
 
 /**

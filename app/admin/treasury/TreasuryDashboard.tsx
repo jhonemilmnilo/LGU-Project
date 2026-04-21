@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
     Search, RefreshCcw, 
-    CreditCard, Clock, 
     Archive, Eye
 } from "lucide-react";
 import { TransactionDetailModal } from "./TransactionDetailModal";
@@ -32,7 +31,6 @@ export default function TreasuryDashboard() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [selectedTx, setSelectedTx] = useState<any>(null);
-    const [stats, setStats] = useState({ pending: 0, today: 0 });
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -42,11 +40,8 @@ export default function TreasuryDashboard() {
                 setTransactions(res.data || []);
             }
             
-            // Fetch stats
-            const countRes = await getPendingTreasuryCount();
-            if (countRes.success) {
-                setStats(prev => ({ ...prev, pending: countRes.count || 0 }));
-            }
+            // Fetch stats (Removed unused setStats to comply with lint)
+            await getPendingTreasuryCount();
         } catch {
             toast.error("Failed to load transactions");
         } finally {
@@ -67,6 +62,7 @@ export default function TreasuryDashboard() {
         switch (status) {
             case "FOR_REQUESTING": return "bg-amber-100 text-amber-700 border-amber-200";
             case "EVALUATED": return "bg-blue-100 text-blue-700 border-blue-200";
+            case "FOR_CLAIM": return "bg-indigo-100 text-indigo-700 border-indigo-200";
             case "PAID": return "bg-emerald-100 text-emerald-700 border-emerald-200";
             case "RELEASED": return "bg-slate-100 text-slate-700 border-slate-200";
             case "REJECTED": return "bg-red-100 text-red-700 border-red-200";
@@ -76,38 +72,7 @@ export default function TreasuryDashboard() {
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Stats Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <div className="bg-white dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 flex items-center justify-between group hover:border-primary/20 transition-all shadow-sm">
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] italic">Pending Batch</p>
-                        <h3 className="text-4xl font-black italic tracking-tighter text-slate-900 dark:text-white uppercase">{stats.pending} <span className="text-xs text-amber-500 tracking-normal lowercase not-italic font-bold">Applications</span></h3>
-                    </div>
-                    <div className="bg-amber-500/10 p-4 rounded-3xl text-amber-500 group-hover:scale-110 transition-transform">
-                        <Clock className="w-8 h-8" />
-                    </div>
-                </div>
 
-                <div className="bg-primary p-8 rounded-[2.5rem] flex items-center justify-between group shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all cursor-pointer">
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] italic">Collection Hub</p>
-                        <h3 className="text-4xl font-black italic tracking-tighter text-white uppercase italic">Active <span className="text-xs text-white/70 tracking-normal lowercase not-italic font-bold">Queue</span></h3>
-                    </div>
-                    <div className="bg-white/20 p-4 rounded-3xl text-white">
-                        <RefreshCcw className="w-8 h-8" />
-                    </div>
-                </div>
-
-                <div className="bg-slate-950 p-8 rounded-[2.5rem] flex items-center justify-between group shadow-2xl hover:border-emerald-500/30 transition-all">
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] italic">Treasury Status</p>
-                        <h3 className="text-4xl font-black italic tracking-tighter text-emerald-500 uppercase italic">Online</h3>
-                    </div>
-                    <div className="bg-emerald-500/10 p-4 rounded-3xl text-emerald-500">
-                        <CreditCard className="w-8 h-8" />
-                    </div>
-                </div>
-            </div>
 
             {/* Dashboard Controls */}
             <div className="bg-white dark:bg-white/5 p-2 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm">
@@ -146,7 +111,7 @@ export default function TreasuryDashboard() {
                             <Table>
                                 <TableHeader className="bg-slate-50 dark:bg-white/5">
                                     <TableRow className="border-none hover:bg-transparent">
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em] h-14 pl-8">Transaction ID</TableHead>
+                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em] h-14 pl-8">#</TableHead>
                                         <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Applicant</TableHead>
                                         <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Service</TableHead>
                                         <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Method</TableHead>
@@ -163,10 +128,10 @@ export default function TreasuryDashboard() {
                                             </TableRow>
                                         ))
                                     ) : filteredTransactions.length > 0 ? (
-                                        filteredTransactions.map((tx) => (
+                                        filteredTransactions.map((tx, index) => (
                                             <TableRow key={tx.id} className="group border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                                                 <TableCell className="pl-8 py-6">
-                                                    <span className="text-[10px] font-black font-mono tracking-widest text-slate-400 group-hover:text-primary transition-colors">#{tx.id.slice(-8).toUpperCase()}</span>
+                                                    <span className="text-xs font-black font-mono tracking-widest text-[var(--primary-theme)]">{index + 1}</span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
@@ -204,7 +169,7 @@ export default function TreasuryDashboard() {
                                                     <Button 
                                                         onClick={() => setSelectedTx(tx)}
                                                         variant="ghost" 
-                                                        className="h-10 w-10 rounded-xl p-0 hover:bg-primary hover:text-white transition-all transform active:scale-95 group-hover:rotate-6"
+                                                        className="h-10 w-10 rounded-xl p-0 bg-primary/10 text-primary transition-all active:scale-95"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </Button>
