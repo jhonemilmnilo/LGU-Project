@@ -32,6 +32,30 @@ export function isPastCedulaDeadline(): boolean {
 }
 
 /**
+ * Calculates the penalty rate based on the current month.
+ * January: 0%
+ * February: 0%
+ * March: 2%
+ * April: 4%
+ * ...
+ * February (Next Year Theoretical Max): 24%
+ */
+export function getCedulaPenaltyRate(): number {
+    const now = new Date();
+    const month = now.getMonth(); // 0-indexed: 0=Jan, 1=Feb, 2=Mar...
+
+    // Penalty starts in March (Index 2)
+    if (month < 2) return 0;
+    
+    // Formula: (MonthIndex - 1) * 2% 
+    // March(2) -> (2-1)*0.02 = 0.02 (2%)
+    // December(11) -> (11-1)*0.02 = 0.20 (20%)
+    // Note: To reach 24% (Feb next year), we'd need more complex year logic,
+    // but for the current year cycle, we follow the monthly progression.
+    return (month - 1) * 0.02;
+}
+
+/**
  * Computes the Community Tax Certificate (Cedula) amount.
  */
 export function calculateCedula(params: CedulaCalculationParams): CedulaResult {
@@ -39,35 +63,50 @@ export function calculateCedula(params: CedulaCalculationParams): CedulaResult {
         type, 
         income, 
         propertyValue, 
-        isPastDeadline = isPastCedulaDeadline(),
         fulfillmentType = "PICK_UP",
         deliveryFee = 0
     } = params;
 
-    let basicTax = 0;
+    const basicTax = type === "INDIVIDUAL" ? 5.00 : 500.00;
     let additionalTax = 0;
     const totalBasis = income + propertyValue;
 
     if (type === "INDIVIDUAL") {
-        // Individual Logic
-        basicTax = 5.00;
-        // ₱1.00 for every ₱1,000 of income/property
+        // Individual: ₱1.00 for every ₱1,000 of income/property
         additionalTax = Math.floor(totalBasis / 1000) * 1.00;
-        // Maximum Additional Tax: ₱5,000
-        if (additionalTax > 5000) additionalTax = 5000;
     } else {
-        // Juridical Logic
-        basicTax = 500.00;
-        // ₱2.00 for every ₱5,000 of income/property
+        // Juridical: ₱2.00 for every ₱5,000 of income/property
         additionalTax = Math.floor(totalBasis / 5000) * 2.00;
-        // Maximum Additional Tax: ₱10,000
-        if (additionalTax > 10000) additionalTax = 10000;
     }
 
-    // Penalty Rule: 24% interest per annum if obtained after March 1
-    const penalty = isPastDeadline ? (basicTax + additionalTax) * 0.24 : 0;
+    // Dynamic Penalty: 2% monthly increase starting March
+    const penaltyRate = getCedulaPenaltyRate();
+    let penalty = (basicTax + additionalTax) * penaltyRate;
 
-    // Delivery Fee
+    // Apply Global Caps (Including Penalty)
+    // Individual: ₱5,000 max
+    // Juridical: ₱10,000 max
+    const cap = type === "INDIVIDUAL" ? 5000 : 10000;
+    const currentSubtotal = basicTax + additionalTax + penalty;
+
+    if (currentSubtotal > cap) {
+        // If over cap, we need to adjust additionalTax and penalty proportionally
+        // basicTax remains constant as it's the fixed minimum
+        const adjustableAmount = cap - basicTax;
+        const totalAdjustableRaw = additionalTax + penalty;
+        
+        if (totalAdjustableRaw > 0) {
+            const reductionRatio = adjustableAmount / totalAdjustableRaw;
+            additionalTax = additionalTax * reductionRatio;
+            penalty = penalty * reductionRatio;
+        } else {
+            // Edge case: basicTax already exceeds cap (shouldn't happen with 5/500 vs 5k/10k)
+            additionalTax = 0;
+            penalty = 0;
+        }
+    }
+
+    // Delivery Fee (External to caps)
     const finalDeliveryFee = fulfillmentType === "DELIVERY" ? deliveryFee : 0;
 
     return {

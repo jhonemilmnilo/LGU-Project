@@ -47,15 +47,15 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
             case "DRAFT":
                 return { label: "DRAFT", color: "bg-slate-100 text-slate-600 border-slate-200", icon: FileText, progress: 10 };
             case "FOR_REQUESTING":
-                return { label: "PENDING", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, progress: 25 };
+                return { label: "PENDING", color: "bg-[var(--primary-theme)] text-white border-transparent", icon: Clock, progress: 25 };
             case "FOR_PROCESSING":
-                return { label: "FOR_PROCESSING", color: "bg-blue-50 text-blue-600 border-blue-100", icon: Activity, progress: 40 };
+                return { label: "FOR_PROCESSING", color: "bg-[var(--primary-theme)] text-white border-transparent", icon: Activity, progress: 40 };
             case "EVALUATED":
-                return { label: "EVALUATED", color: "bg-blue-100 text-blue-700 border-blue-200", icon: DollarSign, progress: 50 };
+                return { label: "EVALUATED", color: "bg-[var(--primary-theme)] text-white border-transparent", icon: DollarSign, progress: 50 };
             case "UNPAID":
                 return { label: "UNPAID", color: "bg-red-50 text-red-600 border-red-100", icon: Wallet, progress: 55 };
             case "PAID":
-                return { label: "PAID", color: "bg-indigo-100 text-indigo-700 border-indigo-200", icon: Clock, progress: 75 };
+                return { label: "PAID", color: "bg-[var(--primary-theme)] text-white border-transparent", icon: Clock, progress: 75 };
             case "RELEASED":
                 return { label: "RELEASED", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2, progress: 100 };
             case "REJECTED":
@@ -102,10 +102,10 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                     <ScrollArea className="h-full">
                         <div className="p-4 sm:p-8 pb-32">
                             <Tabs defaultValue="overview" className="space-y-8">
-                            <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-auto sm:h-16 w-full sm:w-fit border border-slate-200 dark:border-white/5 flex flex-col sm:flex-row">
-                                <TabsTrigger value="overview" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Overview</TabsTrigger>
-                                <TabsTrigger value="declarations" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Application Records</TabsTrigger>
-                                <TabsTrigger value="logistics" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Logistics & Proof</TabsTrigger>
+                            <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-auto sm:h-16 w-full sm:w-fit border border-slate-200 dark:border-white/5 flex flex-col sm:flex-row focus-within:border-[var(--primary-theme)]/30 transition-all shadow-sm">
+                                <TabsTrigger value="overview" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:!bg-primary data-[state=active]:!text-white transition-all shadow-sm data-[state=active]:shadow-primary/20">Overview</TabsTrigger>
+                                <TabsTrigger value="declarations" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:!bg-primary data-[state=active]:!text-white transition-all shadow-sm data-[state=active]:shadow-primary/20">Application Records</TabsTrigger>
+                                <TabsTrigger value="logistics" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:!bg-primary data-[state=active]:!text-white transition-all shadow-sm data-[state=active]:shadow-primary/20">Logistics & Proof</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="overview" className="mt-0">

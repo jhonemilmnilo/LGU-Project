@@ -56,7 +56,7 @@ import {
     submitTransaction,
     ensureCedulaTransactionTypes
 } from "@/app/admin/transactions/actions";
-import { calculateCedula, CedulaResult, isPastCedulaDeadline } from "@/lib/cedula";
+import { calculateCedula, CedulaResult, isPastCedulaDeadline, getCedulaPenaltyRate } from "@/lib/cedula";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -721,7 +721,7 @@ export default function CedulaApplicationPage() {
                                                 </div>
                                                 <div className="flex justify-between items-center text-xs uppercase tracking-widest italic text-amber-500">
                                                     <span className="flex items-center gap-2">
-                                                        Penalty (24% Int.)
+                                                        Penalty ({Math.round(getCedulaPenaltyRate() * 100)}% Int.)
                                                         {isPastCedulaDeadline() && (
                                                             <TooltipProvider delayDuration={0}>
                                                                 <Tooltip>
@@ -734,7 +734,7 @@ export default function CedulaApplicationPage() {
                                                                         <div className="space-y-2">
                                                                             <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500 italic">Penalty Rule</h4>
                                                                             <p className="text-[9px] font-medium leading-relaxed uppercase tracking-tighter">
-                                                                                If the Cedula is obtained from March 1 until the end of the year, a 24% interest per annum shall be imposed on the unpaid community tax.
+                                                                                Starting March 1st, a 2% monthly interest is imposed on the unpaid community tax, increasing by 2% each month up to a maximum of 24%.
                                                                             </p>
                                                                         </div>
                                                                     </TooltipContent>

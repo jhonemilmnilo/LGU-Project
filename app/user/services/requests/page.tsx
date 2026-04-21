@@ -52,12 +52,12 @@ export default function UserServiceRequestsPage() {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case "FOR_REQUESTING": return { color: "text-amber-600", bg: "bg-amber-100", border: "border-amber-200", icon: Clock, label: "PENDING" };
-            case "EVALUATED": return { color: "text-blue-600", bg: "bg-blue-100", border: "border-blue-200", icon: DollarSign, label: "EVALUATED" };
-            case "PAID": return { color: "text-indigo-600", bg: "bg-indigo-100", border: "border-indigo-200", icon: Activity, label: "PROCESSING" };
+            case "FOR_REQUESTING": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: "PENDING", opacity: 0.8 };
+            case "EVALUATED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "EVALUATED", opacity: 0.9 };
+            case "PAID": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };
             case "RELEASED": return { color: "text-emerald-600", bg: "bg-emerald-100", border: "border-emerald-200", icon: CheckCircle2, label: "COMPLETED" };
             case "REJECTED": return { color: "text-red-600", bg: "bg-red-100", border: "border-red-200", icon: XCircle, label: "REJECTED" };
-            default: return { color: "text-slate-500", bg: "bg-slate-100", border: "border-slate-200", icon: Clock, label: status };
+            default: return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: status };
         }
     };
 
