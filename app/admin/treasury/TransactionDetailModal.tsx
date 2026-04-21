@@ -290,7 +290,14 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
                                     {transaction.fulfillmentType === "DELIVERY" && (
                                         <div className="space-y-1">
                                             <Label className="text-[10px] font-black text-slate-400 uppercase italic">Delivery Address</Label>
-                                            <p className="text-xs font-semibold italic text-primary">{transaction.deliveryAddress}</p>
+                                            <p className="text-xs font-semibold italic text-primary">
+                                                {(() => {
+                                                    const addr = transaction.deliveryAddress;
+                                                    if (!addr) return "No address specified";
+                                                    if (typeof addr === "string") return addr;
+                                                    return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
+                                                })()}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

@@ -143,7 +143,13 @@ export async function submitTransaction(formData: FormData) {
         const typeId = formData.get("typeId") as string;
         const fulfillmentType = formData.get("fulfillmentType") as FulfillmentType;
         const paymentType = formData.get("paymentType") as PaymentType;
-        const deliveryAddress = formData.get("deliveryAddress") as string;
+        const deliveryAddressRaw = formData.get("deliveryAddress") as string;
+        const deliveryAddress = (fulfillmentType === "DELIVERY" && deliveryAddressRaw) 
+            ? JSON.parse(deliveryAddressRaw) 
+            : null;
+        const deliveryLandmark = formData.get("deliveryLandmark") as string;
+        const deliveryLat = formData.get("deliveryLat") ? parseFloat(formData.get("deliveryLat") as string) : null;
+        const deliveryLng = formData.get("deliveryLng") ? parseFloat(formData.get("deliveryLng") as string) : null;
 
         // Snapshots and Data
         const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
@@ -163,21 +169,52 @@ export async function submitTransaction(formData: FormData) {
             proofOfIncomeUrl: proofUrl
         };
 
-        const transaction = await prisma.transaction.create({
-            data: {
-                userId: session.user.id,
-                typeId,
-                status: "FOR_REQUESTING",
-                fulfillmentType,
-                paymentType,
-                deliveryAddress: fulfillmentType === "DELIVERY" ? deliveryAddress : null,
-                residentSnapshot,
-                additionalData: updatedAdditionalData,
-                totalAmount: 0, // Will be set during evaluation
-            }
-        });
+        // --- BEST PRACTICE: ATOMICITY ---
+        // We use a prisma.$transaction here to ensure that both the transaction record 
+        // and the profile update happen together. If one fails, the entire move rolls back 
+        // to keep your database super clean and consistent!
+        const [transaction] = await prisma.$transaction([
+            // 1. Create the Transaction Record
+            prisma.transaction.create({
+                data: {
+                    userId: session.user.id,
+                    typeId,
+                    status: "FOR_REQUESTING",
+                    fulfillmentType,
+                    paymentType,
+                    deliveryAddress: fulfillmentType === "DELIVERY" ? deliveryAddress : null,
+                    deliveryLat: fulfillmentType === "DELIVERY" ? deliveryLat : null,
+                    deliveryLng: fulfillmentType === "DELIVERY" ? deliveryLng : null,
+                    deliveryLandmark: fulfillmentType === "DELIVERY" ? deliveryLandmark : null,
+                    residentSnapshot,
+                    additionalData: updatedAdditionalData,
+                    totalAmount: 0,
+                } as any
+            }),
+            // 2. Update the Permanent Resident Profile
+            prisma.resident.update({
+                where: { userId: session.user.id },
+                data: {
+                    firstName: residentSnapshot.firstName,
+                    middleName: residentSnapshot.middleName,
+                    lastName: residentSnapshot.lastName,
+                    suffix: residentSnapshot.suffix,
+                    dateOfBirth: residentSnapshot.dateOfBirth ? new Date(residentSnapshot.dateOfBirth) : undefined,
+                    civilStatus: residentSnapshot.civilStatus,
+                    citizenship: residentSnapshot.citizenship,
+                    houseNumber: residentSnapshot.houseNumber,
+                    street: residentSnapshot.street,
+                    barangay: residentSnapshot.barangay,
+                    municipality: residentSnapshot.municipality,
+                    province: residentSnapshot.province,
+                    contactNumber: residentSnapshot.contactNumber,
+                    email: residentSnapshot.email,
+                }
+            })
+        ]);
 
         revalidatePath("/user/services");
+        revalidatePath("/admin/transactions"); // Also update admin view
         return { success: true, data: transaction };
     } catch (error) {
         console.error("Submit transaction error:", error);

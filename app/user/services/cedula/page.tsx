@@ -12,14 +12,14 @@ import {
     Upload,
     CheckCircle2,
     ChevronRight,
-    ChevronLeft,
     AlertCircle,
     Info,
     Wallet,
     Home,
     Calculator,
     Package,
-    Loader2
+    Loader2,
+    Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,12 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import dynamic from "next/dynamic";
+
+const LocationPicker = dynamic(() => import("@/components/LocationPicker"), { 
+    ssr: false,
+    loading: () => <div className="h-[350px] w-full rounded-3xl bg-slate-100 animate-pulse flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Loading Map...</div>
+});
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
@@ -46,10 +52,22 @@ import {
 import { calculateCedula, CedulaResult, isPastCedulaDeadline } from "@/lib/cedula";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // --- TYPES ---
 
 type Step = "TYPE" | "RESIDENT" | "DECLARATION" | "DELIVERY" | "CONFIRM";
+
+interface DeliveryAddress {
+    houseNumber: string;
+    street: string;
+    sitio: string;
+    purok: string;
+    barangay: string;
+    municipality: string;
+    province: string;
+    region: string;
+}
 
 interface FormState {
     typeId: string;
@@ -58,8 +76,11 @@ interface FormState {
     income: string;
     propertyValue: string;
     fulfillmentType: "PICK_UP" | "DELIVERY";
-    paymentType: "CASH" | "E_PAYMENT" | "BANK_TRANSFER";
-    deliveryAddress: string;
+    paymentType: "CASH" | "CASH_ON_DELIVERY" | "E_PAYMENT" | "BANK_TRANSFER";
+    deliveryAddress: DeliveryAddress;
+    deliveryLandmark: string;
+    deliveryLat: number | null;
+    deliveryLng: number | null;
     idFile: File | null;
     proofFile: File | null;
     businessName: string;
@@ -70,8 +91,8 @@ interface FormState {
 const STEPS: { id: Step; label: string; icon: any }[] = [
     { id: "TYPE", label: "Select Service", icon: Fingerprint },
     { id: "RESIDENT", label: "Identity", icon: User },
-    { id: "DECLARATION", label: "Declaration", icon: Calculator },
     { id: "DELIVERY", label: "Logistics", icon: Package },
+    { id: "DECLARATION", label: "Declaration", icon: Calculator },
     { id: "CONFIRM", label: "Submit", icon: CheckCircle2 },
 ];
 
@@ -92,11 +113,26 @@ export default function CedulaApplicationPage() {
         propertyValue: "0",
         fulfillmentType: "PICK_UP",
         paymentType: "CASH",
-        deliveryAddress: "",
+        deliveryAddress: {
+            houseNumber: "",
+            street: "",
+            sitio: "",
+            purok: "",
+            barangay: "",
+            municipality: "Agno",
+            province: "Pangasinan",
+            region: "Ilocos Region"
+        },
+        deliveryLandmark: "",
+        deliveryLat: null,
+        deliveryLng: null,
         idFile: null,
         proofFile: null,
         businessName: ""
     });
+
+    const [barangays, setBarangays] = useState<{ code: string; name: string }[]>([]);
+    const [loadingBarangays, setLoadingBarangays] = useState(false);
 
     // --- INITIALIZATION ---
 
@@ -124,7 +160,18 @@ export default function CedulaApplicationPage() {
                     setFormData(prev => ({
                         ...prev,
                         residentData: resident,
-                        deliveryAddress: `${resident.houseNumber || ""} ${resident.street || ""} ${resident.barangay}, ${resident.municipality || "Agno"}`.trim()
+                        deliveryAddress: {
+                            houseNumber: resident.houseNumber || "",
+                            street: resident.street || "",
+                            sitio: resident.sitio || "",
+                            purok: resident.purok || "",
+                            barangay: resident.barangay || "",
+                            municipality: resident.municipality || "Agno",
+                            province: resident.province || "Pangasinan",
+                            region: "Ilocos Region"
+                        },
+                        deliveryLat: resident.latitude || null,
+                        deliveryLng: resident.longitude || null
                     }));
                 }
             } catch (err) {
@@ -137,8 +184,9 @@ export default function CedulaApplicationPage() {
         init();
     }, []);
 
-    // --- LOGIC ---
+    // Remove PSGC fetch if not needed anymore
 
+    // --- LOGIC ---
     const updateCalc = React.useCallback(() => {
         const selectedType = transactionTypes.find(t => t.id === formData.typeId);
         const result = calculateCedula({
@@ -155,18 +203,64 @@ export default function CedulaApplicationPage() {
         updateCalc();
     }, [updateCalc]);
 
+
+    // --- AUTO-SYNC PAYMENT TYPE ---
+    // If fulfillment is Delivery, we use CASH_ON_DELIVERY. If Pickup, we use CASH.
+    // This keeps our database super accurate based on the user's choices.
+    useEffect(() => {
+        if (formData.fulfillmentType === "DELIVERY" && formData.paymentType as any === "CASH") {
+            setFormData(p => ({ ...p, paymentType: "CASH_ON_DELIVERY" as any }));
+        } else if (formData.fulfillmentType === "PICK_UP" && formData.paymentType as any === "CASH_ON_DELIVERY") {
+            setFormData(p => ({ ...p, paymentType: "CASH" as any }));
+        }
+    }, [formData.fulfillmentType, formData.paymentType]);
+
+    const isStepValid = (stepId: Step) => {
+        switch (stepId) {
+            case "TYPE":
+                return !!formData.applicantType && !!formData.typeId;
+            case "RESIDENT":
+                const r = formData.residentData;
+                return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.email && r?.contactNumber);
+            case "DECLARATION":
+                return parseFloat(formData.income) >= 0 && parseFloat(formData.propertyValue) >= 0;
+            case "DELIVERY":
+                if (formData.fulfillmentType === "DELIVERY") {
+                    const addr = formData.deliveryAddress;
+                    return !!(addr.barangay && addr.municipality && formData.deliveryLat && formData.deliveryLng);
+                }
+                return true;
+            case "CONFIRM":
+                return !!formData.idFile && !!formData.proofFile;
+            default:
+                return true;
+        }
+    };
+
+    const canNavigate = (targetStep: Step) => {
+        const targetIdx = STEPS.findIndex(s => s.id === targetStep);
+        const currentIdx = STEPS.findIndex(s => s.id === currentStep);
+
+        // --- BEST PRACTICE: FORWARD NAVIGATION CONTROL ---
+        // To ensure data integrity and a guided user experience, we strictly 
+        // allow the stepper to navigate BACKWARDS only. 
+        // Forward movement must go through the "Next Phase" button validations.
+        return targetIdx < currentIdx;
+    };
+
     const handleNext = () => {
+        if (!isStepValid(currentStep)) {
+            if (currentStep === "DELIVERY" && formData.fulfillmentType === "DELIVERY") {
+                toast.error("Please provide a delivery address and pin your location on the map.");
+            } else {
+                toast.error("Please complete all required fields in this phase.");
+            }
+            return;
+        }
         const stepIndex = STEPS.findIndex(s => s.id === currentStep);
         if (stepIndex < STEPS.length - 1) {
             setCurrentStep(STEPS[stepIndex + 1].id);
             window.scrollTo(0, 0);
-        }
-    };
-
-    const handleBack = () => {
-        const stepIndex = STEPS.findIndex(s => s.id === currentStep);
-        if (stepIndex > 0) {
-            setCurrentStep(STEPS[stepIndex - 1].id);
         }
     };
 
@@ -183,7 +277,11 @@ export default function CedulaApplicationPage() {
             submitData.append("typeId", formData.typeId);
             submitData.append("fulfillmentType", formData.fulfillmentType);
             submitData.append("paymentType", formData.paymentType);
-            submitData.append("deliveryAddress", formData.deliveryAddress);
+            submitData.append("deliveryAddress", JSON.stringify(formData.deliveryAddress));
+            if (formData.deliveryLat) submitData.append("deliveryLat", formData.deliveryLat.toString());
+            if (formData.deliveryLng) submitData.append("deliveryLng", formData.deliveryLng.toString());
+            submitData.append("deliveryLandmark", formData.deliveryLandmark);
+            
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
             submitData.append("additionalData", JSON.stringify({
                 applicantType: formData.applicantType,
@@ -248,12 +346,6 @@ export default function CedulaApplicationPage() {
                         </h1>
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-2 italic">LGU Digital Governance Portal</p>
                     </div>
-                    {calcResult && (
-                        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 px-6 py-4 rounded-3xl flex flex-col items-end group hover:bg-primary transition-all duration-500">
-                            <span className="text-[10px] font-black text-primary uppercase tracking-widest group-hover:text-white/80 transition-colors">Current Computation</span>
-                            <span className="text-3xl font-black text-primary group-hover:text-white transition-colors tracking-tighter italic">₱{calcResult.totalAmount.toLocaleString()}</span>
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -264,18 +356,32 @@ export default function CedulaApplicationPage() {
                     const isCompleted = STEPS.findIndex(s => s.id === currentStep) > idx;
                     const Icon = step.icon;
                     return (
-                        <div key={idx} className="flex flex-col items-center gap-3 relative z-10 font-black">
+                        <div 
+                            key={idx} 
+                            onClick={() => {
+                                if (canNavigate(step.id)) {
+                                    setCurrentStep(step.id);
+                                    window.scrollTo(0, 0);
+                                } else {
+                                    toast.error("Please complete the current phase first.");
+                                }
+                            }}
+                            className={cn(
+                                "flex flex-col items-center gap-3 relative z-10 font-black cursor-pointer group",
+                                (!canNavigate(step.id) && !isActive) && "cursor-not-allowed opacity-50"
+                            )}
+                        >
                             <div className={cn(
                                 "w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
                                 isActive ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-110" :
                                     isCompleted ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
-                                        "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent"
+                                        "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-primary/30"
                             )}>
                                 <Icon className="w-5 h-5 md:w-7 md:h-7" />
                             </div>
                             <span className={cn(
                                 "text-[8px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
-                                isActive ? "text-primary opacity-100 font-black" : "opacity-40"
+                                isActive ? "text-primary opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity"
                             )}>
                                 {step.label}
                             </span>
@@ -285,7 +391,8 @@ export default function CedulaApplicationPage() {
             </div>
 
             {/* Step Content */}
-            <div className="mt-8 bg-white dark:bg-[#11131a] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-2xl relative overflow-hidden group/container min-h-[500px]">
+            <div className="mt-8 bg-white dark:bg-[#11131a] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-2xl relative overflow-hidden group/container min-h-[500px] flex flex-col">
+                <div className="flex-1">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentStep}
@@ -479,61 +586,12 @@ export default function CedulaApplicationPage() {
                                             />
                                         </div>
                                     </div>
-
-                                    <Separator className="opacity-50" />
-
-                                    {/* Row 4: Address */}
-                                    <div className="space-y-3">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Registered Address</Label>
-                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                                            <div className="space-y-1">
-                                                <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter ml-1">House #</Label>
-                                                <Input
-                                                    value={formData.residentData?.houseNumber || ""}
-                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, houseNumber: e.target.value } }))}
-                                                    className="h-9 text-xs rounded-lg border-slate-200"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter ml-1">Street / Purok</Label>
-                                                <Input
-                                                    value={formData.residentData?.street || ""}
-                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, street: e.target.value } }))}
-                                                    className="h-9 text-xs rounded-lg border-slate-200"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter ml-1">Barangay</Label>
-                                                <Input
-                                                    value={formData.residentData?.barangay || ""}
-                                                    readOnly
-                                                    className="h-9 text-xs rounded-lg bg-slate-50 border-slate-100 text-slate-400"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter ml-1">Municipality</Label>
-                                                <Input
-                                                    value={formData.residentData?.municipality || "Agno"}
-                                                    readOnly
-                                                    className="h-9 text-xs rounded-lg bg-slate-50 border-slate-100 text-slate-400"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter ml-1">Province</Label>
-                                                <Input
-                                                    value={formData.residentData?.province || "Pangasinan"}
-                                                    readOnly
-                                                    className="h-9 text-xs rounded-lg bg-slate-50 border-slate-100 text-slate-400 underline decoration-dotted"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
-
-                                <div className="bg-amber-500/5 border border-amber-500/10 p-4 rounded-2xl flex items-start gap-3">
-                                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                                    <p className="text-[10px] text-amber-700/80 dark:text-amber-400 font-bold italic leading-tight uppercase tracking-widest">
-                                        Note: These temporary edits only apply to this certificate. Visit Settings for permanent updates.
+                                
+                                <div className="bg-primary/5 border border-primary/10 p-4 rounded-3xl flex items-start gap-3">
+                                    <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                                    <p className="text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
+                                        Note: Filling in missing details here will automatically update your permanent Resident Profile after successful transaction.
                                     </p>
                                 </div>
                             </div>
@@ -590,7 +648,7 @@ export default function CedulaApplicationPage() {
                                         <div className="absolute top-0 right-0 p-8 opacity-10">
                                             <Calculator className="w-32 h-32 rotate-12" />
                                         </div>
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Live Computation</h3>
+                                        {/* <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic"></h3> */}
                                         <div className="space-y-4 border-b border-white/10 pb-6 relative z-10 font-bold">
                                             <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
                                                 <span>Basic Community Tax</span>
@@ -603,6 +661,10 @@ export default function CedulaApplicationPage() {
                                             <div className="flex justify-between items-center text-xs uppercase tracking-widest italic text-amber-500">
                                                 <span className="flex items-center gap-2">Penalty (24% Int.) {isPastCedulaDeadline() && <AlertCircle className="w-3.5 h-3.5" />}</span>
                                                 <span>₱{calcResult?.penalty.toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
+                                                <span>Delivery Fee</span>
+                                                <span>₱{calcResult?.deliveryFee.toFixed(2)}</span>
                                             </div>
                                         </div>
                                         <div className="pt-2 flex justify-between items-end relative z-10">
@@ -627,8 +689,8 @@ export default function CedulaApplicationPage() {
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Fulfillment Mode</Label>
                                         <div className="grid grid-cols-2 gap-4">
                                             {[
-                                                { id: "PICK_UP", label: "Office Pickup", icon: MapPin },
-                                                { id: "DELIVERY", label: "Doorstep Delivery", icon: Truck }
+                                                { id: "PICK_UP", label: "For Pickup", icon: MapPin },
+                                                { id: "DELIVERY", label: "For Deliver", icon: Truck }
                                             ].map(opt => (
                                                 <button
                                                     key={opt.id}
@@ -646,17 +708,101 @@ export default function CedulaApplicationPage() {
 
                                         {formData.fulfillmentType === "DELIVERY" && (
                                             <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="space-y-3"
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="space-y-6 pt-4"
                                             >
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Delivery Address</Label>
-                                                <Input
-                                                    value={formData.deliveryAddress}
-                                                    onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: e.target.value }))}
-                                                    placeholder="Enter delivery address"
-                                                    className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-md font-bold italic italic bg-white pr-4"
-                                                />
+                                                <div className="space-y-3">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Pin Your Delivery Location</Label>
+                                                    <LocationPicker 
+                                                        lat={formData.deliveryLat}
+                                                        lng={formData.deliveryLng}
+                                                        onChange={(lat, lng) => setFormData(p => ({ ...p, deliveryLat: lat, deliveryLng: lng }))}
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">House/Bldg No.</Label>
+                                                        <Input
+                                                            value={formData.deliveryAddress.houseNumber}
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, houseNumber: e.target.value } }))}
+                                                            placeholder="Floor/Unit/House #"
+                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Street / Block</Label>
+                                                        <Input
+                                                            value={formData.deliveryAddress.street}
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, street: e.target.value } }))}
+                                                            placeholder="Street Name"
+                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Sitio</Label>
+                                                        <Input
+                                                            value={formData.deliveryAddress.sitio}
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, sitio: e.target.value } }))}
+                                                            placeholder="Sitio"
+                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purok</Label>
+                                                        <Input
+                                                            value={formData.deliveryAddress.purok}
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, purok: e.target.value } }))}
+                                                            placeholder="Purok"
+                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Barangay</Label>
+                                                    <Input
+                                                        value={formData.deliveryAddress.barangay}
+                                                        onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, barangay: e.target.value } }))}
+                                                        placeholder="Barangay"
+                                                        className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Municipality</Label>
+                                                        <Input 
+                                                            value={formData.deliveryAddress.municipality} 
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, municipality: e.target.value } }))}
+                                                            placeholder="Municipality"
+                                                            className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase" 
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Province</Label>
+                                                        <Input 
+                                                            value={formData.deliveryAddress.province} 
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, province: e.target.value } }))}
+                                                            placeholder="Province"
+                                                            className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase" 
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Nearby Landmark</Label>
+                                                    <Input
+                                                        value={formData.deliveryLandmark}
+                                                        onChange={(e) => setFormData(p => ({ ...p, deliveryLandmark: e.target.value }))}
+                                                        placeholder="e.g. In front of Sari-sari store"
+                                                        className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-md font-bold italic bg-white pr-4"
+                                                    />
+                                                </div>
                                             </motion.div>
                                         )}
                                     </div>
@@ -665,7 +811,12 @@ export default function CedulaApplicationPage() {
                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Payment Method</Label>
                                         <div className="space-y-4">
                                             {[
-                                                { id: "CASH", label: "Cash Over-the-Counter", icon: Wallet, desc: "Pay at the Treasury Office" },
+                                                { 
+                                                    id: formData.fulfillmentType === "DELIVERY" ? "CASH_ON_DELIVERY" : "CASH", 
+                                                    label: formData.fulfillmentType === "DELIVERY" ? "Cash on Delivery" : "Cash Over-the-Counter", 
+                                                    icon: Wallet, 
+                                                    desc: formData.fulfillmentType === "DELIVERY" ? "Pay when your document arrives" : "Pay at the Treasury Office" 
+                                                },
                                                 { id: "E_PAYMENT", label: "Online E-Payment", icon: CreditCard, desc: "GCash, Maya, or Debit/Credit" },
                                                 { id: "BANK_TRANSFER", label: "Direct Bank Transfer", icon: Building2, desc: "Landbank or Other Banks" }
                                             ].map(opt => (
@@ -705,50 +856,86 @@ export default function CedulaApplicationPage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                     <div className="space-y-6">
-                                        <div className="p-8 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-6 transition-all hover:border-primary hover:bg-primary/[0.02]">
-                                            <div className="w-16 h-16 bg-white dark:bg-black/20 rounded-2xl flex items-center justify-center shadow-sm">
-                                                <Upload className="w-8 h-8 text-primary" />
+                                        <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-4 transition-all hover:border-primary hover:bg-primary/[0.02]">
+                                            <div className="flex items-center gap-4 w-full text-left">
+                                                <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                                    <Upload className="w-6 h-6 text-primary" />
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Valid Government ID</h4>
+                                                    <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">PDF or Image (Max 5MB)</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Valid Government ID</h4>
-                                                <p className="text-xs text-slate-400 font-bold italic uppercase tracking-tighter">PDF or Image (Max 5MB)</p>
-                                            </div>
-                                            <input type="file" onChange={(e) => handleFileChange(e, "idFile")} className="hidden" id="id-upload" />
-                                            <Button asChild variant={formData.idFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[10px] px-8 rounded-full active:scale-95 transition-transform">
-                                                <label htmlFor="id-upload" className="cursor-pointer">
-                                                    {formData.idFile ? "Change File" : "Choose File"}
-                                                </label>
-                                            </Button>
-                                            {formData.idFile && (
-                                                <div className="flex items-center gap-2 text-[10px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-4 py-1.5 rounded-full animate-bounce">
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                    {formData.idFile.name}
+
+                                            {formData.idFile && formData.idFile.type.startsWith("image/") && (
+                                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
+                                                    <img 
+                                                        src={URL.createObjectURL(formData.idFile)} 
+                                                        alt="ID Preview" 
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
+                                                    </div>
                                                 </div>
                                             )}
+
+                                            <div className="flex items-center justify-between w-full gap-3 mt-1">
+                                                <input type="file" onChange={(e) => handleFileChange(e, "idFile")} className="hidden" id="id-upload" />
+                                                <Button asChild variant={formData.idFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[9px] px-6 h-8 rounded-full active:scale-95 transition-transform flex-1">
+                                                    <label htmlFor="id-upload" className="cursor-pointer">
+                                                        {formData.idFile ? "Change" : "Upload File"}
+                                                    </label>
+                                                </Button>
+                                                {formData.idFile && (
+                                                    <div className="flex items-center gap-1.5 text-[9px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate">
+                                                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                                        <span className="truncate">{formData.idFile.name}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-6">
-                                        <div className="p-8 bg-slate-50 dark:bg-white/5 rounded-3xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-6 transition-all hover:border-primary hover:bg-primary/[0.02]">
-                                            <div className="w-16 h-16 bg-white dark:bg-black/20 rounded-2xl flex items-center justify-center shadow-sm">
-                                                <Upload className="w-8 h-8 text-primary" />
+                                        <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-4 transition-all hover:border-primary hover:bg-primary/[0.02]">
+                                            <div className="flex items-center gap-4 w-full text-left">
+                                                <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                                    <Upload className="w-6 h-6 text-primary" />
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Proof of Income</h4>
+                                                    <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">Payslip / BIR Form (Max 5MB)</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <h4 className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Proof of Income</h4>
-                                                <p className="text-xs text-slate-400 font-bold italic uppercase tracking-tighter">Payslip / BIR Form (Max 5MB)</p>
-                                            </div>
-                                            <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
-                                            <Button asChild variant={formData.proofFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[10px] px-8 rounded-full active:scale-95 transition-transform">
-                                                <label htmlFor="proof-upload" className="cursor-pointer">
-                                                    {formData.proofFile ? "Change File" : "Choose File"}
-                                                </label>
-                                            </Button>
-                                            {formData.proofFile && (
-                                                <div className="flex items-center gap-2 text-[10px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-4 py-1.5 rounded-full animate-bounce">
-                                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                                    {formData.proofFile.name}
+
+                                            {formData.proofFile && formData.proofFile.type.startsWith("image/") && (
+                                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
+                                                    <img 
+                                                        src={URL.createObjectURL(formData.proofFile)} 
+                                                        alt="Proof Preview" 
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
+                                                    </div>
                                                 </div>
                                             )}
+
+                                            <div className="flex items-center justify-between w-full gap-3 mt-1">
+                                                <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
+                                                <Button asChild variant={formData.proofFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[9px] px-6 h-8 rounded-full active:scale-95 transition-transform flex-1">
+                                                    <label htmlFor="proof-upload" className="cursor-pointer">
+                                                        {formData.proofFile ? "Change" : "Upload File"}
+                                                    </label>
+                                                </Button>
+                                                {formData.proofFile && (
+                                                    <div className="flex items-center gap-1.5 text-[9px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate">
+                                                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                                        <span className="truncate">{formData.proofFile.name}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -765,44 +952,34 @@ export default function CedulaApplicationPage() {
                         )}
                     </motion.div>
                 </AnimatePresence>
+                </div>
+
+                {/* Integrated Navigation Card Actions */}
+                <div className="mt-12 pt-8 border-t border-slate-100 dark:border-white/5 flex justify-end">
+                    <Button
+                        onClick={currentStep === "CONFIRM" ? onSubmit : handleNext}
+                        disabled={submitting || (currentStep === "CONFIRM" && (!formData.idFile || !formData.proofFile))}
+                        className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-2xl px-12 h-12 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
+                    >
+                        {submitting ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                            <div className="flex items-center">
+                                {currentStep === "CONFIRM" ? "Finalize Submission" : "Next Phase"}
+                                <ChevronRight className={cn("w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform", submitting && "hidden")} />
+                            </div>
+                        )}
+                    </Button>
+                </div>
             </div>
 
             {/* Sticky Actions */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-3xl border-t border-slate-200 dark:border-white/10 z-50 p-6 flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-                <div className="max-w-[1400px] w-full flex items-center justify-between font-black uppercase tracking-widest italic tracking-tight">
-                    <Button
-                        onClick={handleBack}
-                        disabled={currentStep === "TYPE" || submitting}
-                        variant="ghost"
-                        className={cn(
-                            "group text-[10px] md:text-xs rounded-2xl px-8 h-12 md:h-14 transition-all duration-300",
-                            currentStep === "TYPE" ? "opacity-0 invisible pointer-events-none" : "hover:bg-slate-100 dark:hover:bg-white/5"
-                        )}
-                    >
-                        <ChevronLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-                        Previous Phase
-                    </Button>
-
-                    <div className="flex items-center gap-4">
-                        <span className="hidden md:block text-[10px] text-slate-400 font-black italic uppercase tracking-[0.2em] mr-4 select-none">Phase {STEPS.findIndex(s => s.id === currentStep) + 1} of 5</span>
-                        <Button
-                            onClick={currentStep === "CONFIRM" ? onSubmit : handleNext}
-                            disabled={submitting || (currentStep === "CONFIRM" && (!formData.idFile || !formData.proofFile))}
-                            className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-2xl px-12 h-12 md:h-14 group transition-all duration-300 active:scale-95"
-                        >
-                            {submitting ? (
-                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            ) : (
-                                <div className="flex items-center">
-                                    {currentStep === "CONFIRM" ? "Finalize Submission" : "Next Phase"}
-                                    <ChevronRight className={cn("w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform", submitting && "hidden")} />
-                                </div>
-                            )}
-                        </Button>
-                    </div>
+            {/* Sticky Progress Footer */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-3xl border-t border-slate-200 dark:border-white/10 z-50 p-4 flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+                <div className="max-w-[1400px] w-full flex items-center justify-center font-black uppercase tracking-[0.3em] italic text-[9px] text-slate-400 select-none">
+                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} of 5
                 </div>
             </div>
         </div>
     );
 }
-

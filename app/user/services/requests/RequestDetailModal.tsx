@@ -261,7 +261,12 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                                     <h5 className="font-black uppercase tracking-widest text-xs mb-1">Doorstep Delivery</h5>
                                                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400 italic mb-4">Specified Address:</p>
                                                     <p className="text-sm font-black text-slate-900 dark:text-white underline decoration-primary/40 decoration-2">
-                                                        {request.deliveryAddress || "Register default address"}
+                                                        {(() => {
+                                                            const addr = request.deliveryAddress;
+                                                            if (!addr) return "No address specified";
+                                                            if (typeof addr === "string") return addr;
+                                                            return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
+                                                        })()}
                                                     </p>
                                                 </div>
                                             </div>

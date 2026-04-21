@@ -572,7 +572,10 @@ model Transaction {
   
   // Fulfillment & Payment
   fulfillmentType   FulfillmentType   @default(PICK_UP)
-  deliveryAddress   String?           // Editable during application
+  deliveryAddress   Json?             // Structured address for logistics
+  deliveryLat       Float?            // Pin location latitude
+  deliveryLng       Float?            // Pin location longitude
+  deliveryLandmark  String?           // Landmark to help delivery
   paymentType       PaymentType       @default(CASH)
   paymentReference  String?           // Reference No. for E-Payments
   
@@ -629,6 +632,7 @@ enum FulfillmentType {
 
 enum PaymentType {
   CASH
+  CASH_ON_DELIVERY
   E_PAYMENT
   BANK_TRANSFER
 }
