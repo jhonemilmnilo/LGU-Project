@@ -273,7 +273,7 @@ export default async function Home({
 
                 {showJobs && <JobBoard jobs={jobs} />}
                 {showGovernment && <Government officials={officials} barangay={selectedBarangay} />}
-                {showServices && <Services services={services} isAuth={!!session} />}
+                {showServices && <Services services={services} themeColor={themeColor} />}
             </div>
 
             {showChurch && (

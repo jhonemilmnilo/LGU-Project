@@ -47,7 +47,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
             case "DRAFT":
                 return { label: "DRAFT", color: "bg-slate-100 text-slate-600 border-slate-200", icon: FileText, progress: 10 };
             case "FOR_REQUESTING":
-                return { label: "FOR_REQUESTING", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, progress: 25 };
+                return { label: "PENDING", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, progress: 25 };
             case "FOR_PROCESSING":
                 return { label: "FOR_PROCESSING", color: "bg-blue-50 text-blue-600 border-blue-100", icon: Activity, progress: 40 };
             case "EVALUATED":
@@ -73,18 +73,18 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent 
                 showCloseButton={false}
-                className="sm:max-w-[1400px] sm:w-[95vw] h-[82vh] top-[110px] translate-y-0 p-0 overflow-hidden bg-white dark:bg-[#0a0c10] rounded-2xl border-none shadow-2xl flex flex-col"
+                className="w-full h-full max-h-screen sm:max-w-[1400px] sm:w-[95vw] sm:h-[82vh] sm:top-[110px] sm:translate-y-0 p-0 overflow-hidden bg-white dark:bg-[#0a0c10] rounded-none sm:rounded-2xl border-none shadow-2xl flex flex-col"
             >
                 {/* Large Modern Close Action */}
                 <button 
                     onClick={onClose}
-                    className="absolute top-6 right-6 z-50 p-2 bg-slate-100/50 dark:bg-white/5 hover:bg-red-500 hover:text-white transition-all rounded-xl group border border-transparent hover:border-red-500/20"
+                    className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 p-2 bg-slate-100/50 dark:bg-white/5 hover:bg-red-500 hover:text-white transition-all rounded-xl group border border-transparent hover:border-red-500/20"
                 >
                     <XIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </button>
 
                 {/* Clean Header Section - Compacted for better content ratio */}
-                <div className="bg-slate-50 dark:bg-white/[0.02] p-8 border-b border-slate-200 dark:border-white/5">
+                <div className="bg-slate-50 dark:bg-white/[0.02] p-4 sm:p-8 border-b border-slate-200 dark:border-white/5">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                         <div className="space-y-3 flex-1 text-center lg:text-left">
                             <DialogTitle className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
@@ -100,17 +100,17 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                 {/* Content Section - Flex-1 ensures it takes all available room between header and footer */}
                 <div className="flex-1 min-h-0 bg-slate-50/30 dark:bg-transparent">
                     <ScrollArea className="h-full">
-                        <div className="p-8 pb-32">
+                        <div className="p-4 sm:p-8 pb-32">
                             <Tabs defaultValue="overview" className="space-y-8">
-                            <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-16 w-fit border border-slate-200 dark:border-white/5">
-                                <TabsTrigger value="overview" className="rounded-xl px-12 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Overview</TabsTrigger>
-                                <TabsTrigger value="declarations" className="rounded-xl px-12 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Application Records</TabsTrigger>
-                                <TabsTrigger value="logistics" className="rounded-xl px-12 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Logistics & Proof</TabsTrigger>
+                            <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-auto sm:h-16 w-full sm:w-fit border border-slate-200 dark:border-white/5 flex flex-col sm:flex-row">
+                                <TabsTrigger value="overview" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Overview</TabsTrigger>
+                                <TabsTrigger value="declarations" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Application Records</TabsTrigger>
+                                <TabsTrigger value="logistics" className="flex-1 sm:flex-none rounded-xl px-4 sm:px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-white dark:data-[state=active]:bg-primary dark:data-[state=active]:text-white transition-all">Logistics & Proof</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="overview" className="mt-0">
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                                    <Card className="p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-sm rounded-3xl lg:col-span-2">
+                                    <Card className="p-6 sm:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-sm rounded-3xl lg:col-span-2">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
                                             <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white flex items-center gap-3 italic">
                                                 <FileText className="w-5 h-5 text-primary" />
@@ -120,7 +120,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                                 REQUEST STATUS: {statusConfig.label}
                                             </Badge>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-y-10 gap-x-16">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-16">
                                             <div className="space-y-2">
                                                 <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] italic">Applicant Classification</p>
                                                 <p className="text-xl font-black text-slate-700 dark:text-slate-200 italic">{additionalData.applicantType || "INDIVIDUAL"}</p>
@@ -146,7 +146,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                         </div>
                                     </Card>
 
-                                    <Card className="p-10 border-none bg-slate-900 text-white shadow-2xl rounded-[3rem] relative overflow-hidden flex flex-col justify-between">
+                                    <Card className="p-6 sm:p-10 border-none bg-slate-900 text-white shadow-2xl rounded-[3rem] relative overflow-hidden flex flex-col justify-between">
                                         <div className="absolute top-0 right-0 p-8 opacity-10">
                                             <Info className="w-24 h-24 rotate-12" />
                                         </div>
@@ -182,12 +182,12 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                             </TabsContent>
 
                             <TabsContent value="declarations" className="mt-0">
-                                <Card className="p-8 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl">
+                                <Card className="p-4 sm:p-8 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm rounded-2xl">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                         <div className="space-y-8">
                                             <div className="space-y-4">
                                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Personal Records</h4>
-                                                <div className="grid grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                                     <div className="space-y-1">
                                                         <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Legal Full Name</p>
                                                         <p className="text-sm font-bold">{residentData.firstName} {residentData.lastName}</p>
@@ -209,7 +209,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                             <Separator className="opacity-50" />
                                             <div className="space-y-4">
                                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Financial Self-Declaration</h4>
-                                                <div className="grid grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                                     <div className="space-y-1">
                                                         <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Annual Gross Income</p>
                                                         <p className="text-sm font-black text-slate-900 dark:text-white">₱{(additionalData.income || 0).toLocaleString()}</p>
@@ -227,18 +227,38 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                             <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5 relative group">
                                                 <MapPin className="absolute top-6 right-6 w-8 h-8 text-slate-200 dark:text-slate-800 transition-colors group-hover:text-primary/20" />
                                                 <div className="space-y-4">
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] uppercase font-black text-slate-400">Street / House No.</p>
-                                                        <p className="text-sm font-bold">{residentData.houseNumber} {residentData.street}</p>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div className="space-y-1">
-                                                            <p className="text-[10px] uppercase font-black text-slate-400">Barangay</p>
-                                                            <p className="text-sm font-bold">{residentData.barangay}</p>
+                                                            <p className="text-[10px] uppercase font-black text-slate-400">House No.</p>
+                                                            <p className="text-sm font-bold">{residentData.houseNumber || "N/A"}</p>
                                                         </div>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] uppercase font-black text-slate-400">Street</p>
+                                                            <p className="text-sm font-bold">{residentData.street || "N/A"}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] uppercase font-black text-slate-400">Sitio</p>
+                                                            <p className="text-sm font-bold">{residentData.sitio || "N/A"}</p>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] uppercase font-black text-slate-400">Purok</p>
+                                                            <p className="text-sm font-bold">{residentData.purok || "N/A"}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] uppercase font-black text-slate-400">Barangay</p>
+                                                        <p className="text-sm font-bold">{residentData.barangay}</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <div className="space-y-1">
                                                             <p className="text-[10px] uppercase font-black text-slate-400">Municipality</p>
                                                             <p className="text-sm font-bold">{residentData.municipality || "Agno"}</p>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] uppercase font-black text-slate-400">Province</p>
+                                                            <p className="text-sm font-bold">{residentData.province || "Pangasinan"}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -259,8 +279,8 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                                 </div>
                                                 <div>
                                                     <h5 className="font-black uppercase tracking-widest text-xs mb-1">Doorstep Delivery</h5>
-                                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 italic mb-4">Specified Address:</p>
-                                                    <p className="text-sm font-black text-slate-900 dark:text-white underline decoration-primary/40 decoration-2">
+                                                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 italic mb-2">Specified Address:</p>
+                                                    <p className="text-sm font-black text-slate-900 dark:text-white underline decoration-primary/40 decoration-2 mb-4">
                                                         {(() => {
                                                             const addr = request.deliveryAddress;
                                                             if (!addr) return "No address specified";
@@ -268,6 +288,10 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
                                                             return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
                                                         })()}
                                                     </p>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter italic">Recipient Contact:</p>
+                                                        <p className="text-sm font-black text-primary italic">{residentData.contactNumber || "N/A"}</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : (
@@ -287,7 +311,7 @@ export default function RequestDetailModal({ isOpen, onClose, request }: Request
 
                                     <div className="space-y-6">
                                         <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Documentary Evidence</h4>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {[
                                                 { label: "Valid ID", url: additionalData.validIdUrl },
                                                 { label: "Proof of Income", url: additionalData.proofOfIncomeUrl }

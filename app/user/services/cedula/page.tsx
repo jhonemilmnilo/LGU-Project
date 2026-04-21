@@ -19,13 +19,14 @@ import {
     Calculator,
     Package,
     Loader2,
-    Sparkles
+    Sparkles,
+    Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Separator } from "@/components/ui/separator";
 import {
     Breadcrumb,
@@ -35,9 +36,15 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import dynamic from "next/dynamic";
 
-const LocationPicker = dynamic(() => import("@/components/LocationPicker"), { 
+const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
     ssr: false,
     loading: () => <div className="h-[350px] w-full rounded-3xl bg-slate-100 animate-pulse flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Loading Map...</div>
 });
@@ -104,13 +111,20 @@ export default function CedulaApplicationPage() {
     const [transactionTypes, setTransactionTypes] = useState<any[]>([]);
     const [calcResult, setCalcResult] = useState<CedulaResult | null>(null);
     const [initialResident, setInitialResident] = useState<any>(null);
+    const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);
+    const incomeInputRef = React.useRef<HTMLInputElement>(null);
+    const contactInputRef = React.useRef<HTMLInputElement>(null);
+    const barangayInputRef = React.useRef<HTMLInputElement>(null);
+    const muniInputRef = React.useRef<HTMLInputElement>(null);
+    const provInputRef = React.useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState<FormState>({
         typeId: "",
         applicantType: "INDIVIDUAL",
         residentData: {},
-        income: "0",
-        propertyValue: "0",
+        income: "",
+        propertyValue: "",
         fulfillmentType: "PICK_UP",
         paymentType: "CASH",
         deliveryAddress: {
@@ -156,6 +170,7 @@ export default function CedulaApplicationPage() {
                 const resident = residentRes.data;
                 if (residentRes.success && resident) {
                     setInitialResident(resident);
+                    if (resident.idFrontUrl) setExistingIdUrl(resident.idFrontUrl);
                     setFormData(prev => ({
                         ...prev,
                         residentData: resident,
@@ -222,15 +237,24 @@ export default function CedulaApplicationPage() {
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.email && r?.contactNumber);
             case "DECLARATION":
-                return parseFloat(formData.income) >= 0 && parseFloat(formData.propertyValue) >= 0;
+                // Require either Annual Gross Income OR Real Property Assessed Value to be > 0
+                return (parseFloat(formData.income) > 0 || parseFloat(formData.propertyValue) > 0);
             case "DELIVERY":
                 if (formData.fulfillmentType === "DELIVERY") {
                     const addr = formData.deliveryAddress;
-                    return !!(addr.barangay && addr.municipality && formData.deliveryLat && formData.deliveryLng);
+                    // Require Pin Location AND key address components
+                    return !!(
+                        addr.barangay &&
+                        addr.municipality &&
+                        addr.province &&
+                        formData.deliveryLat &&
+                        formData.deliveryLng
+                    );
                 }
                 return true;
             case "CONFIRM":
-                return !!formData.idFile && !!formData.proofFile;
+                // Final submission requires Data Privacy acceptance AND either a new upload or an existing ID
+                return privacyAccepted && (!!formData.idFile || !!existingIdUrl) && !!formData.proofFile;
             default:
                 return true;
         }
@@ -240,17 +264,40 @@ export default function CedulaApplicationPage() {
         const targetIdx = STEPS.findIndex(s => s.id === targetStep);
         const currentIdx = STEPS.findIndex(s => s.id === currentStep);
 
-        // --- BEST PRACTICE: FORWARD NAVIGATION CONTROL ---
-        // To ensure data integrity and a guided user experience, we strictly 
-        // allow the stepper to navigate BACKWARDS only. 
-        // Forward movement must go through the "Next Phase" button validations.
-        return targetIdx < currentIdx;
+        // Always allow going backwards
+        if (targetIdx <= currentIdx) return true;
+
+        // For forward navigation (clicking tab icons), ensure all PRECEDING steps are valid
+        for (let i = 0; i < targetIdx; i++) {
+            if (!isStepValid(STEPS[i].id)) return false;
+        }
+        return true;
     };
 
     const handleNext = () => {
         if (!isStepValid(currentStep)) {
             if (currentStep === "DELIVERY" && formData.fulfillmentType === "DELIVERY") {
-                toast.error("Please provide a delivery address and pin your location on the map.");
+                const addr = formData.deliveryAddress;
+                if (!formData.deliveryLat || !formData.deliveryLng) {
+                    toast.error("Please pin your delivery location on the map.");
+                } else if (!addr.barangay) {
+                    barangayInputRef.current?.focus();
+                    toast.error("Please provide your Barangay.");
+                } else if (!addr.municipality) {
+                    muniInputRef.current?.focus();
+                    toast.error("Please provide your Municipality.");
+                } else if (!addr.province) {
+                    provInputRef.current?.focus();
+                    toast.error("Please provide your Province.");
+                } else {
+                    toast.error("Please complete all required logistics details.");
+                }
+            } else if (currentStep === "RESIDENT") {
+                contactInputRef.current?.focus();
+                toast.error("Please provide your contact number for better coordination.");
+            } else if (currentStep === "DECLARATION") {
+                incomeInputRef.current?.focus();
+                toast.error("Please declare at least one of the required financial fields.");
             } else {
                 toast.error("Please complete all required fields in this phase.");
             }
@@ -280,7 +327,8 @@ export default function CedulaApplicationPage() {
             if (formData.deliveryLat) submitData.append("deliveryLat", formData.deliveryLat.toString());
             if (formData.deliveryLng) submitData.append("deliveryLng", formData.deliveryLng.toString());
             submitData.append("deliveryLandmark", formData.deliveryLandmark);
-            
+            if (existingIdUrl) submitData.append("existingIdUrl", existingIdUrl);
+
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
             submitData.append("additionalData", JSON.stringify({
                 applicantType: formData.applicantType,
@@ -355,14 +403,32 @@ export default function CedulaApplicationPage() {
                     const isCompleted = STEPS.findIndex(s => s.id === currentStep) > idx;
                     const Icon = step.icon;
                     return (
-                        <div 
-                            key={idx} 
+                        <div
+                            key={idx}
                             onClick={() => {
                                 if (canNavigate(step.id)) {
                                     setCurrentStep(step.id);
                                     window.scrollTo(0, 0);
                                 } else {
-                                    toast.error("Please complete the current phase first.");
+                                    if (currentStep === "RESIDENT") {
+                                        contactInputRef.current?.focus();
+                                        toast.error("Please complete your identity details first.");
+                                    } else if (currentStep === "DELIVERY" && formData.fulfillmentType === "DELIVERY") {
+                                        const addr = formData.deliveryAddress;
+                                        if (!formData.deliveryLat || !formData.deliveryLng) {
+                                            toast.error("Please pin your location first.");
+                                        } else if (!addr.barangay) {
+                                            barangayInputRef.current?.focus();
+                                            toast.error("Please complete the delivery address.");
+                                        } else {
+                                            toast.error("Please complete the logistics details.");
+                                        }
+                                    } else if (currentStep === "DECLARATION") {
+                                        incomeInputRef.current?.focus();
+                                        toast.error("Please complete the declaration first.");
+                                    } else {
+                                        toast.error("Please complete the current phase first.");
+                                    }
                                 }
                             }}
                             className={cn(
@@ -392,578 +458,634 @@ export default function CedulaApplicationPage() {
             {/* Step Content */}
             <div className="mt-8 bg-white dark:bg-[#11131a] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-2xl relative overflow-hidden group/container min-h-[500px] flex flex-col">
                 <div className="flex-1">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.4 }}
-                    >
-                        {/* Step 1: TYPE SELECTION */}
-                        {currentStep === "TYPE" && (
-                            <div className="space-y-10">
-                                <div className="space-y-4">
-                                    <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Identify Your <span className="text-primary italic">Status</span></h2>
-                                    <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Choose the appropriate category for your Community Tax Certificate application.</p>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentStep}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.4 }}
+                        >
+                            {/* Step 1: TYPE SELECTION */}
+                            {currentStep === "TYPE" && (
+                                <div className="space-y-10">
+                                    <div className="space-y-4">
+                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Identify Your <span className="text-primary italic">Status</span></h2>
+                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Choose the appropriate category for your Community Tax Certificate application.</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {[
+                                            { id: "INDIVIDUAL", label: "Individual", icon: User, desc: "For employees, property owners, and private citizens." },
+                                            { id: "JURIDICAL", label: "Juridical", icon: Building2, desc: "For businesses, corporations, and established entities." }
+                                        ].map((opt) => (
+                                            <Card
+                                                key={opt.id}
+                                                onClick={() => {
+                                                    const type = transactionTypes.find(t => t.code === (opt.id === "INDIVIDUAL" ? "CEDULA_IND" : "CEDULA_JUR"));
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        applicantType: opt.id as any,
+                                                        typeId: type?.id || prev.typeId
+                                                    }));
+                                                }}
+                                                className={cn(
+                                                    "p-8 rounded-[2.5rem] cursor-pointer border-2 transition-all duration-500 relative group overflow-hidden select-none active:scale-[0.98]",
+                                                    formData.applicantType === opt.id ? "bg-primary/5 border-primary" : "bg-slate-50 shadow-sm dark:bg-white/5 border-transparent hover:border-primary/20"
+                                                )}
+                                            >
+                                                <div className="space-y-6 relative z-10">
+                                                    <div className={cn(
+                                                        "w-16 h-16 rounded-[1.25rem] flex items-center justify-center transition-colors shadow-sm",
+                                                        formData.applicantType === opt.id ? "bg-primary text-white" : "bg-white dark:bg-black/20 text-slate-400 group-hover:text-primary"
+                                                    )}>
+                                                        <opt.icon className="w-8 h-8" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <h3 className="text-2xl font-black uppercase italic italic group-hover:text-primary transition-colors">{opt.label}</h3>
+                                                        <p className="text-sm text-slate-400 font-medium italic">{opt.desc}</p>
+                                                    </div>
+                                                </div>
+                                                {formData.applicantType === opt.id && (
+                                                    <div className="absolute top-4 right-4 bg-primary text-white p-1 rounded-lg">
+                                                        <CheckCircle2 className="w-5 h-5" />
+                                                    </div>
+                                                )}
+                                            </Card>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {[
-                                        { id: "INDIVIDUAL", label: "Individual", icon: User, desc: "For employees, property owners, and private citizens." },
-                                        { id: "JURIDICAL", label: "Juridical", icon: Building2, desc: "For businesses, corporations, and established entities." }
-                                    ].map((opt) => (
-                                        <Card
-                                            key={opt.id}
-                                            onClick={() => {
-                                                const type = transactionTypes.find(t => t.code === (opt.id === "INDIVIDUAL" ? "CEDULA_IND" : "CEDULA_JUR"));
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    applicantType: opt.id as any,
-                                                    typeId: type?.id || prev.typeId
-                                                }));
-                                            }}
+                            )}
+
+                            {/* Step 2: IDENTITY VERIFICATION */}
+                            {currentStep === "RESIDENT" && (
+                                <div className="space-y-8">
+                                    <div className="space-y-1">
+                                        <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-tight">Identity <span className="text-primary italic">Confirmation</span></h2>
+                                        <p className="text-xs text-slate-500 font-medium italic">Verify and refine your personal records for this certificate.</p>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        {/* Row 1: Names */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</Label>
+                                                <Input
+                                                    value={formData.residentData?.firstName || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, firstName: e.target.value } }))}
+                                                    readOnly={!!initialResident?.firstName}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.firstName && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Middle Name</Label>
+                                                <Input
+                                                    value={formData.residentData?.middleName || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, middleName: e.target.value } }))}
+                                                    readOnly={!!initialResident?.middleName}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.middleName && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</Label>
+                                                <Input
+                                                    value={formData.residentData?.lastName || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, lastName: e.target.value } }))}
+                                                    readOnly={!!initialResident?.lastName}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.lastName && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Suffix</Label>
+                                                <Input
+                                                    value={formData.residentData?.suffix || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, suffix: e.target.value } }))}
+                                                    readOnly={!!initialResident?.suffix}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.suffix && "bg-slate-50 text-slate-400")}
+                                                    placeholder="e.g. Jr."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <Separator className="opacity-50" />
+
+                                        {/* Row 2: Personal */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
+                                                <Input
+                                                    type="date"
+                                                    value={formData.residentData?.dateOfBirth ? new Date(formData.residentData.dateOfBirth).toISOString().split('T')[0] : ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, dateOfBirth: e.target.value } }))}
+                                                    readOnly={!!initialResident?.dateOfBirth}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.dateOfBirth && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Age</Label>
+                                                <Input
+                                                    value={(() => {
+                                                        if (!formData.residentData?.dateOfBirth) return "";
+                                                        const today = new Date();
+                                                        const birthDate = new Date(formData.residentData.dateOfBirth);
+                                                        let age = today.getFullYear() - birthDate.getFullYear();
+                                                        const m = today.getMonth() - birthDate.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                        return age;
+                                                    })()}
+                                                    readOnly
+                                                    className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Civil Status</Label>
+                                                <Input
+                                                    value={formData.residentData?.civilStatus || "N/A"}
+                                                    readOnly
+                                                    className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Citizenship</Label>
+                                                <Input
+                                                    value={formData.residentData?.citizenship || "Filipino"}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, citizenship: e.target.value } }))}
+                                                    readOnly={!!initialResident?.citizenship}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.citizenship && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Contact */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</Label>
+                                                <div className="relative">
+                                                    <Input
+                                                        type="email"
+                                                        value={formData.residentData?.email || ""}
+                                                        onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, email: e.target.value } }))}
+                                                        readOnly={!!initialResident?.email}
+                                                        className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm pl-10", !!initialResident?.email && "bg-slate-50 text-slate-400")}
+                                                    />
+                                                    <Info className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
+                                                <Input
+                                                    ref={contactInputRef}
+                                                    value={formData.residentData?.contactNumber || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
+                                                    className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                                                    placeholder="09xx xxx xxxx"
+                                                />
+                                                <p className="text-[9px] text-slate-400 font-bold italic ml-1">
+                                                    * We will use this number to contact you about your request status.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-primary/5 border border-primary/10 p-4 rounded-3xl flex items-center gap-3">
+                                        <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                                        <p className="text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
+                                            Note: Any changes you make here will automatically update your permanent Resident Profile upon successful transaction submission.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 3: FINANCIAL DECLARATION */}
+                            {currentStep === "DECLARATION" && (
+                                <div className="space-y-12">
+                                    <div className="space-y-4">
+                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Community Tax <span className="text-primary italic">Declaration</span></h2>
+                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Declare your annual financial status for the computation of additional community tax.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-8">
+                                            {formData.applicantType === "JURIDICAL" && (
+                                                <div className="space-y-3">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Business Registered Name</Label>
+                                                    <Input
+                                                        value={formData.businessName}
+                                                        onChange={(e) => setFormData(p => ({ ...p, businessName: e.target.value }))}
+                                                        placeholder="Enter Business Name"
+                                                        className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Total Annual Gross Income</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-300 italic">₱</span>
+                                                    <Input
+                                                        ref={incomeInputRef}
+                                                        type="number"
+                                                        value={formData.income}
+                                                        onChange={(e) => setFormData(p => ({ ...p, income: e.target.value }))}
+                                                        placeholder="0.00"
+                                                        className="h-16 pl-10 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Real Property Assessed Value</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-300 italic">₱</span>
+                                                    <Input
+                                                        type="number"
+                                                        value={formData.propertyValue}
+                                                        onChange={(e) => setFormData(p => ({ ...p, propertyValue: e.target.value }))}
+                                                        placeholder="0.00"
+                                                        className="h-16 pl-10 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-900 dark:bg-black rounded-[2.5rem] p-10 text-white space-y-8 shadow-2xl relative overflow-hidden group/calc selection:bg-primary/30 active:scale-[0.99] transition-transform">
+                                            <div className="absolute top-0 right-0 p-8 opacity-10">
+                                                <Calculator className="w-32 h-32 rotate-12" />
+                                            </div>
+                                            {/* <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic"></h3> */}
+                                            <div className="space-y-4 border-b border-white/10 pb-6 relative z-10 font-bold">
+                                                <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
+                                                    <span>Basic Community Tax</span>
+                                                    <span>₱{calcResult?.basicTax.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
+                                                    <span>Additional Tax</span>
+                                                    <span>₱{calcResult?.additionalTax.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs uppercase tracking-widest italic text-amber-500">
+                                                    <span className="flex items-center gap-2">
+                                                        Penalty (24% Int.)
+                                                        {isPastCedulaDeadline() && (
+                                                            <TooltipProvider delayDuration={0}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <button type="button" className="cursor-help">
+                                                                            <AlertCircle className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent className="bg-slate-900 text-white border-slate-800 p-4 rounded-xl shadow-2xl max-w-[280px]">
+                                                                        <div className="space-y-2">
+                                                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-500 italic">Penalty Rule</h4>
+                                                                            <p className="text-[9px] font-medium leading-relaxed uppercase tracking-tighter">
+                                                                                If the Cedula is obtained from March 1 until the end of the year, a 24% interest per annum shall be imposed on the unpaid community tax.
+                                                                            </p>
+                                                                        </div>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
+                                                    </span>
+                                                    <span>₱{calcResult?.penalty.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
+                                                    <span>Delivery Fee</span>
+                                                    <span>₱{calcResult?.deliveryFee.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                            <div className="pt-2 flex justify-between items-end relative z-10">
+                                                <div className="space-y-1 mb-2 text-left">
+                                                    <span className="block text-[10px] font-black uppercase tracking-widest text-primary italic">Estimated Total Due</span>
+                                                    <p className="text-[8px] font-bold text-white/40 uppercase tracking-tighter italic leading-none max-w-[120px]">
+                                                        * Final assessment is subject to administrative evaluation.
+                                                    </p>
+                                                </div>
+                                                <span className="text-5xl font-black italic italic tracking-tighter text-white">₱{calcResult?.totalAmount.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 4: LOGISTICS & PAYMENT */}
+                            {currentStep === "DELIVERY" && (
+                                <div className="space-y-12">
+                                    <div className="space-y-4">
+                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Fulfillment <span className="text-primary italic">& Payment</span></h2>
+                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Select how you want to receive your Cedula and your preferred mode of payment.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="space-y-8">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Fulfillment Mode</Label>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {[
+                                                    { id: "PICK_UP", label: "For Pickup", icon: MapPin },
+                                                    { id: "DELIVERY", label: "For Deliver", icon: Truck }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => setFormData(p => ({ ...p, fulfillmentType: opt.id as any }))}
+                                                        className={cn(
+                                                            "flex flex-col items-center gap-4 p-8 rounded-3xl border-2 transition-all group select-none active:scale-[0.95]",
+                                                            formData.fulfillmentType === opt.id ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40"
+                                                        )}
+                                                    >
+                                                        <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest italic">{opt.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {formData.fulfillmentType === "DELIVERY" && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="space-y-6 pt-4"
+                                                >
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Pin Your Delivery Location</Label>
+                                                        <LocationPicker
+                                                            lat={formData.deliveryLat}
+                                                            lng={formData.deliveryLng}
+                                                            onChange={(lat, lng) => setFormData(p => ({ ...p, deliveryLat: lat, deliveryLng: lng }))}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">House/Bldg No.</Label>
+                                                            <Input
+                                                                value={formData.deliveryAddress.houseNumber}
+                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, houseNumber: e.target.value } }))}
+                                                                placeholder="Floor/Unit/House #"
+                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Street / Block</Label>
+                                                            <Input
+                                                                value={formData.deliveryAddress.street}
+                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, street: e.target.value } }))}
+                                                                placeholder="Street Name"
+                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Sitio</Label>
+                                                            <Input
+                                                                value={formData.deliveryAddress.sitio}
+                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, sitio: e.target.value } }))}
+                                                                placeholder="Sitio"
+                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purok</Label>
+                                                            <Input
+                                                                value={formData.deliveryAddress.purok}
+                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, purok: e.target.value } }))}
+                                                                placeholder="Purok"
+                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Barangay</Label>
+                                                        <Input
+                                                            ref={barangayInputRef}
+                                                            value={formData.deliveryAddress.barangay}
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, barangay: e.target.value } }))}
+                                                            placeholder="Barangay"
+                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Municipality</Label>
+                                                            <Input
+                                                                ref={muniInputRef}
+                                                                value={formData.deliveryAddress.municipality}
+                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, municipality: e.target.value } }))}
+                                                                placeholder="Municipality"
+                                                                className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Province</Label>
+                                                            <Input
+                                                                ref={provInputRef}
+                                                                value={formData.deliveryAddress.province}
+                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, province: e.target.value } }))}
+                                                                placeholder="Province"
+                                                                className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Nearby Landmark</Label>
+                                                        <Input
+                                                            value={formData.deliveryLandmark}
+                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryLandmark: e.target.value }))}
+                                                            placeholder="e.g. In front of Sari-sari store"
+                                                            className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-md font-bold italic bg-white pr-4"
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-8">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Payment Method</Label>
+                                            <div className="space-y-4">
+                                                {[
+                                                    {
+                                                        id: formData.fulfillmentType === "DELIVERY" ? "CASH_ON_DELIVERY" : "CASH",
+                                                        label: formData.fulfillmentType === "DELIVERY" ? "Cash on Delivery" : "Cash Over-the-Counter",
+                                                        icon: Wallet,
+                                                        desc: formData.fulfillmentType === "DELIVERY" ? "Pay when your document arrives" : "Pay at the Treasury Office"
+                                                    },
+                                                    { id: "E_PAYMENT", label: "Online E-Payment", icon: CreditCard, desc: "GCash, Maya, or Debit/Credit" },
+                                                    { id: "BANK_TRANSFER", label: "Direct Bank Transfer", icon: Building2, desc: "Landbank or Other Banks" }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => setFormData(p => ({ ...p, paymentType: opt.id as any }))}
+                                                        className={cn(
+                                                            "w-full flex items-center gap-6 p-6 rounded-3xl border-2 transition-all hover:scale-[1.01] group select-none relative overflow-hidden active:scale-[0.98]",
+                                                            formData.paymentType === opt.id ? "bg-primary/5 border-primary shadow-sm" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/20"
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm",
+                                                            formData.paymentType === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/10 text-slate-400 group-hover:text-primary"
+                                                        )}>
+                                                            <opt.icon className="w-6 h-6" />
+                                                        </div>
+                                                        <div className="text-left py-1">
+                                                            <h4 className={cn("text-sm font-black uppercase italic tracking-widest transition-colors", formData.paymentType === opt.id ? "text-primary" : "text-slate-600 dark:text-slate-300")}>{opt.label}</h4>
+                                                            <p className="text-[10px] text-slate-400 font-bold italic uppercase">{opt.desc}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 5: FINAL REVIEW & ATTACHMENTS */}
+                            {currentStep === "CONFIRM" && (
+                                <div className="space-y-12 pb-10">
+                                    <div className="space-y-4 text-center">
+                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Final <span className="text-primary italic">Review</span></h2>
+                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed max-w-lg mx-auto">Upload required documents to verify your identity and finalize your application.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-4 transition-all hover:border-primary hover:bg-primary/[0.02]">
+                                                <div className="flex items-center gap-4 w-full text-left">
+                                                    <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                                        <Upload className="w-6 h-6 text-primary" />
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Valid Government ID</h4>
+                                                        <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">PDF or Image (Max 5MB)</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Preview Logic: Prioritize new upload, then existing ID */}
+                                                {formData.idFile && formData.idFile.type.startsWith("image/") ? (
+                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
+                                                        <Image
+                                                            src={URL.createObjectURL(formData.idFile)}
+                                                            alt="ID Preview"
+                                                            fill
+                                                            unoptimized
+                                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">New Upload Preview</span>
+                                                        </div>
+                                                    </div>
+                                                ) : existingIdUrl ? (
+                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/10 shadow-lg group/preview mt-1">
+                                                        <Image
+                                                            src={existingIdUrl}
+                                                            alt="Existing ID Preview"
+                                                            fill
+                                                            unoptimized
+                                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/40 px-2 py-0.5 rounded-full backdrop-blur-md">Pre-filled from Profile</span>
+                                                        </div>
+                                                    </div>
+                                                ) : null}
+
+                                                <div className="flex items-center justify-between w-full gap-3 mt-1">
+                                                    <input type="file" onChange={(e) => handleFileChange(e, "idFile")} className="hidden" id="id-upload" />
+                                                    <Button asChild variant={(formData.idFile || existingIdUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[9px] px-6 h-8 rounded-full active:scale-95 transition-transform flex-1">
+                                                        <label htmlFor="id-upload" className="cursor-pointer">
+                                                            {formData.idFile ? "Change Upload" : existingIdUrl ? "Change ID Photo" : "Upload File"}
+                                                        </label>
+                                                    </Button>
+                                                    {formData.idFile && (
+                                                        <div className="flex items-center gap-1.5 text-[9px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate">
+                                                            <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                                            <span className="truncate">{formData.idFile.name}</span>
+                                                        </div>
+                                                    )}
+                                                    {!formData.idFile && existingIdUrl && (
+                                                        <div className="flex items-center gap-1.5 text-[9px] font-black italic text-primary/60 uppercase tracking-widest bg-primary/5 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate text-center leading-none">
+                                                            Using Profile ID
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-4 transition-all hover:border-primary hover:bg-primary/[0.02]">
+                                                <div className="flex items-center gap-4 w-full text-left">
+                                                    <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                                                        <Upload className="w-6 h-6 text-primary" />
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Proof of Income</h4>
+                                                        <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">Payslip / BIR Form (Max 5MB)</p>
+                                                    </div>
+                                                </div>
+
+                                                {formData.proofFile && formData.proofFile.type.startsWith("image/") && (
+                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
+                                                        <Image
+                                                            src={URL.createObjectURL(formData.proofFile)}
+                                                            alt="Proof Preview"
+                                                            fill
+                                                            unoptimized
+                                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center justify-between w-full gap-3 mt-1">
+                                                    <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
+                                                    <Button asChild variant={formData.proofFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[9px] px-6 h-8 rounded-full active:scale-95 transition-transform flex-1">
+                                                        <label htmlFor="proof-upload" className="cursor-pointer">
+                                                            {formData.proofFile ? "Change" : "Upload File"}
+                                                        </label>
+                                                    </Button>
+                                                    {formData.proofFile && (
+                                                        <div className="flex items-center gap-1.5 text-[9px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate">
+                                                            <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                                            <span className="truncate">{formData.proofFile.name}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 space-y-6">
+                                        <div
+                                            onClick={() => setPrivacyAccepted(!privacyAccepted)}
                                             className={cn(
-                                                "p-8 rounded-[2.5rem] cursor-pointer border-2 transition-all duration-500 relative group overflow-hidden select-none active:scale-[0.98]",
-                                                formData.applicantType === opt.id ? "bg-primary/5 border-primary" : "bg-slate-50 shadow-sm dark:bg-white/5 border-transparent hover:border-primary/20"
+                                                "p-6 rounded-3xl border-2 transition-all cursor-pointer flex items-start gap-4 select-none",
+                                                privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
                                             )}
                                         >
-                                            <div className="space-y-6 relative z-10">
-                                                <div className={cn(
-                                                    "w-16 h-16 rounded-[1.25rem] flex items-center justify-center transition-colors shadow-sm",
-                                                    formData.applicantType === opt.id ? "bg-primary text-white" : "bg-white dark:bg-black/20 text-slate-400 group-hover:text-primary"
-                                                )}>
-                                                    <opt.icon className="w-8 h-8" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <h3 className="text-2xl font-black uppercase italic italic group-hover:text-primary transition-colors">{opt.label}</h3>
-                                                    <p className="text-sm text-slate-400 font-medium italic">{opt.desc}</p>
-                                                </div>
+                                            <div className={cn(
+                                                "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                                                privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
+                                            )}>
+                                                {privacyAccepted && <Check className="w-4 h-4" />}
                                             </div>
-                                            {formData.applicantType === opt.id && (
-                                                <div className="absolute top-4 right-4 bg-primary text-white p-1 rounded-lg">
-                                                    <CheckCircle2 className="w-5 h-5" />
-                                                </div>
-                                            )}
-                                        </Card>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 2: IDENTITY VERIFICATION */}
-                        {currentStep === "RESIDENT" && (
-                            <div className="space-y-8">
-                                <div className="space-y-1">
-                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-tight">Identity <span className="text-primary italic">Confirmation</span></h2>
-                                    <p className="text-xs text-slate-500 font-medium italic">Verify and refine your personal records for this certificate.</p>
-                                </div>
-
-                                <div className="space-y-6">
-                                    {/* Row 1: Names */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</Label>
-                                            <Input
-                                                value={formData.residentData?.firstName || ""}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, firstName: e.target.value } }))}
-                                                readOnly={!!initialResident?.firstName}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.firstName && "bg-slate-50 text-slate-400")}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Middle Name</Label>
-                                            <Input
-                                                value={formData.residentData?.middleName || ""}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, middleName: e.target.value } }))}
-                                                readOnly={!!initialResident?.middleName}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.middleName && "bg-slate-50 text-slate-400")}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</Label>
-                                            <Input
-                                                value={formData.residentData?.lastName || ""}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, lastName: e.target.value } }))}
-                                                readOnly={!!initialResident?.lastName}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.lastName && "bg-slate-50 text-slate-400")}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Suffix</Label>
-                                            <Input
-                                                value={formData.residentData?.suffix || ""}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, suffix: e.target.value } }))}
-                                                readOnly={!!initialResident?.suffix}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.suffix && "bg-slate-50 text-slate-400")}
-                                                placeholder="e.g. Jr."
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <Separator className="opacity-50" />
-
-                                    {/* Row 2: Personal */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
-                                            <Input
-                                                type="date"
-                                                value={formData.residentData?.dateOfBirth ? new Date(formData.residentData.dateOfBirth).toISOString().split('T')[0] : ""}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, dateOfBirth: e.target.value } }))}
-                                                readOnly={!!initialResident?.dateOfBirth}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.dateOfBirth && "bg-slate-50 text-slate-400")}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Age</Label>
-                                            <Input
-                                                value={(() => {
-                                                    if (!formData.residentData?.dateOfBirth) return "";
-                                                    const today = new Date();
-                                                    const birthDate = new Date(formData.residentData.dateOfBirth);
-                                                    let age = today.getFullYear() - birthDate.getFullYear();
-                                                    const m = today.getMonth() - birthDate.getMonth();
-                                                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                    return age;
-                                                })()}
-                                                readOnly
-                                                className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Civil Status</Label>
-                                            <Select
-                                                value={formData.residentData?.civilStatus?.toUpperCase()}
-                                                onValueChange={(val) => setFormData(p => ({ ...p, residentData: { ...p.residentData, civilStatus: val } }))}
-                                            >
-                                                <SelectTrigger className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm">
-                                                    <SelectValue placeholder="Select Status" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="SINGLE">Single</SelectItem>
-                                                    <SelectItem value="MARRIED">Married</SelectItem>
-                                                    <SelectItem value="WIDOWED">Widowed</SelectItem>
-                                                    <SelectItem value="SEPARATED">Separated</SelectItem>
-                                                    <SelectItem value="ANNULLED">Annulled</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Citizenship</Label>
-                                            <Input
-                                                value={formData.residentData?.citizenship || "Filipino"}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, citizenship: e.target.value } }))}
-                                                readOnly={!!initialResident?.citizenship}
-                                                className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.citizenship && "bg-slate-50 text-slate-400")}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Row 3: Contact */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</Label>
-                                            <div className="relative">
-                                                <Input
-                                                    type="email"
-                                                    value={formData.residentData?.email || ""}
-                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, email: e.target.value } }))}
-                                                    readOnly={!!initialResident?.email}
-                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm pl-10", !!initialResident?.email && "bg-slate-50 text-slate-400")}
-                                                />
-                                                <Info className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
-                                            <Input
-                                                value={formData.residentData?.contactNumber || ""}
-                                                onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
-                                                className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
-                                                placeholder="09xx xxx xxxx"
-                                            />
-                                            <p className="text-[9px] text-slate-400 font-bold italic ml-1">
-                                                * We will use this number to contact you about your request status.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-primary/5 border border-primary/10 p-4 rounded-3xl flex items-center gap-3">
-                                    <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                                    <p className="text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
-                                        Note: Any changes you make here will automatically update your permanent Resident Profile upon successful transaction submission.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 3: FINANCIAL DECLARATION */}
-                        {currentStep === "DECLARATION" && (
-                            <div className="space-y-12">
-                                <div className="space-y-4">
-                                    <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Community Tax <span className="text-primary italic">Declaration</span></h2>
-                                    <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Declare your annual financial status for the computation of additional community tax.</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <div className="space-y-8">
-                                        {formData.applicantType === "JURIDICAL" && (
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Business Registered Name</Label>
-                                                <Input
-                                                    value={formData.businessName}
-                                                    onChange={(e) => setFormData(p => ({ ...p, businessName: e.target.value }))}
-                                                    placeholder="Enter Business Name"
-                                                    className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Total Annual Gross Income</Label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-300 italic">₱</span>
-                                                <Input
-                                                    type="number"
-                                                    value={formData.income}
-                                                    onChange={(e) => setFormData(p => ({ ...p, income: e.target.value }))}
-                                                    className="h-16 pl-10 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Real Property Assessed Value</Label>
-                                            <div className="relative">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-300 italic">₱</span>
-                                                <Input
-                                                    type="number"
-                                                    value={formData.propertyValue}
-                                                    onChange={(e) => setFormData(p => ({ ...p, propertyValue: e.target.value }))}
-                                                    className="h-16 pl-10 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-slate-900 dark:bg-black rounded-[2.5rem] p-10 text-white space-y-8 shadow-2xl relative overflow-hidden group/calc selection:bg-primary/30 active:scale-[0.99] transition-transform">
-                                        <div className="absolute top-0 right-0 p-8 opacity-10">
-                                            <Calculator className="w-32 h-32 rotate-12" />
-                                        </div>
-                                        {/* <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic"></h3> */}
-                                        <div className="space-y-4 border-b border-white/10 pb-6 relative z-10 font-bold">
-                                            <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
-                                                <span>Basic Community Tax</span>
-                                                <span>₱{calcResult?.basicTax.toFixed(2)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
-                                                <span>Additional Tax</span>
-                                                <span>₱{calcResult?.additionalTax.toFixed(2)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs uppercase tracking-widest italic text-amber-500">
-                                                <span className="flex items-center gap-2">Penalty (24% Int.) {isPastCedulaDeadline() && <AlertCircle className="w-3.5 h-3.5" />}</span>
-                                                <span>₱{calcResult?.penalty.toFixed(2)}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
-                                                <span>Delivery Fee</span>
-                                                <span>₱{calcResult?.deliveryFee.toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="pt-2 flex justify-between items-end relative z-10">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-2">Total Amount Due</span>
-                                            <span className="text-5xl font-black italic italic tracking-tighter">₱{calcResult?.totalAmount.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 4: LOGISTICS & PAYMENT */}
-                        {currentStep === "DELIVERY" && (
-                            <div className="space-y-12">
-                                <div className="space-y-4">
-                                    <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Fulfillment <span className="text-primary italic">& Payment</span></h2>
-                                    <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Select how you want to receive your Cedula and your preferred mode of payment.</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                    <div className="space-y-8">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Fulfillment Mode</Label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {[
-                                                { id: "PICK_UP", label: "For Pickup", icon: MapPin },
-                                                { id: "DELIVERY", label: "For Deliver", icon: Truck }
-                                            ].map(opt => (
-                                                <button
-                                                    key={opt.id}
-                                                    onClick={() => setFormData(p => ({ ...p, fulfillmentType: opt.id as any }))}
-                                                    className={cn(
-                                                        "flex flex-col items-center gap-4 p-8 rounded-3xl border-2 transition-all group select-none active:scale-[0.95]",
-                                                        formData.fulfillmentType === opt.id ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40"
-                                                    )}
-                                                >
-                                                    <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest italic">{opt.label}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {formData.fulfillmentType === "DELIVERY" && (
-                                            <motion.div
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="space-y-6 pt-4"
-                                            >
-                                                <div className="space-y-3">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Pin Your Delivery Location</Label>
-                                                    <LocationPicker 
-                                                        lat={formData.deliveryLat}
-                                                        lng={formData.deliveryLng}
-                                                        onChange={(lat, lng) => setFormData(p => ({ ...p, deliveryLat: lat, deliveryLng: lng }))}
-                                                    />
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">House/Bldg No.</Label>
-                                                        <Input
-                                                            value={formData.deliveryAddress.houseNumber}
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, houseNumber: e.target.value } }))}
-                                                            placeholder="Floor/Unit/House #"
-                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Street / Block</Label>
-                                                        <Input
-                                                            value={formData.deliveryAddress.street}
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, street: e.target.value } }))}
-                                                            placeholder="Street Name"
-                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Sitio</Label>
-                                                        <Input
-                                                            value={formData.deliveryAddress.sitio}
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, sitio: e.target.value } }))}
-                                                            placeholder="Sitio"
-                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purok</Label>
-                                                        <Input
-                                                            value={formData.deliveryAddress.purok}
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, purok: e.target.value } }))}
-                                                            placeholder="Purok"
-                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Barangay</Label>
-                                                    <Input
-                                                        value={formData.deliveryAddress.barangay}
-                                                        onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, barangay: e.target.value } }))}
-                                                        placeholder="Barangay"
-                                                        className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                    />
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Municipality</Label>
-                                                        <Input 
-                                                            value={formData.deliveryAddress.municipality} 
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, municipality: e.target.value } }))}
-                                                            placeholder="Municipality"
-                                                            className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase" 
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Province</Label>
-                                                        <Input 
-                                                            value={formData.deliveryAddress.province} 
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, province: e.target.value } }))}
-                                                            placeholder="Province"
-                                                            className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase" 
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Nearby Landmark</Label>
-                                                    <Input
-                                                        value={formData.deliveryLandmark}
-                                                        onChange={(e) => setFormData(p => ({ ...p, deliveryLandmark: e.target.value }))}
-                                                        placeholder="e.g. In front of Sari-sari store"
-                                                        className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-md font-bold italic bg-white pr-4"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-8">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Payment Method</Label>
-                                        <div className="space-y-4">
-                                            {[
-                                                { 
-                                                    id: formData.fulfillmentType === "DELIVERY" ? "CASH_ON_DELIVERY" : "CASH", 
-                                                    label: formData.fulfillmentType === "DELIVERY" ? "Cash on Delivery" : "Cash Over-the-Counter", 
-                                                    icon: Wallet, 
-                                                    desc: formData.fulfillmentType === "DELIVERY" ? "Pay when your document arrives" : "Pay at the Treasury Office" 
-                                                },
-                                                { id: "E_PAYMENT", label: "Online E-Payment", icon: CreditCard, desc: "GCash, Maya, or Debit/Credit" },
-                                                { id: "BANK_TRANSFER", label: "Direct Bank Transfer", icon: Building2, desc: "Landbank or Other Banks" }
-                                            ].map(opt => (
-                                                <button
-                                                    key={opt.id}
-                                                    onClick={() => setFormData(p => ({ ...p, paymentType: opt.id as any }))}
-                                                    className={cn(
-                                                        "w-full flex items-center gap-6 p-6 rounded-3xl border-2 transition-all hover:scale-[1.01] group select-none relative overflow-hidden active:scale-[0.98]",
-                                                        formData.paymentType === opt.id ? "bg-primary/5 border-primary shadow-sm" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/20"
-                                                    )}
-                                                >
-                                                    <div className={cn(
-                                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm",
-                                                        formData.paymentType === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/10 text-slate-400 group-hover:text-primary"
-                                                    )}>
-                                                        <opt.icon className="w-6 h-6" />
-                                                    </div>
-                                                    <div className="text-left py-1">
-                                                        <h4 className={cn("text-sm font-black uppercase italic tracking-widest transition-colors", formData.paymentType === opt.id ? "text-primary" : "text-slate-600 dark:text-slate-300")}>{opt.label}</h4>
-                                                        <p className="text-[10px] text-slate-400 font-bold italic uppercase">{opt.desc}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 5: FINAL REVIEW & ATTACHMENTS */}
-                        {currentStep === "CONFIRM" && (
-                            <div className="space-y-12 pb-10">
-                                <div className="space-y-4 text-center">
-                                    <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Final <span className="text-primary italic">Review</span></h2>
-                                    <p className="text-slate-500 font-medium italic text-lg leading-relaxed max-w-lg mx-auto">Upload required documents to verify your identity and finalize your application.</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <div className="space-y-6">
-                                        <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-4 transition-all hover:border-primary hover:bg-primary/[0.02]">
-                                            <div className="flex items-center gap-4 w-full text-left">
-                                                <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                                                    <Upload className="w-6 h-6 text-primary" />
-                                                </div>
-                                                <div className="space-y-0.5">
-                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Valid Government ID</h4>
-                                                    <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">PDF or Image (Max 5MB)</p>
-                                                </div>
-                                            </div>
-
-                                            {formData.idFile && formData.idFile.type.startsWith("image/") && (
-                                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
-                                                    <Image 
-                                                        src={URL.createObjectURL(formData.idFile)} 
-                                                        alt="ID Preview" 
-                                                        fill
-                                                        unoptimized
-                                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                                    />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between w-full gap-3 mt-1">
-                                                <input type="file" onChange={(e) => handleFileChange(e, "idFile")} className="hidden" id="id-upload" />
-                                                <Button asChild variant={formData.idFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[9px] px-6 h-8 rounded-full active:scale-95 transition-transform flex-1">
-                                                    <label htmlFor="id-upload" className="cursor-pointer">
-                                                        {formData.idFile ? "Change" : "Upload File"}
-                                                    </label>
-                                                </Button>
-                                                {formData.idFile && (
-                                                    <div className="flex items-center gap-1.5 text-[9px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate">
-                                                        <CheckCircle2 className="w-3 h-3 shrink-0" />
-                                                        <span className="truncate">{formData.idFile.name}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-6">
-                                        <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-4 transition-all hover:border-primary hover:bg-primary/[0.02]">
-                                            <div className="flex items-center gap-4 w-full text-left">
-                                                <div className="w-12 h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                                                    <Upload className="w-6 h-6 text-primary" />
-                                                </div>
-                                                <div className="space-y-0.5">
-                                                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Proof of Income</h4>
-                                                    <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">Payslip / BIR Form (Max 5MB)</p>
-                                                </div>
-                                            </div>
-
-                                            {formData.proofFile && formData.proofFile.type.startsWith("image/") && (
-                                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
-                                                    <Image 
-                                                        src={URL.createObjectURL(formData.proofFile)} 
-                                                        alt="Proof Preview" 
-                                                        fill
-                                                        unoptimized
-                                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                                    />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between w-full gap-3 mt-1">
-                                                <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
-                                                <Button asChild variant={formData.proofFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[9px] px-6 h-8 rounded-full active:scale-95 transition-transform flex-1">
-                                                    <label htmlFor="proof-upload" className="cursor-pointer">
-                                                        {formData.proofFile ? "Change" : "Upload File"}
-                                                    </label>
-                                                </Button>
-                                                {formData.proofFile && (
-                                                    <div className="flex items-center gap-1.5 text-[9px] font-black italic text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-3 h-8 rounded-full flex-1 line-clamp-1 truncate">
-                                                        <CheckCircle2 className="w-3 h-3 shrink-0" />
-                                                        <span className="truncate">{formData.proofFile.name}</span>
-                                                    </div>
-                                                )}
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy Agreement</p>
+                                                <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                                                    I hereby authorize the Local Government Unit to collect and process my personal information for the purpose of this service request in accordance with the Data Privacy Act of 2012. I also confirm that all information declared above is true and correct.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 flex items-start gap-4">
-                                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1 shadow-sm">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                                    </div>
-                                    <p className="text-[10px] leading-relaxed font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest italic">
-                                        By submitting this application, I confirm that all information declared above is true and correct. I authorize the Municipal Treasurer to verify the submitted documents for the computation of my Community Tax Certificate.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
 
                 {/* Integrated Navigation Card Actions */}
                 <div className="mt-12 pt-8 border-t border-slate-100 dark:border-white/5 flex justify-end">
                     <Button
                         onClick={currentStep === "CONFIRM" ? onSubmit : handleNext}
-                        disabled={submitting || (currentStep === "CONFIRM" && (!formData.idFile || !formData.proofFile))}
+                        disabled={submitting || !isStepValid(currentStep)}
                         className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-2xl px-12 h-12 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
                     >
                         {submitting ? (

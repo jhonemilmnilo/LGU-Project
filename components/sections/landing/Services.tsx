@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { FileText, ArrowUpRight, ShieldCheck, Briefcase, Zap, Activity } from "lucide-react";
+import { FileText, ArrowUpRight, ShieldCheck, Briefcase, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ interface Service {
 
 interface ServicesProps {
     services: Service[];
-    isAuth?: boolean;
+    themeColor?: string;
 }
 
 const colors = [
@@ -27,7 +27,7 @@ const colors = [
     { color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-500/10" },
 ];
 
-export function Services({ services = [], isAuth = false }: ServicesProps) {
+export function Services({ services = [], themeColor }: ServicesProps) {
     const displayServices = services.length > 0 ? services : [];
 
     return (
@@ -35,18 +35,22 @@ export function Services({ services = [], isAuth = false }: ServicesProps) {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-0.5 bg-blue-600 rounded-full" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600">Public Portal</span>
+                        <div className="w-10 h-0.5 rounded-full" style={{ backgroundColor: themeColor || "var(--primary-theme)" }} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em]" style={{ color: themeColor || "var(--primary-theme)" }}>Public Portal</span>
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                        Barangay Services
+                        Services
                     </h2>
                 </div>
                 
                 <Link href="/user/services">
                     <Button 
-                        variant="outline"
-                        className="rounded-full px-8 font-black uppercase tracking-widest text-[10px] h-12 gap-2 border-2 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all"
+                        style={{ 
+                            backgroundColor: themeColor || "var(--primary-theme)",
+                            borderColor: themeColor || "var(--primary-theme)",
+                            color: "white"
+                        }}
+                        className="rounded-full px-8 font-black uppercase tracking-widest text-[10px] h-12 gap-2 border-2 transition-all hover:opacity-90 shadow-lg shadow-primary/20"
                     >
                         Access All Services
                         <ArrowUpRight className="w-4 h-4" />
@@ -62,37 +66,6 @@ export function Services({ services = [], isAuth = false }: ServicesProps) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {/* Dynamic Resident Tracking Hub Card */}
-                    {isAuth && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            viewport={{ once: true }}
-                            className="group bg-slate-900 dark:bg-primary rounded-[2.5rem] p-8 shadow-2xl shadow-blue-500/20 border-none flex flex-col justify-between h-full relative overflow-hidden active:scale-95 transition-all lg:col-span-1"
-                        >
-                            <Link href="/user/services/requests" className="absolute inset-0 z-20" />
-                            <div className="space-y-4 relative z-10">
-                                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white">
-                                    <Activity className="w-8 h-8" />
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">
-                                        Resident <span className="text-primary italic">Hub</span>
-                                    </h3>
-                                    <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">Tracking Center</p>
-                                </div>
-                                <p className="text-xs font-bold text-white/80 italic leading-relaxed">
-                                    Monitor your active applications and service requests in real-time.
-                                </p>
-                            </div>
-                            <div className="pt-6 flex items-center justify-between border-t border-white/10 relative z-10">
-                                <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] italic">Go to Dashboard</span>
-                                <div className="w-8 h-8 bg-white text-slate-900 rounded-full flex items-center justify-center">
-                                    <ArrowUpRight className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
 
                     {displayServices.map((service, idx) => {
                         const style = colors[idx % colors.length];
@@ -106,7 +79,10 @@ export function Services({ services = [], isAuth = false }: ServicesProps) {
                                 className="group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative"
                             >
                                 <Link href={service.code.startsWith("CEDULA") ? "/user/services/cedula" : `/user/services/${service.id}`} className="block p-8 h-full">
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 blur-2xl -mr-12 -mt-12 transition-all group-hover:bg-blue-600/10" />
+                                    <div 
+                                        className="absolute top-0 right-0 w-24 h-24 blur-2xl -mr-12 -mt-12 transition-all opacity-10 group-hover:opacity-20" 
+                                        style={{ backgroundColor: themeColor || "var(--primary-theme)" }}
+                                    />
                                     
                                     <div className="space-y-6 relative z-10">
                                         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:bg-blue-600 group-hover:scale-110", style.bg)}>
@@ -115,7 +91,10 @@ export function Services({ services = [], isAuth = false }: ServicesProps) {
                                              <Zap className={cn("w-7 h-7 group-hover:text-white transition-colors", style.color)} />}
                                         </div>
                                         <div className="space-y-2">
-                                            <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-tight group-hover:text-blue-600 transition-colors">
+                                            <h3 
+                                                className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-tight transition-colors"
+                                                style={{ "--hover-color": themeColor || "var(--primary-theme)" } as any}
+                                            >
                                                 {service.name}
                                             </h3>
                                             <p className="text-xs font-bold text-slate-500 dark:text-slate-400 italic line-clamp-2">
@@ -123,8 +102,16 @@ export function Services({ services = [], isAuth = false }: ServicesProps) {
                                             </p>
                                         </div>
                                         <div className="pt-4 flex items-center justify-end border-t border-slate-50 dark:border-white/5">
-                                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Request Now</span>
-                                            <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                                            <span 
+                                                className="text-[10px] font-black uppercase tracking-widest transition-opacity"
+                                                style={{ color: themeColor || "var(--primary-theme)" }}
+                                            >
+                                                Request Now
+                                            </span>
+                                            <ArrowUpRight 
+                                                className="w-4 h-4 text-slate-300 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" 
+                                                style={{ "--hover-color": themeColor || "var(--primary-theme)" } as any}
+                                            />
                                         </div>
                                     </div>
                                 </Link>

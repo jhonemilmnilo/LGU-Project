@@ -158,8 +158,11 @@ export async function submitTransaction(formData: FormData) {
         // Files
         const idFile = formData.get("idFile") as File;
         const proofFile = formData.get("proofFile") as File;
+        const existingIdUrl = formData.get("existingIdUrl") as string;
 
-        const idUrl = await processFileUpload(idFile, "ids");
+        let idUrl = await processFileUpload(idFile, "ids");
+        if (!idUrl && existingIdUrl) idUrl = existingIdUrl;
+        
         const proofUrl = await processFileUpload(proofFile, "proofs");
 
         // Merge file URLs into additionalData
