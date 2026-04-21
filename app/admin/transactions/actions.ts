@@ -8,7 +8,6 @@ import { calculateCedula } from "@/lib/cedula";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import fs from "fs";
-import { FulfillmentType, PaymentType } from "@prisma/client";
 import { sendEmail } from "@/lib/mail";
 
 // --- HELPERS ---
@@ -134,6 +133,33 @@ export async function getTransactionTypes(level?: number) {
 }
 
 /**
+ * Fetch a single transaction by ID (Resident/Admin)
+ */
+export async function getTransactionById(id: string) {
+    try {
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { 
+                type: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        residentProfile: true
+                    }
+                }
+            }
+        });
+        if (!transaction) return { success: false, error: "Transaction not found" };
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Fetch transaction by id error:", error);
+        return { success: false, error: "Failed to fetch transaction details" };
+    }
+}
+
+/**
  * Submit a new transaction request (Citizen side)
  */
 export async function submitTransaction(formData: FormData) {
@@ -142,15 +168,6 @@ export async function submitTransaction(formData: FormData) {
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
         const typeId = formData.get("typeId") as string;
-        const fulfillmentType = formData.get("fulfillmentType") as FulfillmentType;
-        const paymentType = formData.get("paymentType") as PaymentType;
-        const deliveryAddressRaw = formData.get("deliveryAddress") as string;
-        const deliveryAddress = (fulfillmentType === "DELIVERY" && deliveryAddressRaw) 
-            ? JSON.parse(deliveryAddressRaw) 
-            : null;
-        const deliveryLandmark = formData.get("deliveryLandmark") as string;
-        const deliveryLat = formData.get("deliveryLat") ? parseFloat(formData.get("deliveryLat") as string) : null;
-        const deliveryLng = formData.get("deliveryLng") ? parseFloat(formData.get("deliveryLng") as string) : null;
 
         // Snapshots and Data
         const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
@@ -184,12 +201,8 @@ export async function submitTransaction(formData: FormData) {
                     userId: session.user.id,
                     typeId,
                     status: "FOR_REQUESTING",
-                    fulfillmentType,
-                    paymentType,
-                    deliveryAddress: fulfillmentType === "DELIVERY" ? deliveryAddress : null,
-                    deliveryLat: fulfillmentType === "DELIVERY" ? deliveryLat : null,
-                    deliveryLng: fulfillmentType === "DELIVERY" ? deliveryLng : null,
-                    deliveryLandmark: fulfillmentType === "DELIVERY" ? deliveryLandmark : null,
+                    fulfillmentType: null,
+                    paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: 0,
@@ -260,36 +273,110 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         });
 
         // Determine New Status
-        const isForClaim = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH";
-        const newStatus = (isForClaim ? "FOR_CLAIM" : "EVALUATED") as any;
+        // Now strictly EVALUATED as the resident will choose fulfillment later
+        const newStatus = "EVALUATED" as any;
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
             data: {
                 status: newStatus,
-                totalAmount: result.totalAmount,
+                totalAmount: result.totalAmount, // This is the Base Tax + Penalty
                 processedBy: user.id,
                 rejectionRemarks: adminNotes
             },
-            include: { user: true } // Include user to get email
+            include: { user: true }
         }) as any;
 
-        // Trigger Email Notification if it's FOR_CLAIM
-        if (isForClaim && updatedTransaction.user?.email) {
-            const resident = transaction.residentSnapshot as any;
-            await sendEmail({
-                type: "FOR_CLAIM",
-                to: updatedTransaction.user.email,
-                name: `${resident.firstName} ${resident.lastName}`,
-                transactionId: id.slice(-8).toUpperCase() // Use short ID for reference
-            });
-        }
-
         revalidatePath("/admin/treasury");
+        revalidatePath("/user/services/requests");
         return { success: true, data: updatedTransaction, calculation: result };
     } catch (error) {
         console.error("Evaluate transaction error:", error);
         return { success: false, error: "Failed to evaluate transaction" };
+    }
+}
+
+/**
+ * Finalize Transaction Fulfillment (Resident side)
+ * Called when status is EVALUATED
+ */
+export async function finalizeTransactionFulfillment(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transactionId = formData.get("transactionId") as string;
+        const fulfillmentType = formData.get("fulfillmentType") as "PICK_UP" | "DELIVERY" | "E_COPY";
+        const paymentType = formData.get("paymentType") as string;
+        
+        // Delivery Details
+        const deliveryAddress = formData.get("deliveryAddress") ? JSON.parse(formData.get("deliveryAddress") as string) : null;
+        const deliveryLat = formData.get("deliveryLat") ? Number(formData.get("deliveryLat")) : null;
+        const deliveryLng = formData.get("deliveryLng") ? Number(formData.get("deliveryLng")) : null;
+        const deliveryLandmark = formData.get("deliveryLandmark") as string;
+
+        // Payment Proof File
+        const paymentFile = formData.get("paymentFile") as File;
+        const paymentProofUrl = await processFileUpload(paymentFile, "proofs");
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: transactionId },
+            include: { type: true }
+        });
+
+        if (!transaction || transaction.userId !== session.user.id) {
+            return { success: false, error: "Transaction not found" };
+        }
+
+        if (transaction.status !== "EVALUATED") {
+            return { success: false, error: "Transaction is not in evaluation phase" };
+        }
+
+        // Recalculate total amount if delivery is selected
+        let finalAmount = Number(transaction.totalAmount);
+        if (fulfillmentType === "DELIVERY") {
+            finalAmount += (transaction.type.deliveryFee || 0);
+        }
+
+        // Determine next status
+        // If PICK_UP + CASH -> FOR_CLAIM
+        // If any other -> Wait for payment (Keep as EVALUATED but with finalized details)
+        const isForClaim = fulfillmentType === "PICK_UP" && paymentType === "CASH";
+        const newStatus = isForClaim ? "FOR_CLAIM" : "EVALUATED";
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+                fulfillmentType,
+                paymentType: paymentType as any,
+                deliveryAddress: fulfillmentType === "DELIVERY" ? deliveryAddress : null,
+                deliveryLat: fulfillmentType === "DELIVERY" ? deliveryLat : null,
+                deliveryLng: fulfillmentType === "DELIVERY" ? deliveryLng : null,
+                deliveryLandmark: fulfillmentType === "DELIVERY" ? deliveryLandmark : null,
+                paymentReference: paymentProofUrl || transaction.paymentReference, // Store the image URL here
+                totalAmount: finalAmount,
+                status: newStatus as any,
+                updatedAt: new Date()
+            } as any
+        });
+
+        // Trigger email if now FOR_CLAIM
+        if (isForClaim && session.user.email) {
+            const resident = transaction.residentSnapshot as any;
+            await sendEmail({
+                type: "FOR_CLAIM",
+                to: session.user.email,
+                name: `${resident.firstName} ${resident.lastName}`,
+                transactionId: transactionId.slice(-8).toUpperCase()
+            });
+        }
+
+        revalidatePath("/user/services/requests");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Finalize fulfillment error:", error);
+        return { success: false, error: "Failed to finalize selection" };
     }
 }
 
@@ -304,13 +391,20 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
             return { success: false, error: "Forbidden" };
         }
 
+        const transactionData: any = {
+            status: "PAID",
+            updatedAt: new Date()
+        };
+
+        // Only update paymentReference if a new one is provided.
+        // Otherwise, keep the existing proof-of-payment URL.
+        if (referenceNo) {
+            transactionData.paymentReference = referenceNo;
+        }
+
         const transaction = await prisma.transaction.update({
             where: { id },
-            data: {
-                status: "PAID",
-                paymentReference: referenceNo,
-                updatedAt: new Date()
-            }
+            data: transactionData
         });
 
         revalidatePath("/admin/treasury");

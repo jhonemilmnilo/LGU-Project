@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
     User, MapPin, Calculator, CreditCard, CheckCircle2, 
-    FileText, ExternalLink,
+    FileText, ExternalLink, Camera,
     AlertCircle, BadgeCheck
 } from "lucide-react";
 import { toast } from "sonner";
@@ -259,13 +259,17 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
                                 <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-6 shadow-sm">
                                     <div className="flex justify-between items-center">
                                         <span className="text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Fulfillment</span>
-                                        <Badge variant="outline" className="italic font-bold uppercase rounded-xl px-4">{transaction.fulfillmentType}</Badge>
+                                        <Badge variant="outline" className={cn("italic font-bold uppercase rounded-xl px-4", !transaction.fulfillmentType && "text-slate-300 border-dashed")}>
+                                            {transaction.fulfillmentType || "Selection Pending"}
+                                        </Badge>
                                     </div>
                                     <div className="flex justify-between items-center pb-6 border-b border-slate-200/50 dark:border-white/5">
-                                        <span className="text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Payment Type</span>
-                                        <Badge variant="outline" className="italic font-bold uppercase rounded-xl px-4">{transaction.paymentType?.replace("_", " ")}</Badge>
+                                        <span className="text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Payment Channel</span>
+                                        <Badge variant="outline" className={cn("italic font-bold uppercase rounded-xl px-4", !transaction.paymentType && "text-slate-300 border-dashed")}>
+                                            {transaction.paymentType?.replace("_", " ") || "Selection Pending"}
+                                        </Badge>
                                     </div>
-                                    {transaction.fulfillmentType === "DELIVERY" && (
+                                     {transaction.fulfillmentType === "DELIVERY" && (
                                         <div className="space-y-2">
                                             <Label className="text-[9px] font-black text-slate-400 uppercase italic">Target Delivery Point</Label>
                                             <p className="text-xs font-black italic text-primary leading-relaxed uppercase tracking-tighter">
@@ -421,6 +425,34 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
                                     <Calculator className="absolute -bottom-6 -right-6 w-32 h-32 text-white/5 rotate-12" />
                                 </div>
 
+                                {/* Proof of Payment Image - Relocated for Treasury convenience */}
+                                {transaction.paymentReference && transaction.paymentReference.startsWith("/uploads/") && (
+                                    <div className="bg-white dark:bg-white/5 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 space-y-4 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Camera className="w-4 h-4 text-primary" />
+                                                <Label className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">Visual Payment Proof</Label>
+                                            </div>
+                                            <Badge variant="outline" className="text-[8px] font-black uppercase text-emerald-500 border-emerald-500/20 italic">Screenshot Attached</Badge>
+                                        </div>
+
+                                        <div className="group relative aspect-video rounded-[2rem] overflow-hidden bg-slate-100 dark:bg-slate-800/50 border border-slate-200/50 dark:border-white/5 cursor-pointer">
+                                            <Image 
+                                                src={transaction.paymentReference} 
+                                                alt="Payment Proof" 
+                                                fill 
+                                                className="object-cover group-hover:scale-[1.05] transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                                                <a href={transaction.paymentReference} target="_blank" className="flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-2xl font-black uppercase text-[10px] italic tracking-widest shadow-2xl hover:scale-105 transition-transform">
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    Inspect Full Image
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Official Document Record Section (Commented out for now) */}
                                 {/* 
                                 {["PAID", "FOR_CLAIM", "RELEASED"].includes(transaction.status) && (
@@ -471,14 +503,19 @@ export function TransactionDetailModal({ transaction, isOpen, onClose, onRefresh
                                             {loading ? <Calculator className="animate-spin" /> : "Approve & Compute Fees"}
                                         </Button>
                                     )}
-                                    {transaction.status === "EVALUATED" && (
+                                    {transaction.status === "EVALUATED" && transaction.paymentType && transaction.paymentType !== "CASH" && (
                                         <Button 
                                             onClick={handleConfirmPayment}
                                             disabled={loading}
                                             className="w-full h-16 rounded-2xl bg-emerald-600 text-white font-black italic uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(16,185,129,0.3)] active:scale-95 hover:scale-[1.02] transition-all text-xs"
                                         >
-                                            {loading ? <CreditCard className="animate-spin" /> : "Confirm Payment"}
+                                            {loading ? <CreditCard className="animate-spin" /> : "Confirm Online Payment"}
                                         </Button>
+                                    )}
+                                    {transaction.status === "EVALUATED" && !transaction.paymentType && (
+                                        <div className="h-16 px-10 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-dashed border-slate-200 dark:border-white/10 group">
+                                            <p className="text-[10px] font-black uppercase text-slate-400 italic tracking-[0.3em] group-hover:text-primary transition-colors">Awaiting Resident Fulfillment Selection</p>
+                                        </div>
                                     )}
                                     {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
                                         <Button 

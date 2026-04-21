@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,6 +30,7 @@ import RequestDetailModal from "./RequestDetailModal";
 import { Input } from "@/components/ui/input";
 
 export default function UserServiceRequestsPage() {
+    const router = useRouter();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -131,7 +133,13 @@ export default function UserServiceRequestsPage() {
                         return (
                             <div 
                                 key={req.id} 
-                                onClick={() => setSelectedRequest(req)}
+                                onClick={() => {
+                                    if (req.status === "EVALUATED" && !req.paymentType) {
+                                        router.push(`/user/services/requests/${req.id}`);
+                                    } else {
+                                        setSelectedRequest(req);
+                                    }
+                                }}
                                 className="group bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-white/5 p-4 hover:border-primary/40 hover:shadow-xl hover:shadow-slate-200/40 dark:hover:shadow-none transition-all cursor-pointer select-none active:scale-[0.995] flex flex-col md:flex-row items-center gap-6"
                             >
                                 <div className="flex items-center gap-5 flex-1 w-full">
@@ -153,8 +161,17 @@ export default function UserServiceRequestsPage() {
 
                                 <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 dark:border-white/5">
                                     <div className="text-right">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Fee</p>
-                                        <p className="text-lg font-black text-slate-900 dark:text-white italic">₱{(req.totalAmount || 0).toLocaleString()}</p>
+                                        {req.status !== "FOR_REQUESTING" ? (
+                                            <>
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Fee</p>
+                                                <p className="text-lg font-black text-slate-900 dark:text-white italic">₱{(req.totalAmount || 0).toLocaleString()}</p>
+                                            </>
+                                        ) : (
+                                            <div className="py-1">
+                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic opacity-50">Evaluation</p>
+                                                <p className="text-[9px] font-black text-primary uppercase italic tracking-tighter">In Progress</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex flex-col items-center gap-1.5 min-w-[110px]">
                                         <Badge className={cn("inline-flex items-center gap-1.5 font-black uppercase tracking-widest text-[8px] italic px-4 py-1.5 rounded-full border border-opacity-30 w-full justify-center", style.color, style.bg, style.border)}>

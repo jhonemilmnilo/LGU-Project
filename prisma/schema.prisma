@@ -571,12 +571,12 @@ model Transaction {
   additionalData    Json              // Inputs for extra fields (e.g., Gross Income)
   
   // Fulfillment & Payment
-  fulfillmentType   FulfillmentType   @default(PICK_UP)
+  fulfillmentType   FulfillmentType?
   deliveryAddress   Json?             // Structured address for logistics
   deliveryLat       Float?            // Pin location latitude
   deliveryLng       Float?            // Pin location longitude
   deliveryLandmark  String?           // Landmark to help delivery
-  paymentType       PaymentType       @default(CASH)
+  paymentType       PaymentType?
   paymentReference  String?           // Reference No. for E-Payments
   
   // Financials (Final computed amounts)
@@ -629,6 +629,7 @@ enum TransactionStatus {
 enum FulfillmentType {
   PICK_UP
   DELIVERY
+  E_COPY
 }
 
 enum PaymentType {

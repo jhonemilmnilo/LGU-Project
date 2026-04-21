@@ -1,31 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    Fingerprint,
+    CheckCircle2, 
+    Calculator, 
     User,
-    Building2,
-    MapPin,
-    CreditCard,
-    Truck,
-    Upload,
-    CheckCircle2,
-    ChevronRight,
-    AlertCircle,
     Info,
-    Wallet,
-    Home,
-    Calculator,
-    Package,
+    ChevronRight,
     Loader2,
-    Sparkles,
-    Check
+    Check,
+    AlertCircle,
+    Home,
+    Upload,
+    Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -42,12 +34,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import dynamic from "next/dynamic";
-
-const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
-    ssr: false,
-    loading: () => <div className="h-[350px] w-full rounded-3xl bg-slate-100 animate-pulse flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Loading Map...</div>
-});
+/**
+ * multi-step form for Cedula Application.
+ */
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
@@ -63,18 +52,9 @@ import Image from "next/image";
 
 // --- TYPES ---
 
-type Step = "TYPE" | "RESIDENT" | "DECLARATION" | "DELIVERY" | "CONFIRM";
+type Step = "STATUS" | "RESIDENT" | "DECLARATION" | "CONFIRM";
 
-interface DeliveryAddress {
-    houseNumber: string;
-    street: string;
-    sitio: string;
-    purok: string;
-    barangay: string;
-    municipality: string;
-    province: string;
-    region: string;
-}
+
 
 interface FormState {
     typeId: string;
@@ -82,12 +62,6 @@ interface FormState {
     residentData: any;
     income: string;
     propertyValue: string;
-    fulfillmentType: "PICK_UP" | "DELIVERY";
-    paymentType: "CASH" | "CASH_ON_DELIVERY" | "E_PAYMENT" | "BANK_TRANSFER";
-    deliveryAddress: DeliveryAddress;
-    deliveryLandmark: string;
-    deliveryLat: number | null;
-    deliveryLng: number | null;
     idFile: File | null;
     proofFile: File | null;
     businessName: string;
@@ -96,28 +70,23 @@ interface FormState {
 // --- CONSTANTS ---
 
 const STEPS: { id: Step; label: string; icon: any }[] = [
-    { id: "TYPE", label: "Select Service", icon: Fingerprint },
+    { id: "STATUS", label: "Status", icon: Sparkles },
     { id: "RESIDENT", label: "Identity", icon: User },
-    { id: "DELIVERY", label: "Logistics", icon: Package },
     { id: "DECLARATION", label: "Declaration", icon: Calculator },
     { id: "CONFIRM", label: "Submit", icon: CheckCircle2 },
 ];
 
 export default function CedulaApplicationPage() {
     const router = useRouter();
-    const [currentStep, setCurrentStep] = useState<Step>("TYPE");
+    const [currentStep, setCurrentStep] = useState<Step>("STATUS");
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [transactionTypes, setTransactionTypes] = useState<any[]>([]);
     const [calcResult, setCalcResult] = useState<CedulaResult | null>(null);
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);
-    const incomeInputRef = React.useRef<HTMLInputElement>(null);
-    const contactInputRef = React.useRef<HTMLInputElement>(null);
-    const barangayInputRef = React.useRef<HTMLInputElement>(null);
-    const muniInputRef = React.useRef<HTMLInputElement>(null);
-    const provInputRef = React.useRef<HTMLInputElement>(null);
+    const incomeInputRef = useRef<HTMLInputElement>(null);
+    const contactInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState<FormState>({
         typeId: "",
@@ -125,21 +94,6 @@ export default function CedulaApplicationPage() {
         residentData: {},
         income: "",
         propertyValue: "",
-        fulfillmentType: "PICK_UP",
-        paymentType: "CASH",
-        deliveryAddress: {
-            houseNumber: "",
-            street: "",
-            sitio: "",
-            purok: "",
-            barangay: "",
-            municipality: "Agno",
-            province: "Pangasinan",
-            region: "Ilocos Region"
-        },
-        deliveryLandmark: "",
-        deliveryLat: null,
-        deliveryLng: null,
         idFile: null,
         proofFile: null,
         businessName: ""
@@ -159,9 +113,11 @@ export default function CedulaApplicationPage() {
                 const typesRes = await getTransactionTypes();
                 if (typesRes.success) {
                     const cedulaTypes = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
-                    setTransactionTypes(cedulaTypes);
                     if (cedulaTypes.length > 0) {
-                        setFormData(prev => ({ ...prev, typeId: cedulaTypes[0].id }));
+                        // We store the types but wait for user to pick in Step 1
+                        (window as any)._cedulaTypes = cedulaTypes;
+                        const individualType = cedulaTypes.find((t: any) => t.code === "CEDULA_IND") || cedulaTypes[0];
+                        setFormData(prev => ({ ...prev, typeId: individualType.id }));
                     }
                 }
 
@@ -174,18 +130,6 @@ export default function CedulaApplicationPage() {
                     setFormData(prev => ({
                         ...prev,
                         residentData: resident,
-                        deliveryAddress: {
-                            houseNumber: resident.houseNumber || "",
-                            street: resident.street || "",
-                            sitio: resident.sitio || "",
-                            purok: resident.purok || "",
-                            barangay: resident.barangay || "",
-                            municipality: resident.municipality || "Agno",
-                            province: resident.province || "Pangasinan",
-                            region: "Ilocos Region"
-                        },
-                        deliveryLat: resident.latitude || null,
-                        deliveryLng: resident.longitude || null
                     }));
                 }
             } catch (err) {
@@ -202,56 +146,30 @@ export default function CedulaApplicationPage() {
 
     // --- LOGIC ---
     const updateCalc = React.useCallback(() => {
-        const selectedType = transactionTypes.find(t => t.id === formData.typeId);
         const result = calculateCedula({
             type: formData.applicantType,
             income: parseFloat(formData.income) || 0,
             propertyValue: parseFloat(formData.propertyValue) || 0,
-            fulfillmentType: formData.fulfillmentType,
-            deliveryFee: selectedType?.deliveryFee || 0
+            fulfillmentType: "PICK_UP", // Base amount only during initial app
+            deliveryFee: 0
         });
         setCalcResult(result);
-    }, [formData.income, formData.propertyValue, formData.fulfillmentType, formData.typeId, formData.applicantType, transactionTypes]);
+    }, [formData.income, formData.propertyValue, formData.applicantType]);
 
     useEffect(() => {
         updateCalc();
     }, [updateCalc]);
 
-
-    // --- AUTO-SYNC PAYMENT TYPE ---
-    // If fulfillment is Delivery, we use CASH_ON_DELIVERY. If Pickup, we use CASH.
-    // This keeps our database super accurate based on the user's choices.
-    useEffect(() => {
-        if (formData.fulfillmentType === "DELIVERY" && formData.paymentType as any === "CASH") {
-            setFormData(p => ({ ...p, paymentType: "CASH_ON_DELIVERY" as any }));
-        } else if (formData.fulfillmentType === "PICK_UP" && formData.paymentType as any === "CASH_ON_DELIVERY") {
-            setFormData(p => ({ ...p, paymentType: "CASH" as any }));
-        }
-    }, [formData.fulfillmentType, formData.paymentType]);
-
     const isStepValid = (stepId: Step) => {
         switch (stepId) {
-            case "TYPE":
-                return !!formData.applicantType && !!formData.typeId;
+            case "STATUS":
+                return !!formData.typeId;
             case "RESIDENT":
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.email && r?.contactNumber);
             case "DECLARATION":
                 // Require either Annual Gross Income OR Real Property Assessed Value to be > 0
                 return (parseFloat(formData.income) > 0 || parseFloat(formData.propertyValue) > 0);
-            case "DELIVERY":
-                if (formData.fulfillmentType === "DELIVERY") {
-                    const addr = formData.deliveryAddress;
-                    // Require Pin Location AND key address components
-                    return !!(
-                        addr.barangay &&
-                        addr.municipality &&
-                        addr.province &&
-                        formData.deliveryLat &&
-                        formData.deliveryLng
-                    );
-                }
-                return true;
             case "CONFIRM":
                 // Final submission requires Data Privacy acceptance AND either a new upload or an existing ID
                 return privacyAccepted && (!!formData.idFile || !!existingIdUrl) && !!formData.proofFile;
@@ -276,22 +194,8 @@ export default function CedulaApplicationPage() {
 
     const handleNext = () => {
         if (!isStepValid(currentStep)) {
-            if (currentStep === "DELIVERY" && formData.fulfillmentType === "DELIVERY") {
-                const addr = formData.deliveryAddress;
-                if (!formData.deliveryLat || !formData.deliveryLng) {
-                    toast.error("Please pin your delivery location on the map.");
-                } else if (!addr.barangay) {
-                    barangayInputRef.current?.focus();
-                    toast.error("Please provide your Barangay.");
-                } else if (!addr.municipality) {
-                    muniInputRef.current?.focus();
-                    toast.error("Please provide your Municipality.");
-                } else if (!addr.province) {
-                    provInputRef.current?.focus();
-                    toast.error("Please provide your Province.");
-                } else {
-                    toast.error("Please complete all required logistics details.");
-                }
+            if (currentStep === "STATUS") {
+                toast.error("Please identify your status first.");
             } else if (currentStep === "RESIDENT") {
                 contactInputRef.current?.focus();
                 toast.error("Please provide your contact number for better coordination.");
@@ -321,12 +225,6 @@ export default function CedulaApplicationPage() {
         try {
             const submitData = new FormData();
             submitData.append("typeId", formData.typeId);
-            submitData.append("fulfillmentType", formData.fulfillmentType);
-            submitData.append("paymentType", formData.paymentType);
-            submitData.append("deliveryAddress", JSON.stringify(formData.deliveryAddress));
-            if (formData.deliveryLat) submitData.append("deliveryLat", formData.deliveryLat.toString());
-            if (formData.deliveryLng) submitData.append("deliveryLng", formData.deliveryLng.toString());
-            submitData.append("deliveryLandmark", formData.deliveryLandmark);
             if (existingIdUrl) submitData.append("existingIdUrl", existingIdUrl);
 
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
@@ -381,7 +279,7 @@ export default function CedulaApplicationPage() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Online Cedula Service</BreadcrumbPage>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Cedula Service Portal</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -397,7 +295,7 @@ export default function CedulaApplicationPage() {
             </div>
 
             {/* Progress Stepper */}
-            <div className="grid grid-cols-5 gap-2 md:gap-4 relative px-2">
+            <div className="grid grid-cols-4 gap-2 md:gap-4 relative px-2">
                 {STEPS.map((step, idx) => {
                     const isActive = currentStep === step.id;
                     const isCompleted = STEPS.findIndex(s => s.id === currentStep) > idx;
@@ -413,16 +311,6 @@ export default function CedulaApplicationPage() {
                                     if (currentStep === "RESIDENT") {
                                         contactInputRef.current?.focus();
                                         toast.error("Please complete your identity details first.");
-                                    } else if (currentStep === "DELIVERY" && formData.fulfillmentType === "DELIVERY") {
-                                        const addr = formData.deliveryAddress;
-                                        if (!formData.deliveryLat || !formData.deliveryLng) {
-                                            toast.error("Please pin your location first.");
-                                        } else if (!addr.barangay) {
-                                            barangayInputRef.current?.focus();
-                                            toast.error("Please complete the delivery address.");
-                                        } else {
-                                            toast.error("Please complete the logistics details.");
-                                        }
                                     } else if (currentStep === "DECLARATION") {
                                         incomeInputRef.current?.focus();
                                         toast.error("Please complete the declaration first.");
@@ -466,58 +354,69 @@ export default function CedulaApplicationPage() {
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.4 }}
                         >
-                            {/* Step 1: TYPE SELECTION */}
-                            {currentStep === "TYPE" && (
-                                <div className="space-y-10">
-                                    <div className="space-y-4">
-                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Identify Your <span className="text-primary italic">Status</span></h2>
-                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Choose the appropriate category for your Community Tax Certificate application.</p>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {[
-                                            { id: "INDIVIDUAL", label: "Individual", icon: User, desc: "For employees, property owners, and private citizens." },
-                                            { id: "JURIDICAL", label: "Juridical", icon: Building2, desc: "For businesses, corporations, and established entities." }
-                                        ].map((opt) => (
-                                            <Card
-                                                key={opt.id}
-                                                onClick={() => {
-                                                    const type = transactionTypes.find(t => t.code === (opt.id === "INDIVIDUAL" ? "CEDULA_IND" : "CEDULA_JUR"));
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        applicantType: opt.id as any,
-                                                        typeId: type?.id || prev.typeId
-                                                    }));
-                                                }}
-                                                className={cn(
-                                                    "p-8 rounded-[2.5rem] cursor-pointer border-2 transition-all duration-500 relative group overflow-hidden select-none active:scale-[0.98]",
-                                                    formData.applicantType === opt.id ? "bg-primary/5 border-primary" : "bg-slate-50 shadow-sm dark:bg-white/5 border-transparent hover:border-primary/20"
-                                                )}
-                                            >
-                                                <div className="space-y-6 relative z-10">
-                                                    <div className={cn(
-                                                        "w-16 h-16 rounded-[1.25rem] flex items-center justify-center transition-colors shadow-sm",
-                                                        formData.applicantType === opt.id ? "bg-primary text-white" : "bg-white dark:bg-black/20 text-slate-400 group-hover:text-primary"
-                                                    )}>
-                                                        <opt.icon className="w-8 h-8" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <h3 className="text-2xl font-black uppercase italic italic group-hover:text-primary transition-colors">{opt.label}</h3>
-                                                        <p className="text-sm text-slate-400 font-medium italic">{opt.desc}</p>
-                                                    </div>
-                                                </div>
-                                                {formData.applicantType === opt.id && (
-                                                    <div className="absolute top-4 right-4 bg-primary text-white p-1 rounded-lg">
-                                                        <CheckCircle2 className="w-5 h-5" />
-                                                    </div>
-                                                )}
-                                            </Card>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                {currentStep === "STATUS" && (
+                                    <div className="space-y-12">
+                                        <div className="space-y-4 text-center">
+                                            <h2 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight">Identify Your <span className="text-primary italic">Status</span></h2>
+                                            <p className="text-slate-500 font-medium italic text-lg uppercase tracking-widest max-w-2xl mx-auto">Select the appropriate category for this Community Tax assessment.</p>
+                                        </div>
 
-                            {/* Step 2: IDENTITY VERIFICATION */}
-                            {currentStep === "RESIDENT" && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                                            {[
+                                                { 
+                                                    id: "INDIVIDUAL", 
+                                                    label: "Individual Citizen", 
+                                                    desc: "For private citizens, professionals, and employees.", 
+                                                    icon: User,
+                                                    code: "CEDULA_IND"
+                                                },
+                                                { 
+                                                    id: "JURIDICAL", 
+                                                    label: "Juridical Entity", 
+                                                    desc: "For corporations, partnerships, and business firms.", 
+                                                    icon: Sparkles,
+                                                    code: "CEDULA_JUR"
+                                                }
+                                            ].map(opt => {
+                                                const Icon = opt.icon;
+                                                const isSelected = formData.applicantType === opt.id;
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => {
+                                                            const types = (window as any)._cedulaTypes || [];
+                                                            const t = types.find((x: any) => x.code === opt.code) || types[0];
+                                                            setFormData(p => ({ ...p, applicantType: opt.id as any, typeId: t.id }));
+                                                        }}
+                                                        className={cn(
+                                                            "p-10 rounded-[3rem] border-4 transition-all duration-500 text-left relative group select-none overflow-hidden",
+                                                            isSelected ? "bg-primary text-white border-primary shadow-2xl scale-[1.03]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/10 hover:border-primary/30"
+                                                        )}
+                                                    >
+                                                        <div className={cn("w-20 h-20 rounded-[2rem] flex items-center justify-center mb-10 transition-transform group-hover:scale-110", isSelected ? "bg-white/20" : "bg-primary/5 text-primary")}>
+                                                            <Icon className={cn("w-10 h-10", isSelected ? "animate-pulse" : "")} />
+                                                        </div>
+                                                        <div className="space-y-2 relative z-10">
+                                                            <h4 className="text-2xl font-black uppercase italic tracking-tighter">
+                                                                {opt.label}
+                                                            </h4>
+                                                            <p className={cn("text-[11px] font-bold uppercase italic tracking-widest leading-relaxed", isSelected ? "text-white/70" : "text-slate-400")}>
+                                                                {opt.desc}
+                                                            </p>
+                                                        </div>
+                                                        {isSelected && (
+                                                            <motion.div layoutId="check" className="absolute top-8 right-8 w-10 h-10 bg-white rounded-full flex items-center justify-center text-primary shadow-xl">
+                                                                <Check className="w-6 h-6 stroke-[4]" />
+                                                            </motion.div>
+                                                        )}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {currentStep === "RESIDENT" && (
                                 <div className="space-y-8">
                                     <div className="space-y-1">
                                         <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-tight">Identity <span className="text-primary italic">Confirmation</span></h2>
@@ -763,185 +662,12 @@ export default function CedulaApplicationPage() {
                                 </div>
                             )}
 
-                            {/* Step 4: LOGISTICS & PAYMENT */}
-                            {currentStep === "DELIVERY" && (
-                                <div className="space-y-12">
-                                    <div className="space-y-4">
-                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Fulfillment <span className="text-primary italic">& Payment</span></h2>
-                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Select how you want to receive your Cedula and your preferred mode of payment.</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                        <div className="space-y-8">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Fulfillment Mode</Label>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                {[
-                                                    { id: "PICK_UP", label: "For Pickup", icon: MapPin },
-                                                    { id: "DELIVERY", label: "For Deliver", icon: Truck }
-                                                ].map(opt => (
-                                                    <button
-                                                        key={opt.id}
-                                                        onClick={() => setFormData(p => ({ ...p, fulfillmentType: opt.id as any }))}
-                                                        className={cn(
-                                                            "flex flex-col items-center gap-4 p-8 rounded-3xl border-2 transition-all group select-none active:scale-[0.95]",
-                                                            formData.fulfillmentType === opt.id ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40"
-                                                        )}
-                                                    >
-                                                        <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest italic">{opt.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {formData.fulfillmentType === "DELIVERY" && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    className="space-y-6 pt-4"
-                                                >
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Pin Your Delivery Location</Label>
-                                                        <LocationPicker
-                                                            lat={formData.deliveryLat}
-                                                            lng={formData.deliveryLng}
-                                                            onChange={(lat, lng) => setFormData(p => ({ ...p, deliveryLat: lat, deliveryLng: lng }))}
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div className="space-y-3">
-                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">House/Bldg No.</Label>
-                                                            <Input
-                                                                value={formData.deliveryAddress.houseNumber}
-                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, houseNumber: e.target.value } }))}
-                                                                placeholder="Floor/Unit/House #"
-                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-3">
-                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Street / Block</Label>
-                                                            <Input
-                                                                value={formData.deliveryAddress.street}
-                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, street: e.target.value } }))}
-                                                                placeholder="Street Name"
-                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div className="space-y-3">
-                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Sitio</Label>
-                                                            <Input
-                                                                value={formData.deliveryAddress.sitio}
-                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, sitio: e.target.value } }))}
-                                                                placeholder="Sitio"
-                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-3">
-                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purok</Label>
-                                                            <Input
-                                                                value={formData.deliveryAddress.purok}
-                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, purok: e.target.value } }))}
-                                                                placeholder="Purok"
-                                                                className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Barangay</Label>
-                                                        <Input
-                                                            ref={barangayInputRef}
-                                                            value={formData.deliveryAddress.barangay}
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, barangay: e.target.value } }))}
-                                                            placeholder="Barangay"
-                                                            className="h-14 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 font-bold italic"
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Municipality</Label>
-                                                            <Input
-                                                                ref={muniInputRef}
-                                                                value={formData.deliveryAddress.municipality}
-                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, municipality: e.target.value } }))}
-                                                                placeholder="Municipality"
-                                                                className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Province</Label>
-                                                            <Input
-                                                                ref={provInputRef}
-                                                                value={formData.deliveryAddress.province}
-                                                                onChange={(e) => setFormData(p => ({ ...p, deliveryAddress: { ...p.deliveryAddress, province: e.target.value } }))}
-                                                                placeholder="Province"
-                                                                className="h-10 rounded-xl bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-[10px] font-black italic uppercase"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-3">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Nearby Landmark</Label>
-                                                        <Input
-                                                            value={formData.deliveryLandmark}
-                                                            onChange={(e) => setFormData(p => ({ ...p, deliveryLandmark: e.target.value }))}
-                                                            placeholder="e.g. In front of Sari-sari store"
-                                                            className="h-16 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-md font-bold italic bg-white pr-4"
-                                                        />
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-8">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Payment Method</Label>
-                                            <div className="space-y-4">
-                                                {[
-                                                    {
-                                                        id: formData.fulfillmentType === "DELIVERY" ? "CASH_ON_DELIVERY" : "CASH",
-                                                        label: formData.fulfillmentType === "DELIVERY" ? "Cash on Delivery" : "Cash Over-the-Counter",
-                                                        icon: Wallet,
-                                                        desc: formData.fulfillmentType === "DELIVERY" ? "Pay when your document arrives" : "Pay at the Treasury Office"
-                                                    },
-                                                    { id: "E_PAYMENT", label: "Online E-Payment", icon: CreditCard, desc: "GCash, Maya, or Debit/Credit" },
-                                                    { id: "BANK_TRANSFER", label: "Direct Bank Transfer", icon: Building2, desc: "Landbank or Other Banks" }
-                                                ].map(opt => (
-                                                    <button
-                                                        key={opt.id}
-                                                        onClick={() => setFormData(p => ({ ...p, paymentType: opt.id as any }))}
-                                                        className={cn(
-                                                            "w-full flex items-center gap-6 p-6 rounded-3xl border-2 transition-all hover:scale-[1.01] group select-none relative overflow-hidden active:scale-[0.98]",
-                                                            formData.paymentType === opt.id ? "bg-primary/5 border-primary shadow-sm" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/20"
-                                                        )}
-                                                    >
-                                                        <div className={cn(
-                                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm",
-                                                            formData.paymentType === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/10 text-slate-400 group-hover:text-primary"
-                                                        )}>
-                                                            <opt.icon className="w-6 h-6" />
-                                                        </div>
-                                                        <div className="text-left py-1">
-                                                            <h4 className={cn("text-sm font-black uppercase italic tracking-widest transition-colors", formData.paymentType === opt.id ? "text-primary" : "text-slate-600 dark:text-slate-300")}>{opt.label}</h4>
-                                                            <p className="text-[10px] text-slate-400 font-bold italic uppercase">{opt.desc}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 5: FINAL REVIEW & ATTACHMENTS */}
+                            {/* Step 4: CONFIRMATION PHASE */}
                             {currentStep === "CONFIRM" && (
-                                <div className="space-y-12 pb-10">
-                                    <div className="space-y-4 text-center">
-                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Final <span className="text-primary italic">Review</span></h2>
-                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed max-w-lg mx-auto">Upload required documents to verify your identity and finalize your application.</p>
+                                <div className="space-y-10">
+                                    <div className="space-y-4">
+                                        <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight">Review <span className="text-primary italic">& Finalize</span></h2>
+                                        <p className="text-slate-500 font-medium italic text-lg leading-relaxed">Please review your declaration carefully before submitting your application for evaluation.</p>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -1104,7 +830,7 @@ export default function CedulaApplicationPage() {
             {/* Sticky Progress Footer */}
             <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-3xl border-t border-slate-200 dark:border-white/10 z-50 p-4 flex flex-col items-center shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
                 <div className="max-w-[1400px] w-full flex items-center justify-center font-black uppercase tracking-[0.3em] italic text-[9px] text-slate-400 select-none">
-                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} of 5
+                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} of {STEPS.length}
                 </div>
             </div>
         </div>
