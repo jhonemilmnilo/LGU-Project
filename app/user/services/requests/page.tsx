@@ -104,7 +104,7 @@ export default function UserServiceRequestsPage() {
                                 <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
                                     Service <span className="text-primary underline decoration-primary/20 underline-offset-8 decoration-4">Requests</span>
                                 </h1>
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-2 italic">Official LGU Tracking Dashboard</p>
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-2 italic">Official LGU Tracking</p>
                             </div>
                             <p className="text-slate-500 font-medium italic text-lg leading-relaxed max-w-2xl">
                                 Monitor the real-time status of your official document applications, tax certificates, and public service requests.
@@ -114,7 +114,7 @@ export default function UserServiceRequestsPage() {
                         <div className="relative w-full md:w-80 group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                             <Input 
-                                placeholder="Search by ID or Type..." 
+                                placeholder="Search by Service Type..." 
                                 className="h-14 pl-12 rounded-2xl border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 font-bold italic transition-all focus:ring-2 focus:ring-primary/20"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -140,9 +140,6 @@ export default function UserServiceRequestsPage() {
                                             <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white italic truncate group-hover:text-primary transition-colors">
                                                 {req.type?.name || "Service Request"}
                                             </h3>
-                                            <Badge variant="outline" className="text-[7.5px] font-black uppercase tracking-widest text-slate-400 rounded-full border-slate-200 px-2 py-0">
-                                                ID: {req.id.slice(-8).toUpperCase()}
-                                            </Badge>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-4 text-slate-400">
                                             <span className="text-[9px] font-black uppercase tracking-widest italic">{format(new Date(req.createdAt), "MMMM d, yyyy")}</span>

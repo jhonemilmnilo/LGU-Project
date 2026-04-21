@@ -131,8 +131,7 @@ export default function CedulaApplicationPage() {
         businessName: ""
     });
 
-    const [barangays, setBarangays] = useState<{ code: string; name: string }[]>([]);
-    const [loadingBarangays, setLoadingBarangays] = useState(false);
+
 
     // --- INITIALIZATION ---
 
@@ -871,10 +870,12 @@ export default function CedulaApplicationPage() {
 
                                             {formData.idFile && formData.idFile.type.startsWith("image/") && (
                                                 <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
-                                                    <img 
+                                                    <Image 
                                                         src={URL.createObjectURL(formData.idFile)} 
                                                         alt="ID Preview" 
-                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        fill
+                                                        unoptimized
+                                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
                                                     />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
                                                         <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
@@ -913,10 +914,12 @@ export default function CedulaApplicationPage() {
 
                                             {formData.proofFile && formData.proofFile.type.startsWith("image/") && (
                                                 <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg group/preview mt-1">
-                                                    <img 
+                                                    <Image 
                                                         src={URL.createObjectURL(formData.proofFile)} 
                                                         alt="Proof Preview" 
-                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        fill
+                                                        unoptimized
+                                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
                                                     />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
                                                         <span className="text-[7px] font-black text-white uppercase tracking-widest border border-white/20 px-2 py-0.5 rounded-full backdrop-blur-md">Live Preview</span>
