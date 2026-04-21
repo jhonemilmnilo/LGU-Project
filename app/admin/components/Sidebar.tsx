@@ -151,7 +151,7 @@ export function Sidebar({
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
     } else if (role === "TREASURY_STAFF") {
-        menuItems = allMenuItems.filter(item => ["Dashboard", "Treasury Hub"].includes(item.label));
+        menuItems = allMenuItems.filter(item => ["Treasury Hub"].includes(item.label));
     }
 
     return (

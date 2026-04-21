@@ -5,10 +5,17 @@ import { authOptions } from "@/lib/auth";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { BarangaySwitcher } from "../components/BarangaySwitcher";
 import { Download, Plus, Users, Briefcase, AlertTriangle, Hammer, MapPin } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function AdminDashboard(props: { searchParams: Promise<{ barangay?: string }> }) {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
+    
+    // Redirect Treasury Staff to their specific hub immediately
+    if (user?.role === "TREASURY_STAFF") {
+        redirect("/admin/treasury");
+    }
+
     const isBarangayAdmin = user?.role === "BARANGAY_ADMIN";
     const isAdmin = user?.role === "ADMIN";
 

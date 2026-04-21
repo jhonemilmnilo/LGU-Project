@@ -1,9 +1,12 @@
 "use client";
 
-import { Home, User as UserIcon, Mail, Clock, BadgeCheck, XCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Home, User as UserIcon, Mail, Clock, BadgeCheck, XCircle, UserPlus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { AddUserModal } from "./AddUserModal";
 
 import { UserRole } from "@prisma/client";
 
@@ -22,6 +25,7 @@ type UserWithProfile = {
 };
 
 export function UsersPage({ users }: { users: UserWithProfile[] }) {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     return (
         <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 text-slate-900 dark:text-white">
             {/* Header Section */}
@@ -37,6 +41,14 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">User Management</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Control and monitor user accounts, verification status, and linked profiles.</p>
                 </div>
+
+                <Button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="h-14 px-8 rounded-2xl bg-primary text-white font-black uppercase italic tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2"
+                >
+                    <UserPlus className="w-5 h-5" />
+                    Provision New User
+                </Button>
             </div>
 
             {/* Stats Summary */}
@@ -141,6 +153,10 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                     </TableBody>
                 </Table>
             </div>
+        <AddUserModal 
+            isOpen={isAddModalOpen} 
+            onClose={() => setIsAddModalOpen(false)} 
+        />
         </div>
     );
 }

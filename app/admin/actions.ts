@@ -2467,3 +2467,63 @@ export async function createBarangayAdmin(formData: FormData) {
         return { success: false, error: error.message || "Failed to create barangay admin." };
     }
 }
+
+/**
+ * Fetch simplified list of barangays for selection
+ */
+export async function getBarangaysList() {
+    try {
+        const barangays = await prisma.barangayInfo.findMany({
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' }
+        });
+        return { success: true, data: barangays };
+    } catch (error) {
+        console.error("Fetch barangays list error:", error);
+        return { success: false, error: "Failed to fetch barangays" };
+    }
+}
+
+/**
+ * Generic user creation for administrators
+ */
+export async function createUser(formData: FormData) {
+    try {
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const role = formData.get("role") as any;
+        const managedBarangay = formData.get("managedBarangay") as string;
+
+        if (!name || !email || !password || !role) {
+            return { success: false, error: "Missing required fields" };
+        }
+
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return { success: false, error: "Email already exists" };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role,
+                managedBarangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
+                isEmailVerified: true,
+                isPasswordChanged: true, // Admin set, bypass forced change
+                emailVerified: new Date(),
+            }
+        });
+
+        revalidatePath("/admin/users");
+        return { success: true, user: newUser };
+    } catch (error: any) {
+        console.error("Failed to create user:", error);
+        return { success: false, error: error.message || "Failed to create user" };
+    }
+}
+
