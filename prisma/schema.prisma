@@ -543,6 +543,10 @@ model TransactionType {
   deliveryFee   Float    @default(0)
   isFixed       Boolean  @default(true) // false = triggers custom math (like Cedula)
   
+  // Service Capabilities
+  requiresBusinessName Boolean @default(false)
+  supportsECopy        Boolean @default(false)
+  
   // Dynamic Configuration
   requiredDocs  Json     @default("[]") // e.g., ["Valid ID", "Proof of Income"]
   formSchema    Json     @default("{}") // Definitions for extra fields needed
@@ -582,6 +586,10 @@ model Transaction {
   // Financials (Final computed amounts)
   totalAmount       Float             @default(0)
   
+  // Specific Context
+  businessName      String?           // For Juridical requests
+  eCopyUrl          String?           // Link to generated digital file
+  
   // Audit & Workflow
   processedBy       String?           // User ID of the Treasury Staff who handled it
   rejectionRemarks  String?
@@ -609,6 +617,9 @@ model Cedula {
   additionalTax  Float
   penalty        Float
   totalPaid      Float
+  
+  businessName   String?     // Official Name for Juridical entities
+  documentUrl    String?     // Link for E-Copy downloads
   
   issuedBy       String      // Name of the Treasury Personnel
   verificationId String      @unique @default(cuid()) // Unique hash for the QR Code

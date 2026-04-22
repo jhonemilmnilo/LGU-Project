@@ -55,6 +55,8 @@ export async function ensureCedulaTransactionTypes() {
                     applicantType: "INDIVIDUAL",
                     fields: ["income", "propertyValue"]
                 },
+                requiresBusinessName: false,
+                supportsECopy: true,
                 logicCode: "cedula_calc_v1"
             },
             {
@@ -71,6 +73,8 @@ export async function ensureCedulaTransactionTypes() {
                     applicantType: "JURIDICAL",
                     fields: ["businessName", "income", "propertyValue"]
                 },
+                requiresBusinessName: true,
+                supportsECopy: true,
                 logicCode: "cedula_calc_v1"
             }
         ];
@@ -78,7 +82,12 @@ export async function ensureCedulaTransactionTypes() {
         for (const t of types) {
             await prisma.transactionType.upsert({
                 where: { code: t.code },
-                update: {},
+                update: {
+                    requiresBusinessName: t.requiresBusinessName,
+                    supportsECopy: t.supportsECopy,
+                    deliveryFee: t.deliveryFee,
+                    baseFee: t.baseFee
+                },
                 create: t
             });
         }
@@ -206,6 +215,7 @@ export async function submitTransaction(formData: FormData) {
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: 0,
+                    businessName: additionalData.businessName || null,
                 } as any
             }),
             // 2. Update the Permanent Resident Profile
@@ -458,6 +468,8 @@ export async function releaseCedula(id: string, ctcNumber: string) {
                 penalty: calc.penalty,
                 totalPaid: transaction.totalAmount,
                 issuedBy: user.name || "System Administrator",
+                businessName: (transaction as any).businessName,
+                documentUrl: (transaction as any).eCopyUrl,
                 verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
             }
         });
