@@ -10,7 +10,7 @@ export interface CedulaCalculationParams {
     income: number;
     propertyValue: number;
     isPastDeadline?: boolean; // Default check: On or after March 1
-    fulfillmentType?: "PICK_UP" | "DELIVERY";
+    fulfillmentType?: "PICK_UP" | "DELIVERY" | "E_COPY" | null;
     deliveryFee?: number;
 }
 

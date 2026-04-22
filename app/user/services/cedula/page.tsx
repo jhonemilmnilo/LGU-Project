@@ -643,10 +643,6 @@ export default function CedulaApplicationPage() {
                                                     </span>
                                                     <span>₱{calcResult?.penalty.toFixed(2)}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center text-xs uppercase tracking-widest italic opacity-70">
-                                                    <span>Delivery Fee</span>
-                                                    <span>₱{calcResult?.deliveryFee.toFixed(2)}</span>
-                                                </div>
                                             </div>
                                             <div className="pt-2 flex justify-between items-end relative z-10">
                                                 <div className="space-y-1 mb-2 text-left">

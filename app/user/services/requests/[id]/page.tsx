@@ -13,14 +13,15 @@ import {
     Wallet,
     Info,
     CheckCircle2,
-    ChevronRight,
     Home,
-    AlertCircle,
-    ArrowLeft,
     Loader2,
     Camera,
     Upload,
-    Check
+    Check,
+    XCircle,
+    Activity,
+    DollarSign,
+    Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -30,8 +31,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
 import { 
     Breadcrumb,
     BreadcrumbList,
@@ -48,7 +51,7 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
     loading: () => <div className="h-[300px] w-full rounded-2xl bg-white/5 animate-pulse flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Loading Precision Map...</div>
 });
 
-export default function RequestFinalizationPage() {
+export default function RequestHubPage() {
     const params = useParams();
     const router = useRouter();
     const id = params.id as string;
@@ -86,28 +89,38 @@ export default function RequestFinalizationPage() {
                     const req = res.data;
                     setRequest(req);
                     
-                    // Pre-fill from resident snapshot
+                    // Pre-fill logic correctly
                     if (req.residentSnapshot) {
                         const r = req.residentSnapshot as any;
-                        setAddress(prev => ({
-                            ...prev,
-                            houseNumber: r.houseNumber || "",
-                            street: r.street || "",
-                            sitio: r.sitio || "",
-                            purok: r.purok || "",
-                            barangay: r.barangay || "",
-                            municipality: r.municipality || "",
-                            province: r.province || "",
-                            contactNumber: r.contactNumber || ""
-                        }));
-                        if (r.latitude && r.longitude) {
-                            setLocalLat(r.latitude);
-                            setLocalLng(r.longitude);
+                        const finalAddr = (typeof req.deliveryAddress === 'string' ? JSON.parse(req.deliveryAddress || '{}') : req.deliveryAddress) || {};
+                        
+                        setAddress({
+                            houseNumber: finalAddr.houseNumber || r.houseNumber || "",
+                            street: finalAddr.street || r.street || "",
+                            sitio: finalAddr.sitio || r.sitio || "",
+                            purok: finalAddr.purok || r.purok || "",
+                            barangay: finalAddr.barangay || r.barangay || "",
+                            municipality: finalAddr.municipality || r.municipality || "",
+                            province: finalAddr.province || r.province || "",
+                            contactNumber: r.contactNumber || "",
+                            landmark: req.deliveryLandmark || ""
+                        });
+
+                        const lat = req.deliveryLat ? Number(req.deliveryLat) : r.latitude;
+                        const lng = req.deliveryLng ? Number(req.deliveryLng) : r.longitude;
+
+                        if (lat && lng) {
+                            setLocalLat(lat);
+                            setLocalLng(lng);
                         } else {
                             setLocalLat(16.026);
                             setLocalLng(120.454);
                         }
                     }
+
+                    if (req.fulfillmentType) setLocalFulfillment(req.fulfillmentType);
+                    if (req.paymentType) setLocalPayment(req.paymentType);
+
                 } else {
                     toast.error("Request not found");
                     router.push("/user/services/requests");
@@ -154,7 +167,7 @@ export default function RequestFinalizationPage() {
             const res = await finalizeTransactionFulfillment(formData);
             if (res.success) {
                 toast.success("Logistics secured! Processing started.");
-                router.push("/user/services/requests");
+                window.location.reload();
             } else {
                 toast.error(res.error || "Failed to finalize selection");
             }
@@ -166,14 +179,39 @@ export default function RequestFinalizationPage() {
         }
     };
 
-    // Computation Logic (Ported from Modal)
+    const getStatusConfig = (status: string) => {
+        switch (status) {
+            case "DRAFT":
+                return { label: "DRAFT", color: "bg-slate-100 text-slate-600 border-slate-200", icon: FileText };
+            case "FOR_REQUESTING":
+                return { label: "PENDING", color: "bg-primary text-white border-transparent", icon: Clock };
+            case "FOR_PROCESSING":
+                return { label: "FOR_PROCESSING", color: "bg-primary text-white border-transparent", icon: Activity };
+            case "EVALUATED":
+                return { label: "EVALUATED", color: "bg-primary text-white border-transparent", icon: DollarSign };
+            case "PAID":
+                return { label: "PAID", color: "bg-primary text-white border-transparent", icon: Clock };
+            case "RELEASED":
+                return { label: "RELEASED", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 };
+            case "REJECTED":
+                return { label: "REJECTED", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle };
+            default:
+                return { label: status, color: "bg-slate-100 text-slate-700 border-slate-200", icon: Clock };
+        }
+    };
+
+    const additionalData = request?.additionalData || {};
+    const residentData = request?.residentSnapshot || {};
+    const statusConfig = request ? getStatusConfig(request.status) : null;
+    const isActionable = request?.status === "EVALUATED" && !request.paymentType;
+
     const computation = useMemo(() => {
         if (!request) return null;
-        const additionalData = request.additionalData || {};
-        const income = additionalData.income || 0;
-        const propertyValue = additionalData.propertyValue || 0;
+        const addData = request.additionalData || {};
+        const income = addData.income || 0;
+        const propertyValue = addData.propertyValue || 0;
         const totalBasis = income + propertyValue;
-        const cedulaType = (additionalData.applicantType === "JURIDICAL" || additionalData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
+        const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
         const additionalTax = cedulaType === "JURIDICAL" 
             ? Math.floor(totalBasis / 5000) * 2.00 
@@ -182,36 +220,35 @@ export default function RequestFinalizationPage() {
         const subtotal = basicTax + additionalTax;
         const totalWithPenalty = Number(request.totalAmount) || subtotal;
         const penaltyAmount = totalWithPenalty - subtotal;
-        const deliveryFee = localFulfillment === "DELIVERY" ? (request.type?.deliveryFee || 0) : 0;
-        const finalTotal = totalWithPenalty + deliveryFee;
+        const dFee = localFulfillment === "DELIVERY" ? (request.type?.deliveryFee || 0) : 0;
+        const finalTotal = totalWithPenalty + dFee;
 
-        return { basicTax, additionalTax, penaltyAmount, deliveryFee, finalTotal, cedulaType };
+        return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
     }, [request, localFulfillment]);
 
     if (loading) {
         return (
             <div className="min-h-[80vh] flex flex-col items-center justify-center gap-6">
                 <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-lg" />
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic animate-pulse">Initializing Premium Portal...</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic animate-pulse">Initializing Request Hub...</p>
             </div>
         );
     }
 
     return (
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32 selection:bg-primary/20">
-            {/* Header / Breadcrumb */}
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32">
+            {/* Nav & Header */}
             <div className="space-y-6">
                 <Breadcrumb>
                     <BreadcrumbList className="bg-white/40 dark:bg-black/20 backdrop-blur-xl px-5 py-2.5 rounded-2xl border border-white/20 dark:border-white/5 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-primary transition-colors italic">
-                                    <Home className="w-3.5 h-3.5 mb-0.5" />
-                                    Home
+                                    <Home className="w-3.5 h-3.5 mb-0.5" /> Home
                                 </Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbSeparator />
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/user/services/requests" className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-primary transition-colors italic border-b border-transparent hover:border-primary/30">
@@ -219,344 +256,300 @@ export default function RequestFinalizationPage() {
                                 </Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbSeparator />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Logistics Finalization</BreadcrumbPage>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">
+                                {isActionable ? "Provisioning" : "Status Tracker"}
+                            </BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
 
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="space-y-2">
-                        <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
-                            Phase <span className="text-primary underline decoration-4 decoration-primary/20 underline-offset-8">Evaluation</span>
+                        <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
+                            {request.type?.name || "Service Request"}
                         </h1>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-2 italic">Select fulfillment & Secure Payment</p>
-                    </div>
-                    <Link href="/user/services/requests">
-                        <Button variant="ghost" className="h-12 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:bg-slate-100 dark:hover:bg-white/5 gap-2 transition-all group">
-                            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                            Back to List
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-                {/* Left Side: Computation Card */}
-                <div className="xl:col-span-5 space-y-8 xl:sticky xl:top-8 h-fit">
-                    <Card className="p-8 sm:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-[3rem] overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-12 opacity-10">
-                            <Calculator className="w-48 h-48 rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
-                        </div>
-
-                        <div className="relative z-10 space-y-12">
-                            <div className="space-y-4">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary italic flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-                                        <Calculator className="w-4 h-4 text-primary" />
-                                    </div>
-                                    Treasury Final Assessment
-                                </h3>
-                                <p className="text-sm text-slate-400 font-medium italic leading-relaxed">
-                                    Your application has been evaluated. Please review the breakdown below before proceeding to payment.
-                                </p>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center group/item pb-4 border-b border-white/5">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic transition-colors group-hover/item:text-white">Basic Community Tax ({computation?.cedulaType})</span>
-                                    <span className="text-2xl font-black italic tracking-tighter">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-                                
-                                <div className="flex justify-between items-center group/item pb-4 border-b border-white/5">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic transition-colors group-hover/item:text-white">Additional Internal Revenue Tax</span>
-                                    <span className="text-2xl font-black italic tracking-tighter">₱{computation?.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                </div>
-
-                                {computation && computation.penaltyAmount > 0 && (
-                                    <div className="flex justify-between items-center group/item pb-4 border-b border-white/5 text-orange-500">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest italic group-hover/item:text-orange-400">Monthly Surcharge / Penalty</span>
-                                            <Info className="w-3.5 h-3.5 opacity-50" />
-                                        </div>
-                                        <span className="text-2xl font-black italic tracking-tighter">₱{computation.penaltyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                    </div>
-                                )}
-
-                                {localFulfillment === "DELIVERY" && (
-                                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center pb-4 border-b border-white/5">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Official Delivery Fee</span>
-                                        <span className="text-2xl font-black italic tracking-tighter text-teal-400">₱{computation?.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                    </motion.div>
-                                )}
-
-                                <div className="pt-10 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
-                                    <div className="space-y-2">
-                                        <p className="text-[12px] font-black uppercase text-emerald-400 tracking-[0.3em] italic leading-none">Total Amount to Pay</p>
-                                        <p className="text-[9px] font-bold text-white/20 uppercase italic leading-none tracking-tighter max-w-[200px]">
-                                            * Secure payment is required to finalize the issuance of your digital/physical CTC.
-                                        </p>
-                                    </div>
-                                    <span className="text-6xl font-black italic tracking-tighter text-white">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <div className="p-8 bg-primary/5 border border-primary/10 rounded-[2.5rem] flex items-start gap-4 shadow-sm">
-                        <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                            <p className="text-[11px] text-primary font-black italic uppercase tracking-widest leading-none">Administrative Notice</p>
-                            <p className="text-[10px] text-primary/60 font-medium leading-relaxed italic uppercase tracking-tighter">
-                                The breakdown above followed the standard LGU computation based on your declared gross income and property assets.
+                        <div className="flex items-center gap-3 ml-2">
+                            <Badge variant="outline" className={cn("px-4 py-1 text-[10px] font-black uppercase tracking-widest italic rounded-full border-2", statusConfig?.color)}>
+                                {statusConfig?.label}
+                            </Badge>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] italic opacity-70">
+                                Official Record ID: {request.id.slice(-8).toUpperCase()}
                             </p>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Right Side: Deployment & Payment Hub */}
-                <div className="xl:col-span-7 space-y-10">
-                    <div className="bg-white dark:bg-[#0d0f14] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-2xl relative overflow-hidden group/container">
-                        {/* Interactive Background Grid */}
-                        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0001_1px,transparent_1px),linear-gradient(to_bottom,#0001_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#fff1_1px,transparent_1px),linear-gradient(to_bottom,#fff1_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-40" />
-                        
-                        <div className="relative z-10 space-y-12">
-                            {/* Fulfillment Selector */}
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
-                                        <Truck className="w-6 h-6" />
+            {isActionable ? (
+                /* Actionable View: Logistics & Payment */
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+                    <div className="xl:col-span-5 space-y-8 xl:sticky xl:top-8 h-fit">
+                        <Card className="p-8 sm:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-[3rem] overflow-hidden relative group">
+                            <div className="absolute top-0 right-0 p-12 opacity-10">
+                                <Calculator className="w-48 h-48 rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
+                            </div>
+                            <div className="relative z-10 space-y-12">
+                                <div className="space-y-4">
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary italic flex items-center gap-3">
+                                        <Calculator className="w-4 h-4 text-primary" />
+                                        Treasury Final Assessment
+                                    </h3>
+                                    <p className="text-sm text-slate-400 font-medium italic leading-relaxed">
+                                        Admin evaluation complete. Review the breakdown to proceed.
+                                    </p>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center group/item pb-4 border-b border-white/5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax ({computation?.cedulaType})</span>
+                                        <span className="text-2xl font-black italic tracking-tighter">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Fulfillment <span className="text-primary italic">Strategy</span></h3>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic mt-1">Select your preferred receiving method</p>
+                                    <div className="flex justify-between items-center group/item pb-4 border-b border-white/5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Financial Additional Tax</span>
+                                        <span className="text-2xl font-black italic tracking-tighter">₱{computation?.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                    {computation && computation.penaltyAmount > 0 && (
+                                        <div className="flex justify-between items-center group/item pb-4 border-b border-white/5 text-orange-500">
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Penalty Surcharge</span>
+                                            <span className="text-2xl font-black italic tracking-tighter">₱{computation.penaltyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                    )}
+                                    {localFulfillment === "DELIVERY" && (
+                                        <div className="flex justify-between items-center pb-4 border-b border-white/5 text-emerald-400">
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Logistics Service Fee</span>
+                                            <span className="text-2xl font-black italic tracking-tighter">₱{computation?.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                    )}
+                                    <div className="pt-10 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+                                        <div className="space-y-2">
+                                            <p className="text-[12px] font-black uppercase text-emerald-400 tracking-[0.3em] italic">Consolidated Total</p>
+                                            <p className="text-[9px] font-bold text-white/20 uppercase italic">Payable via selected channel</p>
+                                        </div>
+                                        <span className="text-6xl font-black italic tracking-tighter text-white">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
+                            </div>
+                        </Card>
+                    </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    {[
-                                        { id: "E_COPY", label: "Digital E-Copy", icon: FileText, desc: "Instant Release" },
-                                        { id: "PICK_UP", label: "Office Pickup", icon: Building2, desc: "Standard Protocol" },
-                                        { id: "DELIVERY", label: "Doorstep Delivery", icon: Truck, desc: "Premium Logistics" }
-                                    ].map(opt => (
-                                        <button
-                                            key={opt.id}
-                                            onClick={() => {
+                    <div className="xl:col-span-7 space-y-10">
+                        <div className="bg-white dark:bg-[#0d0f14] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-2xl relative overflow-hidden group/container">
+                            <div className="absolute inset-0 bg-[linear-gradient(to_right,#0001_1px,transparent_1px),linear-gradient(to_bottom,#0001_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#fff1_1px,transparent_1px),linear-gradient(to_bottom,#fff1_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none" />
+                            <div className="relative z-10 space-y-12">
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
+                                            <Truck className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Logistics <span className="text-primary">Configuration</span></h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic">Select deployment strategy</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        {[
+                                            { id: "E_COPY", label: "Digital E-Copy", icon: FileText },
+                                            { id: "PICK_UP", label: "Office Pickup", icon: Building2 },
+                                            { id: "DELIVERY", label: "Premium Delivery", icon: Truck }
+                                        ].map(opt => (
+                                            <button key={opt.id} onClick={() => {
                                                 setLocalFulfillment(opt.id as any);
                                                 if (opt.id === "PICK_UP") setLocalPayment("CASH");
                                                 else if (opt.id === "E_COPY") setLocalPayment("E_PAYMENT");
                                                 else setLocalPayment("CASH_ON_DELIVERY");
-                                            }}
-                                            className={cn(
-                                                "flex flex-col items-center gap-4 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.95] text-center relative",
-                                                localFulfillment === opt.id ? "bg-primary text-white border-primary shadow-2xl shadow-primary/20 scale-[1.02]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40"
-                                            )}
-                                        >
-                                            <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                            <div className="space-y-0.5">
-                                                <span className="block text-[10px] font-black uppercase tracking-widest italic leading-none">{opt.label}</span>
-                                                <p className={cn("text-[8px] font-bold uppercase italic tracking-tighter opacity-50", localFulfillment === opt.id && "text-white")}>{opt.desc}</p>
-                                            </div>
-                                            {localFulfillment === opt.id && (
-                                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-950">
-                                                    <Check className="w-3 h-3 text-white" />
-                                                </div>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Conditional Delivery Settings */}
-                            <AnimatePresence mode="wait">
-                                {localFulfillment === "DELIVERY" && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 30 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -30 }}
-                                        className="space-y-10 pt-10 border-t border-slate-100 dark:border-white/5"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                                                <MapPin className="w-5 h-5 text-emerald-500" />
-                                            </div>
-                                            <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-500 italic">Delivery Manifest</Label>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Building / House #</Label>
-                                                <Input value={address.houseNumber} onChange={e => setAddress(p => ({ ...p, houseNumber: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Street Lane</Label>
-                                                <Input value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Sitio</Label>
-                                                <Input value={address.sitio} onChange={e => setAddress(p => ({ ...p, sitio: e.target.value }))} placeholder="Optional" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Purok</Label>
-                                                <Input value={address.purok} onChange={e => setAddress(p => ({ ...p, purok: e.target.value }))} placeholder="Optional" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Barangay</Label>
-                                                <Input value={address.barangay} onChange={e => setAddress(p => ({ ...p, barangay: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Municipality / City</Label>
-                                                <Input value={address.municipality} onChange={e => setAddress(p => ({ ...p, municipality: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Province</Label>
-                                                <Input value={address.province} onChange={e => setAddress(p => ({ ...p, province: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                            <div className="lg:col-span-2 space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Destination Landmark / Instructions</Label>
-                                                <Input value={address.landmark} onChange={e => setAddress(p => ({ ...p, landmark: e.target.value }))} placeholder="e.g. Near Brgy. Hall / Blue Gate / Specific Instructions" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Precision Destination Pin</Label>
-                                            <div className="h-[300px] w-full rounded-3xl overflow-hidden border-2 border-slate-200 dark:border-white/10 bg-slate-100 relative group shadow-inner">
-                                                <LocationPicker
-                                                    lat={localLat}
-                                                    lng={localLng}
-                                                    onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }}
-                                                />
-                                            </div>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase italic text-center opacity-70 tracking-widest mt-2">Active precise pinpointing enabled for rapid courier routing</p>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* Payment Section */}
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
-                                        <CreditCard className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Fiscal <span className="text-primary italic">Clearance</span></h3>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic mt-1">Select your secure payment channel</p>
+                                            }} className={cn("flex flex-col items-center gap-4 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.95] text-center relative", localFulfillment === opt.id ? "bg-primary text-white border-primary shadow-2xl shadow-primary/20 scale-[1.02]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40")}>
+                                                <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                                                <span className="block text-[10px] font-black uppercase tracking-widest italic">{opt.label}</span>
+                                                {localFulfillment === opt.id && <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-950"><Check className="w-3 h-3 text-white" /></div>}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {(localFulfillment === "E_COPY" ? [
-                                        { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard, desc: "GCash, Maya, Cards" },
-                                        { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2, desc: "Direct Bank Deposit" }
-                                    ] : localFulfillment === "PICK_UP" ? [
-                                        { id: "CASH", label: "Cash on Counter", icon: Wallet, desc: "Pay at Treasury Office" },
-                                        { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard, desc: "GCash, Maya, Cards" },
-                                        { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2, desc: "Direct Bank Deposit" }
-                                    ] : [
-                                        { id: "CASH_ON_DELIVERY", label: "Cash on Delivery", icon: Truck, desc: "Pay upon arrival" },
-                                        { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard, desc: "GCash, Maya, Cards" },
-                                        { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2, desc: "Direct Bank Deposit" }
-                                    ]).map(opt => (
-                                        <button
-                                            key={opt.id}
-                                            onClick={() => setLocalPayment(opt.id as any)}
-                                            className={cn(
-                                                "flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.98] text-left relative",
-                                                localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40"
-                                            )}
-                                        >
-                                            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-sm", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-white/5 text-slate-400")}>
-                                                <opt.icon className="w-6 h-6" />
+                                <AnimatePresence mode="wait">
+                                    {localFulfillment === "DELIVERY" && (
+                                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10 pt-10 border-t border-slate-100 dark:border-white/5">
+                                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center"><MapPin className="w-5 h-5 text-emerald-500" /></div><Label className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-500 italic">Delivery Manifest</Label></div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Building / House #</Label><Input value={address.houseNumber} onChange={e => setAddress(p => ({ ...p, houseNumber: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Street Lane</Label><Input value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Sitio</Label><Input value={address.sitio} onChange={e => setAddress(p => ({ ...p, sitio: e.target.value }))} placeholder="Optional" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Purok</Label><Input value={address.purok} onChange={e => setAddress(p => ({ ...p, purok: e.target.value }))} placeholder="Optional" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Barangay</Label><Input value={address.barangay} onChange={e => setAddress(p => ({ ...p, barangay: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Municipality / City</Label><Input value={address.municipality} onChange={e => setAddress(p => ({ ...p, municipality: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Province</Label><Input value={address.province} onChange={e => setAddress(p => ({ ...p, province: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="lg:col-span-2 space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Landmark / Instructions</Label><Input value={address.landmark} onChange={e => setAddress(p => ({ ...p, landmark: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
                                             </div>
-                                            <div className="space-y-0.5">
-                                                <span className="block text-[11px] font-black uppercase tracking-widest italic group-hover:text-primary transition-colors">{opt.label}</span>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase italic opacity-60 tracking-tighter">{opt.desc}</p>
-                                            </div>
-                                            {localPayment === opt.id && (
-                                                <div className="absolute top-1/2 -translate-y-1/2 right-6">
-                                                    <CheckCircle2 className="w-6 h-6 text-primary" />
-                                                </div>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <AnimatePresence>
-                                    {(localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div className="p-8 bg-slate-50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-6 mt-4">
-                                                <div className="flex items-center gap-3">
-                                                    <Camera className="w-5 h-5 text-primary" />
-                                                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic">Proof of Transaction</Label>
-                                                </div>
-
-                                                <div className="flex flex-col sm:flex-row gap-8 items-center">
-                                                    <div className="w-48 h-48 bg-white dark:bg-black rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group/upload shrink-0 shadow-lg">
-                                                        {paymentProofPreview ? (
-                                                            <Image src={paymentProofPreview} alt="Payment Proof" fill className="object-cover" />
-                                                        ) : (
-                                                            <div className="text-center p-4">
-                                                                <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2 group-hover/upload:text-primary transition-colors" />
-                                                                <p className="text-[8px] font-bold text-slate-400 uppercase italic">Screenshot Required</p>
-                                                            </div>
-                                                        )}
-                                                        <input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                                    </div>
-
-                                                    <div className="space-y-4 text-center sm:text-left">
-                                                        <h4 className="text-sm font-black italic uppercase text-slate-900 dark:text-white leading-tight">Secure Payment Channel</h4>
-                                                        <p className="text-[10px] text-slate-500 font-medium italic leading-relaxed uppercase tracking-widest max-w-[300px]">
-                                                            Please transfer the exact amount to the LGU&apos;s official account and upload the transaction receipt for verification.
-                                                        </p>
-                                                        <Button asChild variant="outline" className="h-10 px-8 rounded-full text-[10px] font-black uppercase italic tracking-widest border-2 hover:bg-slate-100 transition-all">
-                                                            <label className="cursor-pointer">Upload Receipt</label>
-                                                        </Button>
-                                                    </div>
+                                            <div className="space-y-4">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Precision Destination Pin</Label>
+                                                <div className="h-[300px] w-full rounded-3xl overflow-hidden border-2 border-slate-200 dark:border-white/10 bg-slate-100 relative group shadow-inner">
+                                                    <LocationPicker lat={localLat} lng={localLng} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
                                                 </div>
                                             </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
-                            </div>
-                        </div>
 
-                        {/* Sticky Action Footer inside Container */}
-                        <div className="mt-16 pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-8">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                    <CheckCircle2 className="w-6 h-6" />
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500 italic leading-none">Ready for Issuance</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase italic tracking-widest mt-1 opacity-60">Verified & Approved by Treasury</p>
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20"><CreditCard className="w-6 h-6" /></div>
+                                        <div><h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Fiscal <span className="text-primary italic">Clearance</span></h3><p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic mt-1">Select secure payment channel</p></div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {(localFulfillment === "E_COPY" ? [
+                                            { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard },
+                                            { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
+                                        ] : localFulfillment === "PICK_UP" ? [
+                                            { id: "CASH", label: "Cash on Counter", icon: Wallet },
+                                            { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard },
+                                            { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
+                                        ] : [
+                                            { id: "CASH_ON_DELIVERY", label: "Cash on Delivery", icon: Truck },
+                                            { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard },
+                                            { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
+                                        ]).map(opt => (
+                                            <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.98] text-left relative", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40")}>
+                                                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-white/5 text-slate-400")}><opt.icon className="w-6 h-6" /></div>
+                                                <span className="block text-[11px] font-black uppercase tracking-widest italic">{opt.label}</span>
+                                                {localPayment === opt.id && <div className="absolute top-1/2 -translate-y-1/2 right-6"><CheckCircle2 className="w-6 h-6 text-primary" /></div>}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {(localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
+                                        <div className="p-8 bg-slate-50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-6 mt-4">
+                                            <div className="flex items-center gap-3"><Camera className="w-5 h-5 text-primary" /><Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic text-xs">Proof of Transaction Upload</Label></div>
+                                            <div className="flex flex-col sm:flex-row gap-8 items-center">
+                                                <div className="w-48 h-48 bg-white dark:bg-black rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group shadow-lg">
+                                                    {paymentProofPreview ? <Image src={paymentProofPreview} alt="Proof" fill className="object-cover" /> : <div className="text-center p-4"><Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" /><p className="text-[8px] font-bold text-slate-400 uppercase italic">Screenshot Needed</p></div>}
+                                                    <input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
-                            <Button
-                                onClick={handleFinalize}
-                                disabled={isFinalizing}
-                                className="w-full sm:w-[300px] h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group"
-                            >
-                                {isFinalizing ? (
-                                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                ) : (
-                                    <div className="flex items-center gap-3">
-                                        Secure Application
-                                        <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                    </div>
-                                )}
-                            </Button>
+                            <div className="mt-16 pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-8">
+                                <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-6 h-6" /></div><div className="text-left"><p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500 italic leading-none">Ready for Issuance</p><p className="text-[9px] font-bold text-slate-400 uppercase italic mt-1 opacity-60">Verified Admin Evaluation</p></div></div>
+                                <Button onClick={handleFinalize} disabled={isFinalizing} className="w-full sm:w-[300px] h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group">{isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Secure Application"}</Button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                /* Lifecycle Hub View: Detailed Tracking & Records */
+                <Tabs defaultValue="overview" className="space-y-8">
+                    <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-auto sm:h-16 w-full sm:w-fit border border-slate-200 dark:border-white/5 shadow-sm">
+                        <TabsTrigger value="overview" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-sm">Overview</TabsTrigger>
+                        <TabsTrigger value="records" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-sm">Records</TabsTrigger>
+                        <TabsTrigger value="logistics" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-sm">Logistics</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" className="mt-0 space-y-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                            <Card className="p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-sm rounded-3xl lg:col-span-2">
+                                <div className="flex items-center justify-between mb-12">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3 italic"><FileText className="w-5 h-5 text-primary" /> Application Summary</h3>
+                                    <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Last Update: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</span></div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10">
+                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Applicant Status</p><p className="text-2xl font-black text-slate-900 dark:text-white italic">{additionalData.applicantType}</p></div>
+                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Submission Date</p><p className="text-2xl font-black text-slate-900 dark:text-white italic">{format(new Date(request.createdAt), "MMMM d, yyyy")}</p></div>
+                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Fulfillment Phase</p><p className="text-2xl font-black text-slate-900 dark:text-white italic flex items-center gap-2">{request.fulfillmentType || "PENDING EVALUATION"}</p></div>
+                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Payment Status</p><p className="text-2xl font-black text-emerald-500 italic">{request.paymentStatus}</p></div>
+                                </div>
+                            </Card>
+
+                            <Card className="p-10 border-none bg-slate-900 text-white shadow-2xl rounded-[3rem] relative overflow-hidden flex flex-col justify-between">
+                                <div className="absolute top-0 right-0 p-8 opacity-10"><Info className="w-24 h-24 rotate-12" /></div>
+                                <div><h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic mb-10">Admin Assessment</h3><p className="text-lg font-bold italic opacity-90 leading-relaxed">&quot;{request.rejectionRemarks || `Status: ${request.status}. Our team is meticulously handling your request records and validating documentary evidence for release.`}&quot;</p></div>
+                                <div className="space-y-4 pt-10"><Separator className="bg-white/10" /><div className="flex items-center justify-between"><div><p className="text-[9px] font-black uppercase tracking-widest text-primary/50 italic">Evaluated Amount</p><p className="text-3xl font-black text-primary italic">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div></div></div>
+                            </Card>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="records" className="mt-0">
+                        <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-3xl">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+                                <div className="space-y-12">
+                                    <div className="space-y-6"><h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Personal Identity</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Legal Name</p><p className="text-lg font-bold">{residentData.firstName} {residentData.lastName}</p></div>
+                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Citizenship</p><p className="text-lg font-bold">{residentData.citizenship || "Filipino"}</p></div>
+                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Birth Date</p><p className="text-lg font-bold">{format(new Date(residentData.dateOfBirth), "MMM d, yyyy")}</p></div>
+                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Civil Status</p><p className="text-lg font-bold">{residentData.civilStatus || "Single"}</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6"><h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Annual Gross Income</p><p className="text-xl font-black text-slate-900 dark:text-white">₱{(additionalData.income || 0).toLocaleString()}</p></div>
+                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Real Property Assets</p><p className="text-xl font-black text-slate-900 dark:text-white">₱{(additionalData.propertyValue || 0).toLocaleString()}</p></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-8"><h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Resident Hub Address</h4>
+                                    <div className="bg-slate-50 dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 relative">
+                                        <MapPin className="absolute top-8 right-8 w-12 h-12 text-primary/10" />
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-2 gap-6"><div><p className="text-[10px] uppercase font-black text-slate-400">H# / Street</p><p className="text-md font-bold">{residentData.houseNumber} {residentData.street}</p></div><div><p className="text-[10px] uppercase font-black text-slate-400">Sitio / Purok</p><p className="text-md font-bold">{residentData.sitio} {residentData.purok}</p></div></div>
+                                            <div><p className="text-[10px] uppercase font-black text-slate-400">Barangay</p><p className="text-md font-bold">{residentData.barangay}</p></div>
+                                            <div className="grid grid-cols-2 gap-6"><div><p className="text-[10px] uppercase font-black text-slate-400">Municipality</p><p className="text-md font-bold">{residentData.municipality || "Agno"}</p></div><div><p className="text-[10px] uppercase font-black text-slate-400">Province</p><p className="text-md font-bold">{residentData.province || "Pangasinan"}</p></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="logistics" className="mt-0">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-3xl">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Service Delivery Strategy</h4>
+                                {request.fulfillmentType ? (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-5 p-6 bg-primary/5 rounded-[2rem] border-2 border-primary/20">
+                                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0"><Truck className="w-8 h-8" /></div>
+                                            <div><h5 className="font-black uppercase tracking-widest text-lg leading-none">{request.fulfillmentType.replace("_", " ")}</h5><p className="text-xs font-bold text-primary/60 italic uppercase tracking-widest">Selected Mode</p></div>
+                                        </div>
+                                        {request.fulfillmentType === "DELIVERY" && (
+                                            <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                                                <p className="text-[10px] uppercase font-black text-slate-400 italic">Deployment Address</p>
+                                                <p className="text-lg font-black text-slate-900 dark:text-white underline decoration-primary/30 decoration-4 underline-offset-8 leading-relaxed">
+                                                    {(() => {
+                                                        const addr = typeof request.deliveryAddress === 'string' ? JSON.parse(request.deliveryAddress || '{}') : request.deliveryAddress;
+                                                        if (!addr) return "N/A";
+                                                        return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
+                                                    })()}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : <div className="p-10 text-center space-y-4"><Clock className="w-12 h-12 text-slate-200 mx-auto" /><p className="text-xs font-black uppercase text-slate-400 italic tracking-[0.2em]">Deployment Configuration Pending Administrative Evaluation</p></div>}
+                            </Card>
+
+                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-3xl">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Documentary Clearance</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { label: "State ID", url: additionalData.validIdUrl },
+                                        { label: "Assets Proof", url: additionalData.proofOfIncomeUrl }
+                                    ].map((doc, i) => (
+                                        <div key={i} className="relative aspect-video rounded-2xl border-2 border-slate-100 dark:border-white/5 overflow-hidden group">
+                                            {doc.url ? <>
+                                                <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover:scale-110" unoptimized />
+                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><a href={doc.url} target="_blank" className="text-[10px] font-black uppercase text-white bg-primary px-5 py-2 rounded-xl italic shadow-lg">Enlarge</a></div>
+                                                <div className="absolute top-2 left-2"><Badge className="text-[8px] bg-white/90 text-slate-900 border-none">{doc.label}</Badge></div>
+                                            </> : <div className="h-full flex items-center justify-center text-slate-200"><XCircle className="w-10 h-10" /></div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            )}
         </div>
     );
 }

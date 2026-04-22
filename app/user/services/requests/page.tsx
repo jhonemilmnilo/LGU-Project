@@ -26,14 +26,12 @@ import {
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { getUserTransactions } from "@/app/admin/transactions/actions";
-import RequestDetailModal from "./RequestDetailModal";
 import { Input } from "@/components/ui/input";
 
 export default function UserServiceRequestsPage() {
     const router = useRouter();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
@@ -133,13 +131,7 @@ export default function UserServiceRequestsPage() {
                         return (
                             <div 
                                 key={req.id} 
-                                onClick={() => {
-                                    if (req.status === "EVALUATED" && !req.paymentType) {
-                                        router.push(`/user/services/requests/${req.id}`);
-                                    } else {
-                                        setSelectedRequest(req);
-                                    }
-                                }}
+                                onClick={() => router.push(`/user/services/requests/${req.id}`)}
                                 className="group bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-white/5 p-4 hover:border-primary/40 hover:shadow-xl hover:shadow-slate-200/40 dark:hover:shadow-none transition-all cursor-pointer select-none active:scale-[0.995] flex flex-col md:flex-row items-center gap-6"
                             >
                                 <div className="flex items-center gap-5 flex-1 w-full">
@@ -194,12 +186,6 @@ export default function UserServiceRequestsPage() {
                     )}
                 </div>
             </div>
-
-            <RequestDetailModal 
-                isOpen={!!selectedRequest}
-                onClose={() => setSelectedRequest(null)}
-                request={selectedRequest}
-            />
         </div>
     );
 }
