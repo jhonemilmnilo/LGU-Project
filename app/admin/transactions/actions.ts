@@ -293,7 +293,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true }
+            include: { type: true, user: true }
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
@@ -322,10 +322,28 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 status: newStatus,
                 totalAmount: result.totalAmount, // This is the Base Tax + Penalty
                 processedBy: user.id,
-                rejectionRemarks: adminNotes
-            },
+                rejectionRemarks: adminNotes,
+                fiscalSnapshot: {
+                    basicTax: result.basicTax,
+                    additionalTax: result.additionalTax,
+                    penaltyCharge: result.penalty,
+                    totalAmount: result.totalAmount
+                }
+            } as any,
             include: { user: true }
         }) as any;
+
+        // Trigger email notification for payment
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: "FOR_PAYMENT",
+                to: updatedTransaction.user.email,
+                name: `${resident.firstName} ${resident.lastName}`,
+                transactionId: id.slice(-8).toUpperCase(),
+                amount: result.totalAmount
+            });
+        }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/requests");
@@ -361,7 +379,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
 
         const transaction = await prisma.transaction.findUnique({
             where: { id: transactionId },
-            include: { type: true }
+            include: { type: true, user: true }
         });
 
         if (!transaction || transaction.userId !== session.user.id) {
@@ -382,7 +400,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         // If PICK_UP + CASH -> FOR_CLAIM
         // If any other -> Wait for payment (Keep as EVALUATED but with finalized details)
         const isForClaim = fulfillmentType === "PICK_UP" && paymentType === "CASH";
-        const newStatus = isForClaim ? "FOR_CLAIM" : "EVALUATED";
+        const newStatus = isForClaim ? "FOR_CLAIM" : "PAID";
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id: transactionId },
@@ -468,7 +486,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true }
+            include: { type: true, user: true }
         });
 
         if (!transaction || !["PAID", "FOR_CLAIM"].includes(transaction.status as any)) {
@@ -512,6 +530,17 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 ...(eCopyUrl ? { eCopyUrl } : {})
             }
         });
+
+        // Trigger email notification for release
+        if (transaction.user?.email) {
+            const resident = transaction.residentSnapshot as any;
+            await sendEmail({
+                type: "RELEASED",
+                to: transaction.user.email,
+                name: `${resident.firstName} ${resident.lastName}`,
+                transactionId: id.slice(-8).toUpperCase()
+            });
+        }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services");

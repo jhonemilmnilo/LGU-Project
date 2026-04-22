@@ -585,6 +585,7 @@ model Transaction {
   
   // Financials (Final computed amounts)
   totalAmount       Float             @default(0)
+  fiscalSnapshot    Json?             // { basicTax, additionalTax, penaltyCharge, totalAmount }
   
   // Specific Context
   businessName      String?           // For Juridical requests

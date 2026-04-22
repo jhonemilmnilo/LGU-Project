@@ -85,31 +85,39 @@ export function calculateCedula(params: CedulaCalculationParams): CedulaResult {
         additionalTax = Math.floor(totalBasis / 5000) * 2.00;
     }
 
-    // Dynamic Penalty: 2% monthly increase starting March
+    // --- PENALTY (2% Monthly interest starting March 1st) ---
+    // Penalty is calculated based on the Community Tax (Basic + Additional)
+    let penalty = 0;
     const penaltyRate = getCedulaPenaltyRate();
-    let penalty = (basicTax + additionalTax) * penaltyRate;
+    if (penaltyRate > 0) {
+        penalty = (basicTax + additionalTax) * penaltyRate;
+    }
 
-    // Apply Global Caps (Including Penalty)
-    // Individual: ₱5,000 max
-    // Juridical: ₱10,000 max
-    const cap = type === "INDIVIDUAL" ? 5000 : 10000;
+    // --- ABSOLUTE TOTAL CAPPING (Staff Requirement) ---
+    // The Total Due (Basic + Additional + Penalty) must not exceed:
+    // P5,000.00 for Individuals, P10,000.00 for Juridical entities.
+    // --- ABSOLUTE TOTAL CAPPING (Staff Requirement) ---
+    // The Total Due (Basic + Additional + Penalty) must not exceed:
+    // P5,000.00 for Individuals, P10,000.00 for Juridical entities.
+    const totalCap = type === "INDIVIDUAL" ? 5000 : 10000;
     const currentSubtotal = basicTax + additionalTax + penalty;
 
-    if (currentSubtotal > cap) {
-        // If over cap, we need to adjust additionalTax and penalty proportionally
-        // basicTax remains constant as it's the fixed minimum
-        const adjustableAmount = cap - basicTax;
-        const totalAdjustableRaw = additionalTax + penalty;
+    if (currentSubtotal > totalCap) {
+        // Correct Mathematical Scaling:
+        // Let T = Community Tax (Basic + Additional)
+        // Penalty P = T * penaltyRate
+        // Total = T + P = T * (1 + penaltyRate)
+        // We want Total = totalCap => T = totalCap / (1 + penaltyRate)
+        const targetCommunityTax = totalCap / (1 + penaltyRate);
         
-        if (totalAdjustableRaw > 0) {
-            const reductionRatio = adjustableAmount / totalAdjustableRaw;
-            additionalTax = additionalTax * reductionRatio;
-            penalty = penalty * reductionRatio;
-        } else {
-            // Edge case: basicTax already exceeds cap (shouldn't happen with 5/500 vs 5k/10k)
-            additionalTax = 0;
-            penalty = 0;
-        }
+        // Update components based on target principal
+        additionalTax = targetCommunityTax - basicTax;
+        
+        // Ensure additionalTax doesn't go below 0 (shouldn't happen with standard caps)
+        if (additionalTax < 0) additionalTax = 0;
+
+        // Recalculate penalty on the capped principal
+        penalty = (basicTax + additionalTax) * penaltyRate;
     }
 
     // Delivery Fee (External to caps)

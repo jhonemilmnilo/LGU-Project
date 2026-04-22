@@ -23,7 +23,8 @@ import {
     DollarSign,
     Clock,
     Download,
-    ExternalLink
+    ExternalLink,
+    AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -45,7 +46,14 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTransactionById, finalizeTransactionFulfillment } from "@/app/admin/transactions/actions";
+import { getCedulaPenaltyRateLabel } from "@/lib/cedula";
 import Link from "next/link";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
@@ -214,11 +222,26 @@ export default function RequestHubPage() {
 
     const computation = useMemo(() => {
         if (!request) return null;
+        const fiscal = request.fiscalSnapshot as any;
         const addData = request.additionalData || {};
+        const dFee = localFulfillment === "DELIVERY" ? (request.type?.deliveryFee || 0) : 0;
+        const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
+
+        // If snapshot exists (evaluated), use it. Otherwise, calculate on fly (pre-evaluation)
+        if (fiscal) {
+            return {
+                basicTax: fiscal.basicTax,
+                additionalTax: fiscal.additionalTax,
+                penaltyAmount: fiscal.penaltyCharge,
+                deliveryFee: dFee,
+                finalTotal: fiscal.totalAmount + dFee,
+                cedulaType
+            };
+        }
+
         const income = addData.income || 0;
         const propertyValue = addData.propertyValue || 0;
         const totalBasis = income + propertyValue;
-        const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
         const additionalTax = cedulaType === "JURIDICAL" 
             ? Math.floor(totalBasis / 5000) * 2.00 
@@ -227,7 +250,6 @@ export default function RequestHubPage() {
         const subtotal = basicTax + additionalTax;
         const totalWithPenalty = Number(request.totalAmount) || subtotal;
         const penaltyAmount = totalWithPenalty - subtotal;
-        const dFee = localFulfillment === "DELIVERY" ? (request.type?.deliveryFee || 0) : 0;
         const finalTotal = totalWithPenalty + dFee;
 
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
@@ -318,7 +340,26 @@ export default function RequestHubPage() {
                                     </div>
                                     {computation && computation.penaltyAmount > 0 && (
                                         <div className="flex justify-between items-center group/item pb-4 border-b border-white/5 text-orange-500">
-                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Penalty charge</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                                                Penalty charge ({getCedulaPenaltyRateLabel()} INT.)
+                                                <TooltipProvider delayDuration={0}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <button type="button" className="cursor-help transition-transform hover:scale-110 active:scale-95">
+                                                                <AlertCircle className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-slate-900 text-white border-slate-800 p-4 rounded-xl shadow-2xl max-w-[280px]">
+                                                            <div className="space-y-2">
+                                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-orange-500 italic">Penalty Rule</h4>
+                                                                <p className="text-[9px] font-medium leading-relaxed uppercase tracking-tighter">
+                                                                    Starting March 1st, a 2% monthly interest is imposed on the unpaid community tax, increasing by 2% each month up to a maximum of 24%.
+                                                                </p>
+                                                            </div>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </span>
                                             <span className="text-2xl font-black italic tracking-tighter">₱{computation.penaltyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     )}

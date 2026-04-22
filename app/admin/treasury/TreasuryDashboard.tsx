@@ -77,10 +77,10 @@ export default function TreasuryDashboard() {
                     <div className="flex flex-col lg:flex-row justify-between items-center gap-4 p-4">
                         <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 h-auto rounded-[1.5rem] flex-wrap justify-start">
                             <TabsTrigger value="FOR_REQUESTING" className="rounded-xl px-5 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Evaluation</TabsTrigger>
-                            <TabsTrigger value="EVALUATED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Payments</TabsTrigger>
-                            <TabsTrigger value="PAID" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Ready to Release</TabsTrigger>
-                            <TabsTrigger value="RELEASED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Completed</TabsTrigger>
-                            <TabsTrigger value="REJECTED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Archive</TabsTrigger>
+                            <TabsTrigger value="EVALUATED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">To Pay</TabsTrigger>
+                            <TabsTrigger value="PAID" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Paid</TabsTrigger>
+                            <TabsTrigger value="RELEASED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Released</TabsTrigger>
+                            <TabsTrigger value="REJECTED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Rejected</TabsTrigger>
                         </TabsList>
 
                         <div className="flex items-center gap-3 w-full lg:w-auto">

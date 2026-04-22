@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, use, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { 
@@ -36,6 +37,7 @@ interface PageProps {
 
 export default function TreasuryDetailPage({ params }: PageProps) {
     const { id } = use(params);
+    const router = useRouter();
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -109,7 +111,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const income = Number(additional.income || 0);
     const propertyValue = Number(additional.propertyValue || 0);
 
-    const calcResult = calculateCedula({
+    const fiscal = (transaction.fiscalSnapshot as any) || null;
+    const calcResult = fiscal ? {
+        basicTax: fiscal.basicTax,
+        additionalTax: fiscal.additionalTax,
+        penalty: fiscal.penaltyCharge,
+        totalAmount: fiscal.totalAmount
+    } : calculateCedula({
         type: additional.applicantType || "INDIVIDUAL",
         income,
         propertyValue,
@@ -131,7 +139,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks);
-            if (res.success) { toast.success("Evaluated Successfully"); fetchTransaction(); }
+            if (res.success) { 
+                toast.success("Evaluated Successfully"); 
+                router.push("/admin/treasury");
+            }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
@@ -368,19 +379,73 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         {actionLoading ? "Processing..." : "Confirm Assessment"}
                                     </Button>
                                 )}
-                                {transaction.status === "EVALUATED" && transaction.paymentType !== "CASH" && (
-                                    <Button onClick={handleConfirmPayment} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                        {actionLoading ? "Verifying..." : "Verify Financial Record"}
-                                    </Button>
-                                )}
-                                {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
-                                    <div className="space-y-4">
-                                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
-                                            <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Registry Serial Entry</Label>
-                                            <Input value={ctcNumber} onChange={(e) => setCtcNumber(e.target.value)} placeholder="SERIAL NO..." className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white" />
+                                {/* 1. EVALUATION PHASE: Strictly Read-Only (Resident is choosing fulfillment/paying) */}
+                                {transaction.status === "EVALUATED" && (
+                                    <div className="bg-blue-50 dark:bg-blue-500/5 p-8 rounded-[2.5rem] border-2 border-blue-100 dark:border-blue-500/20 text-center space-y-4 animate-in zoom-in-95">
+                                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
+                                            <span className="text-2xl animate-pulse">⏳</span>
                                         </div>
-                                        <Button onClick={handleRelease} disabled={actionLoading || !ctcNumber || (transaction.fulfillmentType === "E_COPY" && !eCopyFile)} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                            {actionLoading ? "Finalizing..." : "Release & Finalize"}
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-500 italic">Financial Protocol Active</p>
+                                            <p className="text-[11px] font-bold text-blue-900/60 dark:text-blue-400/60 leading-relaxed uppercase tracking-tight">Read-Only Mode: Waiting for Citizen to finalize fulfillment & upload payment proof.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 2. VERIFICATION & RELEASE PHASE: Active Actions enabled here */}
+                                {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
+                                    <div className="space-y-4 animate-in slide-in-from-bottom-4">
+                                        {/* Financial Verification: Show if Online Payment AND not yet confirmed */}
+                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && (
+                                            <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                                <Button 
+                                                    onClick={handleConfirmPayment} 
+                                                    disabled={actionLoading} 
+                                                    className="w-full h-14 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
+                                                >
+                                                    {actionLoading ? "Processing Verification..." : "Verify Financial Record"}
+                                                </Button>
+                                                <Button 
+                                                    onClick={() => setIsRejecting(true)} 
+                                                    variant="ghost"
+                                                    className="w-full h-10 text-red-600/60 hover:text-red-600 font-bold uppercase tracking-widest text-[8px] italic"
+                                                >
+                                                    Decline Registry Process
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {/* Gated CTC Entry: For E-COPY, wait for digital record upload selection */}
+                                        {transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl ? (
+                                            <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
+                                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                    <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
+                                                <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable final release.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3 animate-in zoom-in-95">
+                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Registry Serial Entry (CTC No.)</Label>
+                                                <Input 
+                                                    value={ctcNumber} 
+                                                    onChange={(e) => setCtcNumber(e.target.value)} 
+                                                    placeholder="ENTER SERIAL..." 
+                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase" 
+                                                />
+                                            </div>
+                                        )}
+
+                                        <Button 
+                                            onClick={handleRelease} 
+                                            disabled={
+                                                actionLoading || 
+                                                !ctcNumber || 
+                                                (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
+                                            } 
+                                            className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                        >
+                                            {actionLoading ? "Processing Release..." : "Confirm & Release Document"}
                                         </Button>
                                     </div>
                                 )}
@@ -392,11 +457,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             <p className="text-3xl font-black italic font-mono tracking-tighter">{transaction.cedula?.ctcNumber}</p>
                                         </div>
                                     </div>
-                                )}
-                                {!["RELEASED", "REJECTED"].includes(transaction.status) && (
-                                    <Button onClick={() => setIsRejecting(true)} className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl shadow-lg shadow-red-500/10 transition-all border-none">
-                                        Decline Registry Process
-                                    </Button>
                                 )}
                             </>
                         ) : (
