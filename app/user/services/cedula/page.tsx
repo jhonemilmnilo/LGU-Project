@@ -148,7 +148,7 @@ export default function CedulaApplicationPage() {
     const updateCalc = React.useCallback(() => {
         const result = calculateCedula({
             type: formData.applicantType,
-            income: parseFloat(formData.income) || 0,
+            income: parseFloat(formData.income.replace(/,/g, '')) || 0,
             propertyValue: parseFloat(formData.propertyValue) || 0,
             fulfillmentType: "PICK_UP", // Base amount only during initial app
             deliveryFee: 0
@@ -168,8 +168,8 @@ export default function CedulaApplicationPage() {
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.email && r?.contactNumber);
             case "DECLARATION":
-                // Require either Annual Gross Income OR Real Property Assessed Value to be > 0
-                return (parseFloat(formData.income) > 0 || parseFloat(formData.propertyValue) > 0);
+                // Require Annual Gross Income to be > 0
+                return (parseFloat(formData.income) > 0);
             case "CONFIRM":
                 // Final submission requires Data Privacy acceptance AND either a new upload or an existing ID
                 return privacyAccepted && (!!formData.idFile || !!existingIdUrl) && !!formData.proofFile;
@@ -201,7 +201,7 @@ export default function CedulaApplicationPage() {
                 toast.error("Please provide your contact number for better coordination.");
             } else if (currentStep === "DECLARATION") {
                 incomeInputRef.current?.focus();
-                toast.error("Please declare at least one of the required financial fields.");
+                toast.error("Please declare your annual gross income.");
             } else {
                 toast.error("Please complete all required fields in this phase.");
             }
@@ -230,7 +230,7 @@ export default function CedulaApplicationPage() {
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
             submitData.append("additionalData", JSON.stringify({
                 applicantType: formData.applicantType,
-                income: parseFloat(formData.income),
+                income: parseFloat(formData.income.replace(/,/g, '')),
                 propertyValue: parseFloat(formData.propertyValue),
                 businessName: formData.businessName
             }));
@@ -579,24 +579,21 @@ export default function CedulaApplicationPage() {
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Total Annual Gross Income</Label>
                                                 <div className="relative">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-300 italic">₱</span>
-                                                    <Input
+                                                     <Input
                                                         ref={incomeInputRef}
-                                                        type="number"
+                                                        type="text"
                                                         value={formData.income}
-                                                        onChange={(e) => setFormData(p => ({ ...p, income: e.target.value }))}
-                                                        placeholder="0.00"
-                                                        className="h-16 pl-10 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Real Property Assessed Value</Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-300 italic">₱</span>
-                                                    <Input
-                                                        type="number"
-                                                        value={formData.propertyValue}
-                                                        onChange={(e) => setFormData(p => ({ ...p, propertyValue: e.target.value }))}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                            if (val === '') {
+                                                                setFormData(p => ({ ...p, income: '' }));
+                                                                return;
+                                                            }
+                                                            const parts = val.split('.');
+                                                            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                                                            const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
+                                                            setFormData(p => ({ ...p, income: formatted }));
+                                                        }}
                                                         placeholder="0.00"
                                                         className="h-16 pl-10 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-xl font-black italic italic bg-white"
                                                     />

@@ -91,7 +91,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             const res = await rejectTransaction(transaction.id, remarks);
-            if (res.success) { toast.success("Rejected"); fetchTransaction(); }
+            if (res.success) { 
+                toast.success("Rejected"); 
+                router.push("/admin/treasury");
+            }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
@@ -170,7 +173,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Upload failed"); setActionLoading(false); return; }
             }
             const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl);
-            if (res.success) { toast.success("Document Released"); setECopyFile(null); fetchTransaction(); }
+            if (res.success) { 
+                toast.success("Document Released"); 
+                setECopyFile(null); 
+                router.push("/admin/treasury");
+            }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
@@ -354,18 +361,37 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
                             <div className="relative">
-                                <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
-                                <label htmlFor="main-ecopy-upload" className={cn(
-                                    "flex flex-col items-center justify-center gap-3 p-10 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-36 bg-[#f8fafd] dark:bg-white/5",
-                                    eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
-                                )}>
-                                    <div className={cn("p-4 rounded-2xl transition-colors", (eCopyFile || transaction.eCopyUrl) ? "bg-primary text-white" : "bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600")}>
-                                        {(eCopyFile || transaction.eCopyUrl) ? <Check className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
-                                    </div>
-                                    <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-400 dark:text-slate-500 text-center">
-                                        {(eCopyFile || transaction.eCopyUrl) ? (eCopyFile?.name || "Archived") : "Attach E-Copy Registry"}
-                                    </span>
-                                </label>
+                                {transaction.status !== "RELEASED" && (
+                                    <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
+                                )}
+                                
+                                {transaction.status === "RELEASED" ? (
+                                    <a 
+                                        href={transaction.eCopyUrl || "#"} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex flex-col items-center justify-center gap-3 p-10 rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-36 border-solid"
+                                    >
+                                        <div className="p-4 rounded-2xl bg-primary text-white">
+                                            <FileText className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest italic text-primary text-center">
+                                            View Official Registry
+                                        </span>
+                                    </a>
+                                ) : (
+                                    <label htmlFor="main-ecopy-upload" className={cn(
+                                        "flex flex-col items-center justify-center gap-3 p-10 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-36 bg-[#f8fafd] dark:bg-white/5",
+                                        eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
+                                    )}>
+                                        <div className={cn("p-4 rounded-2xl transition-colors", (eCopyFile || transaction.eCopyUrl) ? "bg-primary text-white" : "bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600")}>
+                                            {(eCopyFile || transaction.eCopyUrl) ? <Check className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-400 dark:text-slate-500 text-center">
+                                            {(eCopyFile || transaction.eCopyUrl) ? (eCopyFile?.name || "Archived") : "Attach E-Copy Registry"}
+                                        </span>
+                                    </label>
+                                )}
                             </div>
                         </div>
                     )}
@@ -395,8 +421,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 {/* 2. VERIFICATION & RELEASE PHASE: Active Actions enabled here */}
                                 {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
-                                        {/* Financial Verification: Show if Online Payment AND not yet confirmed */}
-                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && (
+                                        {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY (Digital Fast-track) */}
+                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && transaction.fulfillmentType !== "E_COPY" && (
                                             <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                                 <Button 
                                                     onClick={handleConfirmPayment} 

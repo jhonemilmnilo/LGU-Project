@@ -103,10 +103,10 @@ export async function uploadECopyAction(formData: FormData) {
     try {
         const file = formData.get("file") as File;
         if (!file) return { success: false, error: "No file provided" };
-        
+
         const url = await processFileUpload(file, "ecopies");
         if (!url) return { success: false, error: "Upload failed" };
-        
+
         return { success: true, data: url };
     } catch (error) {
         console.error("Upload E-Copy error:", error);
@@ -163,7 +163,7 @@ export async function getTransactionById(id: string) {
     try {
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { 
+            include: {
                 type: true,
                 user: {
                     select: {
@@ -219,7 +219,7 @@ export async function submitTransaction(formData: FormData) {
 
         let idUrl = await processFileUpload(idFile, "ids");
         if (!idUrl && existingIdUrl) idUrl = existingIdUrl;
-        
+
         const proofUrl = await processFileUpload(proofFile, "proofs");
 
         // Merge file URLs into additionalData
@@ -366,7 +366,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         const transactionId = formData.get("transactionId") as string;
         const fulfillmentType = formData.get("fulfillmentType") as "PICK_UP" | "DELIVERY" | "E_COPY";
         const paymentType = formData.get("paymentType") as string;
-        
+
         // Delivery Details
         const deliveryAddress = formData.get("deliveryAddress") ? JSON.parse(formData.get("deliveryAddress") as string) : null;
         const deliveryLat = formData.get("deliveryLat") ? Number(formData.get("deliveryLat")) : null;
@@ -525,7 +525,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         // Update transaction status and eCopyUrl if provided
         await prisma.transaction.update({
             where: { id },
-            data: { 
+            data: {
                 status: "RELEASED",
                 ...(eCopyUrl ? { eCopyUrl } : {})
             }

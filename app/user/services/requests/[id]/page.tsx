@@ -331,6 +331,10 @@ export default function RequestHubPage() {
                                 </div>
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-center group/item pb-4 border-b border-white/5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Initial Request Amount</span>
+                                        <span className="text-2xl font-black italic tracking-tighter">₱{(additionalData.income || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center group/item pb-4 border-b border-white/5">
                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax ({computation?.cedulaType})</span>
                                         <span className="text-2xl font-black italic tracking-tighter">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                     </div>
@@ -564,7 +568,6 @@ export default function RequestHubPage() {
                                     <div className="space-y-6"><h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                             <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Annual Gross Income</p><p className="text-xl font-black text-slate-900 dark:text-white">₱{(additionalData.income || 0).toLocaleString()}</p></div>
-                                            <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Real Property Assets</p><p className="text-xl font-black text-slate-900 dark:text-white">₱{(additionalData.propertyValue || 0).toLocaleString()}</p></div>
                                         </div>
                                     </div>
                                 </div>
