@@ -99,6 +99,21 @@ export async function ensureCedulaTransactionTypes() {
     }
 }
 
+export async function uploadECopyAction(formData: FormData) {
+    try {
+        const file = formData.get("file") as File;
+        if (!file) return { success: false, error: "No file provided" };
+        
+        const url = await processFileUpload(file, "ecopies");
+        if (!url) return { success: false, error: "Upload failed" };
+        
+        return { success: true, data: url };
+    } catch (error) {
+        console.error("Upload E-Copy error:", error);
+        return { success: false, error: "Failed to upload file" };
+    }
+}
+
 async function processFileUpload(file: File, folder: string = "transactions"): Promise<string | null> {
     if (!file || file.size === 0) return null;
 
@@ -428,7 +443,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
 /**
  * Release Cedula (Treasury Staff side)
  */
-export async function releaseCedula(id: string, ctcNumber: string) {
+export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
@@ -474,10 +489,13 @@ export async function releaseCedula(id: string, ctcNumber: string) {
             }
         });
 
-        // Update transaction status
+        // Update transaction status and eCopyUrl if provided
         await prisma.transaction.update({
             where: { id },
-            data: { status: "RELEASED" }
+            data: { 
+                status: "RELEASED",
+                ...(eCopyUrl ? { eCopyUrl } : {})
+            }
         });
 
         revalidatePath("/admin/treasury");

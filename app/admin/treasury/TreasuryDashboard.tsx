@@ -19,18 +19,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
     Search, RefreshCcw, 
-    Archive, Eye
+    Archive, ExternalLink
 } from "lucide-react";
-import { TransactionDetailModal } from "./TransactionDetailModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function TreasuryDashboard() {
     const [status, setStatus] = useState("FOR_REQUESTING");
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [selectedTx, setSelectedTx] = useState<any>(null);
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -72,8 +71,6 @@ export default function TreasuryDashboard() {
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-
             {/* Dashboard Controls */}
             <div className="bg-white dark:bg-white/5 p-2 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm">
                 <Tabs value={status} onValueChange={setStatus} className="w-full">
@@ -131,7 +128,7 @@ export default function TreasuryDashboard() {
                                         filteredTransactions.map((tx, index) => (
                                             <TableRow key={tx.id} className="group border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
                                                 <TableCell className="pl-8 py-6">
-                                                    <span className="text-xs font-black font-mono tracking-widest text-[var(--primary-theme)]">{index + 1}</span>
+                                                    <span className="text-xs font-black font-mono tracking-widest text-primary">{index + 1}</span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
@@ -166,13 +163,14 @@ export default function TreasuryDashboard() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right pr-8">
-                                                    <Button 
-                                                        onClick={() => setSelectedTx(tx)}
-                                                        variant="ghost" 
-                                                        className="h-10 w-10 rounded-xl p-0 bg-primary/10 text-primary transition-all active:scale-95"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
+                                                    <Link href={`/admin/treasury/${tx.id}`}>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            className="h-10 w-10 rounded-xl p-0 bg-primary/10 text-primary transition-all active:scale-95"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4" />
+                                                        </Button>
+                                                    </Link>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -192,15 +190,6 @@ export default function TreasuryDashboard() {
                     </TabsContent>
                 </Tabs>
             </div>
-
-            {selectedTx && (
-                <TransactionDetailModal 
-                    transaction={selectedTx}
-                    isOpen={!!selectedTx}
-                    onClose={() => setSelectedTx(null)}
-                    onRefresh={fetchTransactions}
-                />
-            )}
         </div>
     );
 }

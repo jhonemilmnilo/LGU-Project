@@ -152,3 +152,4 @@ export function UserProjectsView({ initialProjects = [] }: { initialProjects: an
         </div>
     );
 }
+

@@ -311,7 +311,7 @@ export default function RequestHubPage() {
                                     </div>
                                     {computation && computation.penaltyAmount > 0 && (
                                         <div className="flex justify-between items-center group/item pb-4 border-b border-white/5 text-orange-500">
-                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Penalty Surcharge</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Penalty charge</span>
                                             <span className="text-2xl font-black italic tracking-tighter">₱{computation.penaltyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     )}
@@ -323,7 +323,7 @@ export default function RequestHubPage() {
                                     )}
                                     <div className="pt-10 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
                                         <div className="space-y-2">
-                                            <p className="text-[12px] font-black uppercase text-emerald-400 tracking-[0.3em] italic">Consolidated Total</p>
+                                            <p className="text-[12px] font-black uppercase text-emerald-400 tracking-[0.3em] italic">Total</p>
                                             <p className="text-[9px] font-bold text-white/20 uppercase italic">Payable via selected channel</p>
                                         </div>
                                         <span className="text-6xl font-black italic tracking-tighter text-white">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>

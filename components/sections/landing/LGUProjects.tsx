@@ -139,3 +139,4 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
         </section>
     );
 }
+

@@ -5,13 +5,13 @@ import { format } from "date-fns";
 import { 
     Clock, 
     CheckCircle2, 
-    XCircle, 
     Home,
     FileText,
     Activity,
     ChevronRight,
     DollarSign,
-    Search
+    Search,
+    X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -55,8 +55,8 @@ export default function UserServiceRequestsPage() {
             case "FOR_REQUESTING": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: "PENDING", opacity: 0.8 };
             case "EVALUATED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "EVALUATED", opacity: 0.9 };
             case "PAID": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };
-            case "RELEASED": return { color: "text-emerald-600", bg: "bg-emerald-100", border: "border-emerald-200", icon: CheckCircle2, label: "COMPLETED" };
-            case "REJECTED": return { color: "text-red-600", bg: "bg-red-100", border: "border-red-200", icon: XCircle, label: "REJECTED" };
+            case "RELEASED": return { color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: CheckCircle2, label: "RELEASED" };
+            case "REJECTED": return { color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20", icon: X, label: "DECLINED" };
             default: return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: status };
         }
     };
@@ -189,3 +189,4 @@ export default function UserServiceRequestsPage() {
         </div>
     );
 }
+

@@ -35,8 +35,7 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
             className="fixed inset-0 bg-white dark:bg-[#020618] flex flex-col items-center justify-center z-[9999] overflow-hidden antialiased"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
-            {/* Elite Animated Background Layer */}
-            <div className="absolute inset-0 opacity-[0.4] dark:opacity-[0.6] pointer-events-none">
+            <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center overflow-hidden">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,var(--primary-theme)_0%,transparent_70%)] opacity-10 animate-pulse-glow" />
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[140px] rounded-full animate-pulse-glow" style={{ animationDuration: '1s' }} />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[140px] rounded-full animate-pulse-glow" style={{ animationDelay: '.5s', animationDuration: '1s' }} />
@@ -158,3 +157,4 @@ export default function LoadingClientBody({ logoUrl, brand1, brand2, themeColor 
         </div>
     );
 }
+
