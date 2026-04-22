@@ -52,6 +52,10 @@ export default function TreasuryDashboard() {
         fetchTransactions();
     }, [fetchTransactions]);
 
+    useEffect(() => {
+        fetchTransactions();
+    }, [fetchTransactions]);
+
     const filteredTransactions = transactions.filter(tx => {
         const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
         return name.includes(search.toLowerCase()) || tx.id.includes(search);
@@ -103,7 +107,8 @@ export default function TreasuryDashboard() {
                         </div>
                     </div>
 
-                    <TabsContent value={status} className="mt-0 p-2">
+                    {status !== "SETTINGS" && (
+                        <TabsContent value={status} className="mt-0 p-2">
                         <div className="bg-white dark:bg-transparent rounded-[2rem] overflow-hidden border border-slate-100 dark:border-white/5">
                             <Table>
                                 <TableHeader className="bg-slate-50 dark:bg-white/5">
@@ -188,6 +193,7 @@ export default function TreasuryDashboard() {
                             </Table>
                         </div>
                     </TabsContent>
+                )}
                 </Tabs>
             </div>
         </div>

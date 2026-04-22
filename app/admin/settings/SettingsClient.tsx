@@ -14,8 +14,8 @@ import {
     DialogDescription,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users } from "lucide-react";
 import { updateSystemSetting, createHeroSlide, deleteHeroSlide, updateHeroSlide, updateLogoSetting } from "./actions";
+import { Plus, Trash2, Save, Globe, Layout, ShieldAlert, Image as ImageIcon, Send, X, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -30,6 +30,8 @@ interface SettingsClientProps {
 
 export function SettingsClient({ settings, slides, role, managedBarangay }: SettingsClientProps) {
     const isBarangayAdmin = role === "BARANGAY_ADMIN";
+    const isAdmin = role === "ADMIN";
+
     const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenance_mode === "true");
     const [logoUrl, setLogoUrl] = useState(settings.site_logo || "");
     const [portalName, setPortalName] = useState(settings.portal_name || "Municipality of Mapandand");
@@ -117,7 +119,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-[1.2rem] h-auto mb-8 flex flex-wrap gap-1">
-                    {!isBarangayAdmin && (
+                    {isAdmin && (
                         <>
                             <TabsTrigger value="general" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
                                 <Globe className="w-3.5 h-3.5 mr-2" />
@@ -133,8 +135,8 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                         <Layout className="w-3.5 h-3.5 mr-2" />
                         {isBarangayAdmin ? "Banners" : "Hero Sections"}
                     </TabsTrigger>
-
-                    {!isBarangayAdmin && (
+                    
+                    {isAdmin && (
                         <TabsTrigger value="sections" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
                             <Users className="w-3.5 h-3.5 mr-2" />
                             Sections
@@ -142,7 +144,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                     )}
                 </TabsList>
 
-                {!isBarangayAdmin && (
+                {isAdmin && (
                     <>
                         <TabsContent value="general" className="space-y-6">
                             <Card className="border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
@@ -346,7 +348,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                     />
                 </TabsContent>
 
-                {!isBarangayAdmin && (
+                {isAdmin && (
                     <TabsContent value="sections" className="space-y-6">
                         <SectionVisibilityManager settings={settings} />
                     </TabsContent>

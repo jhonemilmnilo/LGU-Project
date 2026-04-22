@@ -212,4 +212,54 @@ export async function updateHeroSlide(id: string, formData: FormData) {
     }
 }
 
+export async function updateTreasurySettings(formData: FormData) {
+    try {
+        const qrUrl = await processImageUpload(formData, "gcashQr");
+        const accountName = formData.get("gcashAccountName") as string;
+        const accountNumber = formData.get("gcashAccountNumber") as string;
+
+        console.log("--- Treasury Settings Update ---");
+        console.log("QR URL:", qrUrl);
+        console.log("Account Name:", accountName);
+        console.log("Account Number:", accountNumber);
+
+        if (qrUrl !== null && qrUrl !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: "gcash_qr_url" },
+                update: { value: qrUrl },
+                create: { key: "gcash_qr_url", value: qrUrl }
+            });
+        }
+
+        if (accountName !== null && accountName !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: "gcash_account_name" },
+                update: { value: accountName },
+                create: { key: "gcash_account_name", value: accountName }
+            });
+        }
+
+        if (accountNumber !== null && accountNumber !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: "gcash_account_number" },
+                update: { value: accountNumber },
+                create: { key: "gcash_account_number", value: accountNumber }
+            });
+        }
+
+        revalidatePath("/");
+        revalidatePath("/admin/settings");
+        revalidatePath("/admin/treasury/payment-settings");
+        revalidatePath("/user/services/requests/[id]");
+        
+        return { 
+            success: true, 
+            qrUrl: qrUrl || (formData.get("imageUrl") as string) 
+        };
+    } catch (error) {
+        console.error("Error updating treasury settings:", error);
+        return { success: false, error: "Failed to update treasury settings" };
+    }
+}
+
 // End of settings actions

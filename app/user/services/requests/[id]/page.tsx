@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
+import {
     Calculator,
     Truck,
     Building2,
@@ -24,7 +24,9 @@ import {
     Clock,
     Download,
     ExternalLink,
-    AlertCircle
+    AlertCircle,
+    QrCode,
+    Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -38,7 +40,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { 
+import {
     Breadcrumb,
     BreadcrumbList,
     BreadcrumbItem,
@@ -52,7 +54,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getTransactionById, finalizeTransactionFulfillment } from "@/app/admin/transactions/actions";
+import { getTransactionById, finalizeTransactionFulfillment, getSystemSettingAction } from "@/app/admin/transactions/actions";
 import { getCedulaPenaltyRateLabel } from "@/lib/cedula";
 import Link from "next/link";
 
@@ -91,6 +93,13 @@ export default function RequestHubPage() {
         landmark: ""
     });
 
+    // Treasury / Payment Details (Dynamic from settings)
+    const [gcashDetails, setGcashDetails] = useState({
+        qr: "",
+        name: "OFFICIAL TREASURY ACCOUNT",
+        number: "SCAN TO VIEW"
+    });
+
     useEffect(() => {
         async function fetchRequest() {
             try {
@@ -98,12 +107,12 @@ export default function RequestHubPage() {
                 if (res.success && res.data) {
                     const req = res.data;
                     setRequest(req);
-                    
+
                     // Pre-fill logic correctly
                     if (req.residentSnapshot) {
                         const r = req.residentSnapshot as any;
                         const finalAddr = (typeof req.deliveryAddress === 'string' ? JSON.parse(req.deliveryAddress || '{}') : req.deliveryAddress) || {};
-                        
+
                         setAddress({
                             houseNumber: finalAddr.houseNumber || r.houseNumber || "",
                             street: finalAddr.street || r.street || "",
@@ -142,7 +151,25 @@ export default function RequestHubPage() {
                 setLoading(false);
             }
         }
+
+        async function fetchSettings() {
+            try {
+                const qrRes = await getSystemSettingAction("gcash_qr_url", "");
+                const nameRes = await getSystemSettingAction("gcash_account_name", "ADMIN ACCOUNT");
+                const numRes = await getSystemSettingAction("gcash_account_number", "0000 000 0000");
+
+                setGcashDetails({
+                    qr: qrRes.data,
+                    name: nameRes.data,
+                    number: numRes.data
+                });
+            } catch (err) {
+                console.error("Fetch settings error:", err);
+            }
+        }
+
         fetchRequest();
+        fetchSettings();
     }, [id, router]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,6 +183,26 @@ export default function RequestHubPage() {
     const handleClearPaymentProof = () => {
         setPaymentProofFile(null);
         setPaymentProofPreview(null);
+    };
+
+    const handleDownloadQR = async () => {
+        if (!gcashDetails.qr) return;
+        try {
+            const response = await fetch(gcashDetails.qr);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `Mapandan_Treasury_QR_${id.slice(-6).toUpperCase()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            toast.success("QR Code downloaded successfully.");
+        } catch (error) {
+            console.error("Download error:", error);
+            toast.error("Failed to download QR code.");
+        }
     };
 
     const handleFinalize = async () => {
@@ -174,7 +221,7 @@ export default function RequestHubPage() {
             formData.append("deliveryLat", String(localLat || ""));
             formData.append("deliveryLng", String(localLng || ""));
             formData.append("deliveryLandmark", address.landmark);
-            
+
             if (paymentProofFile) {
                 formData.append("paymentFile", paymentProofFile);
             }
@@ -243,10 +290,10 @@ export default function RequestHubPage() {
         const propertyValue = addData.propertyValue || 0;
         const totalBasis = income + propertyValue;
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
-        const additionalTax = cedulaType === "JURIDICAL" 
-            ? Math.floor(totalBasis / 5000) * 2.00 
+        const additionalTax = cedulaType === "JURIDICAL"
+            ? Math.floor(totalBasis / 5000) * 2.00
             : Math.floor(totalBasis / 1000) * 1.00;
-        
+
         const subtotal = basicTax + additionalTax;
         const totalWithPenalty = Number(request.totalAmount) || subtotal;
         const penaltyAmount = totalWithPenalty - subtotal;
@@ -450,15 +497,15 @@ export default function RequestHubPage() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {(localFulfillment === "E_COPY" ? [
-                                            { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard },
+                                            { id: "E_PAYMENT", label: "GCash (Scan & Pay)", icon: CreditCard },
                                             { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
                                         ] : localFulfillment === "PICK_UP" ? [
                                             { id: "CASH", label: "Cash on Counter", icon: Wallet },
-                                            { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard },
+                                            { id: "E_PAYMENT", label: "GCash (Scan & Pay)", icon: CreditCard },
                                             { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
                                         ] : [
                                             { id: "CASH_ON_DELIVERY", label: "Cash on Delivery", icon: Truck },
-                                            { id: "E_PAYMENT", label: "Electronic Payment", icon: CreditCard },
+                                            { id: "E_PAYMENT", label: "GCash (Scan & Pay)", icon: CreditCard },
                                             { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
                                         ]).map(opt => (
                                             <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.98] text-left relative", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40")}>
@@ -470,8 +517,82 @@ export default function RequestHubPage() {
                                     </div>
 
                                     {(localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
-                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-4 mt-4">
-                                            <div className="flex items-center gap-3 px-1"><Camera className="w-4 h-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Proof of Transaction Upload</Label></div>
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                            {/* GCash / Manual Payment Instruction Card */}
+                                            {localPayment === "E_PAYMENT" && (
+                                                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group/qr shadow-2xl">
+                                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/qr:opacity-10 transition-opacity">
+                                                    <QrCode className="w-48 h-48 rotate-12" />
+                                                </div>
+                                                
+                                                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                                                    <div className="space-y-6">
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                                                                <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Manual Payment Instruction</h4>
+                                                            </div>
+                                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none">Scan to <span className="text-primary italic">Settle Payment</span></h3>
+                                                        </div>
+                                                        
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center font-black italic text-[10px]">01</div>
+                                                                <p className="text-[11px] font-medium opacity-70 leading-relaxed uppercase tracking-tight">Scan the QR code or send amount to our official GCash / Bank details.</p>
+                                                            </div>
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center font-black italic text-[10px]">02</div>
+                                                                <p className="text-[11px] font-medium opacity-70 leading-relaxed uppercase tracking-tight">Take a screenshot or save the transaction receipt as <span className="text-primary">Proof of Payment</span>.</p>
+                                                            </div>
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center font-black italic text-[10px]">03</div>
+                                                                <p className="text-[11px] font-medium opacity-70 leading-relaxed uppercase tracking-tight">Upload the receipt below and click <span className="text-primary italic">&quot;Secure Application&quot;</span> to finalize.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <div className="bg-white p-4 rounded-[2rem] shadow-2xl relative group/img cursor-zoom-in">
+                                                            <div className="w-40 h-40 bg-slate-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                                                                {gcashDetails.qr ? (
+                                                                    <Image 
+                                                                        src={gcashDetails.qr} 
+                                                                        alt="Official GCash QR" 
+                                                                        width={160} 
+                                                                        height={160} 
+                                                                        className="object-contain"
+                                                                    />
+                                                                ) : (
+                                                                    <Image 
+                                                                        src="/branding/gcash_qr_sample.png" 
+                                                                        alt="Placeholder QR" 
+                                                                        width={160} 
+                                                                        height={160} 
+                                                                        className="object-contain opacity-20 grayscale"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-[2rem] flex flex-col items-center justify-center gap-3">
+                                                                <Search className="w-8 h-8 text-white drop-shadow-lg" />
+                                                                <button 
+                                                                    onClick={(e) => { e.stopPropagation(); handleDownloadQR(); }} 
+                                                                    className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                                                                >
+                                                                    <Download className="w-3 h-3 text-primary" /> Save Image
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-primary italic">{gcashDetails.name}</p>
+                                                            <p className="text-[9px] font-bold text-white/40 uppercase italic tracking-tighter">{gcashDetails.number}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                            <div className="p-5 bg-slate-50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-4">
+                                                <div className="flex items-center gap-3 px-1"><Camera className="w-4 h-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Proof of Transaction Upload</Label></div>
                                             <div className="w-full">
                                                 <div className="w-full aspect-[25/7] bg-white dark:bg-black rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group shadow-lg transition-all">
                                                     {paymentProofPreview ? (
@@ -503,10 +624,11 @@ export default function RequestHubPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
+                                )}
                                 </div>
                             </div>
-                            
+
                             <div className="mt-16 pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-8">
                                 <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-6 h-6" /></div><div className="text-left"><p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500 italic leading-none">Ready for Issuance</p><p className="text-[9px] font-bold text-slate-400 uppercase italic mt-1 opacity-60">Verified Admin Evaluation</p></div></div>
                                 <Button onClick={handleFinalize} disabled={isFinalizing} className="w-full sm:w-[300px] h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group">{isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Secure Application"}</Button>
@@ -543,7 +665,7 @@ export default function RequestHubPage() {
                                 <div>
                                     <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic mb-10">Admin Assessment</h3>
                                     <p className="text-lg font-bold italic opacity-90 leading-relaxed">
-                                        &quot;{request.status === "RELEASED" 
+                                        &quot;{request.status === "RELEASED"
                                             ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Your official records have been successfully finalized, verified, and archived for your use."
                                             : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence for final issuance.`)}&quot;
                                     </p>
@@ -595,10 +717,10 @@ export default function RequestHubPage() {
                                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                     <Truck className="w-32 h-32 rotate-12" />
                                 </div>
-                                
+
                                 <div className="relative z-10 space-y-8">
                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Service Deployment Strategy</h4>
-                                    
+
                                     {request.fulfillmentType ? (
                                         <div className="space-y-8">
                                             <div className="flex items-center gap-6 p-6 bg-white dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm">
@@ -649,11 +771,11 @@ export default function RequestHubPage() {
                                                         <div className="space-y-4">
                                                             <p className="text-[9px] uppercase font-black text-emerald-500 italic tracking-[0.2em]">Logistics Completion Evidence</p>
                                                             <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/5 shadow-2xl group/img">
-                                                                <Image 
-                                                                    src={request.deliveryProofUrl} 
-                                                                    alt="Delivery Proof" 
-                                                                    fill 
-                                                                    className="object-cover transition-transform duration-700 group-hover/img:scale-110" 
+                                                                <Image
+                                                                    src={request.deliveryProofUrl}
+                                                                    alt="Delivery Proof"
+                                                                    fill
+                                                                    className="object-cover transition-transform duration-700 group-hover/img:scale-110"
                                                                     unoptimized
                                                                 />
                                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">

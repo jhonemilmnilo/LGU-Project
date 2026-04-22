@@ -1,13 +1,17 @@
 import React from "react";
 import TreasuryDashboard from "./TreasuryDashboard";
 import { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const metadata: Metadata = {
     title: "Treasury Hub | Agno Portal",
     description: "Official administrative dashboard for treasury services and financial processing.",
 };
 
-export default function TreasuryPage() {
+export default async function TreasuryPage() {
+    await getServerSession(authOptions);
+
     return (
         <div className="min-h-screen pb-20">
             {/* Elegant Header */}
