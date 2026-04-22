@@ -11,6 +11,7 @@ import { LGUProjects } from "@/components/sections/landing/LGUProjects";
 import { Government } from "@/components/sections/landing/Government";
 import { Services } from "@/components/sections/landing/Services";
 import { EmergencyReport } from "@/components/sections/landing/EmergencyReport";
+import { HashScrollHandler } from "@/components/shared/HashScrollHandler";
 import ParishCorner from "../components/sections/landing/ParishCorner";
 import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
@@ -248,6 +249,7 @@ export default async function Home({
             className="min-h-screen bg-white dark:bg-slate-950 font-sans selection:bg-primary/30"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
+            <HashScrollHandler />
             <Navbar
                 logoUrl={logoUrl}
                 brandWord1={brandWord1}
