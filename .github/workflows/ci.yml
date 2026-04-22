@@ -25,12 +25,16 @@ jobs:
 
       - name: 💎 Prisma Schema Validation
         run: npx prisma validate
+        env:
+          DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
+          DIRECT_DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
         # Validates schema without needing a database connection
 
       - name: ⚙️ Generate Prisma Client
         run: npx prisma generate
         env:
           DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
+          DIRECT_DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
 
       - name: 🧹 Lint Check
         run: npm run lint
@@ -43,5 +47,6 @@ jobs:
         run: npm run build
         env:
           DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
+          DIRECT_DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
           NEXTAUTH_SECRET: "mock-secret-for-build"
           NEXTAUTH_URL: "http://localhost:3000"
