@@ -184,6 +184,21 @@ export async function getTransactionById(id: string) {
 }
 
 /**
+ * Fetch a system setting by key
+ */
+export async function getSystemSettingAction(key: string, defaultValue: string = "") {
+    try {
+        const setting = await prisma.systemSetting.findUnique({
+            where: { key }
+        });
+        return { success: true, data: setting?.value || defaultValue };
+    } catch (error) {
+        console.error(`Error fetching system setting ${key}:`, error);
+        return { success: false, error: "Failed to fetch setting", data: defaultValue };
+    }
+}
+
+/**
  * Submit a new transaction request (Citizen side)
  */
 export async function submitTransaction(formData: FormData) {
@@ -484,7 +499,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 totalPaid: transaction.totalAmount,
                 issuedBy: user.name || "System Administrator",
                 businessName: (transaction as any).businessName,
-                documentUrl: (transaction as any).eCopyUrl,
+                documentUrl: eCopyUrl || (transaction as any).eCopyUrl,
                 verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
             }
         });

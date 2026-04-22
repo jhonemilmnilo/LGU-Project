@@ -17,7 +17,8 @@ import {
     confirmTransactionPayment, 
     releaseCedula,
     rejectTransaction,
-    uploadECopyAction
+    uploadECopyAction,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -44,6 +45,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [isRejecting, setIsRejecting] = useState(false);
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
+    const [themeColor, setThemeColor] = useState<string>("#2563eb");
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -67,6 +69,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     useEffect(() => { 
         fetchTransaction(); 
+        
+        // Fetch theme color
+        getSystemSettingAction("theme_color", "#2563eb").then(res => {
+            if (res.success && res.data) {
+                setThemeColor(res.data);
+            }
+        });
     }, [fetchTransaction]);
 
     useEffect(() => {
@@ -158,7 +167,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     return (
         <div 
             className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
-            style={{ "--theme_color": "var(--primary-theme, #16a34a)" } as React.CSSProperties}
+            style={{ "--theme_color": themeColor, "--primary-theme": themeColor } as React.CSSProperties}
         >
             {/* Minimal Header */}
             <header className="h-16 px-8 flex items-center justify-between border-b border-transparent dark:border-white/5">
@@ -193,7 +202,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             : `${resident.firstName} ${resident.lastName}`}
                                     </h1>
                                     
-                                    <IdentityConfirmationVault resident={resident} />
+                                    <IdentityConfirmationVault resident={resident} themeColor={themeColor} />
                                 </div>
                             </div>
                         </div>

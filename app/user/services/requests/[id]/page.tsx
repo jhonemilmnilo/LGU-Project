@@ -21,7 +21,9 @@ import {
     XCircle,
     Activity,
     DollarSign,
-    Clock
+    Clock,
+    Download,
+    ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -141,6 +143,11 @@ export default function RequestHubPage() {
             setPaymentProofFile(file);
             setPaymentProofPreview(URL.createObjectURL(file));
         }
+    };
+
+    const handleClearPaymentProof = () => {
+        setPaymentProofFile(null);
+        setPaymentProofPreview(null);
     };
 
     const handleFinalize = async () => {
@@ -394,7 +401,7 @@ export default function RequestHubPage() {
                                 <div className="space-y-8">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20"><CreditCard className="w-6 h-6" /></div>
-                                        <div><h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Fiscal <span className="text-primary italic">Clearance</span></h3><p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic mt-1">Select secure payment channel</p></div>
+                                        <div><h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Payment <span className="text-primary italic">Method</span></h3><p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] italic mt-1">Select secure payment channel</p></div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {(localFulfillment === "E_COPY" ? [
@@ -418,12 +425,36 @@ export default function RequestHubPage() {
                                     </div>
 
                                     {(localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
-                                        <div className="p-8 bg-slate-50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-6 mt-4">
-                                            <div className="flex items-center gap-3"><Camera className="w-5 h-5 text-primary" /><Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic text-xs">Proof of Transaction Upload</Label></div>
-                                            <div className="flex flex-col sm:flex-row gap-8 items-center">
-                                                <div className="w-48 h-48 bg-white dark:bg-black rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group shadow-lg">
-                                                    {paymentProofPreview ? <Image src={paymentProofPreview} alt="Proof" fill className="object-cover" /> : <div className="text-center p-4"><Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" /><p className="text-[8px] font-bold text-slate-400 uppercase italic">Screenshot Needed</p></div>}
-                                                    <input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                        <div className="p-5 bg-slate-50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 space-y-4 mt-4">
+                                            <div className="flex items-center gap-3 px-1"><Camera className="w-4 h-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Proof of Transaction Upload</Label></div>
+                                            <div className="w-full">
+                                                <div className="w-full aspect-[25/7] bg-white dark:bg-black rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group shadow-lg transition-all">
+                                                    {paymentProofPreview ? (
+                                                        <>
+                                                            <Image src={paymentProofPreview} alt="Proof" fill className="object-cover" />
+                                                            <div className="absolute bottom-0 inset-x-0 bg-black/60 p-3 flex items-center justify-center gap-4 backdrop-blur-md border-t border-white/10 rounded-b-[1.9rem]">
+                                                                <div className="relative">
+                                                                    <Button variant="secondary" size="sm" className="h-8 px-4 font-black italic uppercase text-[9px] tracking-widest rounded-xl bg-white text-slate-900 pointer-events-none">
+                                                                        <Camera className="w-3 h-3 mr-2 text-primary" /> Change
+                                                                    </Button>
+                                                                    <input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                                </div>
+                                                                <Button onClick={(e) => { e.stopPropagation(); handleClearPaymentProof(); }} variant="destructive" size="sm" className="h-8 px-4 font-black italic uppercase text-[9px] tracking-widest rounded-xl bg-red-600 hover:bg-red-700">
+                                                                    <XCircle className="w-3 h-3 mr-2" /> Remove
+                                                                </Button>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="relative w-full h-full flex items-center justify-center cursor-pointer group/upload">
+                                                            <div className="text-center p-4">
+                                                                <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center mx-auto mb-2 group-hover/upload:bg-primary/20 transition-colors">
+                                                                    <Upload className="w-5 h-5 text-primary" />
+                                                                </div>
+                                                                <p className="text-[9px] font-black uppercase text-slate-400 italic tracking-[0.2em] group-hover/upload:text-primary transition-colors">Upload Receipt Snapshot</p>
+                                                            </div>
+                                                            <input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -457,14 +488,21 @@ export default function RequestHubPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10">
                                     <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Applicant Status</p><p className="text-2xl font-black text-slate-900 dark:text-white italic">{additionalData.applicantType}</p></div>
                                     <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Submission Date</p><p className="text-2xl font-black text-slate-900 dark:text-white italic">{format(new Date(request.createdAt), "MMMM d, yyyy")}</p></div>
-                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Fulfillment Phase</p><p className="text-2xl font-black text-slate-900 dark:text-white italic flex items-center gap-2">{request.fulfillmentType || "PENDING EVALUATION"}</p></div>
-                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Payment Status</p><p className="text-2xl font-black text-emerald-500 italic">{request.paymentStatus}</p></div>
+                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Fulfillment Phase</p><p className="text-2xl font-black text-slate-900 dark:text-white italic flex items-center gap-2">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVALUATION"}</p></div>
+                                    <div className="space-y-2"><p className="text-[10px] uppercase font-black text-slate-400 tracking-widest italic">Payment Method</p><p className="text-2xl font-black text-primary italic uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESSMENT"}</p></div>
                                 </div>
                             </Card>
 
                             <Card className="p-10 border-none bg-slate-900 text-white shadow-2xl rounded-[3rem] relative overflow-hidden flex flex-col justify-between">
                                 <div className="absolute top-0 right-0 p-8 opacity-10"><Info className="w-24 h-24 rotate-12" /></div>
-                                <div><h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic mb-10">Admin Assessment</h3><p className="text-lg font-bold italic opacity-90 leading-relaxed">&quot;{request.rejectionRemarks || `Status: ${request.status}. Our team is meticulously handling your request records and validating documentary evidence for release.`}&quot;</p></div>
+                                <div>
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic mb-10">Admin Assessment</h3>
+                                    <p className="text-lg font-bold italic opacity-90 leading-relaxed">
+                                        &quot;{request.status === "RELEASED" 
+                                            ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Your official records have been successfully finalized, verified, and archived for your use."
+                                            : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence for final issuance.`)}&quot;
+                                    </p>
+                                </div>
                                 <div className="space-y-4 pt-10"><Separator className="bg-white/10" /><div className="flex items-center justify-between"><div><p className="text-[9px] font-black uppercase tracking-widest text-primary/50 italic">Evaluated Amount</p><p className="text-3xl font-black text-primary italic">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div></div></div>
                             </Card>
                         </div>
@@ -505,45 +543,127 @@ export default function RequestHubPage() {
 
                     <TabsContent value="logistics" className="mt-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-3xl">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Service Delivery Strategy</h4>
-                                {request.fulfillmentType ? (
-                                    <div className="space-y-6">
-                                        <div className="flex items-center gap-5 p-6 bg-primary/5 rounded-[2rem] border-2 border-primary/20">
-                                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0"><Truck className="w-8 h-8" /></div>
-                                            <div><h5 className="font-black uppercase tracking-widest text-lg leading-none">{request.fulfillmentType.replace("_", " ")}</h5><p className="text-xs font-bold text-primary/60 italic uppercase tracking-widest">Selected Mode</p></div>
-                                        </div>
-                                        {request.fulfillmentType === "DELIVERY" && (
-                                            <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
-                                                <p className="text-[10px] uppercase font-black text-slate-400 italic">Deployment Address</p>
-                                                <p className="text-lg font-black text-slate-900 dark:text-white underline decoration-primary/30 decoration-4 underline-offset-8 leading-relaxed">
-                                                    {(() => {
-                                                        const addr = typeof request.deliveryAddress === 'string' ? JSON.parse(request.deliveryAddress || '{}') : request.deliveryAddress;
-                                                        if (!addr) return "N/A";
-                                                        return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
-                                                    })()}
-                                                </p>
+                            {/* Fulfillment Strategy & Action */}
+                            <Card className={cn(
+                                "p-8 border-slate-200 dark:border-white/5 shadow-sm rounded-[2.5rem] relative overflow-hidden group",
+                                request.status === "RELEASED" ? "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20" : "bg-white dark:bg-slate-950/50"
+                            )}>
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <Truck className="w-32 h-32 rotate-12" />
+                                </div>
+                                
+                                <div className="relative z-10 space-y-8">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Service Deployment Strategy</h4>
+                                    
+                                    {request.fulfillmentType ? (
+                                        <div className="space-y-8">
+                                            <div className="flex items-center gap-6 p-6 bg-white dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm">
+                                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
+                                                    {request.fulfillmentType === "E_COPY" ? <FileText className="w-8 h-8" /> : <Truck className="w-8 h-8" />}
+                                                </div>
+                                                <div>
+                                                    <h5 className="font-black uppercase tracking-widest text-lg leading-none italic">{request.fulfillmentType.replace("_", " ")}</h5>
+                                                    <p className="text-[10px] font-bold text-slate-400 italic uppercase tracking-widest mt-1">Confirmed Mode</p>
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                ) : <div className="p-10 text-center space-y-4"><Clock className="w-12 h-12 text-slate-200 mx-auto" /><p className="text-xs font-black uppercase text-slate-400 italic tracking-[0.2em]">Deployment Configuration Pending Administrative Evaluation</p></div>}
+
+                                            {request.fulfillmentType === "DELIVERY" && (
+                                                <div className="space-y-4 pt-4">
+                                                    <p className="text-[9px] uppercase font-black text-slate-400 italic tracking-[0.2em]">Deployment Destination</p>
+                                                    <div className="flex items-start gap-3">
+                                                        <MapPin className="w-4 h-4 text-primary shrink-0 mt-1" />
+                                                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+                                                            {(() => {
+                                                                const addr = typeof request.deliveryAddress === 'string' ? JSON.parse(request.deliveryAddress || '{}') : request.deliveryAddress;
+                                                                if (!addr) return residentData.barangay ? `${residentData.houseNumber || ""} ${residentData.street || ""}, ${residentData.barangay}, ${residentData.municipality}, ${residentData.province}` : "N/A";
+                                                                return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
+                                                            })()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* RELEASED ACTIONS */}
+                                            {request.status === "RELEASED" && (
+                                                <div className="pt-6">
+                                                    {request.fulfillmentType === "E_COPY" ? (
+                                                        <div className="bg-slate-900 dark:bg-black p-8 rounded-[2rem] text-white space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Download className="w-5 h-5 text-white" /></div>
+                                                                <div>
+                                                                    <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70">Electronic Registry</p>
+                                                                    <p className="text-xs font-bold italic tracking-tight">Your digital document is ready.</p>
+                                                                </div>
+                                                            </div>
+                                                            <Button asChild className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl group">
+                                                                <a href={request.eCopyUrl || request.cedula?.documentUrl} target="_blank" rel="noopener noreferrer">
+                                                                    Download Official Document <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                                                </a>
+                                                            </Button>
+                                                        </div>
+                                                    ) : request.fulfillmentType === "DELIVERY" && request.deliveryProofUrl && (
+                                                        <div className="space-y-4">
+                                                            <p className="text-[9px] uppercase font-black text-emerald-500 italic tracking-[0.2em]">Logistics Completion Evidence</p>
+                                                            <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/5 shadow-2xl group/img">
+                                                                <Image 
+                                                                    src={request.deliveryProofUrl} 
+                                                                    alt="Delivery Proof" 
+                                                                    fill 
+                                                                    className="object-cover transition-transform duration-700 group-hover/img:scale-110" 
+                                                                    unoptimized
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <a href={request.deliveryProofUrl} target="_blank" className="bg-white text-[9px] font-black uppercase text-slate-900 px-6 py-2.5 rounded-xl shadow-xl hover:scale-105 transition-all">Inspect Proof</a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="p-10 text-center space-y-4">
+                                            <div className="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-3xl flex items-center justify-center text-slate-200 dark:text-slate-800 mx-auto border border-dashed border-slate-200">
+                                                <Clock className="w-8 h-8" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Configuration Pending</p>
+                                                <p className="text-[9px] font-bold text-slate-400/60 uppercase italic">Awaiting Administrative Evaluation</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </Card>
 
-                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-3xl">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Documentary Clearance</h4>
-                                <div className="grid grid-cols-2 gap-4">
+                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-[2.5rem] flex flex-col">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Documentary Clearance Vault</h4>
+                                <div className="grid grid-cols-2 gap-6 flex-1">
                                     {[
-                                        { label: "State ID", url: additionalData.validIdUrl },
-                                        { label: "Assets Proof", url: additionalData.proofOfIncomeUrl }
+                                        { label: "Government State ID", url: additionalData.validIdUrl },
+                                        { label: "Income Evidence / Assets", url: additionalData.proofOfIncomeUrl }
                                     ].map((doc, i) => (
-                                        <div key={i} className="relative aspect-video rounded-2xl border-2 border-slate-100 dark:border-white/5 overflow-hidden group">
+                                        <div key={i} className="relative aspect-video rounded-3xl border-2 border-slate-100 dark:border-white/5 overflow-hidden group/doc">
                                             {doc.url ? <>
-                                                <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover:scale-110" unoptimized />
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><a href={doc.url} target="_blank" className="text-[10px] font-black uppercase text-white bg-primary px-5 py-2 rounded-xl italic shadow-lg">Enlarge</a></div>
-                                                <div className="absolute top-2 left-2"><Badge className="text-[8px] bg-white/90 text-slate-900 border-none">{doc.label}</Badge></div>
-                                            </> : <div className="h-full flex items-center justify-center text-slate-200"><XCircle className="w-10 h-10" /></div>}
+                                                <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
+                                                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center opacity-0 group-hover/doc:opacity-100 transition-opacity p-6 text-center">
+                                                    <p className="text-[8px] font-black uppercase text-primary mb-2 italic">Stored Evidence</p>
+                                                    <a href={doc.url} target="_blank" className="text-[9px] font-black uppercase text-white bg-white/10 hover:bg-primary px-5 py-2.5 rounded-xl italic shadow-lg border border-white/20 transition-all">Inspect File</a>
+                                                </div>
+                                                <div className="absolute top-4 left-4"><Badge className="text-[8px] bg-white/90 dark:bg-slate-950/90 text-slate-900 dark:text-white border-none font-black italic tracking-widest">{doc.label}</Badge></div>
+                                            </> : (
+                                                <div className="h-full flex flex-col items-center justify-center text-slate-200 bg-slate-50 dark:bg-white/5">
+                                                    <XCircle className="w-10 h-10 mb-2 opacity-50" />
+                                                    <p className="text-[8px] font-black uppercase text-slate-300 italic">Not Required</p>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
+                                </div>
+                                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></div>
+                                        <p className="text-[9px] font-black uppercase italic text-slate-400">Authenticated Records Vault</p>
+                                    </div>
                                 </div>
                             </Card>
                         </div>

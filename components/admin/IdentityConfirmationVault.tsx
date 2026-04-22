@@ -13,10 +13,11 @@ import { UserRound, Mail, Phone } from "lucide-react"
 import { differenceInYears } from "date-fns"
 
 interface IdentityConfirmationVaultProps {
-    resident: any
+    resident: any;
+    themeColor?: string;
 }
 
-const IdentityConfirmationVault = ({ resident }: IdentityConfirmationVaultProps) => {
+const IdentityConfirmationVault = ({ resident, themeColor }: IdentityConfirmationVaultProps) => {
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -28,8 +29,9 @@ const IdentityConfirmationVault = ({ resident }: IdentityConfirmationVaultProps)
                 style={{ 
                     maxWidth: '1000px', 
                     width: '90vw',
-                    backgroundColor: '#030712'
-                }} 
+                    backgroundColor: '#030712',
+                    "--primary-theme": themeColor || "var(--primary-theme)"
+                } as React.CSSProperties} 
                 className="bg-[#030712] border-white/5 text-white p-0 overflow-hidden rounded-[2.5rem] shadow-2xl border"
             >
                 <div className="p-12 space-y-10">
