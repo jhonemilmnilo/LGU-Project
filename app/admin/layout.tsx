@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "./components/Sidebar";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import prisma from "@/lib/db/prisma";
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({
     children,
