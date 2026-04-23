@@ -26,8 +26,7 @@ import {
     ExternalLink,
     AlertCircle,
     QrCode,
-    Search,
-    BadgeCheck
+    Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -383,7 +382,7 @@ export default function RequestHubPage() {
                 /* Actionable View: Logistics & Payment */
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
                     <div className="xl:col-span-5 space-y-8 xl:sticky xl:top-8 h-fit">
-                        <Card className="p-8 sm:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-[3rem] overflow-hidden relative group">
+                        <Card className="p-8 sm:p-10 border-none bg-slate-950 text-white shadow-[0_40px_100px_-15px_rgba(0,0,0,0.4)] rounded-[3rem] overflow-hidden relative group">
                             <div className="absolute top-0 right-0 p-12 opacity-10">
                                 <Calculator className="w-48 h-48 rotate-12 group-hover:rotate-0 transition-transform duration-1000" />
                             </div>
@@ -454,7 +453,7 @@ export default function RequestHubPage() {
                     </div>
 
                     <div className="xl:col-span-7 space-y-10">
-                        <div className="bg-white dark:bg-[#0d0f14] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-2xl relative overflow-hidden group/container">
+                        <div className="bg-white dark:bg-[#0d0f14] rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 md:p-12 shadow-[0_40px_100px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_40px_100px_-15px_rgba(0,0,0,0.4)] relative overflow-hidden group/container">
                             <div className="absolute inset-0 bg-[linear-gradient(to_right,#0001_1px,transparent_1px),linear-gradient(to_bottom,#0001_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#fff1_1px,transparent_1px),linear-gradient(to_bottom,#fff1_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none" />
                             <div className="relative z-10 space-y-12">
                                 <div className="space-y-8">
@@ -469,7 +468,7 @@ export default function RequestHubPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         {[
-                                            { id: "E_COPY", label: "Digital E-Copy", icon: FileText },
+                                            // { id: "E_COPY", label: "Digital E-Copy", icon: FileText },
                                             { id: "PICK_UP", label: "Office Pickup", icon: Building2 },
                                             { id: "DELIVERY", label: "Premium Delivery", icon: Truck }
                                         ].map(opt => (
@@ -478,7 +477,7 @@ export default function RequestHubPage() {
                                                 if (opt.id === "PICK_UP") setLocalPayment("CASH");
                                                 else if (opt.id === "E_COPY") setLocalPayment("E_PAYMENT");
                                                 else setLocalPayment("CASH_ON_DELIVERY");
-                                            }} className={cn("flex flex-col items-center gap-4 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.95] text-center relative", localFulfillment === opt.id ? "bg-primary text-white border-primary shadow-2xl shadow-primary/20 scale-[1.02]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40")}>
+                                            }} className={cn("flex flex-col items-center gap-4 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.95] text-center relative", localFulfillment === opt.id ? "bg-primary text-white border-primary shadow-[0_20px_40px_-10px_rgba(var(--primary-rgb),0.4)] scale-[1.02]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 shadow-md hover:border-primary/40 hover:shadow-xl")}>
                                                 <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
                                                 <span className="block text-[10px] font-black uppercase tracking-widest italic">{opt.label}</span>
                                                 {localFulfillment === opt.id && <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-950"><Check className="w-3 h-3 text-white" /></div>}
@@ -529,8 +528,8 @@ export default function RequestHubPage() {
                                             { id: "E_PAYMENT", label: "GCash (Scan & Pay)", icon: CreditCard },
                                             { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
                                         ]).map(opt => (
-                                            <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.98] text-left relative", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/40")}>
-                                                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-white/5 text-slate-400")}><opt.icon className="w-6 h-6" /></div>
+                                            <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-5 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.98] text-left relative", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 shadow-md hover:border-primary/40 hover:shadow-xl")}>
+                                                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-md", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-white/5 text-slate-400")}><opt.icon className="w-6 h-6" /></div>
                                                 <span className="block text-[11px] font-black uppercase tracking-widest italic">{opt.label}</span>
                                                 {localPayment === opt.id && <div className="absolute top-1/2 -translate-y-1/2 right-6"><CheckCircle2 className="w-6 h-6 text-primary" /></div>}
                                             </button>
@@ -541,7 +540,7 @@ export default function RequestHubPage() {
                                         <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                                             {/* GCash / Manual Payment Instruction Card */}
                                             {localPayment === "E_PAYMENT" && (
-                                                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group/qr shadow-2xl">
+                                                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group/qr shadow-[0_40px_80px_-15px_rgba(0,0,0,0.4)]">
                                                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/qr:opacity-10 transition-opacity">
                                                     <QrCode className="w-48 h-48 rotate-12" />
                                                 </div>
@@ -667,15 +666,15 @@ export default function RequestHubPage() {
             ) : (
                 /* Lifecycle Hub View: Detailed Tracking & Records */
                 <Tabs defaultValue="overview" className="space-y-8">
-                    <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-auto sm:h-16 w-full sm:w-fit border border-slate-200 dark:border-white/5 shadow-sm">
-                        <TabsTrigger value="overview" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-sm">Overview</TabsTrigger>
-                        <TabsTrigger value="records" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-sm">Records</TabsTrigger>
-                        <TabsTrigger value="logistics" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-sm">Logistics</TabsTrigger>
+                    <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl h-auto sm:h-16 w-full sm:w-fit border border-slate-200 dark:border-white/5 shadow-md">
+                        <TabsTrigger value="overview" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-md">Overview</TabsTrigger>
+                        <TabsTrigger value="records" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-md">Records</TabsTrigger>
+                        <TabsTrigger value="logistics" className="flex-1 sm:flex-none rounded-xl px-12 py-3 sm:py-0 font-black text-[10px] uppercase tracking-[0.2em] italic data-[state=active]:bg-primary data-[state=active]:text-white transition-all shadow-md">Logistics</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="mt-0 space-y-10">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                            <Card className="p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-sm rounded-3xl lg:col-span-2">
+                            <Card className="p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] rounded-3xl lg:col-span-2">
                                 <div className="flex items-center justify-between mb-12">
                                     <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3 italic"><FileText className="w-5 h-5 text-primary" /> Application Summary</h3>
                                     <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Last Update: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</span></div>
@@ -688,7 +687,7 @@ export default function RequestHubPage() {
                                 </div>
                             </Card>
 
-                            <Card className="p-10 border-none bg-slate-900 text-white shadow-2xl rounded-[3rem] relative overflow-hidden flex flex-col justify-between">
+                            <Card className="p-10 border-none bg-slate-900 text-white shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] rounded-[3rem] relative overflow-hidden flex flex-col justify-between">
                                 <div className="absolute top-0 right-0 p-8 opacity-10"><Info className="w-24 h-24 rotate-12" /></div>
                                 <div>
                                     <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic mb-10">Admin Assessment</h3>
@@ -704,7 +703,7 @@ export default function RequestHubPage() {
                     </TabsContent>
 
                     <TabsContent value="records" className="mt-0">
-                        <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-3xl">
+                        <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-3xl">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
                                 <div className="space-y-12">
                                     <div className="space-y-6"><h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Personal Identity</h4>
@@ -718,6 +717,14 @@ export default function RequestHubPage() {
                                     <div className="space-y-6"><h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                             <div className="space-y-1"><p className="text-[10px] uppercase font-black text-slate-400">Annual Gross Income</p><p className="text-xl font-black text-slate-900 dark:text-white">₱{(additionalData.income || 0).toLocaleString()}</p></div>
+                                            {request.cedula?.expiryDate && (
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] uppercase font-black text-slate-400">Validity Protocol</p>
+                                                    <p className="text-xl font-black italic flex items-center gap-2" style={{ color: themeColor }}>
+                                                        <Clock className="w-4 h-4" /> Expires {format(new Date(request.cedula.expiryDate), "MMM d, yyyy")}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -736,11 +743,11 @@ export default function RequestHubPage() {
                     </TabsContent>
 
                     <TabsContent value="logistics" className="mt-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
                             {/* Fulfillment Strategy & Action */}
                             <Card className={cn(
-                                "p-8 border-slate-200 dark:border-white/5 shadow-sm rounded-[2.5rem] relative overflow-hidden group",
-                                request.status === "RELEASED" ? "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20" : "bg-white dark:bg-slate-950/50"
+                                "p-8 border-slate-200 dark:border-white/5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-[2.5rem] relative overflow-hidden group",
+                                request.status === "RELEASED" ? "bg-primary/5 dark:bg-primary/10 border-primary/20" : "bg-white dark:bg-slate-950/50"
                             )}>
                                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                     <Truck className="w-32 h-32 rotate-12" />
@@ -777,43 +784,28 @@ export default function RequestHubPage() {
                                                 </div>
                                             )}
 
-                                            {/* RELEASED ACTIONS */}
-                                            {request.status === "RELEASED" ? (
+                                            {/* LOGISTICS PROOF (For Delivery) */}
+                                            {request.status === "RELEASED" && request.fulfillmentType === "DELIVERY" && request.deliveryProofUrl && (
                                                 <div className="pt-6">
-                                                    {request.fulfillmentType === "E_COPY" ? (
-                                                        <div className="bg-slate-900 dark:bg-black p-8 rounded-[2rem] text-white space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Download className="w-5 h-5 text-white" /></div>
-                                                                <div>
-                                                                    <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70">Electronic Registry</p>
-                                                                    <p className="text-xs font-bold italic tracking-tight">Your digital document is ready.</p>
-                                                                </div>
-                                                            </div>
-                                                            <Button asChild className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl group">
-                                                                <a href={request.eCopyUrl || request.cedula?.documentUrl} target="_blank" rel="noopener noreferrer">
-                                                                    Download Official Document <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                                </a>
-                                                            </Button>
-                                                        </div>
-                                                    ) : request.fulfillmentType === "DELIVERY" && request.deliveryProofUrl ? (
-                                                        <div className="space-y-4">
-                                                            <p className="text-[9px] uppercase font-black text-emerald-500 italic tracking-[0.2em]">Logistics Completion Evidence</p>
-                                                            <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/5 shadow-2xl group/img">
-                                                                <Image
-                                                                    src={request.deliveryProofUrl}
-                                                                    alt="Delivery Proof"
-                                                                    fill
-                                                                    className="object-cover transition-transform duration-700 group-hover/img:scale-110"
-                                                                    unoptimized
-                                                                />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                                                                    <a href={request.deliveryProofUrl} target="_blank" className="bg-white text-[9px] font-black uppercase text-slate-900 px-6 py-2.5 rounded-xl shadow-xl hover:scale-105 transition-all">Inspect Proof</a>
-                                                                </div>
+                                                    <div className="space-y-4">
+                                                        <p className="text-[9px] uppercase font-black text-emerald-500 italic tracking-[0.2em]">Logistics Completion Evidence</p>
+                                                        <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/5 shadow-2xl group/img">
+                                                            <Image
+                                                                src={request.deliveryProofUrl}
+                                                                alt="Delivery Proof"
+                                                                fill
+                                                                className="object-cover transition-transform duration-700 group-hover/img:scale-110"
+                                                                unoptimized
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <a href={request.deliveryProofUrl} target="_blank" className="bg-white text-[9px] font-black uppercase text-slate-900 px-6 py-2.5 rounded-xl shadow-xl hover:scale-105 transition-all">Inspect Proof</a>
                                                             </div>
                                                         </div>
-                                                    ) : null}
+                                                    </div>
                                                 </div>
-                                            ) : request.status === "FOR_CLAIM" ? (
+                                            )}
+
+                                            {request.status === "FOR_CLAIM" && (
                                                 <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500">
                                                     <div className="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] p-8 space-y-6 relative overflow-hidden group/claim">
                                                         <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/claim:opacity-10 transition-opacity">
@@ -852,7 +844,7 @@ export default function RequestHubPage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            ) : null}
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="p-10 text-center space-y-4">
@@ -868,7 +860,7 @@ export default function RequestHubPage() {
                                 </div>
                             </Card>
 
-                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-sm rounded-[2.5rem] flex flex-col">
+                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-[2.5rem] flex flex-col">
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Documentary Clearance Vault</h4>
                                 <div className="grid grid-cols-2 gap-6 flex-1">
                                     {[
@@ -892,7 +884,24 @@ export default function RequestHubPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5">
+                                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 space-y-8">
+                                    {(request.status === "RELEASED" || request.status === "FOR_CLAIM") && (request.eCopyUrl || request.cedula?.documentUrl) && (
+                                        <div className="bg-slate-900 dark:bg-black p-8 rounded-[2rem] text-white space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Download className="w-5 h-5 text-white" /></div>
+                                                <div>
+                                                    <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70">Electronic Registry</p>
+                                                    <p className="text-xs font-bold italic tracking-tight">Your official document is stored here.</p>
+                                                </div>
+                                            </div>
+                                            <Button asChild className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl group">
+                                                <a href={request.eCopyUrl || request.cedula?.documentUrl} target="_blank" rel="noopener noreferrer">
+                                                    Download Official Record <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></div>
                                         <p className="text-[9px] font-black uppercase italic text-slate-400">Authenticated Records Vault</p>

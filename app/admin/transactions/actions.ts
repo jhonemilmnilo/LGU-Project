@@ -1,9 +1,9 @@
 "use server";
 
 import prisma from "@/lib/db/prisma";
-import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 import { calculateCedula } from "@/lib/cedula";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -165,6 +165,7 @@ export async function getTransactionById(id: string) {
             where: { id },
             include: {
                 type: true,
+                cedula: true,
                 user: {
                     select: {
                         id: true,
@@ -493,18 +494,26 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         const isFromProcessing = transaction.status === "FOR_PROCESSING";
         const targetStatus = isFromProcessing ? "FOR_CLAIM" : "RELEASED";
 
+        // Check if CTC Number is already used by another transaction
+        if (ctcNumber && isFromProcessing) {
+            const existingCedula = await prisma.cedula.findUnique({
+                where: { ctcNumber }
+            });
+            if (existingCedula) {
+                return { success: false, error: `CTC Number ${ctcNumber} is already used by another request.` };
+            }
+        }
+
         // Handle Cedula record lifecycle
-        let cedulaId = transaction.cedula?.id || null;
-        
         if (!transaction.cedula) {
             const now = new Date();
-            const cedula = await prisma.cedula.create({
+            await prisma.cedula.create({
                 data: {
                     transactionId: id,
                     ctcNumber,
                     taxYear: now.getFullYear(),
                     dateIssued: now,
-                    expiryDate: new Date(now.getFullYear(), 11, 31), // Dec 31 of current year
+                    expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59), // End of Dec 31
                     basicTax: calc.basicTax,
                     additionalTax: calc.additionalTax,
                     penalty: calc.penalty,
@@ -515,7 +524,6 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                     verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                 }
             });
-            cedulaId = cedula.id;
         } else if (eCopyUrl) {
             // Update existing cedula if new eCopyUrl is provided during final release
             await prisma.cedula.update({
@@ -622,6 +630,15 @@ export async function rejectTransaction(id: string, remarks: string) {
             return { success: false, error: "Forbidden" };
         }
 
+        // 1. Fetch transaction with user details to check rejection history
+        const tx = await prisma.transaction.findUnique({
+            where: { id },
+            include: { user: true }
+        });
+
+        if (!tx) return { success: false, error: "Transaction inaccessible" };
+
+        // 2. Update transaction status to REJECTED
         const transaction = await prisma.transaction.update({
             where: { id },
             data: {
@@ -630,6 +647,43 @@ export async function rejectTransaction(id: string, remarks: string) {
                 processedBy: user.id
             }
         });
+
+        // 3. Anti-Spam Protocol: Increment rejectionCount for citizen accounts
+        if (tx.userId && tx.user?.role === "USER") {
+            const updatedUser = await prisma.user.update({
+                where: { id: tx.userId },
+                data: { rejectionCount: { increment: 1 } } as any
+            }) as any;
+
+            // Check if deactivation threshold reached
+            if (updatedUser.rejectionCount >= 3) {
+                // LOCK ACCOUNT: Set isEmailVerified to false
+                await prisma.user.update({
+                    where: { id: tx.userId },
+                    data: { isEmailVerified: false }
+                });
+
+                // Trigger URGENT Deactivation Email
+                if (updatedUser.email) {
+                    await sendEmail({
+                        type: "DEACTIVATED",
+                        to: updatedUser.email,
+                        name: updatedUser.name || "Resident",
+                    });
+                }
+            } else {
+                // Trigger standard Rejection Email
+                if (updatedUser.email) {
+                    const resident = tx.residentSnapshot as any;
+                    await sendEmail({
+                        type: "REJECTED",
+                        to: updatedUser.email,
+                        name: resident?.firstName || updatedUser.name || "Resident",
+                        remarks: remarks
+                    });
+                }
+            }
+        }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services");

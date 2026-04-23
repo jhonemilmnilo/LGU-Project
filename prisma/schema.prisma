@@ -19,6 +19,7 @@ model User {
   updatedAt         DateTime  @updatedAt
   isEmailVerified   Boolean   @default(false)
   isPasswordChanged Boolean   @default(false)
+  rejectionCount    Int       @default(0)
   managedBarangay   String?
   accounts          Account[]
   reports           Report[]

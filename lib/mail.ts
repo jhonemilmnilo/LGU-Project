@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED";
     to: string;
     name: string;
     remarks?: string | null;
@@ -171,15 +171,33 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <p style="color: #166534; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Digital Record Protocol</p>
                     <p style="color: #166534; font-size: 18px; font-weight: 900; margin: 0; letter-spacing: 0.1em;">REF: ${transactionId || "N/A"}</p>
                 </div>
-
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 32px;">
-                    <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5;">
-                        <strong>Logistics Update:</strong> You may now view and download your digital copy (for E-Copy fulfilling) or track your physical delivery/pickup status through the portal under <strong>"My Requests"</strong>.
-                    </p>
-                </div>
-
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Release Notice</p>
+            </div>
+        </div>`;
+    } else if (type === "DEACTIVATED") {
+        subject = `URGENT: Account Deactivated - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.1); border: 1px solid #fee2e2;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryRed}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">⚠️</span>
+                    </div>
+                    <h1 style="color: #991b1b; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Account Deactivated</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Our system has detected multiple rejections associated with your service requests. As part of our anti-spam and security protocols, your account has been <strong style="color: ${primaryRed};">AUTOMATICALLY DEACTIVATED</strong>.</p>
+                
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #991b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Action Required</p>
+                    <p style="color: #7f1d1d; font-size: 14px; margin: 0; line-height: 1.5;">To reactivate your account, please personally visit the <strong>Municipal Treasury Office</strong> for identity verification and account restoration.</p>
+                </div>
+
+                <p style="color: #64748b; font-size: 13px;">Please bring a valid Government ID for authentication. Access to all digital services is suspended until further notice.</p>
+                
+                <hr style="border: none; border-top: 1px solid #fecaca; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Security Protocol • Security Alert</p>
             </div>
         </div>`;
     }

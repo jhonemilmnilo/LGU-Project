@@ -37,6 +37,9 @@ export const authOptions: NextAuthOptions = {
 
                 // Block login if user is not verified (but allow ADMIN)
                 if (user.role === "USER" && !user.isEmailVerified) {
+                    if ((user as any).rejectionCount >= 3) {
+                        throw new Error("Your account has been deactivated due to multiple rejected requests. Please visit the Municipal Treasury Office for identity verification and account restoration.");
+                    }
                     throw new Error("Your account has not been approved yet. Please wait for an administrator to process your registration.");
                 }
 
@@ -67,12 +70,13 @@ export const authOptions: NextAuthOptions = {
             if (token.id && token.role === "USER") {
                 const dbUser = await prisma.user.findUnique({
                     where: { id: token.id as string },
-                    select: { isEmailVerified: true }
+                    select: { isEmailVerified: true, rejectionCount: true }
                 });
 
-                if (!dbUser || !dbUser.isEmailVerified) {
+                // If user is deactivated OR has hit the rejection limit, expire the session
+                if (!dbUser || !dbUser.isEmailVerified || (dbUser as any).rejectionCount >= 3) {
                     // Force the session to expire immediately (triggering auto-logout)
-                    token.exp = 0; 
+                    token.exp = 1; // Set to very small number to trigger expiration
                 }
             }
 

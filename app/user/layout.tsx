@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import UserLayoutClient from "./UserLayoutClient";
 import * as React from "react";
+import prisma from "@/lib/db/prisma";
 
 export default async function UserLayout({
     children,
@@ -14,6 +15,17 @@ export default async function UserLayout({
 
     if (!session) {
         redirect("/auth/login");
+    }
+
+    // Force REAL-TIME Database Check for Spam/Deactivation Protocol
+    const dbUser = await (prisma.user.findUnique({
+        where: { id: (session.user as any).id },
+        select: { isEmailVerified: true, rejectionCount: true, role: true } as any
+    }) as any);
+
+    // If account is marked as inactive or spam threshold reached, trigger immediate logout/redirect
+    if (dbUser?.role === "USER" && (!dbUser.isEmailVerified || dbUser.rejectionCount >= 3)) {
+        redirect("/auth/login?error=Your account has been deactivated due to multiple rejected requests. Please visit the Municipal Treasury Office for restoration.");
     }
 
     const settings = await getMultipleSystemSettings([

@@ -96,11 +96,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleRelease = useCallback(async () => {
         // Only require CTC if not already recorded (e.g., from processing stage)
         if (!ctcNumber && transaction?.status !== "FOR_CLAIM") { toast.error("CTC Number Required"); return; }
-        if (transaction?.fulfillmentType === "E_COPY" && !eCopyFile) { toast.error("E-Copy Required"); return; }
         setActionLoading(true);
         try {
+            // Strict Validation: E-Copy is REQUIRED for initial processing/release
+            if (transaction?.status === "FOR_PROCESSING" && !eCopyFile && !transaction.eCopyUrl) {
+                toast.error("Digital E-Copy is required before proceeding.");
+                setActionLoading(false);
+                return;
+            }
+
             let eCopyUrl = "";
-            if (transaction?.fulfillmentType === "E_COPY" && eCopyFile) {
+            if (eCopyFile) {
                 const formData = new FormData();
                 formData.append("file", eCopyFile);
                 const uploadRes = await uploadECopyAction(formData);
@@ -225,7 +231,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     </Button>
                 </Link>
                 <Badge variant="outline" className="font-black italic uppercase tracking-widest text-[10px] border-primary/20 text-primary bg-primary/5 px-4 py-1">
-                    Type Of Request: {transaction.fulfillmentType?.replace("_", " ") || "STATIONARY"}
+                    Type Of Request: {transaction.fulfillmentType?.replace("_", " ") || "Processing"}
                 </Badge>
             </header>
 
@@ -386,8 +392,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* DIGITAL ISSUANCE (E-COPY) */}
-                    {transaction.fulfillmentType === "E_COPY" && (
+                    {/* DIGITAL ISSUANCE (E-COPY) - Only visible during the active processing phase */}
+                    {transaction.status === "FOR_PROCESSING" && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
                             <div className="relative">
@@ -431,9 +437,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         {!isRejecting ? (
                             <>
                                 {transaction.status === "FOR_REQUESTING" && (
-                                    <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                        {actionLoading ? "Processing..." : "Confirm Assessment"}
-                                    </Button>
+                                    <div className="space-y-3">
+                                        <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
+                                            {actionLoading ? "Processing..." : "Confirm Assessment"}
+                                        </Button>
+                                        <Button 
+                                            onClick={() => setIsRejecting(true)} 
+                                            className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                        >
+                                            Decline Initial Request
+                                        </Button>
+                                    </div>
                                 )}
                                 {/* 1. EVALUATION PHASE: Strictly Read-Only (Resident is choosing fulfillment/paying) */}
                                 {transaction.status === "EVALUATED" && (
@@ -477,13 +491,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || "RECORDED"}</span> is locked and ready for release.
                                                 </p>
                                             </div>
-                                        ) : transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl ? (
+                                        ) : (transaction.fulfillmentType === "E_COPY" || transaction.status === "FOR_PROCESSING") && !eCopyFile && !transaction.eCopyUrl ? (
                                             <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
                                                 <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
                                                 </div>
                                                 <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
-                                                <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable final release.</p>
+                                                <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable document processing.</p>
                                             </div>
                                         ) : (
                                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3 animate-in zoom-in-95">
