@@ -421,8 +421,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 {/* 2. VERIFICATION & RELEASE PHASE: Active Actions enabled here */}
                                 {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
-                                        {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY (Digital Fast-track) */}
-                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && transaction.fulfillmentType !== "E_COPY" && (
+                                        {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
+                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && 
+                                         transaction.fulfillmentType !== "E_COPY" && 
+                                         !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) && (
                                             <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                                 <Button 
                                                     onClick={handleConfirmPayment} 
@@ -430,13 +432,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     className="w-full h-14 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
                                                 >
                                                     {actionLoading ? "Processing Verification..." : "Verify Financial Record"}
-                                                </Button>
-                                                <Button 
-                                                    onClick={() => setIsRejecting(true)} 
-                                                    variant="ghost"
-                                                    className="w-full h-10 text-red-600/60 hover:text-red-600 font-bold uppercase tracking-widest text-[8px] italic"
-                                                >
-                                                    Decline Registry Process
                                                 </Button>
                                             </div>
                                         )}
@@ -462,17 +457,26 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        <Button 
-                                            onClick={handleRelease} 
-                                            disabled={
-                                                actionLoading || 
-                                                !ctcNumber || 
-                                                (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
-                                            } 
-                                            className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
-                                        >
-                                            {actionLoading ? "Processing Release..." : "Confirm & Release Document"}
-                                        </Button>
+                                        <div className="space-y-3 pt-2">
+                                            <Button 
+                                                onClick={handleRelease} 
+                                                disabled={
+                                                    actionLoading || 
+                                                    !ctcNumber || 
+                                                    (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
+                                                } 
+                                                className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                            >
+                                                {actionLoading ? "Processing Release..." : "Confirm & Release Document"}
+                                            </Button>
+
+                                            <Button 
+                                                onClick={() => setIsRejecting(true)} 
+                                                className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                            >
+                                                Decline Registry Process
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                                 {transaction.status === "RELEASED" && (

@@ -185,6 +185,11 @@ export default function RequestHubPage() {
         setPaymentProofPreview(null);
     };
 
+    // Reset payment proof when changing payment methods to maintain data consistency
+    useEffect(() => {
+        handleClearPaymentProof();
+    }, [localPayment]);
+
     const handleDownloadQR = async () => {
         if (!gcashDetails.qr) return;
         try {
@@ -631,7 +636,13 @@ export default function RequestHubPage() {
 
                             <div className="mt-16 pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-8">
                                 <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-6 h-6" /></div><div className="text-left"><p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500 italic leading-none">Ready for Issuance</p><p className="text-[9px] font-bold text-slate-400 uppercase italic mt-1 opacity-60">Verified Admin Evaluation</p></div></div>
-                                <Button onClick={handleFinalize} disabled={isFinalizing} className="w-full sm:w-[300px] h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group">{isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Secure Application"}</Button>
+                                <Button 
+                                    onClick={handleFinalize} 
+                                    disabled={isFinalizing || ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile)} 
+                                    className="w-full sm:w-[300px] h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Secure Application"}
+                                </Button>
                             </div>
                         </div>
                     </div>
