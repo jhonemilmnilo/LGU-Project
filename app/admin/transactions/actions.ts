@@ -396,11 +396,9 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
             finalAmount += (transaction.type.deliveryFee || 0);
         }
 
-        // Determine next status
-        // If PICK_UP + CASH -> FOR_CLAIM
-        // If any other -> Wait for payment (Keep as EVALUATED but with finalized details)
-        const isForClaim = fulfillmentType === "PICK_UP" && paymentType === "CASH";
-        const newStatus = isForClaim ? "FOR_CLAIM" : "PAID";
+        // Determine next status: All Pick-ups go to FOR_PROCESSING for CTC assignment
+        const isForProcessing = fulfillmentType === "PICK_UP";
+        const newStatus = isForProcessing ? "FOR_PROCESSING" : "PAID";
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id: transactionId },
@@ -417,17 +415,6 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
                 updatedAt: new Date()
             } as any
         });
-
-        // Trigger email if now FOR_CLAIM
-        if (isForClaim && session.user.email) {
-            const resident = transaction.residentSnapshot as any;
-            await sendEmail({
-                type: "FOR_CLAIM",
-                to: session.user.email,
-                name: `${resident.firstName} ${resident.lastName}`,
-                transactionId: transactionId.slice(-8).toUpperCase()
-            });
-        }
 
         revalidatePath("/user/services/requests");
         revalidatePath("/admin/treasury");
@@ -486,11 +473,11 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true, user: true }
+            include: { type: true, user: true, cedula: true }
         });
 
-        if (!transaction || !["PAID", "FOR_CLAIM"].includes(transaction.status as any)) {
-            return { success: false, error: "Transaction must be paid or ready for claiming before release" };
+        if (!transaction || !["PAID", "FOR_CLAIM", "FOR_PROCESSING"].includes(transaction.status as any)) {
+            return { success: false, error: "Transaction must be paid, processing, or ready for claiming before release" };
         }
 
         const additionalData = transaction.additionalData as any;
@@ -502,49 +489,65 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             deliveryFee: transaction.type.deliveryFee
         });
 
-        // Create the Cedula record
-        const now = new Date();
-        const cedula = await prisma.cedula.create({
-            data: {
-                transactionId: id,
-                ctcNumber,
-                taxYear: now.getFullYear(),
-                dateIssued: now,
-                expiryDate: new Date(now.getFullYear(), 11, 31), // Dec 31 of current year
-                basicTax: calc.basicTax,
-                additionalTax: calc.additionalTax,
-                penalty: calc.penalty,
-                totalPaid: transaction.totalAmount,
-                issuedBy: user.name || "System Administrator",
-                businessName: (transaction as any).businessName,
-                documentUrl: eCopyUrl || (transaction as any).eCopyUrl,
-                verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-            }
-        });
+        // Determine target status and email type
+        const isFromProcessing = transaction.status === "FOR_PROCESSING";
+        const targetStatus = isFromProcessing ? "FOR_CLAIM" : "RELEASED";
+
+        // Handle Cedula record lifecycle
+        let cedulaId = transaction.cedula?.id || null;
+        
+        if (!transaction.cedula) {
+            const now = new Date();
+            const cedula = await prisma.cedula.create({
+                data: {
+                    transactionId: id,
+                    ctcNumber,
+                    taxYear: now.getFullYear(),
+                    dateIssued: now,
+                    expiryDate: new Date(now.getFullYear(), 11, 31), // Dec 31 of current year
+                    basicTax: calc.basicTax,
+                    additionalTax: calc.additionalTax,
+                    penalty: calc.penalty,
+                    totalPaid: transaction.totalAmount,
+                    issuedBy: user.name || "System Administrator",
+                    businessName: (transaction as any).businessName,
+                    documentUrl: eCopyUrl || (transaction as any).eCopyUrl,
+                    verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                }
+            });
+            cedulaId = cedula.id;
+        } else if (eCopyUrl) {
+            // Update existing cedula if new eCopyUrl is provided during final release
+            await prisma.cedula.update({
+                where: { id: transaction.cedula.id },
+                data: { documentUrl: eCopyUrl }
+            });
+        }
 
         // Update transaction status and eCopyUrl if provided
         await prisma.transaction.update({
             where: { id },
             data: {
-                status: "RELEASED",
+                status: targetStatus as any,
                 ...(eCopyUrl ? { eCopyUrl } : {})
             }
         });
 
-        // Trigger email notification for release
+        // Trigger email notification for the NEW status
         if (transaction.user?.email) {
             const resident = transaction.residentSnapshot as any;
             await sendEmail({
-                type: "RELEASED",
+                type: targetStatus as any, // This will be "FOR_CLAIM" if from processing, or "RELEASED" otherwise
                 to: transaction.user.email,
                 name: `${resident.firstName} ${resident.lastName}`,
-                transactionId: id.slice(-8).toUpperCase()
+                transactionId: id.slice(-8).toUpperCase(),
+                amount: transaction.totalAmount // Include amount so they know what to bring if for claim
             });
         }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services");
-        return { success: true, data: cedula };
+        return { success: true, data: { status: targetStatus } };
     } catch (error) {
         console.error("Release cedula error:", error);
         return { success: false, error: "Failed to release document" };
@@ -567,7 +570,7 @@ export async function getTreasuryTransactions(status?: string) {
 
         if (status && status !== "ALL") {
             if (status === "PAID") {
-                where.status = { in: ["PAID", "FOR_CLAIM"] as any };
+                where.status = "PAID" as any;
             } else {
                 where.status = status;
             }
@@ -598,7 +601,7 @@ export async function getPendingTreasuryCount() {
         const count = await prisma.transaction.count({
             where: {
                 type: { category: "Treasurer" },
-                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM"] as any } // Needs evaluation or Needs release/claim
+                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
             }
         });
         return { success: true, count };

@@ -58,7 +58,11 @@ export default function TreasuryDashboard() {
 
     const filteredTransactions = transactions.filter(tx => {
         const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
-        return name.includes(search.toLowerCase()) || tx.id.includes(search);
+        const refId = tx.id.slice(-8).toUpperCase();
+        const searchUpper = search.toUpperCase();
+        return name.includes(search.toLowerCase()) || 
+               tx.id.toLowerCase().includes(search.toLowerCase()) ||
+               refId.includes(searchUpper);
     });
 
     const getStatusStyles = (status: string) => {
@@ -66,6 +70,7 @@ export default function TreasuryDashboard() {
             case "FOR_REQUESTING": return "bg-amber-100 text-amber-700 border-amber-200";
             case "EVALUATED": return "bg-blue-100 text-blue-700 border-blue-200";
             case "FOR_CLAIM": return "bg-indigo-100 text-indigo-700 border-indigo-200";
+            case "FOR_PROCESSING": return "bg-sky-100 text-sky-700 border-sky-200";
             case "PAID": return "bg-emerald-100 text-emerald-700 border-emerald-200";
             case "RELEASED": return "bg-slate-100 text-slate-700 border-slate-200";
             case "REJECTED": return "bg-red-100 text-red-700 border-red-200";
@@ -82,6 +87,8 @@ export default function TreasuryDashboard() {
                         <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 h-auto rounded-[1.5rem] flex-wrap justify-start">
                             <TabsTrigger value="FOR_REQUESTING" className="rounded-xl px-5 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Evaluation</TabsTrigger>
                             <TabsTrigger value="EVALUATED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">To Pay</TabsTrigger>
+                            <TabsTrigger value="FOR_PROCESSING" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Processing</TabsTrigger>
+                            <TabsTrigger value="FOR_CLAIM" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">For Claim</TabsTrigger>
                             <TabsTrigger value="PAID" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Paid</TabsTrigger>
                             <TabsTrigger value="RELEASED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Released</TabsTrigger>
                             <TabsTrigger value="REJECTED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Rejected</TabsTrigger>
@@ -91,7 +98,7 @@ export default function TreasuryDashboard() {
                             <div className="relative flex-1 lg:w-80">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <Input 
-                                    placeholder="Search names or ID..." 
+                                    placeholder="Search names or Reference ID..." 
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="pl-11 h-12 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 bg-slate-50/50 italic font-medium" 

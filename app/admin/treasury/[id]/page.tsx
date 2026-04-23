@@ -80,12 +80,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         });
     }, [fetchTransaction]);
 
-    useEffect(() => {
-        if (isRejecting) {
-            remarksRef.current?.focus();
-        }
-    }, [isRejecting]);
-
     const handleReject = async () => {
         if (!remarks) { toast.error("Remarks required"); return; }
         setActionLoading(true);
@@ -98,6 +92,60 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
+
+    const handleRelease = useCallback(async () => {
+        // Only require CTC if not already recorded (e.g., from processing stage)
+        if (!ctcNumber && transaction?.status !== "FOR_CLAIM") { toast.error("CTC Number Required"); return; }
+        if (transaction?.fulfillmentType === "E_COPY" && !eCopyFile) { toast.error("E-Copy Required"); return; }
+        setActionLoading(true);
+        try {
+            let eCopyUrl = "";
+            if (transaction?.fulfillmentType === "E_COPY" && eCopyFile) {
+                const formData = new FormData();
+                formData.append("file", eCopyFile);
+                const uploadRes = await uploadECopyAction(formData);
+                if (uploadRes.success) eCopyUrl = uploadRes.data as string;
+                else { toast.error("Upload failed"); setActionLoading(false); return; }
+            }
+            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl);
+            if (res.success) { 
+                toast.success(res.data?.status === "FOR_CLAIM" ? "Marked as Ready for Claiming" : "Document Released"); 
+                setECopyFile(null); 
+                router.push("/admin/treasury");
+            }
+            else toast.error(res.error || "Failed");
+        } finally { setActionLoading(false); }
+    }, [transaction, ctcNumber, eCopyFile, router]);
+
+    useEffect(() => {
+        if (isRejecting) {
+            remarksRef.current?.focus();
+        }
+    }, [isRejecting]);
+
+    // Handle QR Scan Landing: Auto-focus or Auto-release
+    useEffect(() => {
+        if (!transaction || loading) return; // Wait for data to be fully loaded
+
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get("scan") === "true") {
+            const timer = setTimeout(() => {
+                if (transaction.status === "FOR_CLAIM") {
+                    // AUTO-RELEASE for Claiming phase
+                    toast.info("QR Pass Detected: Auto-releasing Document...");
+                    handleRelease();
+                } else {
+                    // AUTO-FOCUS for Processing/Paid phase
+                    const ctcInput = document.querySelector('input[placeholder="ENTER SERIAL..."]') as HTMLInputElement;
+                    if (ctcInput) {
+                        ctcInput.focus();
+                        toast.success("Ready for Serial Entry");
+                    }
+                }
+            }, 1500); // Slightly longer delay to ensure all components are ready
+            return () => clearTimeout(timer);
+        }
+    }, [transaction, loading, handleRelease]);
 
     if (loading) {
         return (
@@ -129,13 +177,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     });
 
     const steps = [
-        { id: "FOR_REQUESTING", label: "PENDING REVIEW" },
-        { id: "EVALUATED", label: "FOR PAYMENT" },
-        { id: "PAID", label: "VERIFYING" },
+        { id: "FOR_REQUESTING", label: "EVALUATION" },
+        { id: "EVALUATED", label: "ASSESSMENT" },
+        { id: "FOR_PROCESSING", label: "PROCESSING" },
+        { id: "FOR_CLAIM", label: "CLAIMING" },
         { id: "RELEASED", label: "RELEASED" },
     ];
 
-    const getEffectiveStatus = (s: string) => ["PAID", "FOR_CLAIM"].includes(s) ? "PAID" : s;
+    const getEffectiveStatus = (s: string) => {
+        if (s === "PAID") return "FOR_CLAIM"; // Paid online is equivalent to Ready for Claim
+        return s;
+    };
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     const handleEvaluate = async () => {
@@ -159,28 +211,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         } finally { setActionLoading(false); }
     };
 
-    const handleRelease = async () => {
-        if (!ctcNumber) { toast.error("CTC Number Required"); return; }
-        if (transaction.fulfillmentType === "E_COPY" && !eCopyFile) { toast.error("E-Copy Required"); return; }
-        setActionLoading(true);
-        try {
-            let eCopyUrl = "";
-            if (transaction.fulfillmentType === "E_COPY" && eCopyFile) {
-                const formData = new FormData();
-                formData.append("file", eCopyFile);
-                const uploadRes = await uploadECopyAction(formData);
-                if (uploadRes.success) eCopyUrl = uploadRes.data as string;
-                else { toast.error("Upload failed"); setActionLoading(false); return; }
-            }
-            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl);
-            if (res.success) { 
-                toast.success("Document Released"); 
-                setECopyFile(null); 
-                router.push("/admin/treasury");
-            }
-            else toast.error(res.error || "Failed");
-        } finally { setActionLoading(false); }
-    };
 
     return (
         <div 
@@ -419,7 +449,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 )}
 
                                 {/* 2. VERIFICATION & RELEASE PHASE: Active Actions enabled here */}
-                                {["PAID", "FOR_CLAIM"].includes(transaction.status) && (
+                                {["PAID", "FOR_CLAIM", "FOR_PROCESSING"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
                                         {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
                                         {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && 
@@ -436,8 +466,18 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        {/* Gated CTC Entry: For E-COPY, wait for digital record upload selection */}
-                                        {transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl ? (
+                                        {/* Gated CTC Entry: For E-COPY, wait for digital record upload selection. For FOR_CLAIM, skip as it's already recorded. */}
+                                        {transaction.status === "FOR_CLAIM" ? (
+                                            <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
+                                                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                    <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-500 italic">Document Prepared</p>
+                                                <p className="text-[11px] font-bold text-emerald-900/60 dark:text-emerald-500/60 tracking-tight italic leading-relaxed">
+                                                    Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || "RECORDED"}</span> is locked and ready for release.
+                                                </p>
+                                            </div>
+                                        ) : transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl ? (
                                             <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
                                                 <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
@@ -462,12 +502,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 onClick={handleRelease} 
                                                 disabled={
                                                     actionLoading || 
-                                                    !ctcNumber || 
+                                                    (transaction.status !== "FOR_CLAIM" && !ctcNumber) || 
                                                     (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
                                                 } 
                                                 className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                             >
-                                                {actionLoading ? "Processing Release..." : "Confirm & Release Document"}
+                                                {actionLoading ? "Processing..." : transaction.status === "FOR_PROCESSING" ? "Mark Ready for Claiming" : "Confirm & Release Document"}
                                             </Button>
 
                                             <Button 

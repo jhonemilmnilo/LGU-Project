@@ -26,7 +26,8 @@ import {
     ExternalLink,
     AlertCircle,
     QrCode,
-    Search
+    Search,
+    BadgeCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -99,6 +100,7 @@ export default function RequestHubPage() {
         name: "OFFICIAL TREASURY ACCOUNT",
         number: "SCAN TO VIEW"
     });
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         async function fetchRequest() {
@@ -157,12 +159,14 @@ export default function RequestHubPage() {
                 const qrRes = await getSystemSettingAction("gcash_qr_url", "");
                 const nameRes = await getSystemSettingAction("gcash_account_name", "ADMIN ACCOUNT");
                 const numRes = await getSystemSettingAction("gcash_account_number", "0000 000 0000");
+                const themeRes = await getSystemSettingAction("theme_color", "#2563eb");
 
                 setGcashDetails({
                     qr: qrRes.data,
                     name: nameRes.data,
                     number: numRes.data
                 });
+                setThemeColor(themeRes.data);
             } catch (err) {
                 console.error("Fetch settings error:", err);
             }
@@ -253,17 +257,19 @@ export default function RequestHubPage() {
             case "FOR_REQUESTING":
                 return { label: "PENDING", color: "bg-primary text-white border-transparent", icon: Clock };
             case "FOR_PROCESSING":
-                return { label: "FOR_PROCESSING", color: "bg-primary text-white border-transparent", icon: Activity };
+                return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
+            case "FOR_CLAIM":
+                return { label: "FOR CLAIM", color: "bg-blue-600 text-white border-blue-600", icon: Clock };
             case "EVALUATED":
-                return { label: "EVALUATED", color: "bg-primary text-white border-transparent", icon: DollarSign };
+                return { label: "EVALUATED", color: "bg-primary text-white border-primary", icon: DollarSign };
             case "PAID":
-                return { label: "PAID", color: "bg-primary text-white border-transparent", icon: Clock };
+                return { label: "PAID", color: "bg-primary text-white border-primary", icon: Clock };
             case "RELEASED":
-                return { label: "RELEASED", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 };
+                return { label: "RELEASED", color: "bg-emerald-500 text-white border-emerald-500", icon: CheckCircle2 };
             case "REJECTED":
-                return { label: "REJECTED", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle };
+                return { label: "REJECTED", color: "bg-red-500 text-white border-red-500", icon: XCircle };
             default:
-                return { label: status, color: "bg-slate-100 text-slate-700 border-slate-200", icon: Clock };
+                return { label: status, color: "bg-slate-900 text-white border-slate-900", icon: Clock };
         }
     };
 
@@ -317,7 +323,10 @@ export default function RequestHubPage() {
     }
 
     return (
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32">
+        <div 
+            className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32"
+            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+        >
             {/* Nav & Header */}
             <div className="space-y-6">
                 <Breadcrumb>
@@ -352,7 +361,14 @@ export default function RequestHubPage() {
                             {request.type?.name || "Service Request"}
                         </h1>
                         <div className="flex items-center gap-3 ml-2">
-                            <Badge variant="outline" className={cn("px-4 py-1 text-[10px] font-black uppercase tracking-widest italic rounded-full border-2", statusConfig?.color)}>
+                            <Badge 
+                                className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest italic rounded-full border shadow-lg")}
+                                style={{ 
+                                    backgroundColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
+                                    borderColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
+                                    color: statusConfig?.color.includes("bg-primary") ? "white" : undefined
+                                }}
+                            >
                                 {statusConfig?.label}
                             </Badge>
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] italic opacity-70">
@@ -639,7 +655,8 @@ export default function RequestHubPage() {
                                 <Button 
                                     onClick={handleFinalize} 
                                     disabled={isFinalizing || ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile)} 
-                                    className="w-full sm:w-[300px] h-16 bg-primary hover:bg-primary/90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full sm:w-[300px] h-16 bg-primary hover:opacity-90 text-white rounded-[1.5rem] shadow-2xl shadow-primary/20 text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: themeColor }}
                                 >
                                     {isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Secure Application"}
                                 </Button>
@@ -761,7 +778,7 @@ export default function RequestHubPage() {
                                             )}
 
                                             {/* RELEASED ACTIONS */}
-                                            {request.status === "RELEASED" && (
+                                            {request.status === "RELEASED" ? (
                                                 <div className="pt-6">
                                                     {request.fulfillmentType === "E_COPY" ? (
                                                         <div className="bg-slate-900 dark:bg-black p-8 rounded-[2rem] text-white space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
@@ -778,7 +795,7 @@ export default function RequestHubPage() {
                                                                 </a>
                                                             </Button>
                                                         </div>
-                                                    ) : request.fulfillmentType === "DELIVERY" && request.deliveryProofUrl && (
+                                                    ) : request.fulfillmentType === "DELIVERY" && request.deliveryProofUrl ? (
                                                         <div className="space-y-4">
                                                             <p className="text-[9px] uppercase font-black text-emerald-500 italic tracking-[0.2em]">Logistics Completion Evidence</p>
                                                             <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/5 shadow-2xl group/img">
@@ -794,9 +811,48 @@ export default function RequestHubPage() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    )}
+                                                    ) : null}
                                                 </div>
-                                            )}
+                                            ) : request.status === "FOR_CLAIM" ? (
+                                                <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500">
+                                                    <div className="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] p-8 space-y-6 relative overflow-hidden group/claim">
+                                                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/claim:opacity-10 transition-opacity">
+                                                            <Wallet className="w-24 h-24 rotate-12" />
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                                                <Clock className="w-6 h-6" />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-sm font-black italic uppercase tracking-widest text-primary">Ready for Claiming</h4>
+                                                                <p className="text-[10px] font-bold text-slate-400 italic uppercase">Visit the Treasury Office</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-4">
+                                                            <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                                                                <p className="text-[9px] font-black uppercase text-slate-400 italic">Total Amount Due</p>
+                                                                <p className="text-3xl font-black italic text-primary tracking-tighter">₱{request.totalAmount?.toLocaleString()}</p>
+                                                            </div>
+
+                                                            <div className="flex items-start gap-3 px-2">
+                                                                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                                                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                                                                    Your request is ready for claim! Please make sure to bring a <span className="text-primary font-black">valid ID</span> and the <span className="text-primary font-black text-xs">exact amount</span> for your payment.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="pt-2">
+                                                            <div className="flex items-center justify-between text-[8px] font-black uppercase italic text-slate-400 tracking-[0.2em]">
+                                                                <span>Ref: {id.slice(-8).toUpperCase()}</span>
+                                                                <span>LGU Mapandan</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     ) : (
                                         <div className="p-10 text-center space-y-4">
