@@ -505,6 +505,11 @@ model BarangayInfo {
   coreValues              String?
   coverImages             Json?    @default("[]")
   geographyOrDemographics String?
+  
+  // Logistics Configuration
+  deliveryFee             Float    @default(0)
+  isLogisticsActive       Boolean  @default(true)
+  estimatedDeliveryDays   Int      @default(3)
 }
 
 enum UserRole {

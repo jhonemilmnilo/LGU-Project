@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList, CreditCard
+    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList, CreditCard, Truck
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,7 @@ export function Sidebar({
         { href: "/admin/tourism", label: "Gallery", icon: Map },
         { href: "/admin/church", label: "Church Management", icon: Church },
         { href: "/admin/reports", label: "Public Reports", icon: AlertTriangle, category: "Management", badge: pendingReportsCount },
+        { href: "/admin/logistics", label: "Logistics Control", icon: Truck, category: "Management" },
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
         { href: "/admin/hotlines", label: "Hotlines", icon: Phone },
@@ -214,14 +215,15 @@ export function Sidebar({
                         <nav className="px-4 space-y-1">
                             {menuItems.map((item, idx) => {
                                 const Icon = item.icon;
-                                const hasCategory = item.category;
+                                // Only show category if it's different from the previous item
+                                const showCategory = item.category && (idx === 0 || menuItems[idx - 1].category !== item.category);
 
                                 if (item.isDropdown) {
                                     return (
                                         <div key={idx}>
-                                            {hasCategory && (
-                                                <div className="pt-4 pb-2">
-                                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3">{item.category}</p>
+                                            {showCategory && (
+                                                <div className="pt-6 pb-2 px-3">
+                                                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic opacity-50">{item.category}</p>
                                                 </div>
                                             )}
                                             <button
@@ -234,7 +236,7 @@ export function Sidebar({
                                             >
                                                 <div className="flex items-center space-x-3">
                                                     <Icon size={18} style={{ color: item.isOpen ? themeColor : undefined }} className={cn(!item.isOpen && "text-slate-500")} />
-                                                    <span>{item.label}</span>
+                                                    <span className="text-sm">{item.label}</span>
                                                 </div>
                                                 {item.isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                             </button>
@@ -270,10 +272,10 @@ export function Sidebar({
 
                                 const isActive = pathname === item.href;
                                 return (
-                                    <div key={item.href || idx}>
-                                        {hasCategory && (
-                                            <div className="pt-4 pb-2">
-                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3">{hasCategory}</p>
+                                    <React.Fragment key={item.href || idx}>
+                                        {showCategory && (
+                                            <div className="pt-6 pb-2 px-3">
+                                                <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] italic opacity-50">{item.category}</p>
                                             </div>
                                         )}
                                         <Link
@@ -291,7 +293,7 @@ export function Sidebar({
                                         >
                                             <div className="flex items-center space-x-3">
                                                 {Icon && <Icon size={18} className={cn(isActive ? "text-white" : "text-slate-500 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300")} />}
-                                                <span>{item.label}</span>
+                                                <span className="text-sm">{item.label}</span>
                                             </div>
                                             {item.badge && (
                                                 <span className={cn(
@@ -302,7 +304,7 @@ export function Sidebar({
                                                 </span>
                                             )}
                                         </Link>
-                                    </div>
+                                    </React.Fragment>
                                 );
                             })}
                         </nav>

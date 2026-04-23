@@ -185,6 +185,99 @@ export async function getTransactionById(id: string) {
 }
 
 /**
+ * Fetch delivery fee configuration for a specific barangay
+ */
+export async function getDeliveryFeeByBarangay(name: string) {
+    try {
+        const brgy = await prisma.barangayInfo.findUnique({
+            where: { name }
+        });
+        return { 
+            success: true, 
+            data: {
+                fee: (brgy as any)?.deliveryFee || 0,
+                isActive: (brgy as any)?.isLogisticsActive ?? true
+            }
+        };
+    } catch (error) {
+        console.error("Error fetching barangay logistics:", error);
+        return { success: false, error: "Failed to fetch logistics data" };
+    }
+}
+
+/**
+ * Fetch active barangays and their delivery fees for public/citizen use
+ */
+export async function getPublicBarangayLogistics() {
+    try {
+        const barangays = await prisma.barangayInfo.findMany({
+            where: { isLogisticsActive: true } as any,
+            select: {
+                name: true,
+                deliveryFee: true,
+                estimatedDeliveryDays: true
+            } as any,
+            orderBy: { name: 'asc' }
+        });
+        return { success: true, data: barangays };
+    } catch (error) {
+        console.error("Error fetching public logistics:", error);
+        return { success: false, error: "Failed to fetch logistics data" };
+    }
+}
+
+/**
+ * Fetch all barangays and their logistics configuration
+ */
+export async function getAllBarangayLogistics() {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ADMIN") {
+            // Optional: You can allow TREASURY_STAFF to view but not edit, 
+            // but for now, let's stick to ADMIN.
+            return { success: false, error: "Forbidden" };
+        }
+
+        const barangays = await prisma.barangayInfo.findMany({
+            orderBy: { name: 'asc' }
+        });
+        return { success: true, data: barangays };
+    } catch (error) {
+        console.error("Error fetching all logistics:", error);
+        return { success: false, error: "Failed to fetch logistics data" };
+    }
+}
+
+/**
+ * Update logistics configuration for a barangay
+ */
+export async function updateBarangayLogistics(id: string, data: { deliveryFee: number, isLogisticsActive: boolean, estimatedDeliveryDays: number }) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ADMIN") {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const updated = await prisma.barangayInfo.update({
+            where: { id },
+            data: {
+                deliveryFee: data.deliveryFee,
+                isLogisticsActive: data.isLogisticsActive,
+                estimatedDeliveryDays: data.estimatedDeliveryDays
+            } as any
+        });
+
+        revalidatePath("/admin/logistics");
+        return { success: true, data: updated };
+    } catch (error) {
+        console.error("Error updating logistics:", error);
+        return { success: false, error: "Failed to update configuration" };
+    }
+}
+
+/**
  * Fetch a system setting by key
  */
 export async function getSystemSettingAction(key: string, defaultValue: string = "") {
@@ -304,13 +397,34 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
 
         const additionalData = transaction.additionalData as any;
 
+        // Dynamic Delivery Fee Lookup from BarangayInfo
+        let dynamicDeliveryFee = transaction.type.deliveryFee; // Initial fallback
+        
+        if (transaction.fulfillmentType === "DELIVERY" && (transaction.deliveryAddress || (transaction as any).residentSnapshot)) {
+            const addr = (typeof transaction.deliveryAddress === 'string' 
+                ? JSON.parse(transaction.deliveryAddress || '{}') 
+                : transaction.deliveryAddress) || (transaction as any).residentSnapshot;
+            
+            if (addr?.barangay) {
+                const brgyLogistics = await prisma.barangayInfo.findUnique({
+                    where: { name: addr.barangay }
+                }) as any;
+
+                // Priority Logic: Use Barangay Fee if it exists and is greater than 0, 
+                // otherwise keep the service type default fee.
+                if (brgyLogistics && (brgyLogistics as any).isLogisticsActive && (brgyLogistics as any).deliveryFee > 0) {
+                    dynamicDeliveryFee = (brgyLogistics as any).deliveryFee;
+                }
+            }
+        }
+
         // Compute the tax
         const result = calculateCedula({
             type: additionalData.applicantType || "INDIVIDUAL",
             income: additionalData.income || 0,
             propertyValue: additionalData.propertyValue || 0,
             fulfillmentType: transaction.fulfillmentType,
-            deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : transaction.type.deliveryFee
+            deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
         });
 
         // Determine New Status
@@ -328,6 +442,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     basicTax: result.basicTax,
                     additionalTax: result.additionalTax,
                     penaltyCharge: result.penalty,
+                    deliveryFee: result.deliveryFee, // Persist delivery fee here
                     totalAmount: result.totalAmount
                 }
             } as any,
@@ -394,11 +509,27 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         // Recalculate total amount if delivery is selected
         let finalAmount = Number(transaction.totalAmount);
         if (fulfillmentType === "DELIVERY") {
-            finalAmount += (transaction.type.deliveryFee || 0);
+            let actualDeliveryFee = transaction.type.deliveryFee || 0;
+            const barangayName = deliveryAddress?.barangay;
+            
+            if (barangayName) {
+                const brgy = await prisma.barangayInfo.findUnique({
+                    where: { name: barangayName }
+                }) as any;
+
+                // Priority Logic: Use Barangay Fee if it exists and is > 0, else use type default
+                if (brgy && brgy.deliveryFee > 0) {
+                    actualDeliveryFee = brgy.deliveryFee;
+                }
+            }
+            
+            finalAmount += actualDeliveryFee;
         }
 
-        // Determine next status: All Pick-ups go to FOR_PROCESSING for CTC assignment
-        const isForProcessing = fulfillmentType === "PICK_UP";
+        // Determine next status: 
+        // - All PICK_UP go to FOR_PROCESSING
+        // - DELIVERY with CASH_ON_DELIVERY also goes to FOR_PROCESSING
+        const isForProcessing = fulfillmentType === "PICK_UP" || (fulfillmentType === "DELIVERY" && paymentType === "CASH_ON_DELIVERY");
         const newStatus = isForProcessing ? "FOR_PROCESSING" : "PAID";
 
         const updatedTransaction = await prisma.transaction.update({
@@ -413,6 +544,11 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
                 paymentReference: paymentProofUrl || transaction.paymentReference, // Store the image URL here
                 totalAmount: finalAmount,
                 status: newStatus as any,
+                fiscalSnapshot: {
+                    ...(transaction.fiscalSnapshot as any || {}),
+                    deliveryFee: (fulfillmentType === "DELIVERY" ? (finalAmount - Number(transaction.totalAmount)) : 0),
+                    totalAmount: finalAmount
+                },
                 updatedAt: new Date()
             } as any
         });

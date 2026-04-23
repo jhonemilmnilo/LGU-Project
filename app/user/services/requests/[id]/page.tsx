@@ -54,7 +54,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getTransactionById, finalizeTransactionFulfillment, getSystemSettingAction } from "@/app/admin/transactions/actions";
+import { 
+    getTransactionById, 
+    finalizeTransactionFulfillment, 
+    getSystemSettingAction,
+    getPublicBarangayLogistics
+} from "@/app/admin/transactions/actions";
 import { getCedulaPenaltyRateLabel } from "@/lib/cedula";
 import Link from "next/link";
 
@@ -100,6 +105,9 @@ export default function RequestHubPage() {
         number: "SCAN TO VIEW"
     });
     const [themeColor, setThemeColor] = useState("#2563eb");
+    const [availableBarangays, setAvailableBarangays] = useState<any[]>([]);
+    const [brgySearch, setBrgySearch] = useState("");
+    const [isBrgyOpen, setIsBrgyOpen] = useState(false);
 
     useEffect(() => {
         async function fetchRequest() {
@@ -171,8 +179,18 @@ export default function RequestHubPage() {
             }
         }
 
+        async function fetchLogistics() {
+            try {
+                const res = await getPublicBarangayLogistics();
+                if (res.success) setAvailableBarangays(res.data || []);
+            } catch (err) {
+                console.error("Fetch logistics error:", err);
+            }
+        }
+
         fetchRequest();
         fetchSettings();
+        fetchLogistics();
     }, [id, router]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,7 +299,12 @@ export default function RequestHubPage() {
         if (!request) return null;
         const fiscal = request.fiscalSnapshot as any;
         const addData = request.additionalData || {};
-        const dFee = localFulfillment === "DELIVERY" ? (request.type?.deliveryFee || 0) : 0;
+        
+        const selectedBrgy = availableBarangays.find(b => b.name === address.barangay);
+        const dFee = localFulfillment === "DELIVERY" 
+            ? (selectedBrgy?.deliveryFee ?? request.type?.deliveryFee ?? 0) 
+            : 0;
+            
         const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
 
         // If snapshot exists (evaluated), use it. Otherwise, calculate on fly (pre-evaluation)
@@ -310,7 +333,7 @@ export default function RequestHubPage() {
         const finalTotal = totalWithPenalty + dFee;
 
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
-    }, [request, localFulfillment]);
+    }, [request, localFulfillment, address.barangay, availableBarangays]);
 
     if (loading) {
         return (
@@ -436,7 +459,7 @@ export default function RequestHubPage() {
                                     )}
                                     {localFulfillment === "DELIVERY" && (
                                         <div className="flex justify-between items-center pb-4 border-b border-white/5 text-emerald-400">
-                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Logistics Service Fee</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest italic">Delivery Fee</span>
                                             <span className="text-2xl font-black italic tracking-tighter">₱{computation?.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     )}
@@ -495,7 +518,80 @@ export default function RequestHubPage() {
                                                 <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Street Lane</Label><Input value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
                                                 <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Sitio</Label><Input value={address.sitio} onChange={e => setAddress(p => ({ ...p, sitio: e.target.value }))} placeholder="Optional" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
                                                 <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Purok</Label><Input value={address.purok} onChange={e => setAddress(p => ({ ...p, purok: e.target.value }))} placeholder="Optional" className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
-                                                <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Barangay</Label><Input value={address.barangay} onChange={e => setAddress(p => ({ ...p, barangay: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
+                                                <div className="space-y-3 relative">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Barangay</Label>
+                                                    <div className="relative">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setIsBrgyOpen(!isBrgyOpen)}
+                                                            className="h-12 w-full px-5 bg-white dark:bg-black/20 border-2 border-transparent focus:border-primary/30 rounded-xl font-bold italic text-left flex items-center justify-between group transition-all"
+                                                        >
+                                                            <span className={cn(address.barangay ? "text-slate-900 dark:text-white" : "text-slate-400")}>
+                                                                {address.barangay || "Select Registered Barangay"}
+                                                            </span>
+                                                            <Search className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                                                        </button>
+
+                                                        <AnimatePresence>
+                                                            {isBrgyOpen && (
+                                                                <>
+                                                                    {/* Invisible Overlay to close on click outside */}
+                                                                    <div 
+                                                                        className="fixed inset-0 z-[60]" 
+                                                                        onClick={() => setIsBrgyOpen(false)} 
+                                                                    />
+                                                                    <motion.div 
+                                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                                        className="absolute top-14 left-0 right-0 bg-white dark:bg-[#12141a] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-xl"
+                                                                    >
+                                                                        <div className="p-3 border-b border-slate-100 dark:border-white/5">
+                                                                            <div className="relative">
+                                                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                                                                <Input 
+                                                                                    placeholder="Search barangay..."
+                                                                                    value={brgySearch}
+                                                                                    onChange={(e) => setBrgySearch(e.target.value)}
+                                                                                    className="h-9 pl-9 text-[11px] font-bold italic bg-slate-50 dark:bg-black/20 border-transparent rounded-lg"
+                                                                                    autoFocus
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="max-h-[250px] overflow-y-auto p-1 custom-scrollbar">
+                                                                            {availableBarangays
+                                                                                .filter(b => b.name.toLowerCase().includes(brgySearch.toLowerCase()))
+                                                                                .map(b => (
+                                                                                    <button
+                                                                                        key={b.name}
+                                                                                        onClick={() => {
+                                                                                            setAddress(p => ({ ...p, barangay: b.name }));
+                                                                                            setIsBrgyOpen(false);
+                                                                                            setBrgySearch("");
+                                                                                        }}
+                                                                                        className={cn(
+                                                                                            "w-full text-left px-4 py-3 rounded-xl text-[11px] font-black uppercase italic tracking-widest transition-all",
+                                                                                            address.barangay === b.name 
+                                                                                                ? "bg-primary text-white" 
+                                                                                                : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400"
+                                                                                        )}
+                                                                                    >
+                                                                                        {b.name}
+                                                                                    </button>
+                                                                                ))
+                                                                            }
+                                                                            {availableBarangays.filter(b => b.name.toLowerCase().includes(brgySearch.toLowerCase())).length === 0 && (
+                                                                                <div className="p-8 text-center">
+                                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">No results found</p>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </motion.div>
+                                                                </>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
+                                                </div>
                                                 <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Municipality / City</Label><Input value={address.municipality} onChange={e => setAddress(p => ({ ...p, municipality: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
                                                 <div className="space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Province</Label><Input value={address.province} onChange={e => setAddress(p => ({ ...p, province: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>
                                                 <div className="lg:col-span-2 space-y-3"><Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Landmark / Instructions</Label><Input value={address.landmark} onChange={e => setAddress(p => ({ ...p, landmark: e.target.value }))} className="h-12 bg-white dark:bg-black/20 rounded-xl font-bold italic" /></div>

@@ -19,7 +19,8 @@ import {
     releaseCedula,
     rejectTransaction,
     uploadECopyAction,
-    getSystemSettingAction
+    getSystemSettingAction,
+    getDeliveryFeeByBarangay
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -56,8 +57,33 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 const tx = res.data;
                 setTransaction(tx);
+                
+                // Smart Delivery Fee Pre-fill Logic
                 if (tx && tx.fulfillmentType === "DELIVERY") {
-                    setDeliveryFee(tx.totalAmount > 0 ? (tx as any).deliveryFee || tx.type.deliveryFee : tx.type.deliveryFee);
+                    const fiscal = tx.fiscalSnapshot as any;
+                    // 1. If already evaluated or has a snapshot, use the stored fee
+                    if (fiscal && fiscal.deliveryFee !== undefined) {
+                        setDeliveryFee(fiscal.deliveryFee);
+                    } else if (tx.totalAmount > 0) {
+                        setDeliveryFee(tx.type.deliveryFee);
+                    } else {
+                        // 2. If new evaluation, look up the Barangay-specific fee
+                        const addr = (typeof tx.deliveryAddress === 'string' 
+                            ? JSON.parse(tx.deliveryAddress || '{}') 
+                            : tx.deliveryAddress) || tx.residentSnapshot;
+                        
+                        if (addr?.barangay) {
+                            getDeliveryFeeByBarangay(addr.barangay).then(brgyRes => {
+                                if (brgyRes.success && brgyRes.data) {
+                                    setDeliveryFee(brgyRes.data.fee);
+                                } else {
+                                    setDeliveryFee(tx.type.deliveryFee);
+                                }
+                            });
+                        } else {
+                            setDeliveryFee(tx.type.deliveryFee);
+                        }
+                    }
                 }
             } else {
                 toast.error(res.error || "Failed to load transaction");
@@ -173,6 +199,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         basicTax: fiscal.basicTax,
         additionalTax: fiscal.additionalTax,
         penalty: fiscal.penaltyCharge,
+        deliveryFee: fiscal.deliveryFee || 0,
         totalAmount: fiscal.totalAmount
     } : calculateCedula({
         type: additional.applicantType || "INDIVIDUAL",
@@ -181,6 +208,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         fulfillmentType: transaction.fulfillmentType,
         deliveryFee
     });
+
+    // Ensure total amount always includes delivery fee in display if calculated on the fly
+    const displayTotal = fiscal ? calcResult.totalAmount : (calcResult.totalAmount + (transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0));
 
     const steps = [
         { id: "FOR_REQUESTING", label: "EVALUATION" },
@@ -269,7 +299,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                             <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
-                                <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">{transaction.paymentType || "--"}</p>
+                                <p className={cn(
+                                    "font-black italic tracking-tighter dark:text-slate-200 leading-none",
+                                    (transaction.paymentType?.length || 0) > 12 ? "text-xl" : "text-2xl"
+                                )}>
+                                    {transaction.paymentType?.replace(/_/g, " ") || "--"}
+                                </p>
                             </div>
                             <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
@@ -297,16 +332,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 )}
                                 {transaction.fulfillmentType === "DELIVERY" && (
                                     <div className="flex justify-between items-center pt-2 gap-4">
-                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Logistics & Delivery</span>
+                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-black text-primary">₱</span>
-                                            <Input 
-                                                type="number"
-                                                value={deliveryFee}
-                                                disabled={transaction.status === "RELEASED"}
-                                                onChange={(e) => setDeliveryFee(Number(e.target.value))}
-                                                className="h-8 w-24 rounded-lg bg-slate-50 dark:bg-white/5 border-none text-right font-black italic text-xs dark:text-white"
-                                            />
+                                            <span className="text-xs font-black dark:text-white italic">
+                                                {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </span>
                                         </div>
                                     </div>
                                 )}
@@ -314,7 +345,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
                                     <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
                                     <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                                        ₱{calcResult.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             </div>
