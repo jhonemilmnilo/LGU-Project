@@ -6,6 +6,8 @@ import UserLayoutClient from "./UserLayoutClient";
 import * as React from "react";
 import prisma from "@/lib/db/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function UserLayout({
     children,
 }: {

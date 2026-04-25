@@ -3,6 +3,8 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import prisma from "@/lib/db/prisma";
 import { HeroSlide, SystemSetting } from "@prisma/client"; // Import Prisma types
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
     const slides: HeroSlide[] = await prisma.heroSlide.findMany({
         where: { isActive: true },

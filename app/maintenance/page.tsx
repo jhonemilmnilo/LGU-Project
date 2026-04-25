@@ -2,6 +2,8 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import * as React from "react";
 import { MaintenanceClient } from "./MaintenanceClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function MaintenancePage() {
     const settings = await getMultipleSystemSettings([
         "site_logo",

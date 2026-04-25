@@ -1,5 +1,7 @@
 import prisma from "@/lib/db/prisma";
 import { SettingsClient } from "./SettingsClient";
+
+export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 
 import { getServerSession } from "next-auth";

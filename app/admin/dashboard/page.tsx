@@ -3,6 +3,8 @@ import prisma from "@/lib/db/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getMultipleSystemSettings } from "@/lib/settings";
+
+export const dynamic = "force-dynamic";
 import { BarangaySwitcher } from "../components/BarangaySwitcher";
 import { Download, Plus, Users, Briefcase, AlertTriangle, Hammer, MapPin } from "lucide-react";
 import { redirect } from "next/navigation";
