@@ -13,7 +13,8 @@ import {
     RotateCw,
     RefreshCcw,
     ZoomIn,
-    ZoomOut
+    ZoomOut,
+    ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -157,6 +158,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [isRejecting, setIsRejecting] = useState(false);
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
+    const [eCopyPreview, setECopyPreview] = useState<string | null>(null);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
     const [branding, setBranding] = useState({
         word1: "Mapandan",
@@ -233,6 +235,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         });
     }, [fetchTransaction]);
 
+    useEffect(() => {
+        if (!eCopyFile) {
+            setECopyPreview(null);
+            return;
+        }
+        const url = URL.createObjectURL(eCopyFile);
+        setECopyPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [eCopyFile]);
+
     const handleReject = async () => {
         if (!remarks) { toast.error("Remarks required"); return; }
         setActionLoading(true);
@@ -247,12 +259,20 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
     const handleRelease = useCallback(async () => {
-        // Only require CTC if not already recorded (e.g., from processing stage)
-        if (!ctcNumber && transaction?.status !== "FOR_CLAIM") { toast.error("CTC Number Required"); return; }
+        const isPickupCash = transaction?.fulfillmentType === "PICK_UP" && transaction?.paymentType === "CASH";
+        const isInitialCashPickup = isPickupCash && transaction?.status === "FOR_PROCESSING";
+        const isFinalCashPickup = isPickupCash && transaction?.status === "FOR_CLAIM";
+
+        // CTC required for all EXCEPT initial cash pickup preparation. 
+        // But for final cash pickup release (FOR_CLAIM), it IS required because it wasn't recorded earlier.
+        const ctcRequired = (!["FOR_CLAIM", "FOR_PICKING"].includes(transaction?.status) && !isInitialCashPickup) || isFinalCashPickup;
+        if (!ctcNumber && ctcRequired) { toast.error("CTC Number Required"); return; }
         setActionLoading(true);
         try {
-            // Strict Validation: E-Copy is REQUIRED for initial processing/release
-            if (transaction?.status === "FOR_PROCESSING" && !eCopyFile && !transaction.eCopyUrl) {
+            // Strict Validation: E-Copy is REQUIRED for initial processing (except Cash Pickups) and final Cash Pickup release
+            const eCopyRequired = (transaction?.status === "FOR_PROCESSING" && !isPickupCash) || isFinalCashPickup;
+            
+            if (eCopyRequired && !eCopyFile && !transaction.eCopyUrl) {
                 toast.error("Digital E-Copy is required before proceeding.");
                 setActionLoading(false);
                 return;
@@ -373,16 +393,27 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const steps = [
         { id: "FOR_REQUESTING", label: "EVALUATION" },
         { id: "EVALUATED", label: "ASSESSMENT" },
+        { id: "PAID", label: "PAID" },
         { id: "FOR_PROCESSING", label: "PROCESSING" },
         { 
             id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM", 
             label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING" 
         },
-        { id: "RELEASED", label: "RELEASED" },
-    ];
+        { 
+            id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED", 
+            label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED" 
+        },
+    ].filter(step => {
+        // Fast-track: Remove PROCESSING step for Digital Delivery (PAID phase skip)
+        if (step.id === "FOR_PROCESSING" && 
+            transaction.fulfillmentType === "DELIVERY" && 
+            ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType)) {
+            return false;
+        }
+        return true;
+    });
 
     const getEffectiveStatus = (s: string) => {
-        if (s === "PAID") return transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM";
         return s;
     };
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
@@ -630,8 +661,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* DIGITAL ISSUANCE (E-COPY) - Only visible during the active processing phase */}
-                    {transaction.status === "FOR_PROCESSING" && (
+                    {/* DIGITAL ISSUANCE (E-COPY) - Visible in FOR_PROCESSING (except Cash Pickups), FOR_CLAIM (Cash Pickups), or for PAID digital deliveries */}
+                    {(
+                        (transaction.status === "FOR_PROCESSING" && !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH")) || 
+                        (transaction.status === "FOR_CLAIM" && transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") ||
+                        (transaction.status === "PAID" && (
+                            transaction.fulfillmentType === "E_COPY" || 
+                            (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
+                        ))
+                    ) && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
                             <div className="relative">
@@ -644,26 +682,84 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         href={transaction.eCopyUrl || "#"} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        className="flex flex-col items-center justify-center gap-3 p-10 rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-36 border-solid"
+                                        className="flex flex-col items-center justify-center rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-48 border-solid overflow-hidden group relative"
                                     >
-                                        <div className="p-4 rounded-2xl bg-primary text-white">
-                                            <FileText className="w-5 h-5" />
-                                        </div>
-                                        <span className="text-[9px] font-black uppercase tracking-widest italic text-primary text-center">
-                                            View Official Registry
-                                        </span>
+                                        {transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg") || transaction.eCopyUrl.includes("image")) ? (
+                                            <Image 
+                                                src={transaction.eCopyUrl} 
+                                                fill 
+                                                className="object-cover opacity-80 hover:opacity-100 transition-opacity" 
+                                                alt="Official Registry" 
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="p-4 rounded-2xl bg-primary text-white shadow-lg">
+                                                    <FileText className="w-6 h-6" />
+                                                </div>
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic text-primary text-center">
+                                                    View Registry (PDF)
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-primary" /></div>
                                     </a>
                                 ) : (
                                     <label htmlFor="main-ecopy-upload" className={cn(
-                                        "flex flex-col items-center justify-center gap-3 p-10 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-36 bg-[#f8fafd] dark:bg-white/5",
-                                        eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
+                                        "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                        eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
                                     )}>
-                                        <div className={cn("p-4 rounded-2xl transition-colors", (eCopyFile || transaction.eCopyUrl) ? "bg-primary text-white" : "bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600")}>
-                                            {(eCopyFile || transaction.eCopyUrl) ? <Check className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
-                                        </div>
-                                        <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-400 dark:text-slate-500 text-center">
-                                            {(eCopyFile || transaction.eCopyUrl) ? (eCopyFile?.name || "Archived") : "Attach E-Copy Registry"}
-                                        </span>
+                                        {(eCopyPreview || transaction.eCopyUrl) ? (
+                                            <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                                                {/* Image Preview */}
+                                                {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg")))) ? (
+                                                    <Image 
+                                                        src={eCopyPreview || transaction.eCopyUrl} 
+                                                        fill 
+                                                        className="object-cover opacity-60 group-hover:opacity-100 transition-opacity" 
+                                                        alt="Registry Preview"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
+                                                        <FileText className="w-12 h-12" />
+                                                        <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">PDF Document Ready</span>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Hover Overlay */}
+                                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
+                                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                                        <Upload className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
+                                                </div>
+
+                                                {/* Info Bar */}
+                                                <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                            <Check className="w-3.5 h-3.5 text-primary" />
+                                                        </div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate">
+                                                            {eCopyFile?.name || "Registry-Record-ID-" + transaction.id.slice(-6).toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 scale-110">
+                                                    <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                </div>
+                                                <div className="text-center space-y-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
+                                                        Attach E-Copy Registry
+                                                    </span>
+                                                    <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">PDF or Image up to 5MB</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </label>
                                 )}
                             </div>
@@ -706,7 +802,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
                                         {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && 
                                          transaction.fulfillmentType !== "E_COPY" && 
-                                         !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) && (
+                                         !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) && 
+                                         !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") && (
                                             <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                                 <Button 
                                                     onClick={handleConfirmPayment} 
@@ -718,8 +815,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        {/* Gated CTC Entry: For E-COPY, wait for digital record upload selection. For FOR_CLAIM/FOR_PICKING, skip as it's already recorded. */}
-                                        {(transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING") ? (
+                                        {/* Gated CTC Entry: Locked for processed digital/delivery flows. Open for initial prepare (except Cash Pickup) and final cash release. */}
+                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING") && !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH")) ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
                                                 <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -731,29 +828,41 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || "RECORDED"}</span> is locked and ready for release.
                                                 </p>
                                             </div>
-                                        ) : (transaction.fulfillmentType === "E_COPY" || transaction.status === "FOR_PROCESSING") && !eCopyFile && !transaction.eCopyUrl ? (
-                                            <div className="p-8 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
-                                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
-                                                    <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                                        ) : (transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") ? null : (
+                                            <div className="space-y-6 animate-in zoom-in-95">
+                                                {/* Digital Copy Warning (Conditional) */}
+                                                {(
+                                                    transaction.status === "FOR_PROCESSING" || 
+                                                    (transaction.status === "PAID" && (
+                                                        transaction.fulfillmentType === "E_COPY" || 
+                                                        (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
+                                                    ))
+                                                ) && !eCopyFile && !transaction.eCopyUrl && (
+                                                    <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
+                                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                            <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                                                        </div>
+                                                        <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
+                                                        <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable document processing.</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Always show CTC Input for these phases */}
+                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
+                                                    <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Registry Serial Entry (CTC No.)</Label>
+                                                    <Input 
+                                                        value={ctcNumber} 
+                                                        onChange={(e) => setCtcNumber(e.target.value)} 
+                                                        placeholder="ENTER SERIAL..." 
+                                                        className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase" 
+                                                    />
                                                 </div>
-                                                <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
-                                                <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable document processing.</p>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3 animate-in zoom-in-95">
-                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Registry Serial Entry (CTC No.)</Label>
-                                                <Input 
-                                                    value={ctcNumber} 
-                                                    onChange={(e) => setCtcNumber(e.target.value)} 
-                                                    placeholder="ENTER SERIAL..." 
-                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase" 
-                                                />
                                             </div>
                                         )}
 
                                         <div className="space-y-3 pt-2">
                                             {/* WAYBILL GENERATION: Required for Delivery Dispatch */}
-                                            {transaction.fulfillmentType === "DELIVERY" && transaction.status === "FOR_PROCESSING" && (
+                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && (
                                                 <Button 
                                                     onClick={handlePrintWaybill}
                                                     variant="outline"
@@ -767,12 +876,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 onClick={handleRelease} 
                                                 disabled={
                                                     actionLoading || 
-                                                    (transaction.status !== "FOR_CLAIM" && transaction.status !== "FOR_PICKING" && !ctcNumber) || 
+                                                    // Requirement: CTC needed for all EXCEPT initial Cash Pickup prepare
+                                                    (!(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING") && !ctcNumber) ||
+                                                    // Requirement: E-Copy needed for E-COPY fulfillment
                                                     (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
                                                 } 
                                                 className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                             >
-                                                {actionLoading ? "Processing..." : transaction.status === "FOR_PROCESSING" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
+                                                {actionLoading ? "Processing..." : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                             </Button>
 
                                             <Button 
@@ -822,7 +933,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     <div className="border-b-[3px] border-black p-3 flex items-center justify-between bg-black text-white">
                         <div className="flex items-center gap-3">
                             {branding.logo ? (
-                                <Image src={branding.logo} alt="Logo" width={40} height={40} className="w-10 h-10 object-contain" />
+                                <Image src={branding.logo} alt="Logo" width={40} height={40} className="object-contain" unoptimized />
                             ) : (
                                 <div className="w-8 h-8 border-2 border-white rounded-full flex items-center justify-center font-black text-[10px]">A</div>
                             )}
@@ -842,9 +953,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             <Image 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${transaction.id}`} 
                                 alt="Tracking QR" 
-                                width={160} 
-                                height={160}
-                                className="w-full h-full"
+                                fill
+                                className="p-2"
+                                unoptimized
                             />
                         </div>
                         <div className="flex flex-col items-center">

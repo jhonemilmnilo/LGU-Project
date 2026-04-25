@@ -11,6 +11,9 @@ import {
     ChevronRight,
     DollarSign,
     Search,
+    Package,
+    UserCheck,
+    Truck,
     X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -58,10 +61,15 @@ export default function UserServiceRequestsPage() {
         switch (status) {
             case "FOR_REQUESTING": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: "PENDING", opacity: 0.8 };
             case "EVALUATED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "EVALUATED", opacity: 0.9 };
-            case "PAID": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };
-            case "RELEASED": return { color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: CheckCircle2, label: "RELEASED" };
+            case "PAID": return { color: "text-white", bg: "bg-emerald-500", border: "border-transparent", icon: CheckCircle2, label: "PAID", opacity: 1 };
+            case "FOR_PROCESSING": return { color: "text-white", bg: "bg-blue-500", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };
+            case "FOR_PICKING": return { color: "text-white", bg: "bg-amber-500", border: "border-transparent", icon: Package, label: "FOR PICKING", opacity: 1 };
+            case "FOR_CLAIM": return { color: "text-white", bg: "bg-amber-500", border: "border-transparent", icon: UserCheck, label: "FOR CLAIMING", opacity: 1 };
+            case "IN_ROUTE": return { color: "text-white", bg: "bg-indigo-500", border: "border-transparent", icon: Truck, label: "IN ROUTE", opacity: 1 };
+            case "DELIVERED": return { color: "text-white", bg: "bg-emerald-600", border: "border-transparent", icon: CheckCircle2, label: "DELIVERED", opacity: 1 };
+            case "RELEASED": return { color: "text-white", bg: "bg-emerald-600", border: "border-transparent", icon: CheckCircle2, label: "RELEASED", opacity: 1 };
             case "REJECTED": return { color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20", icon: X, label: "DECLINED" };
-            default: return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: status };
+            default: return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: status.replace("_", " ") };
         }
     };
 

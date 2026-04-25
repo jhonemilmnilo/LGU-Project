@@ -627,17 +627,44 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         });
 
         // Determine target status and email type
-        const isFromProcessing = transaction.status === "FOR_PROCESSING";
-        const targetStatus = isFromProcessing
+        // Determine target status: FOR_PICKING for Delivery, FOR_CLAIM for Pickup prepare, else RELEASED
+        const isInitialRelease = transaction.status === "FOR_PROCESSING" || transaction.status === "PAID";
+        const targetStatus = isInitialRelease
             ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
             : "RELEASED";
 
+        // NOTIFY RIDERS: If status is FOR_PICKING, alert all riders via email
+        if (targetStatus === "FOR_PICKING") {
+            try {
+                const riders = await prisma.user.findMany({
+                    where: { role: "RIDER" } as any,
+                    select: { email: true, name: true }
+                });
+                
+                // Batch notify all active riders
+                await Promise.all(riders.map(async (rider) => {
+                    if (rider.email) {
+                        return sendEmail({
+                            type: "NEW_PICKUP_ALERT" as any,
+                            to: rider.email,
+                            name: rider.name || "Rider",
+                            transactionId: transaction.id
+                        });
+                    }
+                }));
+                console.log(`Logistics alert sent to ${riders.length} riders for transaction ${transaction.id}`);
+            } catch (notifyError) {
+                console.error("Failed to notify riders:", notifyError);
+                // We don't fail the whole release if email fails, but we log it
+            }
+        }
+
         // Check if CTC Number is already used by another transaction
-        if (ctcNumber && isFromProcessing) {
+        if (ctcNumber) {
             const existingCedula = await prisma.cedula.findUnique({
                 where: { ctcNumber }
             });
-            if (existingCedula) {
+            if (existingCedula && existingCedula.transactionId !== id) {
                 return { success: false, error: `CTC Number ${ctcNumber} is already used by another request.` };
             }
         }
@@ -645,10 +672,17 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         // Handle Cedula record lifecycle
         if (!transaction.cedula) {
             const now = new Date();
+            // Requirement check: Only allow skipping ctcNumber if it's initial Cash Pickup prepare (FOR_PROCESSING)
+            const isPickupCashInitial = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING";
+            
+            if (!ctcNumber && !isPickupCashInitial) {
+                return { success: false, error: "CTC Number is required for this transaction type." };
+            }
+
             await prisma.cedula.create({
                 data: {
                     transactionId: id,
-                    ctcNumber,
+                    ctcNumber: ctcNumber || null,
                     taxYear: now.getFullYear(),
                     dateIssued: now,
                     expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59), // End of Dec 31
@@ -662,11 +696,14 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                     verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                 }
             });
-        } else if (eCopyUrl) {
-            // Update existing cedula if new eCopyUrl is provided during final release
+        } else if (ctcNumber || eCopyUrl) {
+            // Update existing cedula if new data is provided during final release (e.g. from FOR_CLAIM to RELEASED)
             await prisma.cedula.update({
                 where: { id: transaction.cedula.id },
-                data: { documentUrl: eCopyUrl }
+                data: { 
+                    ...(ctcNumber ? { ctcNumber } : {}),
+                    ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                }
             });
         }
 
@@ -960,10 +997,21 @@ export async function cancelTransaction(id: string) {
         if (tx.userId !== session.user.id) return { success: false, error: "Forbidden" };
         if (tx.isCancelled) return { success: false, error: "This request is already cancelled." };
         
-        // Only allow cancellation if not yet being processed or delivered
-        const restrictedStatuses = ["FOR_PROCESSING", "FOR_PICKING", "FOR_CLAIM", "IN_ROUTE", "DELIVERED", "RELEASED"];
+        // Only allow cancellation if the request is still in DRAFT or FOR_REQUESTING phase
+        const restrictedStatuses = [
+            "FOR_PROCESSING", 
+            "EVALUATED", 
+            "FOR_CLAIM", 
+            "FOR_PICKING", 
+            "IN_ROUTE", 
+            "DELIVERED", 
+            "UNPAID", 
+            "PAID", 
+            "RELEASED", 
+            "REJECTED"
+        ];
         if (restrictedStatuses.includes(tx.status)) {
-            return { success: false, error: "Cannot cancel transaction at this stage as it is already being processed or released." };
+            return { success: false, error: "Cannot cancel transaction at this stage. Please contact support if you need assistance." };
         }
 
         await (prisma.transaction.update as any)({

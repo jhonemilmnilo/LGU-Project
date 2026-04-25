@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT";
     to: string;
     name: string;
     remarks?: string | null;
@@ -30,8 +30,10 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
         },
     });
 
+    console.log(`[MAIL] Sending email of type: ${type} to: ${to}`);
+
     const municipalityName = "Mapandan"; // Updated to Mapandan as per project context
-    let subject = "";
+    let subject = "Municipal Notification"; // Default fallback subject
     let htmlBody = "";
 
     // Design Tokens
@@ -142,6 +144,10 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                             <td style="color: #64748b; padding: 4px 0;">Reference:</td>
                             <td style="color: #3b82f6; font-weight: 800; font-family: monospace; padding: 4px 0;">${transactionId || "N/A"}</td>
                         </tr>
+                        <tr>
+                            <td style="color: #64748b; padding: 4px 0;">Amount to Pay:</td>
+                            <td style="color: #1e293b; font-weight: 800; padding: 4px 0; font-size: 16px;">₱${amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</td>
+                        </tr>
                     </table>
                 </div>
 
@@ -236,6 +242,46 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Agno Municipal Logistics • Automated Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "NEW_PICKUP_ALERT") {
+        subject = `📦 New Delivery Job Alert - LGU ${municipalityName}`;
+        console.log(`[MAIL] Setting subject for NEW_PICKUP_ALERT: ${subject}`);
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryGreen}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">📦</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">New Pickup Ready</h1>
+                    <p style="color: ${primaryGreen}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px;">Logistics Fleet Notification</p>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">There is a new document ready for pickup and delivery at the <strong>Municipal Treasury Office</strong>.</p>
+                
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #166534; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 12px 0; letter-spacing: 0.05em;">Job Details</p>
+                    <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                        <tr>
+                            <td style="color: #64748b; padding: 4px 0;">Pickup Point:</td>
+                            <td style="color: #1e293b; font-weight: 700; padding: 4px 0;">Municipal Treasury Office</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #64748b; padding: 4px 0;">Transaction ID:</td>
+                            <td style="color: #166534; font-weight: 800; font-family: monospace; padding: 4px 0;">${transactionId || "N/A"}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 32px;">
+                    <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5;">
+                        <strong>Instructions:</strong> Please log in to your Rider App to accept this job and scan the waybill QR code to begin delivery.
+                    </p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Agno Municipal Logistics • Fleet Dispatch System</p>
             </div>
         </div>`;
     }

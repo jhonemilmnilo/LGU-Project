@@ -81,7 +81,7 @@ export default function RequestHubPage() {
 
     // Logistics & Payment States
     const [localFulfillment, setLocalFulfillment] = useState<"PICK_UP" | "DELIVERY" | "E_COPY">("PICK_UP");
-    const [localPayment, setLocalPayment] = useState("CASH");
+    const [localPayment, setLocalPayment] = useState("E_PAYMENT");
     const [localLat, setLocalLat] = useState<number | null>(null);
     const [localLng, setLocalLng] = useState<number | null>(null);
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
@@ -425,7 +425,7 @@ export default function RequestHubPage() {
                         </div>
 
                         {/* Cancellation Trigger */}
-                        {!request.isCancelled && !["FOR_PROCESSING", "FOR_PICKING", "FOR_CLAIM", "IN_ROUTE", "DELIVERED", "RELEASED"].includes(request.status) && (
+                        {!request.isCancelled && !["FOR_PROCESSING", "EVALUATED", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "UNPAID", "PAID", "RELEASED", "REJECTED"].includes(request.status) && (
                             <Button 
                                 onClick={handleCancel}
                                 disabled={isCancelling}
@@ -528,15 +528,13 @@ export default function RequestHubPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         {[
-                                            // { id: "E_COPY", label: "Digital E-Copy", icon: FileText },
                                             { id: "PICK_UP", label: "Office Pickup", icon: Building2 },
                                             { id: "DELIVERY", label: "Premium Delivery", icon: Truck }
                                         ].map(opt => (
                                             <button key={opt.id} onClick={() => {
                                                 setLocalFulfillment(opt.id as any);
                                                 if (opt.id === "PICK_UP") setLocalPayment("CASH");
-                                                else if (opt.id === "E_COPY") setLocalPayment("E_PAYMENT");
-                                                else setLocalPayment("CASH_ON_DELIVERY");
+                                                else setLocalPayment("E_PAYMENT");
                                             }} className={cn("flex flex-col items-center gap-4 p-6 rounded-[2rem] border-2 transition-all group select-none active:scale-[0.95] text-center relative", localFulfillment === opt.id ? "bg-primary text-white border-primary shadow-[0_20px_40px_-10px_rgba(var(--primary-rgb),0.4)] scale-[1.02]" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 shadow-md hover:border-primary/40 hover:shadow-xl")}>
                                                 <opt.icon className="w-8 h-8 group-hover:scale-110 transition-transform" />
                                                 <span className="block text-[10px] font-black uppercase tracking-widest italic">{opt.label}</span>
@@ -657,7 +655,6 @@ export default function RequestHubPage() {
                                             { id: "E_PAYMENT", label: "GCash (Scan & Pay)", icon: CreditCard },
                                             { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
                                         ] : [
-                                            { id: "CASH_ON_DELIVERY", label: "Cash on Delivery", icon: Truck },
                                             { id: "E_PAYMENT", label: "GCash (Scan & Pay)", icon: CreditCard },
                                             { id: "BANK_TRANSFER", label: "Bank Transfer", icon: Building2 }
                                         ]).map(opt => (
