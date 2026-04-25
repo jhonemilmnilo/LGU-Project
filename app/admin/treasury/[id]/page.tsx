@@ -259,7 +259,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
     const handleRelease = useCallback(async () => {
-        const isPickupCash = transaction?.fulfillmentType === "PICK_UP" && transaction?.paymentType === "CASH";
 
         // CTC required for all initial processing phases
         const ctcRequired = !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
@@ -371,6 +370,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const propertyValue = Number(additional.propertyValue || 0);
 
     const fiscal = (transaction.fiscalSnapshot as any) || null;
+    const deliveryAddr = transaction.deliveryAddress 
+        ? (typeof transaction.deliveryAddress === 'string' ? JSON.parse(transaction.deliveryAddress) : transaction.deliveryAddress) 
+        : null;
+
     const calcResult = fiscal ? {
         basicTax: fiscal.basicTax,
         additionalTax: fiscal.additionalTax,
@@ -587,39 +590,72 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                         </div>
 
-                        {/* Payment Verification */}
-                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && (
+                        {/* Verification Vault: Payment & Delivery */}
+                        {((transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") || (transaction.status === "DELIVERED" && transaction.podUrl)) && (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Verification</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Verification</span>
                                 </div>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <div className={cn(
-                                            "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center h-32",
-                                            transaction.paymentReference?.startsWith("/uploads/") && "cursor-zoom-in"
-                                        )}>
-                                            {transaction.paymentReference?.startsWith("/uploads/") ? (
-                                                <>
-                                                    <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-                                                            <ZoomIn className="w-4 h-4 text-white" />
+                                
+                                <div className={cn(
+                                    "grid gap-4",
+                                    ((transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && (transaction.status === "DELIVERED" && transaction.podUrl)) ? "grid-cols-2" : "grid-cols-1"
+                                )}>
+                                    {/* 1. Payment Proof */}
+                                    {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && (
+                                        <div className="space-y-3">
+                                            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest italic ml-1">Payment Proof</p>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <div className={cn(
+                                                        "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center",
+                                                        transaction.paymentReference?.startsWith("/uploads/") && "cursor-zoom-in"
+                                                    )}>
+                                                        {transaction.paymentReference?.startsWith("/uploads/") ? (
+                                                            <>
+                                                                <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                                        <ZoomIn className="w-4 h-4 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="text-center opacity-30 italic font-black text-[9px] uppercase tracking-widest dark:text-slate-500">Awaiting Proof</div>
+                                                        )}
+                                                    </div>
+                                                </DialogTrigger>
+                                                {transaction.paymentReference?.startsWith("/uploads/") && (
+                                                    <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
+                                                )}
+                                            </Dialog>
+                                        </div>
+                                    )}
+
+                                    {/* 2. Proof of Delivery */}
+                                    {transaction.status === "DELIVERED" && transaction.podUrl && (
+                                        <div className="space-y-3 animate-in slide-in-from-right-4">
+                                            <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest italic ml-1">Delivery POD</p>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
+                                                        <Image src={transaction.podUrl} alt="POD" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                                <ZoomIn className="w-5 h-5 text-white" />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </>
-                                            ) : (
-                                                <div className="text-center opacity-30 italic font-black text-[9px] uppercase tracking-widest dark:text-slate-500">Awaiting Proof</div>
-                                            )}
+                                                </DialogTrigger>
+                                                <LightboxView src={transaction.podUrl} alt="Proof of Delivery" label="Delivery Confirmation Snapshot" />
+                                            </Dialog>
                                         </div>
-                                    </DialogTrigger>
-                                    {transaction.paymentReference?.startsWith("/uploads/") && (
-                                        <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
                                     )}
-                                </Dialog>
+                                </div>
                             </div>
                         )}
+
                     </div>
                 </div>
 
@@ -798,13 +834,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 )}
 
                                 {/* 2. VERIFICATION & RELEASE PHASE: Active Actions enabled here */}
-                                {["PAID", "FOR_CLAIM", "FOR_PROCESSING"].includes(transaction.status) && (
+                                {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
                                         {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
                                         {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && 
                                          transaction.fulfillmentType !== "E_COPY" && 
                                          !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) && 
-                                         !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") && (
+                                         !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") && 
+                                         transaction.status !== "FOR_PICKING" && (
                                             <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                                 <Button 
                                                     onClick={handleConfirmPayment} 
@@ -863,7 +900,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                         <div className="space-y-3 pt-2">
                                             {/* WAYBILL GENERATION: Required for Delivery Dispatch */}
-                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && (
+                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID" || transaction.status === "FOR_PICKING") && (
                                                 <Button 
                                                     onClick={handlePrintWaybill}
                                                     variant="outline"
@@ -873,26 +910,30 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 </Button>
                                             )}
 
-                                            <Button 
-                                                onClick={handleRelease} 
-                                                disabled={
-                                                    actionLoading || 
-                                                    // Requirement: CTC needed for initial processing
-                                                    (!["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
-                                                    // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows
-                                                    ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl)
-                                                } 
-                                                className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
-                                            >
-                                                {actionLoading ? "Processing..." : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
-                                            </Button>
+                                            {transaction.status !== "FOR_PICKING" && (
+                                                <>
+                                                    <Button 
+                                                        onClick={handleRelease} 
+                                                        disabled={
+                                                            actionLoading || 
+                                                            // Requirement: CTC needed for initial processing
+                                                            (!["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
+                                                            // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows
+                                                            ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl)
+                                                        } 
+                                                        className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                                    >
+                                                        {actionLoading ? "Processing..." : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
+                                                    </Button>
 
-                                            <Button 
-                                                onClick={() => setIsRejecting(true)} 
-                                                className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                                            >
-                                                Decline Registry Process
-                                            </Button>
+                                                    <Button 
+                                                        onClick={() => setIsRejecting(true)} 
+                                                        className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                    >
+                                                        Decline Registry Process
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -950,13 +991,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                     {/* QR Code Segment */}
                     <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4 border-b-[2px] border-black border-dashed">
-                        <div className="relative w-40 h-40 bg-white p-2 border border-slate-100 shadow-sm">
-                            <Image 
+                        <div className="relative w-40 h-40 bg-white p-2 border border-slate-100 shadow-sm flex items-center justify-center">
+                            {/* Standard img tag used for reliable print rendering */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${transaction.id}`} 
                                 alt="Tracking QR" 
-                                fill
-                                className="p-2"
-                                unoptimized
+                                className="w-full h-full p-2"
                             />
                         </div>
                         <div className="flex flex-col items-center">
@@ -974,23 +1015,41 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-[6px] font-bold uppercase text-slate-500">Contact Number</span>
-                                <span className="text-[10px] font-bold italic tracking-widest">{resident.contactNumber || "--"}</span>
+                                <span className="text-[10px] font-bold italic tracking-widest">
+                                    {deliveryAddr?.contactNumber || resident.contactNumber || "--"}
+                                </span>
                             </div>
                         </div>
-                            <div className="flex flex-col">
-                                <span className="text-[6px] font-bold uppercase text-slate-500">Delivery Address</span>
-                                <span className="text-[9px] font-bold uppercase leading-tight italic">
-                                    {resident.houseNumber && `${resident.houseNumber}, `}{resident.street}<br/>
-                                    Barangay {resident.barangay},<br/>
-                                    {resident.municipality}, {resident.province}
-                                </span>
-                                {transaction.deliveryLandmark && (
-                                    <div className="mt-1 p-1 bg-black/5 rounded-sm">
-                                        <span className="text-[5px] font-bold uppercase text-slate-400 block leading-none">Landmark</span>
-                                        <span className="text-[7px] font-black italic uppercase leading-none">{transaction.deliveryLandmark}</span>
-                                    </div>
+                        <div className="flex flex-col">
+                            <span className="text-[6px] font-bold uppercase text-slate-500">Delivery Address</span>
+                            <span className="text-[9px] font-bold uppercase leading-tight italic">
+                                {deliveryAddr ? (
+                                    <>
+                                        {deliveryAddr.houseNumber && `${deliveryAddr.houseNumber}, `}
+                                        {deliveryAddr.street && `${deliveryAddr.street} `}
+                                        {deliveryAddr.sitio && `Sitio ${deliveryAddr.sitio}, `}
+                                        {deliveryAddr.purok && `Purok ${deliveryAddr.purok}, `}
+                                        <br/>
+                                        Barangay {deliveryAddr.barangay},<br/>
+                                        {deliveryAddr.municipality}, {deliveryAddr.province}
+                                    </>
+                                ) : (
+                                    <>
+                                        {resident.houseNumber && `${resident.houseNumber}, `}{resident.street}<br/>
+                                        Barangay {resident.barangay},<br/>
+                                        {resident.municipality}, {resident.province}
+                                    </>
                                 )}
-                            </div>
+                            </span>
+                            {(deliveryAddr?.landmark || transaction.deliveryLandmark) && (
+                                <div className="mt-1 p-1 bg-black/5 rounded-sm">
+                                    <span className="text-[5px] font-bold uppercase text-slate-400 block leading-none">Landmark</span>
+                                    <span className="text-[7px] font-black italic uppercase leading-none">
+                                        {deliveryAddr?.landmark || transaction.deliveryLandmark}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Service & Payment Metadata */}

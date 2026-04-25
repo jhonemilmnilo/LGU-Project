@@ -293,7 +293,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             subject,
             html: htmlBody,
         });
-        
+
         console.log(`Email (${type}) sent successfully to ${to}: ${info.messageId}`);
         return { success: true };
     } catch (error: any) {

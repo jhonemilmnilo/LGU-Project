@@ -301,17 +301,23 @@ export default function RequestHubPage() {
             case "FOR_PROCESSING":
                 return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
             case "FOR_CLAIM":
-                return { label: "FOR CLAIM", color: "bg-blue-600 text-white border-blue-600", icon: Clock };
+                return { label: "FOR CLAIM", color: "bg-blue-600 text-white border-blue-600 shadow-blue-500/20", icon: Clock };
             case "EVALUATED":
-                return { label: "EVALUATED", color: "bg-primary text-white border-primary", icon: DollarSign };
+                return { label: "EVALUATED", color: "bg-primary text-white border-primary shadow-primary/20", icon: DollarSign };
             case "PAID":
-                return { label: "PAID", color: "bg-primary text-white border-primary", icon: Clock };
+                return { label: "PAID", color: "bg-primary text-white border-primary shadow-primary/20", icon: Clock };
+            case "FOR_PICKING":
+                return { label: "FOR DELIVERY", color: "bg-amber-500 text-white border-amber-500 shadow-amber-500/20", icon: Clock };
+            case "IN_ROUTE":
+                return { label: "IN ROUTE", color: "bg-blue-500 text-white border-blue-500 shadow-blue-500/20", icon: Truck };
+            case "DELIVERED":
+                return { label: "DELIVERED", color: "bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20", icon: CheckCircle2 };
             case "RELEASED":
-                return { label: "RELEASED", color: "bg-emerald-500 text-white border-emerald-500", icon: CheckCircle2 };
+                return { label: "RELEASED", color: "bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20", icon: CheckCircle2 };
             case "REJECTED":
-                return { label: "REJECTED", color: "bg-red-500 text-white border-red-500", icon: XCircle };
+                return { label: "REJECTED", color: "bg-red-500 text-white border-red-500 shadow-red-500/20", icon: XCircle };
             default:
-                return { label: status, color: "bg-slate-900 text-white border-slate-900", icon: Clock };
+                return { label: status.replace(/_/g, " "), color: "bg-slate-900 text-white border-slate-900", icon: Clock };
         }
     };
 
@@ -529,7 +535,7 @@ export default function RequestHubPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         {[
                                             { id: "PICK_UP", label: "Office Pickup", icon: Building2 },
-                                            { id: "DELIVERY", label: "Premium Delivery", icon: Truck }
+                                            { id: "DELIVERY", label: " Delivery", icon: Truck }
                                         ].map(opt => (
                                             <button key={opt.id} onClick={() => {
                                                 setLocalFulfillment(opt.id as any);
@@ -822,7 +828,7 @@ export default function RequestHubPage() {
                                 <div>
                                     <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic mb-10">Admin Assessment</h3>
                                     <p className="text-lg font-bold italic opacity-90 leading-relaxed">
-                                        &quot;{request.status === "RELEASED"
+                                        &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
                                             ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Your official records have been successfully finalized, verified, and archived for your use."
                                             : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence for final issuance.`)}&quot;
                                     </p>
@@ -873,173 +879,87 @@ export default function RequestHubPage() {
                     </TabsContent>
 
                     <TabsContent value="logistics" className="mt-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-                            {/* Fulfillment Strategy & Action */}
-                            <Card className={cn(
-                                "p-8 border-slate-200 dark:border-white/5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-[2.5rem] relative overflow-hidden group",
-                                request.status === "RELEASED" ? "bg-primary/5 dark:bg-primary/10 border-primary/20" : "bg-white dark:bg-slate-950/50"
-                            )}>
-                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <Truck className="w-32 h-32 rotate-12" />
-                                </div>
+                        <div className="grid grid-cols-1 items-start">
 
-                                <div className="relative z-10 space-y-8">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Service Deployment Strategy</h4>
-
-                                    {request.fulfillmentType ? (
-                                        <div className="space-y-8">
-                                            <div className="flex items-center gap-6 p-6 bg-white dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm">
-                                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
-                                                    {request.fulfillmentType === "E_COPY" ? <FileText className="w-8 h-8" /> : <Truck className="w-8 h-8" />}
-                                                </div>
-                                                <div>
-                                                    <h5 className="font-black uppercase tracking-widest text-lg leading-none italic">{request.fulfillmentType.replace("_", " ")}</h5>
-                                                    <p className="text-[10px] font-bold text-slate-400 italic uppercase tracking-widest mt-1">Confirmed Mode</p>
-                                                </div>
-                                            </div>
-
-                                            {request.fulfillmentType === "DELIVERY" && (
-                                                <div className="space-y-4 pt-4">
-                                                    <p className="text-[9px] uppercase font-black text-slate-400 italic tracking-[0.2em]">Deployment Destination</p>
-                                                    <div className="flex items-start gap-3">
-                                                        <MapPin className="w-4 h-4 text-primary shrink-0 mt-1" />
-                                                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
-                                                            {(() => {
-                                                                const addr = typeof request.deliveryAddress === 'string' ? JSON.parse(request.deliveryAddress || '{}') : request.deliveryAddress;
-                                                                if (!addr) return residentData.barangay ? `${residentData.houseNumber || ""} ${residentData.street || ""}, ${residentData.barangay}, ${residentData.municipality}, ${residentData.province}` : "N/A";
-                                                                return `${addr.houseNumber || ""} ${addr.street || ""}, ${addr.sitio ? `Sitio ${addr.sitio}, ` : ""}${addr.purok ? `Purok ${addr.purok}, ` : ""}${addr.barangay}, ${addr.municipality}, ${addr.province}`.trim().replace(/^,/, "").replace(/ ,/, " ");
-                                                            })()}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* LOGISTICS PROOF (For Delivery) */}
-                                            {request.status === "RELEASED" && request.fulfillmentType === "DELIVERY" && request.deliveryProofUrl && (
-                                                <div className="pt-6">
-                                                    <div className="space-y-4">
-                                                        <p className="text-[9px] uppercase font-black text-emerald-500 italic tracking-[0.2em]">Logistics Completion Evidence</p>
-                                                        <div className="relative aspect-[16/10] rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/5 shadow-2xl group/img">
-                                                            <Image
-                                                                src={request.deliveryProofUrl}
-                                                                alt="Delivery Proof"
-                                                                fill
-                                                                className="object-cover transition-transform duration-700 group-hover/img:scale-110"
-                                                                unoptimized
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <a href={request.deliveryProofUrl} target="_blank" className="bg-white text-[9px] font-black uppercase text-slate-900 px-6 py-2.5 rounded-xl shadow-xl hover:scale-105 transition-all">Inspect Proof</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {request.status === "FOR_CLAIM" && (
-                                                <div className="pt-6 animate-in slide-in-from-bottom-4 duration-500">
-                                                    <div className="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2rem] p-8 space-y-6 relative overflow-hidden group/claim">
-                                                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover/claim:opacity-10 transition-opacity">
-                                                            <Wallet className="w-24 h-24 rotate-12" />
-                                                        </div>
-                                                        
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                                                                <Clock className="w-6 h-6" />
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="text-sm font-black italic uppercase tracking-widest text-primary">Ready for Claiming</h4>
-                                                                <p className="text-[10px] font-bold text-slate-400 italic uppercase">Visit the Treasury Office</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-4">
-                                                            <div className="p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
-                                                                <p className="text-[9px] font-black uppercase text-slate-400 italic">Total Amount Due</p>
-                                                                <p className="text-3xl font-black italic text-primary tracking-tighter">₱{request.totalAmount?.toLocaleString()}</p>
-                                                            </div>
-
-                                                            <div className="flex items-start gap-3 px-2">
-                                                                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                                                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                                                                    Your request is ready for claim! Please make sure to bring a <span className="text-primary font-black">valid ID</span> and the <span className="text-primary font-black text-xs">exact amount</span> for your payment.
-                                                                </p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="pt-2">
-                                                            <div className="flex items-center justify-between text-[8px] font-black uppercase italic text-slate-400 tracking-[0.2em]">
-                                                                <span>Ref: {id.slice(-8).toUpperCase()}</span>
-                                                                <span>LGU Mapandan</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="p-10 text-center space-y-4">
-                                            <div className="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-3xl flex items-center justify-center text-slate-200 dark:text-slate-800 mx-auto border border-dashed border-slate-200">
-                                                <Clock className="w-8 h-8" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black uppercase text-slate-400 italic tracking-[0.2em]">Configuration Pending</p>
-                                                <p className="text-[9px] font-bold text-slate-400/60 uppercase italic">Awaiting Administrative Evaluation</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </Card>
-
-                            <Card className="p-8 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] rounded-[2.5rem] flex flex-col">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic mb-8">Documentary Clearance Vault</h4>
-                                <div className="grid grid-cols-2 gap-6 flex-1">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+                            <div className="space-y-6">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic px-4">Documentary Clearance</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {[
                                         { label: "Government State ID", url: additionalData.validIdUrl },
                                         { label: "Income Evidence / Assets", url: additionalData.proofOfIncomeUrl }
                                     ].map((doc, i) => (
-                                        <div key={i} className="relative aspect-video rounded-3xl border-2 border-slate-100 dark:border-white/5 overflow-hidden group/doc">
-                                            {doc.url ? <>
+                                        doc.url ? (
+                                            <a 
+                                                key={i} 
+                                                href={doc.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="relative aspect-[3/4] rounded-2xl border-2 border-slate-100 dark:border-white/5 overflow-hidden group/doc hover:scale-[1.02] transition-all shadow-sm block"
+                                            >
                                                 <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
-                                                <div className="absolute inset-0 bg-slate-950/80 flex flex-col items-center justify-center opacity-0 group-hover/doc:opacity-100 transition-opacity p-6 text-center">
-                                                    <p className="text-[8px] font-black uppercase text-primary mb-2 italic">Stored Evidence</p>
-                                                    <a href={doc.url} target="_blank" className="text-[9px] font-black uppercase text-white bg-white/10 hover:bg-primary px-5 py-2.5 rounded-xl italic shadow-lg border border-white/20 transition-all">Inspect File</a>
+                                                <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover/doc:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                                                        <ExternalLink className="w-4 h-4 text-white" />
+                                                    </div>
                                                 </div>
-                                                <div className="absolute top-4 left-4"><Badge className="text-[8px] bg-white/90 dark:bg-slate-950/90 text-slate-900 dark:text-white border-none font-black italic tracking-widest">{doc.label}</Badge></div>
-                                            </> : (
-                                                <div className="h-full flex flex-col items-center justify-center text-slate-200 bg-slate-50 dark:bg-white/5">
-                                                    <XCircle className="w-10 h-10 mb-2 opacity-50" />
-                                                    <p className="text-[8px] font-black uppercase text-slate-300 italic">Not Required</p>
+                                                <div className="absolute bottom-2 left-2 right-2">
+                                                    <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate shadow-sm">
+                                                        {doc.label}
+                                                    </Badge>
                                                 </div>
-                                            )}
-                                        </div>
+                                            </a>
+                                        ) : (
+                                            <div key={i} className="relative aspect-[3/4] rounded-2xl border-2 border-slate-100 dark:border-white/5 overflow-hidden bg-slate-50 dark:bg-white/5 flex flex-col items-center justify-center text-slate-200">
+                                                <XCircle className="w-8 h-8 mb-1 opacity-50" />
+                                                <p className="text-[7px] font-black uppercase text-slate-300 italic">Not Required</p>
+                                            </div>
+                                        )
                                     ))}
                                 </div>
-                                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 space-y-8">
-                                    {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl) && (
-                                        <div className="bg-slate-900 dark:bg-black p-8 rounded-[2rem] text-white space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Download className="w-5 h-5 text-white" /></div>
-                                                <div>
-                                                    <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70">Electronic Registry</p>
-                                                    <p className="text-xs font-bold italic tracking-tight">Your official document is stored here.</p>
-                                                </div>
-                                            </div>
-                                            <Button asChild className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl group">
-                                                <a href={request.eCopyUrl || request.cedula?.documentUrl} target="_blank" rel="noopener noreferrer">
-                                                    Download Official Record <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    )}
+                            </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></div>
-                                        <p className="text-[9px] font-black uppercase italic text-slate-400">Authenticated Records Vault</p>
+                            <div className="space-y-6">
+                                {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl) && (
+                                    <div className="bg-slate-900 dark:bg-[#0d1117] p-8 md:p-10 rounded-[2.5rem] text-white space-y-8 shadow-2xl border border-white/5 animate-in slide-in-from-right-8 duration-700">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Download className="w-5 h-5 text-white" /></div>
+                                            <div>
+                                                <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70">E-Copy</p>
+                                                <p className="text-xs font-bold italic tracking-tight">Your official document is stored here.</p>
+                                            </div>
+                                        </div>
+                                        <Button asChild className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl group">
+                                            <a href={request.eCopyUrl || request.cedula?.documentUrl} target="_blank" rel="noopener noreferrer">
+                                                Download Official Record <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                            </a>
+                                        </Button>
                                     </div>
-                                </div>
-                            </Card>
+                                )}
+
+                                {request.status === "DELIVERED" && request.podUrl && (
+                                    <div className="bg-emerald-500/5 p-8 md:p-10 rounded-[2.5rem] border border-emerald-500/20 space-y-8 animate-in slide-in-from-right-8 duration-700 delay-100">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                                                <Camera className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic opacity-70">Delivery Validation</p>
+                                                <p className="text-xs font-bold italic tracking-tight text-slate-900 dark:text-white">Proof of Delivery (POD)</p>
+                                            </div>
+                                        </div>
+                                        <Button asChild variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10 transition-all group">
+                                            <a href={request.podUrl} target="_blank" rel="noopener noreferrer">
+                                                View Delivery Snapshot <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                            </a>
+                                        </Button>
+                                    </div>
+                                )}
+
+                            </div>
                         </div>
-                    </TabsContent>
+                    </div>
+                </TabsContent>
                 </Tabs>
             )}
         </div>
