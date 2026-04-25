@@ -260,17 +260,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const handleRelease = useCallback(async () => {
         const isPickupCash = transaction?.fulfillmentType === "PICK_UP" && transaction?.paymentType === "CASH";
-        const isInitialCashPickup = isPickupCash && transaction?.status === "FOR_PROCESSING";
-        const isFinalCashPickup = isPickupCash && transaction?.status === "FOR_CLAIM";
 
-        // CTC required for all EXCEPT initial cash pickup preparation. 
-        // But for final cash pickup release (FOR_CLAIM), it IS required because it wasn't recorded earlier.
-        const ctcRequired = (!["FOR_CLAIM", "FOR_PICKING"].includes(transaction?.status) && !isInitialCashPickup) || isFinalCashPickup;
-        if (!ctcNumber && ctcRequired) { toast.error("CTC Number Required"); return; }
+        // CTC required for all initial processing phases
+        const ctcRequired = !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        if (!ctcNumber && ctcRequired && !transaction?.cedula?.ctcNumber) { toast.error("CTC Number Required"); return; }
         setActionLoading(true);
         try {
-            // Strict Validation: E-Copy is REQUIRED for initial processing (except Cash Pickups) and final Cash Pickup release
-            const eCopyRequired = (transaction?.status === "FOR_PROCESSING" && !isPickupCash) || isFinalCashPickup;
+            // Strict Validation: E-Copy is REQUIRED for initial processing
+            const eCopyRequired = transaction?.status === "FOR_PROCESSING" || 
+                                 (transaction?.status === "PAID" && (transaction?.fulfillmentType === "E_COPY" || transaction?.fulfillmentType === "DELIVERY"));
             
             if (eCopyRequired && !eCopyFile && !transaction.eCopyUrl) {
                 toast.error("Digital E-Copy is required before proceeding.");
@@ -661,10 +659,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* DIGITAL ISSUANCE (E-COPY) - Visible in FOR_PROCESSING (except Cash Pickups), FOR_CLAIM (Cash Pickups), or for PAID digital deliveries */}
+                    {/* DIGITAL ISSUANCE (E-COPY) - Visible in FOR_PROCESSING, FOR_CLAIM (if not yet recorded), or for PAID digital deliveries */}
                     {(
-                        (transaction.status === "FOR_PROCESSING" && !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH")) || 
-                        (transaction.status === "FOR_CLAIM" && transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") ||
+                        transaction.status === "FOR_PROCESSING" || 
+                        (transaction.status === "FOR_CLAIM" && 
+                            !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") && 
+                            !transaction.eCopyUrl
+                        ) ||
                         (transaction.status === "PAID" && (
                             transaction.fulfillmentType === "E_COPY" || 
                             (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
@@ -815,8 +816,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        {/* Gated CTC Entry: Locked for processed digital/delivery flows. Open for initial prepare (except Cash Pickup) and final cash release. */}
-                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING") && !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH")) ? (
+                                        {/* Gated CTC Entry: Locked for processed digital/delivery flows. */}
+                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING")) ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
                                                 <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -828,7 +829,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || "RECORDED"}</span> is locked and ready for release.
                                                 </p>
                                             </div>
-                                        ) : (transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") ? null : (
+                                        ) : (
                                             <div className="space-y-6 animate-in zoom-in-95">
                                                 {/* Digital Copy Warning (Conditional) */}
                                                 {(
@@ -876,10 +877,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 onClick={handleRelease} 
                                                 disabled={
                                                     actionLoading || 
-                                                    // Requirement: CTC needed for all EXCEPT initial Cash Pickup prepare
-                                                    (!(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING") && !ctcNumber) ||
-                                                    // Requirement: E-Copy needed for E-COPY fulfillment
-                                                    (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
+                                                    // Requirement: CTC needed for initial processing
+                                                    (!["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
+                                                    // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows
+                                                    ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl)
                                                 } 
                                                 className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                             >

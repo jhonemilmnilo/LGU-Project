@@ -1015,7 +1015,7 @@ export default function RequestHubPage() {
                                     ))}
                                 </div>
                                 <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 space-y-8">
-                                    {(request.status === "RELEASED" || request.status === "FOR_CLAIM") && (request.eCopyUrl || request.cedula?.documentUrl) && (
+                                    {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl) && (
                                         <div className="bg-slate-900 dark:bg-black p-8 rounded-[2rem] text-white space-y-6 shadow-xl animate-in zoom-in-95 duration-500">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Download className="w-5 h-5 text-white" /></div>
