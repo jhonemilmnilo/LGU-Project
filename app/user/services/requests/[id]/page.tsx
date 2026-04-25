@@ -106,7 +106,7 @@ export default function RequestHubPage() {
         name: "OFFICIAL TREASURY ACCOUNT",
         number: "SCAN TO VIEW"
     });
-    const [themeColor, setThemeColor] = useState("#2563eb");
+    const [themeColor, setThemeColor] = useState("");
     const [availableBarangays, setAvailableBarangays] = useState<any[]>([]);
     const [brgySearch, setBrgySearch] = useState("");
     const [isBrgyOpen, setIsBrgyOpen] = useState(false);
@@ -158,8 +158,6 @@ export default function RequestHubPage() {
             } catch (err) {
                 console.error("Fetch error:", err);
                 toast.error("Failed to load request details");
-            } finally {
-                setLoading(false);
             }
         }
 
@@ -190,9 +188,17 @@ export default function RequestHubPage() {
             }
         }
 
-        fetchRequest();
-        fetchSettings();
-        fetchLogistics();
+        async function initialize() {
+            setLoading(true);
+            await Promise.all([
+                fetchRequest(),
+                fetchSettings(),
+                fetchLogistics()
+            ]);
+            setLoading(false);
+        }
+
+        initialize();
     }, [id, router]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

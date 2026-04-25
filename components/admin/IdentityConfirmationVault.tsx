@@ -9,7 +9,7 @@ import {
     DialogTrigger 
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { UserRound, Mail, Phone } from "lucide-react"
+import { UserRound, Phone } from "lucide-react"
 import { differenceInYears } from "date-fns"
 
 interface IdentityConfirmationVaultProps {
@@ -39,7 +39,7 @@ const IdentityConfirmationVault = ({ resident, themeColor }: IdentityConfirmatio
                         <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter leading-none text-white">
                             Resident <span className="text-primary">Identity</span>
                         </DialogTitle>
-                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.3em] italic opacity-80">Authenticated Citizen Snapshot Data Record.</p>
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.3em] italic opacity-80">Citizen Data Record</p>
                     </DialogHeader>
 
                     <div className="grid grid-cols-12 gap-x-8 gap-y-10">
@@ -95,12 +95,11 @@ const IdentityConfirmationVault = ({ resident, themeColor }: IdentityConfirmatio
                             </div>
                         </div>
 
-                        {/* Row 3: Contact */}
+                        {/* Row 3: Contact & Occupation */}
                         <div className="col-span-6 space-y-3">
-                            <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Email Address</label>
-                            <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] lowercase gap-4 text-slate-100">
-                                <Mail className="w-5 h-5 text-primary flex-shrink-0" />
-                                {resident?.email || "--"}
+                            <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Occupation</label>
+                            <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
+                                {resident?.occupation || "--"}
                             </div>
                         </div>
                         <div className="col-span-6 space-y-3">

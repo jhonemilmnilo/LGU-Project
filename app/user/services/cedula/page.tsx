@@ -6,7 +6,6 @@ import {
     CheckCircle2, 
     Calculator, 
     User,
-    Info,
     ChevronRight,
     Loader2,
     Check,
@@ -166,7 +165,7 @@ export default function CedulaApplicationPage() {
                 return !!formData.typeId;
             case "RESIDENT":
                 const r = formData.residentData;
-                return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.email && r?.contactNumber);
+                return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
             case "DECLARATION":
                 // Require Annual Gross Income to be > 0
                 return (parseFloat(formData.income) > 0);
@@ -514,19 +513,18 @@ export default function CedulaApplicationPage() {
                                             </div>
                                         </div>
 
-                                        {/* Row 3: Contact */}
+                                        {/* Row 3: Contact & Occupation */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Occupation</Label>
                                                 <div className="relative">
                                                     <Input
-                                                        type="email"
-                                                        value={formData.residentData?.email || ""}
-                                                        onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, email: e.target.value } }))}
-                                                        readOnly={!!initialResident?.email}
-                                                        className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm pl-10", !!initialResident?.email && "bg-slate-50 text-slate-400")}
+                                                        value={formData.residentData?.occupation || ""}
+                                                        onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, occupation: e.target.value } }))}
+                                                        readOnly={!!initialResident?.occupation}
+                                                        className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm", !!initialResident?.occupation && "bg-slate-50 text-slate-400")}
+                                                        placeholder="e.g. Employee, Business Owner"
                                                     />
-                                                    <Info className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                                                 </div>
                                             </div>
                                             <div className="space-y-1.5">
