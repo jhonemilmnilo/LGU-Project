@@ -49,6 +49,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
+    const [branding, setBranding] = useState({
+        word1: "Mapandan",
+        word2: "Express",
+        logo: ""
+    });
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -104,6 +109,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 setThemeColor(res.data);
             }
         });
+
+        // Fetch branding settings
+        Promise.all([
+            getSystemSettingAction("brand_word_1", "Agno"),
+            getSystemSettingAction("brand_word_2", "Express"),
+            getSystemSettingAction("site_logo", "")
+        ]).then(([w1, w2, logo]) => {
+            setBranding({
+                word1: w1.data || "Agno",
+                word2: w2.data || "Express",
+                logo: logo.data || ""
+            });
+        });
     }, [fetchTransaction]);
 
     const handleReject = async () => {
@@ -141,7 +159,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl);
             if (res.success) { 
-                toast.success(res.data?.status === "FOR_CLAIM" ? "Marked as Ready for Claiming" : "Document Released"); 
+                const status = res.data?.status;
+                const message = status === "FOR_PICKING" 
+                    ? "Ready for Picking" 
+                    : status === "FOR_CLAIM" 
+                        ? "Marked as Ready for Claiming" 
+                        : "Document Released";
+                toast.success(message); 
                 setECopyFile(null); 
                 router.push("/admin/treasury");
             }
@@ -216,12 +240,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         { id: "FOR_REQUESTING", label: "EVALUATION" },
         { id: "EVALUATED", label: "ASSESSMENT" },
         { id: "FOR_PROCESSING", label: "PROCESSING" },
-        { id: "FOR_CLAIM", label: "CLAIMING" },
+        { 
+            id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM", 
+            label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING" 
+        },
         { id: "RELEASED", label: "RELEASED" },
     ];
 
     const getEffectiveStatus = (s: string) => {
-        if (s === "PAID") return "FOR_CLAIM"; // Paid online is equivalent to Ready for Claim
+        if (s === "PAID") return transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM";
         return s;
     };
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
@@ -245,6 +272,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) { toast.success("Payment Confirmed"); fetchTransaction(); }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
+    };
+
+    const handlePrintWaybill = () => {
+        window.print();
     };
 
 
@@ -511,13 +542,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        {/* Gated CTC Entry: For E-COPY, wait for digital record upload selection. For FOR_CLAIM, skip as it's already recorded. */}
-                                        {transaction.status === "FOR_CLAIM" ? (
+                                        {/* Gated CTC Entry: For E-COPY, wait for digital record upload selection. For FOR_CLAIM/FOR_PICKING, skip as it's already recorded. */}
+                                        {(transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING") ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
                                                 <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                                 </div>
-                                                <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-500 italic">Document Prepared</p>
+                                                <p className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-500 italic">
+                                                    {transaction.status === "FOR_PICKING" ? "Ready for Dispatch" : "Document Prepared"}
+                                                </p>
                                                 <p className="text-[11px] font-bold text-emerald-900/60 dark:text-emerald-500/60 tracking-tight italic leading-relaxed">
                                                     Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || "RECORDED"}</span> is locked and ready for release.
                                                 </p>
@@ -543,16 +576,27 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         )}
 
                                         <div className="space-y-3 pt-2">
+                                            {/* WAYBILL GENERATION: Required for Delivery Dispatch */}
+                                            {transaction.fulfillmentType === "DELIVERY" && transaction.status === "FOR_PROCESSING" && (
+                                                <Button 
+                                                    onClick={handlePrintWaybill}
+                                                    variant="outline"
+                                                    className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all mb-2"
+                                                >
+                                                    Generate & Print Waybill
+                                                </Button>
+                                            )}
+
                                             <Button 
                                                 onClick={handleRelease} 
                                                 disabled={
                                                     actionLoading || 
-                                                    (transaction.status !== "FOR_CLAIM" && !ctcNumber) || 
+                                                    (transaction.status !== "FOR_CLAIM" && transaction.status !== "FOR_PICKING" && !ctcNumber) || 
                                                     (transaction.fulfillmentType === "E_COPY" && !eCopyFile && !transaction.eCopyUrl)
                                                 } 
                                                 className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                             >
-                                                {actionLoading ? "Processing..." : transaction.status === "FOR_PROCESSING" ? "Mark Ready for Claiming" : "Confirm & Release Document"}
+                                                {actionLoading ? "Processing..." : transaction.status === "FOR_PROCESSING" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                             </Button>
 
                                             <Button 
@@ -586,6 +630,106 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     </div>
                 </div>
             </main>
+
+            {/* HIGH-FIDELITY MUNICIPAL WAYBILL (PRINT ONLY) */}
+            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible text-black font-sans leading-tight">
+                <style dangerouslySetInnerHTML={{ __html: `
+                    @media print {
+                        @page { size: 100mm 150mm; margin: 0; }
+                        body { visibility: hidden; }
+                        .print-only { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 5mm; }
+                    }
+                `}} />
+                
+                <div className="print-only flex flex-col h-full border-[3px] border-black rounded-sm">
+                    {/* Header: Dynamic Branding */}
+                    <div className="border-b-[3px] border-black p-3 flex items-center justify-between bg-black text-white">
+                        <div className="flex items-center gap-3">
+                            {branding.logo ? (
+                                <img src={branding.logo} alt="Logo" className="w-10 h-10 object-contain" />
+                            ) : (
+                                <div className="w-8 h-8 border-2 border-white rounded-full flex items-center justify-center font-black text-[10px]">A</div>
+                            )}
+                            <div className="flex flex-col">
+                                <span className="text-[14px] font-black italic tracking-tighter uppercase leading-none">
+                                    {branding.word1} <span className="text-white/70 italic tracking-normal">{branding.word2}</span>
+                                </span>
+                                <span className="text-[6px] font-bold uppercase tracking-widest opacity-80 italic">Official Municipal Logistics</span>
+                            </div>
+                        </div>
+                        <div className="text-[10px] font-black uppercase italic tracking-widest border border-white px-2 py-1">Waybill</div>
+                    </div>
+
+                    {/* QR Code Segment */}
+                    <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4 border-b-[2px] border-black border-dashed">
+                        <div className="relative w-40 h-40 bg-white p-2 border border-slate-100 shadow-sm">
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${transaction.id}`} 
+                                alt="Tracking QR" 
+                                className="w-full h-full"
+                            />
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <span className="text-[12px] font-black italic tracking-[0.3em] font-mono leading-none">{transaction.id.slice(-12).toUpperCase()}</span>
+                            <span className="text-[6px] font-bold uppercase text-slate-500 mt-1">Transaction Tracking Reference</span>
+                        </div>
+                    </div>
+
+                    {/* Logistics Data Segment */}
+                    <div className="p-4 grid grid-cols-2 gap-4 border-b-[3px] border-black">
+                        <div className="space-y-3">
+                            <div className="flex flex-col">
+                                <span className="text-[6px] font-bold uppercase text-slate-500">Recipient Name</span>
+                                <span className="text-[11px] font-black uppercase italic leading-tight">{resident.firstName} {resident.lastName}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[6px] font-bold uppercase text-slate-500">Contact Number</span>
+                                <span className="text-[10px] font-bold italic tracking-widest">{resident.contactNumber || "--"}</span>
+                            </div>
+                        </div>
+                            <div className="flex flex-col">
+                                <span className="text-[6px] font-bold uppercase text-slate-500">Delivery Address</span>
+                                <span className="text-[9px] font-bold uppercase leading-tight italic">
+                                    {resident.houseNumber && `${resident.houseNumber}, `}{resident.street}<br/>
+                                    Barangay {resident.barangay},<br/>
+                                    {resident.municipality}, {resident.province}
+                                </span>
+                                {transaction.deliveryLandmark && (
+                                    <div className="mt-1 p-1 bg-black/5 rounded-sm">
+                                        <span className="text-[5px] font-bold uppercase text-slate-400 block leading-none">Landmark</span>
+                                        <span className="text-[7px] font-black italic uppercase leading-none">{transaction.deliveryLandmark}</span>
+                                    </div>
+                                )}
+                            </div>
+                    </div>
+
+                    {/* Service & Payment Metadata */}
+                    <div className="p-3 bg-slate-50 grid grid-cols-3 gap-2 border-b-[3px] border-black">
+                        <div className="flex flex-col">
+                            <span className="text-[5px] font-bold uppercase">Payment Type</span>
+                            <span className="text-[7px] font-black uppercase italic tracking-tighter">{transaction.paymentType?.replace(/_/g, " ")}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[5px] font-bold uppercase">Service</span>
+                            <span className="text-[7px] font-black uppercase italic tracking-tighter truncate">{transaction.type.name}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                            <span className="text-[5px] font-bold uppercase">Amount Due</span>
+                            <span className="text-[9px] font-black italic tracking-tighter text-primary">₱{(fiscal?.totalAmount || transaction.totalAmount || 0).toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    {/* Instructions & Footnote */}
+                    <div className="flex-1 p-3 flex flex-col justify-end italic">
+                        <div className="border-t-[2px] border-black border-dotted pt-2">
+                            <p className="text-[7px] font-bold uppercase leading-relaxed text-slate-600">
+                                * Official document for municipal logistics use only. Handle with extreme care. 
+                                If document is damaged, please report immediately to the Treasury Office.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

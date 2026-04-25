@@ -25,7 +25,8 @@ model User {
   reports           Report[]
   residentProfile   Resident?
   sessions          Session[]
-  transactions      Transaction[]
+  transactions      Transaction[] @relation("ResidentTransactions")
+  driverTransactions Transaction[] @relation("DriverTransactions")
 }
 
 model Account {
@@ -519,6 +520,7 @@ enum UserRole {
   BARANGAY_ADMIN
   TREASURY_STAFF
   ADMIN_AIDE
+  RIDER
 }
 
 enum ResidentStatus {
@@ -571,7 +573,9 @@ model TransactionType {
 model Transaction {
   id                String            @id @default(cuid())
   userId            String
-  user              User              @relation(fields: [userId], references: [id])
+  user              User              @relation("ResidentTransactions", fields: [userId], references: [id])
+  driverId          String?
+  driver            User?             @relation("DriverTransactions", fields: [driverId], references: [id])
   typeId            String
   type              TransactionType   @relation(fields: [typeId], references: [id])
   status            TransactionStatus @default(DRAFT)
@@ -600,8 +604,10 @@ model Transaction {
   // Audit & Workflow
   processedBy       String?           // User ID of the Treasury Staff who handled it
   rejectionRemarks  String?
-  deliveryProofUrl  String?
-  deliveryProofAt   DateTime?
+  podUrl            String?           // Proof of Delivery Image URL
+  podData           Json?             // Stores paidAmount, change, timestamp, etc.
+  inRouteAt         DateTime?         // Tracking for when the delivery started
+  deliveredAt       DateTime?
   
   cedula            Cedula?           // One-to-one link to the issued document
   
@@ -638,6 +644,9 @@ enum TransactionStatus {
   FOR_PROCESSING
   EVALUATED
   FOR_CLAIM
+  FOR_PICKING
+  IN_ROUTE
+  DELIVERED
   UNPAID
   PAID
   RELEASED

@@ -192,8 +192,8 @@ export async function getDeliveryFeeByBarangay(name: string) {
         const brgy = await prisma.barangayInfo.findUnique({
             where: { name }
         });
-        return { 
-            success: true, 
+        return {
+            success: true,
             data: {
                 fee: (brgy as any)?.deliveryFee || 0,
                 isActive: (brgy as any)?.isLogisticsActive ?? true
@@ -399,12 +399,12 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
 
         // Dynamic Delivery Fee Lookup from BarangayInfo
         let dynamicDeliveryFee = transaction.type.deliveryFee; // Initial fallback
-        
+
         if (transaction.fulfillmentType === "DELIVERY" && (transaction.deliveryAddress || (transaction as any).residentSnapshot)) {
-            const addr = (typeof transaction.deliveryAddress === 'string' 
-                ? JSON.parse(transaction.deliveryAddress || '{}') 
+            const addr = (typeof transaction.deliveryAddress === 'string'
+                ? JSON.parse(transaction.deliveryAddress || '{}')
                 : transaction.deliveryAddress) || (transaction as any).residentSnapshot;
-            
+
             if (addr?.barangay) {
                 const brgyLogistics = await prisma.barangayInfo.findUnique({
                     where: { name: addr.barangay }
@@ -511,7 +511,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         if (fulfillmentType === "DELIVERY") {
             let actualDeliveryFee = transaction.type.deliveryFee || 0;
             const barangayName = deliveryAddress?.barangay;
-            
+
             if (barangayName) {
                 const brgy = await prisma.barangayInfo.findUnique({
                     where: { name: barangayName }
@@ -522,7 +522,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
                     actualDeliveryFee = brgy.deliveryFee;
                 }
             }
-            
+
             finalAmount += actualDeliveryFee;
         }
 
@@ -628,7 +628,9 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         // Determine target status and email type
         const isFromProcessing = transaction.status === "FOR_PROCESSING";
-        const targetStatus = isFromProcessing ? "FOR_CLAIM" : "RELEASED";
+        const targetStatus = isFromProcessing
+            ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
+            : "RELEASED";
 
         // Check if CTC Number is already used by another transaction
         if (ctcNumber && isFromProcessing) {
@@ -851,5 +853,86 @@ export async function getUserTransactions() {
     } catch (error) {
         console.error("Fetch user transactions error:", error);
         return { success: false, error: "Failed to fetch your requests" };
+    }
+}
+
+/**
+ * Logistics: Scan to Dispatch (Rider Side)
+ */
+export async function handoverTransaction(transactionId: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+
+        // Security: Only Riders can scan to pick up
+        if (!user || user.role !== "RIDER") {
+            return { success: false, error: "Unauthorized. Logistics Personnel only." };
+        }
+
+        const transaction = await (prisma.transaction.findUnique as any)({
+            where: { id: transactionId },
+            include: { user: true, type: true }
+        });
+
+        if (!transaction || (transaction as any).status !== "FOR_PICKING") {
+            return { success: false, error: "Transaction is not in the 'Ready for Picking' stage." };
+        }
+
+        const updated = await prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+                status: "IN_ROUTE",
+                driverId: user.id
+            } as any
+        });
+
+        // Trigger Notification: Notify resident that document is OTW
+        const snapshot = transaction.residentSnapshot as any;
+        if (transaction.user?.email) {
+            await sendEmail({
+                type: "IN_ROUTE",
+                to: transaction.user.email,
+                name: `${snapshot?.firstName} ${snapshot?.lastName}`,
+                transactionId: transaction.id,
+                amount: transaction.totalAmount
+            });
+        }
+
+        revalidatePath("/admin/treasury");
+        revalidatePath(`/admin/treasury/${transactionId}`);
+        return { success: true, data: updated };
+    } catch (error: any) {
+        console.error("Handover error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Logistics: Confirm Delivery (Rider Side)
+ */
+export async function deliverTransaction(transactionId: string, podUrl: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+
+        if (!user || user.role !== "RIDER") {
+            return { success: false, error: "Unauthorized." };
+        }
+
+        const updated = await prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+                status: "DELIVERED",
+                podUrl: podUrl,
+                deliveredAt: new Date()
+            } as any
+        });
+
+        revalidatePath("/admin/treasury");
+        revalidatePath(`/admin/treasury/${transactionId}`);
+        return { success: true, data: updated };
+    } catch (error: any) {
+        console.error("Delivery confirmation error:", error);
+        return { success: false, error: error.message };
     }
 }

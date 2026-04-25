@@ -116,6 +116,7 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
                                         <SelectItem value="BARANGAY_ADMIN">Barangay Admin</SelectItem>
                                         <SelectItem value="TREASURY_STAFF">Treasury Staff</SelectItem>
                                         <SelectItem value="ADMIN_AIDE">Admin Aide</SelectItem>
+                                        <SelectItem value="RIDER">Logistics Rider</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

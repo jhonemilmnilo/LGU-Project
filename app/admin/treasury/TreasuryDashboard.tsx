@@ -70,6 +70,9 @@ export default function TreasuryDashboard() {
             case "FOR_REQUESTING": return "bg-amber-100 text-amber-700 border-amber-200";
             case "EVALUATED": return "bg-blue-100 text-blue-700 border-blue-200";
             case "FOR_CLAIM": return "bg-indigo-100 text-indigo-700 border-indigo-200";
+            case "FOR_PICKING": return "bg-pink-100 text-pink-700 border-pink-200";
+            case "IN_ROUTE": return "bg-orange-100 text-orange-700 border-orange-200";
+            case "DELIVERED": return "bg-teal-100 text-teal-700 border-teal-200";
             case "FOR_PROCESSING": return "bg-sky-100 text-sky-700 border-sky-200";
             case "PAID": return "bg-emerald-100 text-emerald-700 border-emerald-200";
             case "RELEASED": return "bg-slate-100 text-slate-700 border-slate-200";
@@ -89,6 +92,9 @@ export default function TreasuryDashboard() {
                             <TabsTrigger value="EVALUATED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">To Pay</TabsTrigger>
                             <TabsTrigger value="FOR_PROCESSING" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Processing</TabsTrigger>
                             <TabsTrigger value="FOR_CLAIM" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">For Claim</TabsTrigger>
+                            <TabsTrigger value="FOR_PICKING" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">For Picking</TabsTrigger>
+                            <TabsTrigger value="IN_ROUTE" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">In Route</TabsTrigger>
+                            <TabsTrigger value="DELIVERED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Delivered</TabsTrigger>
                             <TabsTrigger value="PAID" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Paid</TabsTrigger>
                             <TabsTrigger value="RELEASED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Released</TabsTrigger>
                             <TabsTrigger value="REJECTED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Rejected</TabsTrigger>
