@@ -9,7 +9,11 @@ import {
     Camera,
     BadgeCheck, ArrowLeft,
     Upload,
-    Check
+    Check,
+    RotateCw,
+    RefreshCcw,
+    ZoomIn,
+    ZoomOut
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -29,11 +33,116 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-// No unused Dialog imports here anymore
 import IdentityConfirmationVault from "@/components/admin/IdentityConfirmationVault";
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogHeader, 
+    DialogTitle, 
+    DialogTrigger 
+} from "@/components/ui/dialog";
 
 interface PageProps {
     params: Promise<{ id: string }>;
+}
+
+/**
+ * High-Fidelity Lightbox View with Transform Controls
+ */
+function LightboxView({ src, alt, label }: { src: string; alt: string; label: string }) {
+    const [scale, setScale] = useState(1);
+    const [rotate, setRotate] = useState(0);
+
+    const handleWheel = (e: React.WheelEvent) => {
+        // Smooth zoom using scroll wheel
+        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+        setScale(prev => Math.min(Math.max(prev + delta, 0.5), 5));
+    };
+
+    const reset = () => {
+        setScale(1);
+        setRotate(0);
+    };
+
+    return (
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center gap-6 outline-none">
+            <DialogHeader className="sr-only">
+                <DialogTitle>{label}</DialogTitle>
+            </DialogHeader>
+            
+            <div 
+                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-move active:cursor-grabbing select-none"
+                onWheel={handleWheel}
+            >
+                <div 
+                    className="relative w-full h-full transition-transform duration-300 ease-out flex items-center justify-center"
+                    style={{ transform: `scale(${scale}) rotate(${rotate}deg)` }}
+                >
+                    <Image 
+                        src={src} 
+                        alt={alt} 
+                        fill 
+                        className="object-contain" 
+                        priority
+                        draggable={false}
+                    />
+                </div>
+            </div>
+
+            {/* Premium Control Bar */}
+            <div className="flex items-center gap-2 px-6 py-3 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl animate-in slide-in-from-bottom-4">
+                <div className="flex items-center gap-1 pr-4 border-r border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white italic whitespace-nowrap">{label}</p>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                        onClick={() => setScale(s => Math.max(s - 0.2, 0.5))}
+                    >
+                        <ZoomOut className="w-4 h-4" />
+                    </Button>
+                    <div className="w-12 text-center text-[10px] font-black text-white/50 italic">
+                        {Math.round(scale * 100)}%
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                        onClick={() => setScale(s => Math.min(s + 0.2, 5))}
+                    >
+                        <ZoomIn className="w-4 h-4" />
+                    </Button>
+                </div>
+
+                <div className="w-px h-4 bg-white/10 mx-2" />
+
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                    onClick={() => setRotate(r => (r + 90) % 360)}
+                    title="Rotate 90°"
+                >
+                    <RotateCw className="w-4 h-4" />
+                </Button>
+
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                    onClick={reset}
+                    title="Reset View"
+                >
+                    <RefreshCcw className="w-4 h-4" />
+                </Button>
+            </div>
+            
+            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan coming soon</p>
+        </DialogContent>
+    );
 }
 
 export default function TreasuryDetailPage({ params }: PageProps) {
@@ -212,6 +321,31 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }
 
     if (!transaction) return <div className="p-20 text-center dark:text-white">Protocol Error: Transaction Inaccessible</div>;
+
+    if (transaction.isCancelled) {
+        return (
+            <div className="min-h-screen bg-white dark:bg-[#0c111d] flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-red-500/20 blur-[80px] rounded-full animate-pulse" />
+                    <div className="p-8 rounded-[3rem] bg-white dark:bg-slate-900 shadow-2xl relative z-10 border border-red-500/20">
+                        <span className="text-8xl">🚫</span>
+                    </div>
+                </div>
+                <div className="space-y-3">
+                    <h1 className="text-6xl font-black italic tracking-tighter text-slate-900 dark:text-white uppercase leading-none">Request Cancelled</h1>
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em] text-red-500 italic">User Retracted This Protocol</p>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
+                    This service request has been officially cancelled by the citizen. No further processing or evaluation is required for this record.
+                </p>
+                <Link href="/admin/treasury">
+                    <Button variant="outline" className="h-14 px-8 rounded-2xl border-2 font-black italic uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all active:scale-95">
+                        Back to Dashboard
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
 
     const additional = transaction.additionalData || {};
     const resident = transaction.residentSnapshot || {};
@@ -392,10 +526,34 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Identity Evidences</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                {[additional.validIdUrl, additional.proofOfIncomeUrl].map((doc, i) => (
-                                    <div key={i} className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center">
-                                        {doc ? <Image src={doc} alt="Doc" fill className="object-cover group-hover:scale-105 transition-transform" /> : <Camera className="w-6 h-6 text-slate-200 dark:text-slate-700" />}
-                                    </div>
+                                {[
+                                    { url: additional.validIdUrl, label: "Valid ID Evidence" },
+                                    { url: additional.proofOfIncomeUrl, label: "Income Verification" }
+                                ].map((doc, i) => (
+                                    <Dialog key={i}>
+                                        <DialogTrigger asChild>
+                                            <div className={cn(
+                                                "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center",
+                                                doc.url && "cursor-zoom-in"
+                                            )}>
+                                                {doc.url ? (
+                                                    <>
+                                                        <Image src={doc.url} alt="Doc" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                                <ZoomIn className="w-5 h-5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <Camera className="w-6 h-6 text-slate-200 dark:text-slate-700" />
+                                                )}
+                                            </div>
+                                        </DialogTrigger>
+                                        {doc.url && (
+                                            <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                                        )}
+                                    </Dialog>
                                 ))}
                             </div>
                         </div>
@@ -407,12 +565,30 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Verification</span>
                                 </div>
-                                <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center h-32">
-                                    {transaction.paymentReference?.startsWith("/uploads/") 
-                                        ? <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
-                                        : <div className="text-center opacity-30 italic font-black text-[9px] uppercase tracking-widest dark:text-slate-500">Awaiting Proof</div>
-                                    }
-                                </div>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <div className={cn(
+                                            "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center h-32",
+                                            transaction.paymentReference?.startsWith("/uploads/") && "cursor-zoom-in"
+                                        )}>
+                                            {transaction.paymentReference?.startsWith("/uploads/") ? (
+                                                <>
+                                                    <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                            <ZoomIn className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center opacity-30 italic font-black text-[9px] uppercase tracking-widest dark:text-slate-500">Awaiting Proof</div>
+                                            )}
+                                        </div>
+                                    </DialogTrigger>
+                                    {transaction.paymentReference?.startsWith("/uploads/") && (
+                                        <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
+                                    )}
+                                </Dialog>
                             </div>
                         )}
                     </div>
@@ -646,7 +822,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     <div className="border-b-[3px] border-black p-3 flex items-center justify-between bg-black text-white">
                         <div className="flex items-center gap-3">
                             {branding.logo ? (
-                                <img src={branding.logo} alt="Logo" className="w-10 h-10 object-contain" />
+                                <Image src={branding.logo} alt="Logo" width={40} height={40} className="w-10 h-10 object-contain" />
                             ) : (
                                 <div className="w-8 h-8 border-2 border-white rounded-full flex items-center justify-center font-black text-[10px]">A</div>
                             )}
@@ -663,9 +839,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     {/* QR Code Segment */}
                     <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4 border-b-[2px] border-black border-dashed">
                         <div className="relative w-40 h-40 bg-white p-2 border border-slate-100 shadow-sm">
-                            <img 
+                            <Image 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${transaction.id}`} 
                                 alt="Tracking QR" 
+                                width={160} 
+                                height={160}
                                 className="w-full h-full"
                             />
                         </div>

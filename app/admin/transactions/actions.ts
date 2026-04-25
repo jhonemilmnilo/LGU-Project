@@ -177,7 +177,7 @@ export async function getTransactionById(id: string) {
             }
         });
         if (!transaction) return { success: false, error: "Transaction not found" };
-        return { success: true, data: transaction };
+        return { success: true, data: transaction as any };
     } catch (error) {
         console.error("Fetch transaction by id error:", error);
         return { success: false, error: "Failed to fetch transaction details" };
@@ -715,11 +715,18 @@ export async function getTreasuryTransactions(status?: string) {
         };
 
         if (status && status !== "ALL") {
-            if (status === "PAID") {
+            if (status === "CANCELLED") {
+                where.isCancelled = true;
+            } else if (status === "PAID") {
                 where.status = "PAID" as any;
+                where.isCancelled = false;
             } else {
                 where.status = status;
+                where.isCancelled = false;
             }
+        } else {
+            // Default: Hide cancelled unless explicitly requested?
+            // Actually, for "ALL" we might want to see them.
         }
 
         const transactions = await prisma.transaction.findMany({
@@ -732,7 +739,7 @@ export async function getTreasuryTransactions(status?: string) {
             orderBy: { createdAt: "desc" }
         });
 
-        return { success: true, data: transactions };
+        return { success: true, data: transactions as any[] };
     } catch (error) {
         console.error("Fetch treasury transactions error:", error);
         return { success: false, error: "Failed to fetch transactions" };
@@ -849,7 +856,7 @@ export async function getUserTransactions() {
             orderBy: { createdAt: "desc" }
         });
 
-        return { success: true, data: transactions };
+        return { success: true, data: transactions as any[] };
     } catch (error) {
         console.error("Fetch user transactions error:", error);
         return { success: false, error: "Failed to fetch your requests" };
@@ -934,5 +941,41 @@ export async function deliverTransaction(transactionId: string, podUrl: string) 
     } catch (error: any) {
         console.error("Delivery confirmation error:", error);
         return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Cancel a transaction (Resident side)
+ */
+export async function cancelTransaction(id: string) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const tx = await (prisma.transaction.findUnique as any)({
+            where: { id }
+        });
+
+        if (!tx) return { success: false, error: "Transaction not found" };
+        if (tx.userId !== session.user.id) return { success: false, error: "Forbidden" };
+        if (tx.isCancelled) return { success: false, error: "This request is already cancelled." };
+        
+        // Only allow cancellation if not yet being processed or delivered
+        const restrictedStatuses = ["FOR_PROCESSING", "FOR_PICKING", "FOR_CLAIM", "IN_ROUTE", "DELIVERED", "RELEASED"];
+        if (restrictedStatuses.includes(tx.status)) {
+            return { success: false, error: "Cannot cancel transaction at this stage as it is already being processed or released." };
+        }
+
+        await (prisma.transaction.update as any)({
+            where: { id },
+            data: { isCancelled: true }
+        });
+
+        revalidatePath("/user/services/requests");
+        revalidatePath(`/user/services/requests/${id}`);
+        return { success: true };
+    } catch (error) {
+        console.error("Cancel transaction error:", error);
+        return { success: false, error: "Failed to cancel transaction" };
     }
 }

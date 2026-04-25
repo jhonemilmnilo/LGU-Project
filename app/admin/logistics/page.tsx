@@ -6,14 +6,7 @@ import {
     Search, 
     Save, 
     RefreshCcw, 
-    MapPin, 
-    Clock, 
-    DollarSign,
-    CheckCircle2,
-    XCircle,
-    Activity,
-    Info,
-    ArrowUpRight
+    Info
 } from "lucide-react";
 import { 
     getAllBarangayLogistics, 

@@ -65,7 +65,9 @@ export default function TreasuryDashboard() {
                refId.includes(searchUpper);
     });
 
-    const getStatusStyles = (status: string) => {
+    const getStatusStyles = (tx: any) => {
+        if (tx.isCancelled) return "bg-red-100 text-red-700 border-red-200";
+        const status = tx.status;
         switch (status) {
             case "FOR_REQUESTING": return "bg-amber-100 text-amber-700 border-amber-200";
             case "EVALUATED": return "bg-blue-100 text-blue-700 border-blue-200";
@@ -98,6 +100,7 @@ export default function TreasuryDashboard() {
                             <TabsTrigger value="PAID" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Paid</TabsTrigger>
                             <TabsTrigger value="RELEASED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Released</TabsTrigger>
                             <TabsTrigger value="REJECTED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Rejected</TabsTrigger>
+                            <TabsTrigger value="CANCELLED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-red-600">Cancelled</TabsTrigger>
                         </TabsList>
 
                         <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -175,9 +178,9 @@ export default function TreasuryDashboard() {
                                                 <TableCell>
                                                     <Badge className={cn(
                                                         "text-[9px] font-black uppercase italic tracking-widest px-2 shadow-none border",
-                                                        getStatusStyles(tx.status)
+                                                        getStatusStyles(tx)
                                                     )}>
-                                                        {tx.status?.replace("_", " ")}
+                                                        {tx.isCancelled ? "CANCELLED" : tx.status?.replace("_", " ")}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right pr-8">

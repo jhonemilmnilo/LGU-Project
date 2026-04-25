@@ -50,7 +50,11 @@ export default function UserServiceRequestsPage() {
         fetchRequests();
     }, []);
 
-    const getStatusStyle = (status: string) => {
+    const getStatusStyle = (req: any) => {
+        if (req.isCancelled) {
+            return { color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20", icon: X, label: "CANCELLED" };
+        }
+        const status = req.status;
         switch (status) {
             case "FOR_REQUESTING": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: "PENDING", opacity: 0.8 };
             case "EVALUATED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "EVALUATED", opacity: 0.9 };
@@ -126,7 +130,7 @@ export default function UserServiceRequestsPage() {
                 {/* Wide Request List */}
                 <div className="space-y-4">
                     {filteredRequests.length > 0 ? filteredRequests.map((req) => {
-                        const style = getStatusStyle(req.status);
+                        const style = getStatusStyle(req);
                         
                         return (
                             <div 
@@ -153,7 +157,12 @@ export default function UserServiceRequestsPage() {
 
                                 <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 dark:border-white/5">
                                     <div className="text-right">
-                                        {req.status !== "FOR_REQUESTING" ? (
+                                        {req.isCancelled ? (
+                                            <div className="py-1">
+                                                <p className="text-[8px] font-black text-red-500/40 uppercase tracking-widest italic">Revoked</p>
+                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-tighter">Cancelled</p>
+                                            </div>
+                                        ) : req.status !== "FOR_REQUESTING" ? (
                                             <>
                                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Fee</p>
                                                 <p className="text-lg font-black text-slate-900 dark:text-white italic">₱{(req.totalAmount || 0).toLocaleString()}</p>
@@ -169,7 +178,9 @@ export default function UserServiceRequestsPage() {
                                         <Badge className={cn("inline-flex items-center gap-1.5 font-black uppercase tracking-widest text-[8px] italic px-4 py-1.5 rounded-full border border-opacity-30 w-full justify-center", style.color, style.bg, style.border)}>
                                             {style.label}
                                         </Badge>
-                                        <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic">Phase {req.status === "RELEASED" ? "4/4" : req.status === "PAID" ? "3/4" : req.status === "EVALUATED" ? "2/4" : "1/4"}</span>
+                                        <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic">
+                                            {req.isCancelled ? "DISCONTINUED" : `Phase ${req.status === "RELEASED" ? "4/4" : req.status === "PAID" ? "3/4" : req.status === "EVALUATED" ? "2/4" : "1/4"}`}
+                                        </span>
                                     </div>
                                     <div className="h-10 w-10 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
                                         <ChevronRight className="w-5 h-5" />

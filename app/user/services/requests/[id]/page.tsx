@@ -58,7 +58,8 @@ import {
     getTransactionById, 
     finalizeTransactionFulfillment, 
     getSystemSettingAction,
-    getPublicBarangayLogistics
+    getPublicBarangayLogistics,
+    cancelTransaction
 } from "@/app/admin/transactions/actions";
 import { getCedulaPenaltyRateLabel } from "@/lib/cedula";
 import Link from "next/link";
@@ -76,6 +77,7 @@ export default function RequestHubPage() {
     const [request, setRequest] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     // Logistics & Payment States
     const [localFulfillment, setLocalFulfillment] = useState<"PICK_UP" | "DELIVERY" | "E_COPY">("PICK_UP");
@@ -267,7 +269,30 @@ export default function RequestHubPage() {
         }
     };
 
+    const handleCancel = async () => {
+        if (!window.confirm("Are you sure you want to cancel this request? This action cannot be undone.")) return;
+        
+        setIsCancelling(true);
+        try {
+            const res = await cancelTransaction(id);
+            if (res.success) {
+                toast.success("Request cancelled successfully.");
+                window.location.reload();
+            } else {
+                toast.error(res.error || "Failed to cancel request");
+            }
+        } catch (error) {
+            console.error("Cancel error:", error);
+            toast.error("Network error during cancellation");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
     const getStatusConfig = (status: string) => {
+        if (request?.isCancelled) {
+            return { label: "CANCELLED", color: "bg-red-600 text-white border-transparent shadow-red-500/20", icon: XCircle };
+        }
         switch (status) {
             case "DRAFT":
                 return { label: "DRAFT", color: "bg-slate-100 text-slate-600 border-slate-200", icon: FileText };
@@ -377,31 +402,43 @@ export default function RequestHubPage() {
                     </BreadcrumbList>
                 </Breadcrumb>
 
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
-                        <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
-                            {request.type?.name || "Service Request"}
-                        </h1>
-                        <div className="flex items-center gap-3 ml-2">
-                            <Badge 
-                                className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest italic rounded-full border shadow-lg")}
-                                style={{ 
-                                    backgroundColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
-                                    borderColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
-                                    color: statusConfig?.color.includes("bg-primary") ? "white" : undefined
-                                }}
-                            >
-                                {statusConfig?.label}
-                            </Badge>
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] italic opacity-70">
-                                Official Record ID: {request.id.slice(-8).toUpperCase()}
-                            </p>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div className="space-y-2">
+                            <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
+                                {request.type?.name || "Service Request"}
+                            </h1>
+                            <div className="flex items-center gap-3 ml-2">
+                                <Badge 
+                                    className={cn("px-4 py-1.5 text-[10px] font-black uppercase tracking-widest italic rounded-full border shadow-lg")}
+                                    style={{ 
+                                        backgroundColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
+                                        borderColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
+                                        color: statusConfig?.color.includes("bg-primary") ? "white" : undefined
+                                    }}
+                                >
+                                    {statusConfig?.label}
+                                </Badge>
+                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] italic opacity-70">
+                                    Official Record ID: {request.id.slice(-8).toUpperCase()}
+                                </p>
+                            </div>
                         </div>
+
+                        {/* Cancellation Trigger */}
+                        {!request.isCancelled && !["FOR_PROCESSING", "FOR_PICKING", "FOR_CLAIM", "IN_ROUTE", "DELIVERED", "RELEASED"].includes(request.status) && (
+                            <Button 
+                                onClick={handleCancel}
+                                disabled={isCancelling}
+                                className="h-12 px-6 rounded-2xl bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 transition-all text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2 group border-none"
+                            >
+                                {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                                Cancel Request
+                            </Button>
+                        )}
                     </div>
-                </div>
             </div>
 
-            {isActionable ? (
+            {isActionable && !request.isCancelled ? (
                 /* Actionable View: Logistics & Payment */
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
                     <div className="xl:col-span-5 space-y-8 xl:sticky xl:top-8 h-fit">
