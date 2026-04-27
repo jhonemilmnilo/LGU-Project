@@ -32,7 +32,7 @@ export function useEventsForm() {
             }, 500);
         } catch (error) {
             console.error("Error saving event:", error);
-            toast.error("Failed to save event. Pakisuri uli pal.");
+            toast.error("Failed to save event. Please check the details and try again.");
         } finally {
             setLoading(false);
         }

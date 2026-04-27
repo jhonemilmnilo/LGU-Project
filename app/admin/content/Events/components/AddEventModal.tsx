@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useEvents } from "../providers/EventsProvider";
 import { useEventsForm } from "../hooks/useEventsForm";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
     Dialog,
     DialogContent,
@@ -27,6 +28,11 @@ export function AddEventModal() {
     const [selectedCategory, setSelectedCategory] = useState<string>("Community");
     const [otherCategory, setOtherCategory] = useState<string>("");
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [googleMapsUrl, setGoogleMapsUrl] = useState<string>("");
+    const [lat, setLat] = useState<string>("");
+    const [lng, setLng] = useState<string>("");
+    const [venueName, setVenueName] = useState<string>("");
+    const [address, setAddress] = useState<string>("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -46,9 +52,73 @@ export function AddEventModal() {
                     setOtherCategory(editingData.category);
                 }
             }
+            setGoogleMapsUrl(editingData.googleMapsUrl || "");
+            setLat(editingData.latitude ? String(editingData.latitude) : "");
+            setLng(editingData.longitude ? String(editingData.longitude) : "");
+            setVenueName(editingData.venueName || "");
+            setAddress(editingData.address || "");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingData]);
+
+    const extractCoordsFromUrl = (url: string) => {
+        // Handle @lat,lng format (most common)
+        const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
+        
+        // Handle !3dLat!4dLng (desktop internal format)
+        const bangMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+        if (bangMatch) return { lat: bangMatch[1], lng: bangMatch[2] };
+
+        // Handle query=lat,lng format
+        const queryMatch = url.match(/[?&]query=(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (queryMatch) return { lat: queryMatch[1], lng: queryMatch[2] };
+
+        // Handle dir/lat,lng format
+        const dirMatch = url.match(/\/dir\/(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (dirMatch) return { lat: dirMatch[1], lng: dirMatch[2] };
+
+        // Handle generic -34.123,150.123 (latitude,longitude) anywhere in URL
+        const genericMatch = url.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (genericMatch) {
+            // Check if it's not part of a zoom level or something else
+            const latVal = parseFloat(genericMatch[1]);
+            const lngVal = parseFloat(genericMatch[2]);
+            // Mapandan is around 16, 120. Reasonable bounds for Agno/Pangasinan:
+            // Lat: 15-17, Lng: 119-121
+            if (latVal > 14 && latVal < 18 && lngVal > 118 && lngVal < 122) {
+                return { lat: genericMatch[1], lng: genericMatch[2] };
+            }
+        }
+        
+        return null;
+    };
+
+    const extractVenueFromUrl = (url: string) => {
+        // Handle /place/Venue+Name/ format
+        const placeMatch = url.match(/\/place\/([^/@]+)/);
+        if (placeMatch) {
+            return decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+        }
+        return null;
+    };
+
+    const handleGoogleMapsUrlChange = (url: string) => {
+        setGoogleMapsUrl(url);
+        
+        // Extract Coordinates from URL
+        const coords = extractCoordsFromUrl(url);
+        if (coords) {
+            setLat(coords.lat);
+            setLng(coords.lng);
+        }
+
+        // Extract Venue Name
+        const venue = extractVenueFromUrl(url);
+        if (venue) {
+            setVenueName(venue);
+        }
+    };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -269,18 +339,20 @@ export function AddEventModal() {
                                         <Input
                                             name="venueName"
                                             required
-                                            defaultValue={editingData?.venueName || ""}
+                                            value={venueName}
+                                            onChange={(e) => setVenueName(e.target.value)}
                                             placeholder="e.g. Mapandan Municipal Plaza"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
                                     </div>
-
+ 
                                     <div className="space-y-2">
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Address / Barangay</Label>
                                         <Input
                                             name="address"
                                             required
-                                            defaultValue={editingData?.address || ""}
+                                            value={address}
+                                            onChange={(e) => setAddress(e.target.value)}
                                             placeholder="e.g. Poblacion, Mapandan"
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
@@ -293,7 +365,8 @@ export function AddEventModal() {
                                                 name="latitude"
                                                 type="number"
                                                 step="any"
-                                                defaultValue={editingData?.latitude || ""}
+                                                value={lat}
+                                                onChange={(e) => setLat(e.target.value)}
                                                 className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                             />
                                         </div>
@@ -303,22 +376,37 @@ export function AddEventModal() {
                                                 name="longitude"
                                                 type="number"
                                                 step="any"
-                                                defaultValue={editingData?.longitude || ""}
+                                                value={lng}
+                                                onChange={(e) => setLng(e.target.value)}
                                                 className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                             />
                                         </div>
                                     </div>
 
+
                                     <div className="space-y-2">
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
                                             <MapIcon className="w-3 h-3 mr-1" /> Google Maps URL
                                         </Label>
-                                        <Input
-                                            name="googleMapsUrl"
-                                            defaultValue={editingData?.googleMapsUrl || ""}
-                                            placeholder="https://goo.gl/maps/..."
-                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                        />
+                                        <div className="flex gap-2">
+                                            <Input
+                                                name="googleMapsUrl"
+                                                value={googleMapsUrl}
+                                                onChange={(e) => handleGoogleMapsUrlChange(e.target.value)}
+                                                placeholder="https://goo.gl/maps/..."
+                                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => window.open('https://www.google.com/maps/@16.0287,120.4022,15z', '_blank')}
+                                                className="h-12 w-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] hover:text-blue-500 shrink-0"
+                                                title="Open Google Maps to find location"
+                                            >
+                                                <MapPin className="w-5 h-5" />
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">

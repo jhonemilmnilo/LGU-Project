@@ -160,7 +160,8 @@ export function AddAccommodationModal() {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 text-blue-600">
                                         <UploadCloud className="w-4 h-4" />
-                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notice Image</h3>
+                                        <input type="hidden" name="storageFolder" value="accommodations" />
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Accommodation Image</h3>
                                     </div>
                                     {(currentBarangay || editingData?.barangay) && (
                                         <input 

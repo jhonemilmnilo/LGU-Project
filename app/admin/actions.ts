@@ -69,17 +69,21 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
     if (file && file.size > 0 && file.name !== "undefined") {
         try {
             // Determine folder based on fieldName or category
-            let folder = "uploads";
+            let folder = formData.get("storageFolder")?.toString().toLowerCase() || "uploads";
             const category = formData.get("category")?.toString().toLowerCase() || "";
             const position = formData.get("position")?.toString().toLowerCase() || "";
             
-            if (fieldName.toLowerCase().includes("logo")) folder = "logos";
-            else if (fieldName.toLowerCase().includes("hero") || fieldName.toLowerCase().includes("slide")) folder = "banners";
-            else if (category.includes("official") || category.includes("council") || category.includes("lgu") || category.includes("sk") || position.includes("mayor") || position.includes("captain") || fieldName.toLowerCase().includes("official")) folder = "officials";
-            else if (category.includes("news")) folder = "news";
-            else if (category.includes("event")) folder = "events";
-            else if (category.includes("tourism") || category.includes("dining") || category.includes("accommodation")) folder = "tourism";
-            else if (fieldName.toLowerCase().includes("liveness") || fieldName.toLowerCase().includes("idfront") || fieldName.toLowerCase().includes("idback")) folder = "residents";
+            if (folder === "uploads") {
+                if (fieldName.toLowerCase().includes("logo")) folder = "logos";
+                else if (fieldName.toLowerCase().includes("hero") || fieldName.toLowerCase().includes("slide")) folder = "banners";
+                else if (category.includes("official") || category.includes("council") || category.includes("lgu") || category.includes("sk") || position.includes("mayor") || position.includes("captain") || fieldName.toLowerCase().includes("official")) folder = "officials";
+                else if (category.includes("news")) folder = "news";
+                else if (category.includes("event")) folder = "events";
+                else if (category.includes("tourism")) folder = "tourism";
+                else if (category.includes("dining")) folder = "dining";
+                else if (category.includes("accommodation")) folder = "accommodations";
+                else if (fieldName.toLowerCase().includes("liveness") || fieldName.toLowerCase().includes("idfront") || fieldName.toLowerCase().includes("idback")) folder = "residents";
+            }
 
             const filename = `${Date.now()}_${(file.name || "upload").replaceAll(" ", "_")}`;
             const storagePath = `${folder}/${filename}`;
@@ -1388,7 +1392,6 @@ export async function addResident(formData: FormData) {
             }
         }
 
-        // Separate manual members from linked registered residents
         const linkedMembers = familyMembers.filter((fm: any) => !!fm.id);
         const manualMembers = familyMembers.filter((fm: any) => !fm.id);
 

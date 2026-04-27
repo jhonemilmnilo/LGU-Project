@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { unlink } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { getServerSession } from "next-auth";

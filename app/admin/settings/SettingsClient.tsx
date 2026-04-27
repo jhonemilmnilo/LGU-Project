@@ -34,7 +34,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
 
     const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenance_mode === "true");
     const [logoUrl, setLogoUrl] = useState(settings.site_logo || "");
-    const [portalName, setPortalName] = useState(settings.portal_name || "Municipality of Mapandand");
+    const [portalName, setPortalName] = useState(settings.portal_name || "Municipality of Mapandan");
     const [emergencyPhone, setEmergencyPhone] = useState(settings.emergency_phone || "911");
     const [brandWord1, setBrandWord1] = useState(settings.brand_word_1 || "E");
     const [brandWord2, setBrandWord2] = useState(settings.brand_word_2 || "Mapandan");

@@ -41,19 +41,19 @@ export function EventsTable() {
     const handleToggleStatus = async (id: string, currentStatus: boolean) => {
         try {
             await toggleEventStatus(id, !currentStatus);
-            toast.success(currentStatus ? "Event hidden na pal!" : "Event published na pal!");
+            toast.success(currentStatus ? "Event hidden successfully." : "Event published successfully.");
         } catch {
-            toast.error("Failed sa status update. Check mo uli pal.");
+            toast.error("Failed to update status. Please try again.");
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm("Sigurado ka pal? Mabubura itong event na ito.")) {
+        if (confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
             try {
                 await deleteEvent(id);
-                toast.success("Event deleted na pal!");
+                toast.success("Event deleted successfully.");
             } catch {
-                toast.error("Error sa pag-delete. Subukan mo uli.");
+                toast.error("Failed to delete event. Please try again.");
             }
         }
     };

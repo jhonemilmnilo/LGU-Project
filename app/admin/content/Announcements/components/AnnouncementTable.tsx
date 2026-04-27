@@ -81,7 +81,7 @@ export function AnnouncementTable() {
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">No Matches Found</h3>
                 <p className="text-slate-500 font-medium italic max-w-sm mt-2">
-                    Walang lumabas na announcement sa criteria mo. Try adjusting your filters or post a new one!
+                    No announcements match your current criteria. Try adjusting your filters or post a new one!
                 </p>
             </div>
         );

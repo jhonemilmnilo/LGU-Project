@@ -142,6 +142,7 @@ export function AddDiningModal() {
 
                                 {/* Row 6: Image Upload UI Representation */}
                                 <div>
+                                    <input type="hidden" name="storageFolder" value="dining" />
                                     <Label htmlFor="imageFile" className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                                         Dining Image
                                     </Label>

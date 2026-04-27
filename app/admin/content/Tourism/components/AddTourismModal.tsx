@@ -147,6 +147,7 @@ export function AddTourismModal() {
                                 <MapPin className="w-4 h-4" />
                                 <h3 className="text-sm font-bold uppercase tracking-wider">Location & Media</h3>
                             </div>
+                            <input type="hidden" name="storageFolder" value="tourism" />
                             {(currentBarangay || editingData?.barangay) && (
                                 <input 
                                     type="hidden" 
