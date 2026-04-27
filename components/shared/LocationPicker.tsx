@@ -68,7 +68,7 @@ export default function LocationPicker({
 
     useEffect(() => {
         setMounted(true);
-        fetch('/agno-border.json')
+        fetch('/mapandan-border.json')
             .then(res => res.json())
             .then(data => setAgnoBorder(data))
             .catch(err => console.error("Failed to load map borders:", err));

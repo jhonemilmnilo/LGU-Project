@@ -91,7 +91,7 @@ export function DisasterMapView() {
         setMounted(true);
 
         // ── Load Binalonan boundary from public folder ──────────────────────────
-        fetch("/agno-border.json")
+        fetch("/mapandan-border.json")
             .then(res => res.json())
             .then(data => setBinalonanBorder(data))
             .catch(err => console.error("Failed to load Binalonan border:", err));
