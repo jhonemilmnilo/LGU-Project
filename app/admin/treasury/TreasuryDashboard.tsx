@@ -248,7 +248,7 @@ export default function TreasuryDashboard() {
                                                 <TableCell>
                                                     <span className={cn(
                                                         "text-[10px] font-black uppercase italic tracking-wider",
-                                                        tx.isCancelled ? "text-red-600" : {
+                                                        tx.isCancelled ? "text-red-600" : ({
                                                             "FOR_REQUESTING": "text-amber-600",
                                                             "EVALUATED": "text-blue-600",
                                                             "FOR_CLAIM": "text-indigo-600",
@@ -259,7 +259,7 @@ export default function TreasuryDashboard() {
                                                             "PAID": "text-emerald-600",
                                                             "RELEASED": "text-slate-600",
                                                             "REJECTED": "text-red-600",
-                                                        }[tx.status] || "text-slate-500"
+                                                        } as Record<string, string>)[tx.status] || "text-slate-500"
                                                     )}>
                                                         {tx.isCancelled ? "CANCELLED" : tx.status?.replace("_", " ")}
                                                     </span>
