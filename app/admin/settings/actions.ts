@@ -97,25 +97,24 @@ export async function processFileUpload(formData: FormData, fieldName: string): 
         try {
             const buffer = Buffer.from(await file.arrayBuffer());
             const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
-            const uploadsDir = path.join(process.cwd(), "public", "uploads");
+            const folder = fieldName.includes("flyer") ? "church" : "uploads";
+            const storagePath = `${folder}/${filename}`;
             
-            await mkdir(uploadsDir, { recursive: true });
+            const publicUrl = await uploadFile(buffer, storagePath);
             
-            const filepath = path.join(uploadsDir, filename);
-            await writeFile(filepath, buffer);
-            
-            // Delete old file if it exists
-            if (existingUrl && existingUrl.startsWith("/uploads/")) {
-                await deleteUploadedFile(existingUrl);
+            if (publicUrl) {
+                // Auto-delete old file
+                if (existingUrl) {
+                    await deleteUploadedFile(existingUrl);
+                }
+                return publicUrl;
             }
-
-            return `/uploads/${filename}`;
+            return null;
         } catch (error) {
-            console.error("Error processing file upload:", error);
-            return existingUrl;
+            console.error("Error processing file upload to Supabase:", error);
+            return null;
         }
     }
-
     return existingUrl;
 }
 
@@ -138,7 +137,7 @@ export async function updateSystemSetting(key: string, value: string) {
 export async function updateLogoSetting(formData: FormData) {
     try {
         const oldSetting = await prisma.systemSetting.findUnique({ where: { key: "site_logo" } });
-        const imageUrl = await processImageUpload(formData);
+        const imageUrl = await processImageUpload(formData, "logo");
         const finalUrl = imageUrl || (formData.get("imageUrl") as string) || "";
         
         if (imageUrl && oldSetting?.value && oldSetting.value !== imageUrl) {
@@ -244,7 +243,13 @@ export async function updateHeroSlide(id: string, formData: FormData) {
 
 export async function updateTreasurySettings(formData: FormData) {
     try {
+        const oldQr = await prisma.systemSetting.findUnique({ where: { key: "gcash_qr_url" } });
         const qrUrl = await processImageUpload(formData, "gcashQr");
+        
+        if (qrUrl && oldQr?.value && oldQr.value !== qrUrl) {
+            await deleteUploadedFile(oldQr.value);
+        }
+
         const accountName = formData.get("gcashAccountName") as string;
         const accountNumber = formData.get("gcashAccountNumber") as string;
 

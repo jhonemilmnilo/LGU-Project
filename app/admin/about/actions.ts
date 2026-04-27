@@ -33,9 +33,15 @@ export async function upsertAboutData(formData: FormData) {
 
     try {
         if (targetBarangay) {
+            const existing = await (prisma as any).barangayInfo.findUnique({ where: { name: targetBarangay } });
             const logoUrl = await processImageUpload(formData, "logo");
             const coverImageUrl = await processImageUpload(formData, "coverImage");
             const captainImageUrl = await processImageUpload(formData, "captain-image");
+
+            // Auto-delete old images if replaced
+            if (logoUrl && existing?.logoUrl && existing.logoUrl !== logoUrl) await deleteUploadedFile(existing.logoUrl);
+            if (coverImageUrl && existing?.coverImageUrl && existing.coverImageUrl !== coverImageUrl) await deleteUploadedFile(existing.coverImageUrl);
+            if (captainImageUrl && existing?.captainImageUrl && existing.captainImageUrl !== captainImageUrl) await deleteUploadedFile(existing.captainImageUrl);
 
             await (prisma as any).barangayInfo.upsert({
                 where: { name: targetBarangay },
@@ -70,6 +76,12 @@ export async function upsertAboutData(formData: FormData) {
         } else {
             const mayorImageUrl = await processImageUpload(formData, "mayor-image");
             const existing = await (prisma as any).aboutPage.findFirst();
+
+            // Auto-delete old mayor image if replaced
+            if (mayorImageUrl && existing?.mayorImageUrl && existing.mayorImageUrl !== mayorImageUrl) {
+                await deleteUploadedFile(existing.mayorImageUrl);
+            }
+
             const data = {
                 history: formData.get("history") as string,
                 mission: formData.get("mission") as string,
@@ -107,7 +119,13 @@ export async function getPastMayors(barangayName?: string | null) {
 
 export async function upsertPastMayor(id: string | null, formData: FormData) {
     try {
+        const oldMayor = id ? await (prisma as any).pastMayor.findUnique({ where: { id } }) : null;
         const imageUrl = await processImageUpload(formData, "past-mayor");
+
+        // Auto-delete old image if replaced
+        if (imageUrl && oldMayor?.imageUrl && oldMayor.imageUrl !== imageUrl) {
+            await deleteUploadedFile(oldMayor.imageUrl);
+        }
         const session = await getServerSession(authOptions);
         const role = (session?.user as any)?.role;
         const managedBarangay = (session?.user as any)?.managedBarangay;

@@ -12,6 +12,7 @@ import fs from "fs";
 import { unlink } from "fs/promises";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { uploadFile, deleteFileByUrl } from "@/lib/storage";
 
 async function getSessionBarangay(): Promise<string | null> {
     const session = await getServerSession(authOptions);
@@ -24,7 +25,16 @@ async function getSessionBarangay(): Promise<string | null> {
 }
 
 async function deleteUploadedFile(imageUrl: string | null | undefined) {
-    if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
+    if (!imageUrl) return;
+
+    // Supabase Deletion
+    if (imageUrl.includes("supabase.co")) {
+        await deleteFileByUrl(imageUrl);
+        return;
+    }
+
+    // Local Deletion (Legacy)
+    if (!imageUrl.startsWith("/uploads/")) return;
 
     try {
         const filepath = path.join(process.cwd(), "public", imageUrl);
@@ -51,27 +61,43 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
     }
 
     // Determine existing URL (if any)
-    const urlValue = formData.get(`${fieldName}Url`) || formData.get(fieldName);
+    const urlValue = formData.get(`${fieldName}Url`) || formData.get(fieldName) || formData.get("imageUrl");
     if (typeof urlValue === "string" && urlValue.trim() !== "" && !urlValue.startsWith("[object")) {
         existingUrl = urlValue;
     }
 
     if (file && file.size > 0 && file.name !== "undefined") {
         try {
+            // Determine folder based on fieldName or category
+            let folder = "uploads";
+            const category = formData.get("category")?.toString().toLowerCase() || "";
+            const position = formData.get("position")?.toString().toLowerCase() || "";
+            
+            if (fieldName.toLowerCase().includes("logo")) folder = "logos";
+            else if (fieldName.toLowerCase().includes("hero") || fieldName.toLowerCase().includes("slide")) folder = "banners";
+            else if (category.includes("official") || category.includes("council") || category.includes("lgu") || category.includes("sk") || position.includes("mayor") || position.includes("captain") || fieldName.toLowerCase().includes("official")) folder = "officials";
+            else if (category.includes("news")) folder = "news";
+            else if (category.includes("event")) folder = "events";
+            else if (category.includes("tourism") || category.includes("dining") || category.includes("accommodation")) folder = "tourism";
+            else if (fieldName.toLowerCase().includes("liveness") || fieldName.toLowerCase().includes("idfront") || fieldName.toLowerCase().includes("idback")) folder = "residents";
+
+            const filename = `${Date.now()}_${(file.name || "upload").replaceAll(" ", "_")}`;
+            const storagePath = `${folder}/${filename}`;
+            
             const buffer = Buffer.from(await file.arrayBuffer());
-            const filename = Date.now() + "_" + (file.name || "upload").replaceAll(" ", "_");
-            const uploadsDir = path.join(process.cwd(), "public/uploads");
-            const filepath = path.join(uploadsDir, filename);
+            const publicUrl = await uploadFile(buffer, storagePath);
             
-            if (!fs.existsSync(uploadsDir)) {
-                fs.mkdirSync(uploadsDir, { recursive: true });
+            if (!publicUrl) throw new Error("Upload failed");
+
+            // Auto-delete old file if it exists and we have a new upload
+            if (existingUrl) {
+                await deleteUploadedFile(existingUrl);
             }
-            
-            await writeFile(filepath, buffer);
-            return `/uploads/${filename}`;
+
+            return publicUrl;
         } catch (error) {
-            console.error("Error writing file:", error);
-            return null;
+            console.error("Error processing image upload to Supabase:", error);
+            return existingUrl;
         }
     }
     return existingUrl;
@@ -84,24 +110,20 @@ async function processMultipleImages(formData: FormData, fieldName: string = "im
     const files = formData.getAll(fieldName);
     const uploadedPaths: string[] = [];
 
-    const uploadsDir = path.join(process.cwd(), "public/uploads");
-    if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
     for (const fileItem of files) {
         if (fileItem instanceof File && fileItem.size > 0 && fileItem.name !== "undefined") {
             try {
                 const buffer = Buffer.from(await fileItem.arrayBuffer());
-                const filename = Date.now() + "_" + (fileItem.name || "upload").replaceAll(" ", "_");
-                const filepath = path.join(uploadsDir, filename);
-                await writeFile(filepath, buffer as any);
-                uploadedPaths.push(`/uploads/${filename}`);
+                const filename = `${Date.now()}_${(fileItem.name || "upload").replaceAll(" ", "_")}`;
+                const storagePath = `reports/${filename}`;
+                
+                const publicUrl = await uploadFile(buffer, storagePath);
+                if (publicUrl) uploadedPaths.push(publicUrl);
             } catch (error) {
-                console.error("Error processing file in multiple upload:", error);
+                console.error("Error processing file in multiple upload to Supabase:", error);
             }
-        } else if (typeof fileItem === "string" && fileItem.startsWith("/uploads/")) {
-            // Keep existing paths
+        } else if (typeof fileItem === "string" && (fileItem.startsWith("http") || fileItem.startsWith("/uploads/"))) {
+            // Keep existing paths (Supabase URLs or legacy local paths)
             uploadedPaths.push(fileItem);
         }
     }

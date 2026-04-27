@@ -75,7 +75,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
             // Handle logo
             if (logoFile) {
                 const formData = new FormData();
-                formData.append("imageFile", logoFile);
+                formData.append("logo", logoFile);
                 formData.append("imageUrl", logoUrl);
                 const result = await updateLogoSetting(formData);
                 if (result.success && result.imageUrl) {
@@ -565,8 +565,8 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                 subtitle: "",
                 tagline: "",
                 imageUrl: "",
-                primaryBtnText: "",
-                primaryBtnLink: "",
+                primaryBtnText: "Learn More",
+                primaryBtnLink: "/about",
                 isActive: true,
                 order: order
             });
@@ -595,7 +595,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
         data.append("primaryBtnLink", formData.primaryBtnLink);
 
         if (imageFile) {
-            data.append("imageFile", imageFile);
+            data.append("heroSlide", imageFile);
         }
 
         setIsSaving(true);
@@ -768,42 +768,9 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                         </div>
                     </div>
 
-                    {/* Section: Call to Actions */}
-                    <div className="space-y-6 pt-10 border-t border-slate-100 dark:border-[#2a3040]/50 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Send className="w-4 h-4 text-blue-600" />
-                            <span className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">User Interactions</span>
-                        </div>
-                        <div className="grid grid-cols-1 gap-10 text-left">
-                            <div className="p-6 bg-slate-50/50 dark:bg-[#151b2b]/50 rounded-[2rem] border border-slate-100 dark:border-[#2a3040] space-y-4">
-                                <Label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block">Call to Action Button</Label>
-                                <div className="space-y-3">
-                                    <Input 
-                                        placeholder="Label (e.g. Learn More)"
-                                        value={formData.primaryBtnText}
-                                        onChange={(e) => setFormData({ ...formData, primaryBtnText: e.target.value })}
-                                        className="rounded-xl h-11 bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] px-5"
-                                    />
-                                    <Input 
-                                        placeholder="Link (e.g. /about)"
-                                        value={formData.primaryBtnLink}
-                                        onChange={(e) => setFormData({ ...formData, primaryBtnLink: e.target.value })}
-                                        className="rounded-xl h-10 bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] font-mono text-[10px] px-5"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <div className="p-8 border-t border-slate-100 dark:border-[#2a3040] bg-white dark:bg-[#0f1117] flex items-center justify-between z-20">
-                    <Button
-                        variant="ghost"
-                        onClick={onClose}
-                        className="rounded-2xl px-10 h-14 font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-                    >
-                        Dismiss
-                    </Button>
+                <div className="p-8 border-t border-slate-100 dark:border-[#2a3040] bg-white dark:bg-[#0f1117] flex items-center justify-end z-20">
                     <Button
                         onClick={handleSave}
                         disabled={isSaving}

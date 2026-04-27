@@ -423,6 +423,7 @@ model AboutPage {
   mission                 String
   vision                  String
   coreValues              String
+  mayorName               String   @default("")
   mayorMessage            String
   mayorImageUrl           String?
   geographyOrDemographics String?
