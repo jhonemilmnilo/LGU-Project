@@ -802,6 +802,48 @@ export async function getPendingTreasuryCount() {
 }
 
 /**
+ * Fetch counts per status for Treasury transactions (for tab badges)
+ */
+export async function getTreasuryStatusCounts() {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden", data: {} };
+        }
+
+        // Group by status for non-cancelled transactions
+        const grouped = await prisma.transaction.groupBy({
+            by: ["status"],
+            where: {
+                type: { category: "Treasurer" },
+                isCancelled: false
+            },
+            _count: { _all: true }
+        });
+
+        // Count cancelled separately
+        const cancelledCount = await prisma.transaction.count({
+            where: {
+                type: { category: "Treasurer" },
+                isCancelled: true
+            }
+        });
+
+        const counts: Record<string, number> = {};
+        for (const group of grouped) {
+            counts[group.status] = group._count._all;
+        }
+        counts["CANCELLED"] = cancelledCount;
+
+        return { success: true, data: counts };
+    } catch (error) {
+        console.error("Fetch treasury status counts error:", error);
+        return { success: false, error: "Failed to fetch counts", data: {} };
+    }
+}
+
+/**
  * Reject a transaction (Treasury/Admin side)
  */
 export async function rejectTransaction(id: string, remarks: string) {

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { 
     getTreasuryTransactions, 
-    getPendingTreasuryCount 
+    getPendingTreasuryCount,
+    getTreasuryStatusCounts
 } from "@/app/admin/transactions/actions";
 import {
     Table,
@@ -16,20 +17,46 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
     Search, RefreshCcw, 
-    Archive, ExternalLink
+    Archive, ExternalLink, Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
+const STATUS_TABS = [
+    { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
+    { value: "FOR_REQUESTING", label: "Evaluation", color: "text-amber-600", activeColor: "bg-amber-500 text-white" },
+    { value: "FOR_PROCESSING", label: "Processing", color: "text-sky-600", activeColor: "bg-sky-500 text-white" },
+    { value: "FOR_CLAIM", label: "For Claim", color: "text-indigo-600", activeColor: "bg-indigo-500 text-white" },
+    { value: "FOR_PICKING", label: "For Picking", color: "text-pink-600", activeColor: "bg-pink-500 text-white" },
+    { value: "IN_ROUTE", label: "In Route", color: "text-orange-600", activeColor: "bg-orange-500 text-white" },
+    { value: "DELIVERED", label: "Delivered", color: "text-teal-600", activeColor: "bg-teal-500 text-white" },
+    { value: "PAID", label: "Paid", color: "text-emerald-600", activeColor: "bg-emerald-500 text-white" },
+    { value: "RELEASED", label: "Released", color: "text-slate-600", activeColor: "bg-slate-700 text-white" },
+    { value: "REJECTED", label: "Rejected", color: "text-red-500", activeColor: "bg-red-500 text-white" },
+    { value: "CANCELLED", label: "Cancelled", color: "text-red-400", activeColor: "bg-red-600 text-white" },
+];
+
+// Helper: format exact date & time
+function formatDateTime(date: string | Date): { date: string; time: string } {
+    const d = new Date(date);
+    return {
+        date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
+        time: d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true }),
+    };
+}
+
 export default function TreasuryDashboard() {
-    const [status, setStatus] = useState("FOR_REQUESTING");
+    const [status, setStatus] = useState("ALL");
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -48,6 +75,18 @@ export default function TreasuryDashboard() {
         }
     }, [status]);
 
+    // Fetch all status counts on mount and when transactions change
+    const fetchStatusCounts = useCallback(async () => {
+        try {
+            const res = await getTreasuryStatusCounts();
+            if (res.success && res.data) {
+                setStatusCounts(res.data);
+            }
+        } catch {
+            // Silently fail — counts are non-critical
+        }
+    }, []);
+
     useEffect(() => {
         fetchTransactions();
     }, [fetchTransactions]);
@@ -55,6 +94,26 @@ export default function TreasuryDashboard() {
     useEffect(() => {
         fetchTransactions();
     }, [fetchTransactions]);
+
+    useEffect(() => {
+        fetchStatusCounts();
+    }, [fetchStatusCounts]);
+
+    // Refresh counts when status changes (after data is fetched)
+    useEffect(() => {
+        if (!loading) {
+            fetchStatusCounts();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading]);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        if (currentPage !== 1) {
+            setCurrentPage(1);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, status, itemsPerPage]);
 
     const filteredTransactions = transactions.filter(tx => {
         const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
@@ -65,58 +124,68 @@ export default function TreasuryDashboard() {
                refId.includes(searchUpper);
     });
 
-    const getStatusStyles = (tx: any) => {
-        if (tx.isCancelled) return "bg-red-100 text-red-700 border-red-200";
-        const status = tx.status;
-        switch (status) {
-            case "FOR_REQUESTING": return "bg-amber-100 text-amber-700 border-amber-200";
-            case "EVALUATED": return "bg-blue-100 text-blue-700 border-blue-200";
-            case "FOR_CLAIM": return "bg-indigo-100 text-indigo-700 border-indigo-200";
-            case "FOR_PICKING": return "bg-pink-100 text-pink-700 border-pink-200";
-            case "IN_ROUTE": return "bg-orange-100 text-orange-700 border-orange-200";
-            case "DELIVERED": return "bg-teal-100 text-teal-700 border-teal-200";
-            case "FOR_PROCESSING": return "bg-sky-100 text-sky-700 border-sky-200";
-            case "PAID": return "bg-emerald-100 text-emerald-700 border-emerald-200";
-            case "RELEASED": return "bg-slate-100 text-slate-700 border-slate-200";
-            case "REJECTED": return "bg-red-100 text-red-700 border-red-200";
-            default: return "bg-slate-50 text-slate-500 border-slate-100";
-        }
-    };
+    const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+    const paginatedTransactions = filteredTransactions.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Dashboard Controls */}
-            <div className="bg-white dark:bg-white/5 p-2 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm">
+            <div className="bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-2xl shadow-blue-500/5 overflow-hidden ring-1 ring-slate-200 dark:ring-white/5">
                 <Tabs value={status} onValueChange={setStatus} className="w-full">
-                    <div className="flex flex-col lg:flex-row justify-between items-center gap-4 p-4">
-                        <TabsList className="bg-slate-100 dark:bg-white/5 p-1.5 h-auto rounded-[1.5rem] flex-wrap justify-start">
-                            <TabsTrigger value="FOR_REQUESTING" className="rounded-xl px-5 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Evaluation</TabsTrigger>
-                            <TabsTrigger value="EVALUATED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">To Pay</TabsTrigger>
-                            <TabsTrigger value="FOR_PROCESSING" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Processing</TabsTrigger>
-                            <TabsTrigger value="FOR_CLAIM" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">For Claim</TabsTrigger>
-                            <TabsTrigger value="FOR_PICKING" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">For Picking</TabsTrigger>
-                            <TabsTrigger value="IN_ROUTE" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">In Route</TabsTrigger>
-                            <TabsTrigger value="DELIVERED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Delivered</TabsTrigger>
-                            <TabsTrigger value="PAID" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Paid</TabsTrigger>
-                            <TabsTrigger value="RELEASED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Released</TabsTrigger>
-                            <TabsTrigger value="REJECTED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-primary">Rejected</TabsTrigger>
-                            <TabsTrigger value="CANCELLED" className="rounded-xl px-4 py-2.5 font-bold italic uppercase tracking-widest text-[10px] data-[state=active]:bg-white data-[state=active]:text-red-600">Cancelled</TabsTrigger>
-                        </TabsList>
+                    {/* Filters Section — matching ResidentFilters style */}
+                    <div className="flex flex-col border-b border-slate-200 dark:border-[#2a3040] bg-slate-50/50 dark:bg-[#151b2b]">
+                        {/* Status Tabs */}
+                        <div className="px-4 pt-4 flex items-center gap-2 flex-wrap">
+                            <TabsList className="bg-transparent p-0 h-auto flex-wrap justify-start gap-2">
+                                {STATUS_TABS.map(tab => {
+                                    const isActive = status === tab.value;
+                                    const count = tab.value === "ALL"
+                                        ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
+                                        : (statusCounts[tab.value] || 0);
+                                    return (
+                                        <TabsTrigger
+                                            key={tab.value}
+                                            value={tab.value}
+                                            className={cn(
+                                                "rounded-xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all duration-200 shadow-none",
+                                                isActive
+                                                    ? `${tab.activeColor} border-transparent`
+                                                    : `bg-white dark:bg-[#0f1117] border border-slate-200 dark:border-[#2a3040] ${tab.color} hover:border-slate-300 dark:hover:border-slate-600`
+                                            )}
+                                        >
+                                            {tab.label}
+                                            <span className={cn(
+                                                "text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
+                                                isActive ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                            )}>
+                                                {count}
+                                            </span>
+                                        </TabsTrigger>
+                                    );
+                                })}
+                            </TabsList>
+                        </div>
 
-                        <div className="flex items-center gap-3 w-full lg:w-auto">
-                            <div className="relative flex-1 lg:w-80">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <Input 
-                                    placeholder="Search names or Reference ID..." 
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-11 h-12 rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 bg-slate-50/50 italic font-medium" 
-                                />
+                        {/* Search Row — matching ResidentFilters style */}
+                        <div className="p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                                <div className="relative w-full sm:w-[350px]">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                    <Input 
+                                        placeholder="Search names or Reference ID..." 
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-xl" 
+                                    />
+                                </div>
                             </div>
                             <Button 
                                 onClick={fetchTransactions} 
                                 variant="outline" 
-                                className="h-12 w-12 rounded-2xl p-0 border-slate-200 dark:border-white/10"
+                                className="h-11 w-11 rounded-xl p-0 border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]"
                             >
                                 <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
                             </Button>
@@ -124,66 +193,84 @@ export default function TreasuryDashboard() {
                     </div>
 
                     {status !== "SETTINGS" && (
-                        <TabsContent value={status} className="mt-0 p-2">
-                        <div className="bg-white dark:bg-transparent rounded-[2rem] overflow-hidden border border-slate-100 dark:border-white/5">
+                        <TabsContent value={status} className="mt-0">
+                        <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader className="bg-slate-50 dark:bg-white/5">
-                                    <TableRow className="border-none hover:bg-transparent">
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em] h-14 pl-8">#</TableHead>
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Applicant</TableHead>
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Service</TableHead>
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Method</TableHead>
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Amount</TableHead>
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em]">Status</TableHead>
-                                        <TableHead className="font-black italic uppercase text-[9px] tracking-[0.2em] text-right pr-8">Actions</TableHead>
+                                <TableHeader className="bg-slate-50 border-b border-slate-200 dark:bg-[#1a1f2e] dark:border-[#2a3040]">
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Service</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Date</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {loading ? (
                                         Array(5).fill(0).map((_, i) => (
                                             <TableRow key={i} className="animate-pulse">
-                                                <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 rounded mx-8" /></TableCell>
+                                                <TableCell colSpan={8} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
                                             </TableRow>
                                         ))
-                                    ) : filteredTransactions.length > 0 ? (
-                                        filteredTransactions.map((tx, index) => (
-                                            <TableRow key={tx.id} className="group border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                                <TableCell className="pl-8 py-6">
-                                                    <span className="text-xs font-black font-mono tracking-widest text-primary">{index + 1}</span>
+                                    ) : paginatedTransactions.length > 0 ? (
+                                        paginatedTransactions.map((tx, index) => (
+                                            <TableRow key={tx.id} className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer">
+                                                <TableCell className="py-4">
+                                                    <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">
+                                                        <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
                                                             {tx.residentSnapshot?.firstName} {tx.residentSnapshot?.lastName}
                                                         </span>
-                                                        <span className="text-[10px] font-medium text-slate-400 italic">Registered Resident</span>
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">Registered Resident</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase italic tracking-tighter py-1">
+                                                    <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">
                                                         {tx.type?.name}
-                                                    </Badge>
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-widest italic">{tx.fulfillmentType}</Badge>
-                                                        <span className="text-[8px] text-slate-400 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">{tx.fulfillmentType}</span>
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className="text-sm font-black italic text-slate-900 dark:text-white">
+                                                    <span className="font-bold text-slate-900 dark:text-white">
                                                         {tx.totalAmount > 0 ? `₱${tx.totalAmount.toLocaleString()}` : "–"}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge className={cn(
-                                                        "text-[9px] font-black uppercase italic tracking-widest px-2 shadow-none border",
-                                                        getStatusStyles(tx)
+                                                    <span className={cn(
+                                                        "text-[10px] font-black uppercase italic tracking-wider",
+                                                        tx.isCancelled ? "text-red-600" : {
+                                                            "FOR_REQUESTING": "text-amber-600",
+                                                            "EVALUATED": "text-blue-600",
+                                                            "FOR_CLAIM": "text-indigo-600",
+                                                            "FOR_PICKING": "text-pink-600",
+                                                            "IN_ROUTE": "text-orange-600",
+                                                            "DELIVERED": "text-teal-600",
+                                                            "FOR_PROCESSING": "text-sky-600",
+                                                            "PAID": "text-emerald-600",
+                                                            "RELEASED": "text-slate-600",
+                                                            "REJECTED": "text-red-600",
+                                                        }[tx.status] || "text-slate-500"
                                                     )}>
                                                         {tx.isCancelled ? "CANCELLED" : tx.status?.replace("_", " ")}
-                                                    </Badge>
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell className="text-right pr-8">
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{formatDateTime(tx.updatedAt).date}</span>
+                                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{formatDateTime(tx.updatedAt).time}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
                                                     <Link href={`/admin/treasury/${tx.id}`}>
                                                         <Button 
                                                             variant="ghost" 
@@ -197,16 +284,60 @@ export default function TreasuryDashboard() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-64 text-center">
-                                                <div className="flex flex-col items-center justify-center space-y-3 opacity-30">
-                                                    <Archive className="w-12 h-12" />
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] italic">No Transactions in Queue</p>
+                                            <TableCell colSpan={8} className="h-[400px] text-center">
+                                                <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
+                                                    <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
+                                                    <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>
+                                                    <p className="mt-2">Try adjusting your filters or search term.</p>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
                             </Table>
+                        </div>
+
+                        {/* Pagination Controls — matching ResidentTable */}
+                        <div className="p-6 border-t border-slate-200 dark:border-[#2a3040] flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-[#151b2b]/50">
+                            <div className="flex items-center space-x-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                <span className="hidden sm:inline-block">Rows per page:</span>
+                                <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                                    <SelectTrigger className="h-8 w-[70px] border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117] rounded-lg">
+                                        <SelectValue placeholder={itemsPerPage} />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white dark:bg-[#151b2b]">
+                                        <SelectItem value="10">10</SelectItem>
+                                        <SelectItem value="20">20</SelectItem>
+                                        <SelectItem value="30">30</SelectItem>
+                                        <SelectItem value="50">50</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                    Showing {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} of {filteredTransactions.length}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="h-10 px-4 rounded-xl border-slate-200 dark:border-[#2a3040] font-bold"
+                                    >
+                                        Prev
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                        className="h-10 px-4 rounded-xl border-slate-200 dark:border-[#2a3040] font-bold"
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </TabsContent>
                 )}

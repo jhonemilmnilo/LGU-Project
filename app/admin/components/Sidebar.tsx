@@ -40,6 +40,7 @@ export function Sidebar({
     themeColor = "#2563eb",
     pendingReportsCount = 0,
     pendingResidentsCount = 0,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     pendingTransactionsCount = 0
 }: SidebarProps) {
     const pathname = usePathname();
@@ -108,7 +109,7 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        { href: "/admin/treasury", label: "Treasury Hub", icon: LayoutDashboard, category: "Citizens & Services", badge: pendingTransactionsCount },
+        { href: "/admin/treasury", label: "Treasury Hub", icon: LayoutDashboard, category: "Citizens & Services" },
         { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Citizens & Services" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];

@@ -564,7 +564,8 @@ model TransactionType {
   slaDays       Int      @default(3)
   processorRole UserRole @default(TREASURY_STAFF)
   isActive      Boolean  @default(true)
-  
+  studentFee    Float?   @default(0)
+
   transactions  Transaction[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -600,7 +601,8 @@ model Transaction {
   // Specific Context
   businessName      String?           // For Juridical requests
   eCopyUrl          String?           // Link to generated digital file
-  
+  isStudent         Boolean           @default(false)
+
   // Audit & Workflow
   processedBy       String?           // User ID of the Treasury Staff who handled it
   rejectionRemarks  String?
