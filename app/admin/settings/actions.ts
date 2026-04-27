@@ -8,8 +8,19 @@ import path from "path";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+import { uploadFile, deleteFileByUrl } from "@/lib/storage";
+
 export async function deleteUploadedFile(imageUrl: string | null | undefined) {
-    if (!imageUrl || !imageUrl.startsWith("/uploads/")) return;
+    if (!imageUrl) return;
+
+    // If it's a Supabase URL, use the new delete helper
+    if (imageUrl.includes("supabase.co")) {
+        await deleteFileByUrl(imageUrl);
+        return;
+    }
+
+    // Fallback for legacy local files
+    if (!imageUrl.startsWith("/uploads/")) return;
 
     try {
         const filepath = path.join(process.cwd(), "public", imageUrl);
@@ -17,7 +28,7 @@ export async function deleteUploadedFile(imageUrl: string | null | undefined) {
             await unlink(filepath);
         }
     } catch (error) {
-        console.error("Error deleting file:", error);
+        console.error("Error deleting local file:", error);
     }
 }
 
@@ -35,23 +46,42 @@ export async function processImageUpload(formData: FormData, fieldName: string =
 
     if (file && file.size > 0 && file.name !== "undefined") {
         try {
+            // Determine subfolder based on fieldName
+            let folder = "uploads";
+            if (fieldName.includes("logo")) folder = "logos";
+            if (fieldName.includes("Hero") || fieldName.includes("Slide")) folder = "banners";
+            if (fieldName.includes("Qr")) folder = "treasury";
+            if (fieldName.toLowerCase().includes("mayor") || fieldName.toLowerCase().includes("captain")) folder = "officials";
+
+            let filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
+            
+            // Clean naming conventions as requested by user
+            if (fieldName === "mayor-image") {
+                const ext = file.name.split('.').pop() || 'jpg';
+                filename = `mayor-image.${ext}`;
+            } else if (fieldName === "past-mayor") {
+                const ext = file.name.split('.').pop() || 'jpg';
+                filename = `past-mayor-${Date.now()}.${ext}`;
+            } else if (fieldName === "captain-image") {
+                const ext = file.name.split('.').pop() || 'jpg';
+                filename = `captain-image.${ext}`;
+            }
+
+            const storagePath = `${folder}/${filename}`;
+            
             const buffer = Buffer.from(await file.arrayBuffer());
-            const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
-            const uploadsDir = path.join(process.cwd(), "public", "uploads");
+            const publicUrl = await uploadFile(buffer, storagePath);
             
-            await mkdir(uploadsDir, { recursive: true });
-            
-            const filepath = path.join(uploadsDir, filename);
-            await writeFile(filepath, buffer);
-            
-            // Delete old file if it exists and is different from the new one
-            if (existingUrl && existingUrl.startsWith("/uploads/")) {
+            if (!publicUrl) throw new Error("Upload failed");
+
+            // Delete old file if it exists (handles both local and supabase)
+            if (existingUrl) {
                 await deleteUploadedFile(existingUrl);
             }
 
-            return `/uploads/${filename}`;
+            return publicUrl;
         } catch (error) {
-            console.error("Error processing image upload:", error);
+            console.error("Error processing image upload to Supabase:", error);
             return existingUrl; // Fallback to existing if upload fails
         }
     }
@@ -132,7 +162,7 @@ export async function updateLogoSetting(formData: FormData) {
 
 export async function createHeroSlide(formData: FormData) {
     try {
-        const imageUrl = await processImageUpload(formData);
+        const imageUrl = await processImageUpload(formData, "heroSlide");
         
         const session = await getServerSession(authOptions);
         const role = (session?.user as any)?.role;
@@ -179,7 +209,7 @@ export async function deleteHeroSlide(id: string) {
 export async function updateHeroSlide(id: string, formData: FormData) {
     try {
         const oldSlide = await prisma.heroSlide.findUnique({ where: { id } });
-        const imageUrl = await processImageUpload(formData);
+        const imageUrl = await processImageUpload(formData, "heroSlide");
 
         if (imageUrl && oldSlide?.imageUrl && oldSlide.imageUrl !== imageUrl) {
             await deleteUploadedFile(oldSlide.imageUrl);

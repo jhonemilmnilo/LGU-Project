@@ -30,6 +30,17 @@ export default async function Home({
     const selectedBarangay = typeof barangay === "string" ? barangay : "All";
     const isFiltered = selectedBarangay !== "All";
 
+    // Validate barangay: if a specific barangay is requested, check if it exists in the database
+    if (isFiltered) {
+        const exists = await prisma.barangayInfo.findUnique({
+            where: { name: selectedBarangay },
+            select: { id: true }
+        });
+        if (!exists) {
+            redirect("/");
+        }
+    }
+
     const session = await getServerSession(authOptions);
     const role = (session?.user as { role?: string })?.role;
 

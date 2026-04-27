@@ -35,7 +35,7 @@ export async function upsertAboutData(formData: FormData) {
         if (targetBarangay) {
             const logoUrl = await processImageUpload(formData, "logo");
             const coverImageUrl = await processImageUpload(formData, "coverImage");
-            const captainImageUrl = await processImageUpload(formData, "captainImage");
+            const captainImageUrl = await processImageUpload(formData, "captain-image");
 
             await (prisma as any).barangayInfo.upsert({
                 where: { name: targetBarangay },
@@ -68,7 +68,7 @@ export async function upsertAboutData(formData: FormData) {
                 } as any
             });
         } else {
-            const mayorImageUrl = await processImageUpload(formData, "mayorImage");
+            const mayorImageUrl = await processImageUpload(formData, "mayor-image");
             const existing = await (prisma as any).aboutPage.findFirst();
             const data = {
                 history: formData.get("history") as string,
@@ -107,7 +107,7 @@ export async function getPastMayors(barangayName?: string | null) {
 
 export async function upsertPastMayor(id: string | null, formData: FormData) {
     try {
-        const imageUrl = await processImageUpload(formData, "imageFile");
+        const imageUrl = await processImageUpload(formData, "past-mayor");
         const session = await getServerSession(authOptions);
         const role = (session?.user as any)?.role;
         const managedBarangay = (session?.user as any)?.managedBarangay;

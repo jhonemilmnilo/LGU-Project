@@ -167,7 +167,7 @@ function MayorEditorModal({ isOpen, onClose, initialData, isBarangayAdmin }: { i
         data.append("imageUrl", formData.imageUrl);
 
         if (imageFile) {
-            data.append("imageFile", imageFile);
+            data.append("past-mayor", imageFile);
         }
 
         setIsSaving(true);

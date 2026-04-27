@@ -94,12 +94,12 @@ function AboutManager({
                 formData.append("barangayName", barangayName || "");
                 formData.append("captainName", leaderName);
                 formData.append("captainMessage", message);
-                if (leaderFile) formData.append("captainImage", leaderFile);
+                if (leaderFile) formData.append("captain-image", leaderFile);
                 formData.append("captainImageUrl", leaderPreview || "");
             } else {
                 formData.append("mayorName", leaderName);
                 formData.append("mayorMessage", message);
-                if (leaderFile) formData.append("mayorImage", leaderFile);
+                if (leaderFile) formData.append("mayor-image", leaderFile);
                 formData.append("mayorImageUrl", leaderPreview || "");
             }
             
