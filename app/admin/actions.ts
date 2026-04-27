@@ -82,6 +82,8 @@ async function processImageUpload(formData: FormData, fieldName: string = "image
                 else if (category.includes("tourism")) folder = "tourism";
                 else if (category.includes("dining")) folder = "dining";
                 else if (category.includes("accommodation")) folder = "accommodations";
+                else if (category.includes("service")) folder = "services";
+                else if (category.includes("report")) folder = "reports";
                 else if (fieldName.toLowerCase().includes("liveness") || fieldName.toLowerCase().includes("idfront") || fieldName.toLowerCase().includes("idback")) folder = "residents";
             }
 

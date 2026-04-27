@@ -5,10 +5,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { calculateCedula } from "@/lib/cedula";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import fs from "fs";
+
 import { sendEmail } from "@/lib/mail";
+import { uploadFile } from "@/lib/storage";
 
 // --- HELPERS ---
 
@@ -120,15 +119,10 @@ async function processFileUpload(file: File, folder: string = "transactions"): P
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
         const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
-        const uploadsDir = path.join(process.cwd(), "public/uploads", folder);
-        const filepath = path.join(uploadsDir, filename);
-
-        if (!fs.existsSync(uploadsDir)) {
-            await mkdir(uploadsDir, { recursive: true });
-        }
-
-        await writeFile(filepath, buffer);
-        return `/uploads/${folder}/${filename}`;
+        const storagePath = `services/${folder}/${filename}`;
+        
+        const publicUrl = await uploadFile(buffer, storagePath);
+        return publicUrl;
     } catch (error) {
         console.error("File upload error:", error);
         return null;
