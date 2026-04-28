@@ -94,22 +94,22 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                         initial={{ opacity: 0, x: -20 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="bg-white dark:bg-[#111827] rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden p-10 ring-1 ring-slate-200 dark:ring-white/5"
+                        className="bg-white dark:bg-[#111827] rounded-[2rem] md:rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden p-6 md:p-10 ring-1 ring-slate-200 dark:ring-white/5"
                     >
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 md:mb-8">
                             <div className="flex items-center gap-3">
-                                <Clock className="w-6 h-6" style={{ color: info.themeColor || '#2563eb' }} />
+                                <Clock className="w-5 h-5 md:w-6 md:h-6" style={{ color: info.themeColor || '#2563eb' }} />
                                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Mass Schedule</h3>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Schedule Highlights</span>
                         </div>
 
-                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                        <div className="space-y-4 md:space-y-6 max-h-[500px] overflow-y-auto pr-2 md:pr-4 custom-scrollbar">
                             {groupedSchedules.length > 0 ? (
-                                <div className="space-y-6">
+                                <div className="space-y-4 md:space-y-6">
                                     {groupedSchedules.map((group, idx) => (
-                                        <div key={idx} className="bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 overflow-hidden">
-                                            <div className="bg-slate-100 dark:bg-white/5 px-6 py-3 flex items-center justify-between border-b border-white/5">
+                                        <div key={idx} className="md:bg-slate-50 md:dark:bg-white/5 md:rounded-[2rem] md:border border-slate-100 dark:border-white/5 overflow-hidden border-b md:border-b border-slate-100 dark:border-white/10 last:border-b-0 pb-4 md:pb-0">
+                                            <div className="md:bg-slate-100 md:dark:bg-white/5 px-2 md:px-6 py-2 md:py-3 flex items-center justify-between md:border-b border-white/5">
                                                 <div className="flex items-center gap-2">
                                                     <CalendarDays className="w-3 h-3" style={group.isPriority ? { color: '#f59e0b' } : { color: info.themeColor || '#2563eb' }} />
                                                     <span className={`text-[10px] font-black uppercase italic tracking-widest ${group.isPriority ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>
@@ -121,13 +121,13 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                                                 </div>
                                                 <span className="text-[9px] font-bold text-slate-400 italic">LITURGICAL GUIDE</span>
                                             </div>
-                                            <div className="p-6 space-y-4">
+                                            <div className="px-2 md:px-6 pt-3 pb-2 md:py-6 space-y-4 md:space-y-4">
                                                 {group.slots.map((s: any, sIdx: number) => (
-                                                    <div key={sIdx} className="relative pl-6 border-l-2 border-blue-600/20 last:border-0 pb-2">
+                                                    <div key={sIdx} className="relative pl-5 md:pl-6 border-l-2 border-blue-600/20 last:border-0 pb-2">
                                                         <div className="absolute top-0 left-[-5px] w-2 h-2 rounded-full bg-blue-600" />
                                                         <div className="flex items-baseline justify-between gap-4">
                                                             <div className="space-y-1">
-                                                                <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">{s.time}</p>
+                                                                <p className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">{s.time}</p>
                                                                 {s.description && (
                                                                     <div className="flex items-start gap-1.5 opacity-80">
                                                                         <Info className="w-3 h-3 text-blue-500 mt-0.5 shrink-0" />
@@ -153,9 +153,9 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                             )}
                         </div>
 
-                        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                            <p className="text-xs text-slate-500 font-medium italic">General mass schedules subject to change on holidays.</p>
-                            <Globe className="w-4 h-4 text-slate-300" />
+                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <p className="text-[10px] md:text-xs text-slate-500 font-medium italic pr-4">General mass schedules subject to change on holidays.</p>
+                            <Globe className="w-3 h-3 md:w-4 md:h-4 text-slate-300 shrink-0" />
                         </div>
                     </motion.div>
 
@@ -167,39 +167,39 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                         className="space-y-6"
                     >
                         {/* Main Collection Card */}
-                        <div className="bg-primary rounded-[3rem] p-10 text-white shadow-2xl shadow-primary/25 relative overflow-hidden group">
+                        <div className="bg-primary rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 text-white shadow-2xl shadow-primary/25 relative overflow-hidden group">
                              {/* Decorative patterns */}
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
                             <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 blur-[60px] rounded-full pointer-events-none" />
 
-                            <div className="relative z-10 space-y-6">
+                            <div className="relative z-10 space-y-4 md:space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <TrendingUp className="w-6 h-6 text-emerald-200" />
-                                        <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Collection</h3>
+                                        <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-emerald-200" />
+                                        <h3 className="text-lg md:text-xl font-black uppercase italic tracking-tighter text-white">Collection</h3>
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100 italic">Weekly Report</span>
+                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100 italic">Weekly Report</span>
                                 </div>
 
                                 {latest ? (
-                                    <div className="space-y-6">
+                                    <div className="space-y-3 md:space-y-6">
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 opacity-80">Week ending {format(new Date(latest.date), "MMMM dd, yyyy")}</p>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-6xl font-black tracking-tighter italic">₱{latest.totalAmount.toLocaleString()}</span>
-                                                <span className="text-emerald-100 font-bold italic opacity-60 uppercase text-[10px] tracking-widest">Grand Total</span>
+                                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                                                <span className="text-5xl md:text-6xl font-black tracking-tighter italic">₱{latest.totalAmount.toLocaleString()}</span>
+                                                <span className="text-emerald-100 font-bold italic opacity-60 uppercase text-[9px] md:text-[10px] tracking-widest">Grand Total</span>
                                             </div>
                                         </div>
 
                                         {/* Sunday Mass Breakdown */}
-                                        <div className="space-y-3">
+                                        <div className="space-y-2 md:space-y-3">
                                             <div className="flex items-center justify-between border-b border-white/20 pb-2">
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 italic">Sunday Masses ({format(new Date(latest.date), "MMM dd")})</p>
                                                 <p className="text-xs font-black italic">₱{(latest.sundayMassJson as any[]).reduce((sum, item) => sum + Number(item.amount || 0), 0).toLocaleString()}</p>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-2 gap-2 md:gap-3">
                                                 {(latest.sundayMassJson as any[]).map((m, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between text-[11px] font-bold italic opacity-80 bg-white/5 px-3 py-2 rounded-xl">
+                                                    <div key={idx} className="flex items-center justify-between text-[11px] font-bold italic opacity-80 bg-white/5 px-2 py-1.5 md:px-3 md:py-2 rounded-lg md:rounded-xl">
                                                         <span>{m.time}</span>
                                                         <span>₱{Number(m.amount).toLocaleString()}</span>
                                                     </div>
@@ -208,32 +208,32 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                                         </div>
 
                                         {/* Other Sources */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                             <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">2nd Basket</p>
-                                                 <p className="text-xl font-bold italic">₱{Number(latest.secondBasket).toLocaleString()}</p>
+                                        <div className="grid grid-cols-2 gap-2 md:gap-4">
+                                             <div className="p-3 md:p-4 bg-white/10 rounded-xl md:rounded-2xl backdrop-blur-sm border border-white/10">
+                                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-0.5 md:mb-1 italic">2nd Basket</p>
+                                                 <p className="text-lg md:text-xl font-bold italic">₱{Number(latest.secondBasket).toLocaleString()}</p>
                                              </div>
-                                             <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">Envelopes</p>
-                                                 <p className="text-xl font-bold italic">₱{Number(latest.envelopes).toLocaleString()}</p>
+                                             <div className="p-3 md:p-4 bg-white/10 rounded-xl md:rounded-2xl backdrop-blur-sm border border-white/10">
+                                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-0.5 md:mb-1 italic">Envelopes</p>
+                                                 <p className="text-lg md:text-xl font-bold italic">₱{Number(latest.envelopes).toLocaleString()}</p>
                                              </div>
                                         </div>
 
                                         {/* Donation Summary if any */}
                                         {(latest.donationsJson as any[]).length > 0 && (
-                                            <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/10">
-                                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-1 italic">Generous Donations</p>
-                                                 <p className="text-xl font-bold italic">₱{(latest.donationsJson as any[]).reduce((sum, item) => sum + Number(item.amount || 0), 0).toLocaleString()}</p>
+                                            <div className="p-3 md:p-4 bg-white/10 rounded-xl md:rounded-2xl backdrop-blur-sm border border-white/10">
+                                                 <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100 mb-0.5 md:mb-1 italic">Generous Donations</p>
+                                                 <p className="text-lg md:text-xl font-bold italic">₱{(latest.donationsJson as any[]).reduce((sum, item) => sum + Number(item.amount || 0), 0).toLocaleString()}</p>
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="py-10 text-center border border-dashed border-white/20 rounded-2xl">
-                                        <p className="text-emerald-100 font-bold italic">No financial data available yet.</p>
+                                    <div className="py-6 md:py-10 text-center border border-dashed border-white/20 rounded-2xl">
+                                        <p className="text-emerald-100 font-bold italic text-xs md:text-base">No financial data available yet.</p>
                                     </div>
                                 )}
 
-                                <div className="pt-4 flex items-center justify-between border-t border-white/10">
+                                <div className="pt-3 md:pt-4 flex items-center justify-between border-t border-white/10">
                                     <div className="flex items-center gap-2 group cursor-pointer">
                                         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
                                            <Heart className="w-4 h-4 text-white fill-white" />
