@@ -18,7 +18,8 @@ export function AnnouncementFilters() {
         selectedPriority,
         setSelectedPriority,
         currentBarangay,
-        activeBarangays = []
+        activeBarangays = [],
+        themeColor
     } = useAnnouncements();
     const router = useRouter();
     const pathname = usePathname();
@@ -52,7 +53,8 @@ export function AnnouncementFilters() {
                             placeholder="Find notices, alerts..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-600 rounded-xl font-bold italic"
+                            className="pl-10 h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic transition-all"
+                            style={{ '--tw-ring-color': themeColor } as React.CSSProperties}
                         />
                     </div>
                     
@@ -90,7 +92,7 @@ export function AnnouncementFilters() {
                             onValueChange={handleBarangayChange}
                         >
                             <SelectTrigger className="w-[160px] h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic">
-                                <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                                <MapPin className="w-4 h-4 mr-2" style={{ color: themeColor }} />
                                 <SelectValue placeholder="Barangay" />
                             </SelectTrigger>
                             <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
@@ -105,7 +107,8 @@ export function AnnouncementFilters() {
 
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full sm:w-auto h-12 bg-blue-600 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] px-8 rounded-xl transition-all shadow-xl shadow-blue-500/20 flex items-center gap-2"
+                    className="w-full sm:w-auto h-12 text-white font-black uppercase tracking-widest text-[10px] px-8 rounded-xl transition-all shadow-xl flex items-center gap-2 hover:opacity-90 active:scale-95"
+                    style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
                 >
                     <Plus className="w-4 h-4" />
                     New Notice

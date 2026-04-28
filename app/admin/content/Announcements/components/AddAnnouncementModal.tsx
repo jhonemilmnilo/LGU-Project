@@ -2,6 +2,7 @@
 
 import { useAnnouncements } from "../providers/AnnouncementProvider";
 import { useAnnouncementForm } from "../hooks/useAnnouncementForm";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -21,6 +22,22 @@ import { Megaphone, Info, Calendar, Pin, AlertTriangle, Loader2 } from "lucide-r
 export function AddAnnouncementModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useAnnouncements();
     const { handleSubmit, loading } = useAnnouncementForm();
+    const [themeColor, setThemeColor] = useState("#2563eb");
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error('Error fetching theme settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const formatDateForInput = (dateInput: Date | string | null | undefined) => {
         if (!dateInput) return "";
@@ -33,40 +50,60 @@ export function AddAnnouncementModal() {
             setIsAddModalOpen(open);
             if (!open) setEditingData(null);
         }}>
-            <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-[2.5rem]">
-                <DialogHeader className="p-10 pb-6 bg-slate-50/50 dark:bg-[#151b2b] border-b border-slate-200 dark:border-[#2a3040] relative">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                            <Megaphone className="w-7 h-7 text-white" />
+            <DialogContent className="sm:max-w-[1000px] w-[95vw] p-0 overflow-hidden bg-white dark:bg-[#1a1c23] border-none shadow-2xl rounded-[2rem] flex flex-row h-[750px] max-h-[90vh]">
+                {/* Left Sidebar - Modern Theme Style */}
+                <div 
+                    className="hidden md:flex w-[320px] p-10 flex-col justify-between text-white relative overflow-hidden shrink-0 h-full"
+                    style={{ backgroundColor: themeColor }}
+                >
+                    {/* Decorative background element */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+                    
+                    <div className="relative z-10">
+                        <div 
+                            className="w-12 h-12 rounded-xl flex items-center justify-center mb-8 bg-white/20 backdrop-blur-sm"
+                        >
+                            <Megaphone className="w-6 h-6 text-white" />
                         </div>
-                        <div className="space-y-1">
-                            <DialogTitle className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                                {editingData ? "Edit Announcement" : "Create New Announcement"}
-                            </DialogTitle>
-                            <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic">
-                                Broadcast important updates to the citizens of Mapandan.
-                            </DialogDescription>
-                        </div>
+                        
+                        <h2 className="text-4xl font-bold leading-tight mb-4">
+                            {editingData ? "Update" : "New"}<br />
+                            Announcement
+                        </h2>
+                        
+                        <p className="text-slate-400 text-sm leading-relaxed">
+                            Broadcast important information, schedules, and alerts to all barangay residents.
+                        </p>
                     </div>
-                </DialogHeader>
 
-                <div className="p-10 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                    <form id="announcementForm" onSubmit={handleSubmit} className="space-y-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            {/* Primary Details */}
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-2 text-blue-600">
-                                    <Info className="w-4 h-4" />
-                                    <h3 className="text-xs font-black uppercase tracking-[0.2em]">Primary Content</h3>
-                                </div>
+                    <div className="relative z-10 bg-black/10 backdrop-blur-md p-6 rounded-2xl border border-white/10">
+                        <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <Info className="w-4 h-4" /> Quick Tip
+                        </h3>
+                        <p className="text-xs text-slate-400 leading-relaxed italic">
+                            Keep your announcements concise. Pinned announcements will stay at the top of the feed for 7 days.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Right Side - Form Content */}
+                <div className="flex-1 flex flex-col min-w-0 h-full">
+                    <DialogHeader className="p-8 pb-4 border-none shrink-0">
+                        <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
+                            Announcement Details
+                        </DialogTitle>
+                    </DialogHeader>
+
+                        <div className="flex-1 px-8 overflow-y-auto custom-scrollbar">
+                            <form id="announcementForm" onSubmit={handleSubmit} className="space-y-6 py-4">
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notice Headline</Label>
+                                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Title</Label>
                                     <Input
                                         name="title"
                                         required
                                         defaultValue={editingData?.title || ""}
-                                        placeholder="e.g. Schedule for Coastal Clean-up"
-                                        className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
+                                        placeholder="Enter title..."
+                                        className="h-12 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-primary/20"
                                     />
                                     {(currentBarangay || editingData?.barangay) && (
                                         <input 
@@ -76,33 +113,26 @@ export function AddAnnouncementModal() {
                                         />
                                     )}
                                 </div>
+
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Notice Description</Label>
+                                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Content</Label>
                                     <Textarea
                                         name="content"
                                         required
                                         defaultValue={editingData?.content || ""}
-                                        placeholder="Enter the full details of the announcement..."
-                                        className="min-h-[180px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-2xl p-5 font-medium italic resize-none"
+                                        placeholder="Write details..."
+                                        className="min-h-[160px] bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl p-4 resize-none focus:ring-2 focus:ring-primary/20"
                                     />
-                                </div>
-                            </div>
-
-                            {/* Settings & Metadata */}
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-2 text-blue-600">
-                                    <AlertTriangle className="w-4 h-4" />
-                                    <h3 className="text-xs font-black uppercase tracking-[0.2em]">Notice Settings</h3>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category</Label>
+                                        <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Category</Label>
                                         <Select name="category" defaultValue={editingData?.category || "General"}>
-                                            <SelectTrigger className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px]">
+                                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                            <SelectContent>
                                                 <SelectItem value="General">General</SelectItem>
                                                 <SelectItem value="Weather">Weather</SelectItem>
                                                 <SelectItem value="Health">Health</SelectItem>
@@ -112,12 +142,12 @@ export function AddAnnouncementModal() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Priority</Label>
+                                        <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Priority</Label>
                                         <Select name="priority" defaultValue={editingData?.priority || "Normal"}>
-                                            <SelectTrigger className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px]">
+                                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl">
                                                 <SelectValue />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                            <SelectContent>
                                                 <SelectItem value="Normal">Normal</SelectItem>
                                                 <SelectItem value="High">High Priority</SelectItem>
                                                 <SelectItem value="Critical">Critical Alert</SelectItem>
@@ -128,64 +158,51 @@ export function AddAnnouncementModal() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                                        <Calendar className="w-3 h-3" /> Expiry Date (Optional)
+                                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <Calendar className="w-4 h-4" /> Expiry Date (Optional)
                                     </Label>
                                     <Input
                                         type="date"
                                         name="expiryDate"
                                         defaultValue={formatDateForInput(editingData?.expiryDate)}
-                                        className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
+                                        className="h-12 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl"
                                     />
                                 </div>
 
-                                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
-                                                <Pin className="w-3 h-3 text-orange-500" /> Pin to Top
-                                            </Label>
-                                            <p className="text-[9px] font-medium italic text-slate-400">Lock this notice to the top of the feed.</p>
-                                        </div>
+                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                                        <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                            <Pin className="w-4 h-4" /> Pin Announcement
+                                        </Label>
                                         <Switch name="isPinned" defaultChecked={editingData?.isPinned || false} />
                                     </div>
 
-                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Active Status</Label>
-                                            <p className="text-[9px] font-medium italic text-slate-400">Make this notice visible to the public.</p>
-                                        </div>
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                                        <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Set Active</Label>
                                         <Switch name="isActive" defaultChecked={editingData?.isActive ?? true} />
                                     </div>
                                 </div>
-                            </div>
+                            </form>
                         </div>
-                    </form>
-                </div>
 
-                <DialogFooter className="p-10 bg-slate-50/50 dark:bg-[#151b2b] border-t border-slate-200 dark:border-[#2a3040] flex items-center justify-end gap-4 rounded-b-[2.5rem]">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setIsAddModalOpen(false)}
-                        className="h-14 px-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:bg-slate-200 rounded-xl"
-                    >
-                        Discard
-                    </Button>
-                    <Button
-                        type="submit"
-                        form="announcementForm"
-                        disabled={loading}
-                        className="h-14 px-12 bg-blue-600 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-xl shadow-blue-500/20 transition-all hover:-translate-y-1"
-                    >
-                        {loading ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Transmitting...</>
-                        ) : (
-                            editingData ? "Apply Changes" : "Broadcast Now"
-                        )}
-                    </Button>
-                </DialogFooter>
+                        <DialogFooter className="p-8 pt-0 bg-white dark:bg-[#1a1c23] border-none shrink-0">
+                            <Button
+                                type="submit"
+                                form="announcementForm"
+                                disabled={loading}
+                                className="w-full h-12 font-bold rounded-xl text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                style={{ backgroundColor: themeColor }}
+                            >
+                                {loading ? (
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                                ) : (
+                                    editingData ? "Apply Changes" : "Publish"
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </div>
             </DialogContent>
         </Dialog>
     );
 }
+

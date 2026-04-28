@@ -5,16 +5,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
  
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Edit2, Trash2, Calendar, Megaphone, Bell, Pin, PinOff, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { deleteAnnouncement, toggleAnnouncementStatus, toggleAnnouncementPin } from "@/app/admin/actions";
 
 export function AnnouncementTable() {
-    const { announcements, searchTerm, setEditingData, setIsAddModalOpen, selectedCategory, selectedPriority } = useAnnouncements();
+    const { 
+        announcements, 
+        searchTerm, 
+        setEditingData, 
+        setIsAddModalOpen, 
+        selectedCategory, 
+        selectedPriority, 
+        themeColor,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage
+    } = useAnnouncements();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -25,6 +38,14 @@ export function AnnouncementTable() {
         const matchesPriority = selectedPriority === "All" || item.priority === selectedPriority;
         return matchesSearch && matchesCategory && matchesPriority;
     });
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // Reset to page 1 when searching or filtering
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, selectedCategory, selectedPriority, setCurrentPage]);
 
     const handleEdit = (item: Announcement) => {
         setEditingData(item);
@@ -88,7 +109,8 @@ export function AnnouncementTable() {
     }
 
     return (
-        <div className="overflow-x-auto">
+        <>
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
@@ -101,13 +123,16 @@ export function AnnouncementTable() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredData.map((item) => (
+                    {paginatedData.map((item) => (
                         <TableRow key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell className="pl-8 py-5">
                                 <div className="flex flex-col space-y-1.5">
                                     <div className="flex items-center gap-2">
                                         {item.isPinned && <Pin className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />}
-                                        <span className="text-slate-900 dark:text-white font-black uppercase italic tracking-tight leading-tight group-hover:text-blue-600 transition-colors">
+                                        <span 
+                                            className="dark:text-white font-black uppercase italic tracking-tight leading-tight transition-colors"
+                                            style={{ color: 'inherit' }}
+                                        >
                                             {item.title}
                                         </span>
                                     </div>
@@ -127,8 +152,10 @@ export function AnnouncementTable() {
                                         "w-2 h-2 rounded-full shadow-sm",
                                         item.priority === "Critical" ? "bg-red-500 animate-pulse" :
                                         item.priority === "High" ? "bg-orange-500" :
-                                        item.priority === "Low" ? "bg-slate-400" : "bg-blue-500"
-                                    )} />
+                                        item.priority === "Low" ? "bg-slate-400" : ""
+                                    )} 
+                                    style={item.priority === "Normal" ? { backgroundColor: themeColor } : {}}
+                                    />
                                     <span className={cn(
                                         "text-[10px] font-black uppercase tracking-widest italic",
                                         item.priority === "Critical" ? "text-red-500" : "text-slate-600 dark:text-slate-400"
@@ -139,7 +166,7 @@ export function AnnouncementTable() {
                             </TableCell>
                             <TableCell>
                                 <div className="flex items-center text-slate-500 dark:text-slate-400 text-[11px] font-medium italic">
-                                    <Calendar className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                                    <Calendar className="w-3.5 h-3.5 mr-2" style={{ color: themeColor }} />
                                     {format(new Date(item.createdAt), "MMM d, yyyy")}
                                 </div>
                             </TableCell>
@@ -148,7 +175,8 @@ export function AnnouncementTable() {
                                     checked={item.isActive}
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isActive)}
                                     disabled={togglingId === item.id}
-                                    className="data-[state=checked]:bg-blue-600"
+                                    style={{ '--tw-switch-checked-bg': themeColor } as any}
+                                    className="data-[state=checked]:bg-[var(--tw-switch-checked-bg)]"
                                 />
                             </TableCell>
                             <TableCell className="text-right pr-8">
@@ -181,7 +209,8 @@ export function AnnouncementTable() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
-                                                    className="h-9 w-9 rounded-xl text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-transparent hover:border-blue-200"
+                                                    className="h-9 w-9 rounded-xl transition-all border border-transparent"
+                                                    style={{ color: themeColor }}
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>
@@ -213,6 +242,82 @@ export function AnnouncementTable() {
                 </TableBody>
             </Table>
         </div>
+
+            {/* Pagination UI */}
+            {totalPages > 1 && (
+                <div className="px-8 py-6 border-t border-slate-200 dark:border-[#2a3040] bg-slate-50/30 dark:bg-transparent flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                            Showing <span className="text-slate-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-slate-900 dark:text-white">{Math.min(currentPage * itemsPerPage, filteredData.length)}</span> of <span className="text-slate-900 dark:text-white">{filteredData.length}</span> results
+                        </div>
+
+                        <div className="flex items-center gap-2 border-l border-slate-200 dark:border-[#2a3040] pl-4">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rows:</span>
+                            <Select 
+                                value={itemsPerPage.toString()} 
+                                onValueChange={(val) => {
+                                    setItemsPerPage(parseInt(val));
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-[70px] bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                    <SelectItem value="5">5</SelectItem>
+                                    <SelectItem value="8">8</SelectItem>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                            disabled={currentPage === 1}
+                            className="h-10 px-4 rounded-xl border-slate-200 dark:border-white/10 font-bold text-[11px] uppercase tracking-widest transition-all hover:bg-white dark:hover:bg-white/5 active:scale-95 disabled:opacity-30"
+                        >
+                            Prev
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <Button
+                                    key={page}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={cn(
+                                        "h-10 w-10 rounded-xl font-black text-xs transition-all",
+                                        currentPage === page 
+                                            ? "text-white shadow-lg shadow-blue-500/20" 
+                                            : "text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
+                                    )}
+                                    style={currentPage === page ? { backgroundColor: themeColor } : {}}
+                                >
+                                    {page}
+                                </Button>
+                            ))}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                            disabled={currentPage === totalPages}
+                            className="h-10 px-4 rounded-xl border-slate-200 dark:border-white/10 font-bold text-[11px] uppercase tracking-widest transition-all hover:bg-white dark:hover:bg-white/5 active:scale-95 disabled:opacity-30"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 

@@ -31,6 +31,11 @@ interface AnnouncementContextType {
     setSelectedPriority: (priority: string) => void;
     currentBarangay?: string;
     activeBarangays?: string[];
+    themeColor: string;
+    currentPage: number;
+    setCurrentPage: (page: number) => void;
+    itemsPerPage: number;
+    setItemsPerPage: (count: number) => void;
 }
 
 const AnnouncementContext = createContext<AnnouncementContextType | undefined>(undefined);
@@ -42,6 +47,24 @@ export function AnnouncementProvider({ children, initialData, currentBarangay, a
     const [editingData, setEditingData] = useState<Announcement | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedPriority, setSelectedPriority] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(8);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch('/api/settings');
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error('Error fetching theme settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     useEffect(() => {
         setAnnouncements(initialData);
@@ -64,6 +87,11 @@ export function AnnouncementProvider({ children, initialData, currentBarangay, a
                 setSelectedPriority,
                 currentBarangay,
                 activeBarangays,
+                themeColor,
+                currentPage,
+                setCurrentPage,
+                itemsPerPage,
+                setItemsPerPage,
             }}
         >
             {children}
