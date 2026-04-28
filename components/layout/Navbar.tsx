@@ -267,11 +267,11 @@ export function Navbar({
                 <div className="flex min-[1100px]:hidden items-center gap-2 sm:gap-4">
                     <ThemeToggle />
                     <button
-                        className="p-3 bg-white/5 dark:bg-black/5 rounded-xl border border-white/10"
+                        className="p-2 sm:p-2.5 bg-white/5 dark:bg-black/5 rounded-xl border border-white/10"
                         onClick={() => setIsOpen(!isOpen)}
                     >
                         <motion.div style={{ color: activeTheme === "dark" ? darkColor : color }}>
-                            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </motion.div>
                     </button>
                 </div>
@@ -285,89 +285,98 @@ export function Navbar({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -20, scale: 0.95 }}
                         transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                        className="lg:hidden absolute top-full left-0 right-0 h-screen bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 shadow-2xl overflow-y-auto"
+                        className="lg:hidden absolute top-full left-0 right-0 h-[calc(100vh-80px)] bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 shadow-2xl flex flex-col"
                     >
-                        <div className="px-6 py-12 flex flex-col gap-8 max-w-lg mx-auto">
-                            {/* Barangay Switcher Card */}
-                            <button
-                                onClick={() => { setIsBarangayModalOpen(true); setIsOpen(false); }}
-                                className="w-full p-6 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-between group active:scale-[0.98] transition-all"
-                            >
-                                <div className="flex items-center gap-5">
-                                    <div className="w-14 h-14 rounded-3xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary shadow-xl">
-                                        <MapPin className="w-7 h-7" style={{ color: themeColor }} />
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
+                                {/* Barangay Switcher Card */}
+                                <button
+                                    onClick={() => { setIsBarangayModalOpen(true); setIsOpen(false); }}
+                                    className="w-full p-3 md:p-5 rounded-2xl md:rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-between group active:scale-[0.98] transition-all"
+                                >
+                                    <div className="flex items-center gap-3 md:gap-4">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary shadow-sm">
+                                            <MapPin className="w-5 h-5 md:w-6 md:h-6" style={{ color: themeColor }} />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Select Jurisdiction</p>
+                                            <p className="text-sm md:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none" style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}>
+                                                {selectedBarangay === "All" ? "Municipality" : selectedBarangay}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-left">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Select Jurisdiction</p>
-                                        <p className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none" style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}>
-                                            {selectedBarangay === "All" ? "Municipality" : selectedBarangay}
-                                        </p>
+                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-white/5">
+                                        <Globe className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 group-hover:text-primary transition-colors" />
                                     </div>
-                                </div>
-                                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-white/5">
-                                    <Globe className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
-                                </div>
-                            </button>
+                                </button>
 
-                            <div className="space-y-2">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Main Navigation</p>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {currentLinks.map((link) => (
-                                        <Link
-                                            key={link.name}
-                                            href={link.href}
-                                            onClick={() => setIsOpen(false)}
-                                            className={cn(
-                                                "p-5 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-between group h-20 transition-all active:scale-[0.98]",
-                                                pathname === link.href && "bg-primary/10 border border-primary/20"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-5">
-                                                <div className={cn(
-                                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                                                    pathname === link.href ? "bg-primary text-white" : "bg-white dark:bg-white/10 text-primary group-hover:bg-primary group-hover:text-white"
-                                                )}>
-                                                    <link.icon className="w-6 h-6" />
+                                {/* Main Nav Links */}
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Main Navigation</p>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {currentLinks.map((link) => (
+                                            <Link
+                                                key={link.name}
+                                                href={link.href}
+                                                onClick={() => setIsOpen(false)}
+                                                className={cn(
+                                                    "p-3 md:p-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-between group h-12 md:h-16 transition-all active:scale-[0.98]",
+                                                    pathname === link.href && "bg-primary/10 border border-primary/20"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3 md:gap-4">
+                                                    <div className={cn(
+                                                        "w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center transition-colors",
+                                                        pathname === link.href ? "bg-primary text-white" : "bg-white dark:bg-white/10 text-primary group-hover:bg-primary group-hover:text-white"
+                                                    )}>
+                                                        <link.icon className="w-4 h-4 md:w-5 md:h-5" />
+                                                    </div>
+                                                    <span className={cn(
+                                                        "text-sm md:text-base font-bold uppercase tracking-wide transition-colors",
+                                                        pathname === link.href ? "text-primary" : "text-slate-900 dark:text-white"
+                                                    )}>{link.name}</span>
                                                 </div>
-                                                <span className={cn(
-                                                    "text-lg font-black uppercase italic tracking-tight transition-colors",
-                                                    pathname === link.href ? "text-primary" : "text-slate-900 dark:text-white"
-                                                )}>{link.name}</span>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-slate-300">
-                                                <ChevronDown className="w-5 h-5 -rotate-90" />
-                                            </div>
-                                        </Link>
-                                    ))}
+                                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-slate-300">
+                                                    <ChevronDown className="w-3.5 h-3.5 md:w-4 md:h-4 -rotate-90" />
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-2" />
+                                <div className="h-px bg-slate-100 dark:bg-white/5 mx-2" />
 
-                            {isAuth ? (
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4 p-6 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                        <div className="w-16 h-16 rounded-[1.5rem] bg-blue-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-blue-500/20">
+                                {/* User Info Card (Small) */}
+                                {isAuth && (
+                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 mb-4">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white text-base font-black shadow-sm">
                                             {userName.charAt(0)}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Welcome Back</span>
-                                            <span className="text-2xl font-black text-slate-900 dark:text-white italic tracking-tight uppercase">{userName}</span>
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">Welcome Back</span>
+                                            <span className="text-sm font-black text-slate-900 dark:text-white italic tracking-tight uppercase truncate max-w-[200px]">{userName}</span>
                                         </div>
                                     </div>
-                                    <Button
-                                        onClick={() => signOut({ callbackUrl: "/" })}
-                                        className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white h-20 rounded-[2rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all border border-red-500/20"
-                                    >
-                                        <LogOut className="w-5 h-5" />
-                                        Logout from Hub
-                                    </Button>
-                                </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Sticky Footer */}
+                        <div className="p-6 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md border-t border-slate-100 dark:border-white/5 pb-12 sm:pb-6">
+                            {isAuth ? (
+                                <Button
+                                    onClick={() => signOut({ callbackUrl: "/" })}
+                                    className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white h-12 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all border border-red-500/20"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    Logout from Hub
+                                </Button>
                             ) : (
                                 <Link href="/auth/login" onClick={() => setIsOpen(false)}>
                                     <Button
-                                        style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}33` }}
-                                        className="w-full text-white h-20 rounded-[2.5rem] font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl active:scale-95 transition-all outline-none border-none"
+                                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                        className="w-full text-white h-12 rounded-xl font-bold uppercase tracking-wider text-xs shadow-xl active:scale-95 transition-all outline-none border-none"
                                     >
                                         Access Member Hub
                                     </Button>

@@ -38,7 +38,7 @@ export function Footer({
                             {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
                         </span>
                     </Link>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">
+                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium italic leading-relaxed">
                         Official website of the Municipality. Dedicated to transparent governance and sustainable growth.
                     </p>
                     <div className="flex items-center gap-4">
@@ -52,13 +52,13 @@ export function Footer({
 
                 {/* Quick Links */}
                 <div className="space-y-6">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Quick Links</h4>
+                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-slate-400">Quick Links</h4>
                     <ul className="space-y-4">
                         {["About Us", "Transparency Seal", "Citizens Charter", "Privacy Policy"].map((link) => (
                             <li key={link}>
                                 <Link 
                                     href="#" 
-                                    className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none"
+                                    className="text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none"
                                     onMouseEnter={(e) => e.currentTarget.style.color = themeColor}
                                     onMouseLeave={(e) => e.currentTarget.style.color = ""}
                                 >
@@ -71,13 +71,13 @@ export function Footer({
 
                 {/* Tourism & Hubs */}
                 <div className="space-y-6">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Explore Hub</h4>
+                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-slate-400">Explore Hub</h4>
                     <ul className="space-y-4">
                         {["Where to Stay", "Dining Hub", "Gallery"].map((link) => (
                             <li key={link}>
                                 <Link 
                                     href="#" 
-                                    className="text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none"
+                                    className="text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest leading-none"
                                     onMouseEnter={(e) => e.currentTarget.style.color = themeColor}
                                     onMouseLeave={(e) => e.currentTarget.style.color = ""}
                                 >
@@ -90,25 +90,25 @@ export function Footer({
 
                 {/* Contact */}
                 <div className="space-y-6">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Contact Us</h4>
+                    <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-slate-400">Contact Us</h4>
                     <ul className="space-y-4">
                         <li className="flex items-start gap-3">
                             <MapPin className="w-5 h-5 shrink-0" style={{ color: themeColor }} />
-                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">Municipal Hall, Poblacion</span>
+                            <span className="text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">Municipal Hall, Poblacion</span>
                         </li>
                         <li className="flex items-center gap-3">
-                            <Mail className="w-5 h-5" style={{ color: themeColor }} />
-                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">info@portal.gov.ph</span>
+                            <Mail className="w-5 h-5 shrink-0" style={{ color: themeColor }} />
+                            <span className="text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">info@portal.gov.ph</span>
                         </li>
                         <li className="flex items-center gap-3">
-                            <Phone className="w-5 h-5" style={{ color: themeColor }} />
-                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">(075) 000-0000</span>
+                            <Phone className="w-5 h-5 shrink-0" style={{ color: themeColor }} />
+                            <span className="text-xs md:text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">(075) 000-0000</span>
                         </li>
                     </ul>
                 </div>
             </div>
 
-            <div className="pt-10 flex flex-col md:flex-row items-center justify-between gap-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+            <div className="pt-10 flex flex-col md:flex-row items-center justify-between gap-6 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center md:text-left">
                 <p>© {new Date().getFullYear()} {brandWord1}{brandWord2}. All rights reserved.</p>
                 <div className="flex items-center gap-8">
                     <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>

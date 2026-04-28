@@ -107,7 +107,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.9]"
+                        className="text-4xl md:text-7xl lg:text-8xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.9]"
                     >
                         Welcome to
                         <br />
@@ -118,7 +118,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 }}
-                        className="mt-8 text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl font-medium leading-relaxed"
+                        className="mt-6 md:mt-8 text-base md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl font-medium leading-relaxed"
                     >
                         {aboutData.geographyOrDemographics || "Learn about our rich history, deep-rooted core values, and our shared vision towards progress."}
                     </motion.p>
@@ -141,7 +141,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                         <div className="flex flex-col lg:flex-row items-stretch h-full w-full">
                             {/* Photo Section */}
                             {aboutData.mayorImageUrl ? (
-                                <div className="lg:w-2/5 relative min-h-[400px] lg:self-stretch p-6 pb-0 lg:pb-6 lg:pr-0">
+                                <div className="lg:w-2/5 relative min-h-[300px] md:min-h-[400px] lg:self-stretch p-4 md:p-6 pb-0 lg:pb-6 lg:pr-0">
                                     <div className="relative w-full h-full rounded-[2rem] overflow-hidden shadow-2xl">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img 
@@ -162,20 +162,20 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             )}
 
                             {/* Message Section */}
-                            <div className="lg:w-3/5 p-10 md:p-16 lg:p-20 relative z-10 flex flex-col justify-center">
-                                <div className="flex items-center gap-3 mb-6">
+                            <div className="lg:w-3/5 p-6 md:p-16 lg:p-20 relative z-10 flex flex-col justify-center">
+                                <div className="flex items-center gap-3 mb-4 md:mb-6">
                                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
                                         <Quote className="w-4 h-4" />
                                     </div>
-                                    <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Message from the Office</h2>
+                                    <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Message from the Office</h2>
                                 </div>
                                 
-                                <h3 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-10 tracking-tighter leading-none">
+                                <h3 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-6 md:mb-10 tracking-tighter leading-none">
                                     {isBarangayView ? "Captain's" : "Mayor's"} <br/><span style={{ color: themeColor }}>Message</span>
                                 </h3>
                                 
                                 <div className="relative">
-                                    <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-loose italic font-medium whitespace-pre-wrap">
+                                    <p className="text-base md:text-xl text-slate-600 dark:text-slate-400 leading-loose italic font-medium whitespace-pre-wrap">
                                         {aboutData.mayorMessage}
                                     </p>
                                 </div>
@@ -200,17 +200,17 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-px" style={{ backgroundColor: themeColor }} />
-                            <h2 className="text-sm font-extrabold uppercase tracking-[0.3em] text-slate-500">Origins</h2>
+                            <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.3em] text-slate-500">Origins</h2>
                         </div>
-                        <h3 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">
+                        <h3 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">
                             Historical <br/><span style={{ color: themeColor }}>Background</span>
                         </h3>
                     </div>
                     <div className="lg:col-span-7">
                         <Card className="border-none shadow-2xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: themeColor }} />
-                            <CardContent className="p-8 md:p-12">
-                                <p className="text-lg md:text-xl text-slate-700 dark:text-slate-300 leading-loose whitespace-pre-wrap font-medium">
+                            <CardContent className="p-6 md:p-12">
+                                <p className="text-base md:text-xl text-slate-700 dark:text-slate-300 leading-loose whitespace-pre-wrap font-medium">
                                     {aboutData.history}
                                 </p>
                             </CardContent>
@@ -234,13 +234,13 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">
                                 <Target className="w-48 h-48" style={{ color: themeColor }} />
                             </div>
-                            <CardContent className="p-10 md:p-14 flex flex-col h-full relative z-10">
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
-                                    <Target className="w-8 h-8" />
+                            <CardContent className="p-6 md:p-14 flex flex-col h-full relative z-10">
+                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-6 md:mb-8 shadow-lg" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
+                                    <Target className="w-6 h-6 md:w-8 md:h-8" />
                                 </div>
-                                <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-slate-400 mb-2">Our Goal</h2>
-                                <h3 className="text-4xl font-black text-slate-900 dark:text-white mb-6">Mission</h3>
-                                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-wrap flex-grow">
+                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-400 mb-2">Our Goal</h2>
+                                <h3 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-4 md:mb-6">Mission</h3>
+                                <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-wrap flex-grow">
                                     {aboutData.mission}
                                 </p>
                             </CardContent>
@@ -253,13 +253,13 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-500 pointer-events-none">
                                 <Eye className="w-48 h-48 text-white" />
                             </div>
-                            <CardContent className="p-10 md:p-14 flex flex-col h-full relative z-10">
-                                <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mb-8 shadow-lg text-white backdrop-blur-md">
-                                    <Eye className="w-8 h-8" />
+                            <CardContent className="p-6 md:p-14 flex flex-col h-full relative z-10">
+                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/20 flex items-center justify-center mb-6 md:mb-8 shadow-lg text-white backdrop-blur-md">
+                                    <Eye className="w-6 h-6 md:w-8 md:h-8" />
                                 </div>
-                                <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-white/70 mb-2">Our Future</h2>
-                                <h3 className="text-4xl font-black text-white mb-6">Vision</h3>
-                                <p className="text-lg text-white/90 leading-relaxed font-medium whitespace-pre-wrap flex-grow">
+                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-white/70 mb-2">Our Future</h2>
+                                <h3 className="text-3xl md:text-4xl font-black text-white mb-4 md:mb-6">Vision</h3>
+                                <p className="text-base md:text-lg text-white/90 leading-relaxed font-medium whitespace-pre-wrap flex-grow">
                                     {aboutData.vision}
                                 </p>
                             </CardContent>
@@ -275,19 +275,19 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     variants={fadeIn}
                     className="max-w-5xl mx-auto"
                 >
-                    <div className="relative p-10 md:p-16 rounded-[3rem] text-center border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/50 shadow-inner overflow-hidden">
+                    <div className="relative p-6 md:p-16 rounded-[2rem] md:rounded-[3rem] text-center border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/50 shadow-inner overflow-hidden">
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px" style={{ background: `linear-gradient(90deg, transparent, ${themeColor}, transparent)` }} />
                         
-                        <HeartHandshake className="w-12 h-12 mx-auto mb-8 opacity-80" style={{ color: themeColor }} />
-                        <h2 className="text-sm font-extrabold uppercase tracking-[0.3em] text-slate-400 mb-6">Guiding Principles</h2>
-                        <h3 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-10 tracking-tight">Core Values</h3>
+                        <HeartHandshake className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-6 md:mb-8 opacity-80" style={{ color: themeColor }} />
+                        <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.3em] text-slate-400 mb-4 md:mb-6">Guiding Principles</h2>
+                        <h3 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 md:mb-10 tracking-tight">Core Values</h3>
                         
                         <div className="relative">
-                            <Quote className="absolute -top-8 -left-4 md:-left-8 w-16 h-16 opacity-10 rotate-180" style={{ color: themeColor }} />
-                            <p className="text-xl md:text-2xl text-slate-700 dark:text-slate-300 leading-relaxed font-bold whitespace-pre-wrap italic">
+                            <Quote className="absolute -top-4 md:-top-8 -left-2 md:-left-8 w-10 h-10 md:w-16 md:h-16 opacity-10 rotate-180" style={{ color: themeColor }} />
+                            <p className="text-lg md:text-2xl text-slate-700 dark:text-slate-300 leading-relaxed font-bold whitespace-pre-wrap italic relative z-10 px-4 md:px-0">
                                 {aboutData.coreValues}
                             </p>
-                            <Quote className="absolute -bottom-8 -right-4 md:-right-8 w-16 h-16 opacity-10" style={{ color: themeColor }} />
+                            <Quote className="absolute -bottom-4 md:-bottom-8 -right-2 md:-right-8 w-10 h-10 md:w-16 md:h-16 opacity-10" style={{ color: themeColor }} />
                         </div>
                     </div>
                 </motion.div>
