@@ -96,10 +96,10 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
                              {activeSlide.primaryBtnText && (
                                  <Link href={activeSlide.primaryBtnLink || "#"}>
                                      <Button 
-                                         className="px-10 py-5 h-auto text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl active:scale-95 flex items-center gap-3 border-none hover:opacity-90"
+                                         className="px-6 py-3 md:px-10 md:py-5 h-auto text-white rounded-[2rem] font-black uppercase tracking-widest text-[8px] md:text-[10px] transition-all shadow-xl active:scale-95 flex items-center gap-2 md:gap-3 border-none hover:opacity-90"
                                          style={{ backgroundColor: themeColor, boxShadow: `0 20px 25px -5px ${themeColor}44` }}
                                      >
-                                         <Compass className="w-5 h-5" />
+                                         <Compass className="w-4 h-4 md:w-5 md:h-5" />
                                          {activeSlide.primaryBtnText}
                                      </Button>
                                  </Link>
@@ -111,7 +111,7 @@ export function Hero({ slides, themeColor = "#2563eb" }: HeroProps) {
   
              {/* Navigation Controls */}
              {slides.length > 1 && (
-                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-30 flex justify-between px-4 md:px-10 pointer-events-none">
+                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-30 hidden md:flex justify-between px-4 md:px-10 pointer-events-none">
                      <button 
                          onClick={prev}
                          className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white backdrop-blur-md transition-all pointer-events-auto active:scale-90"

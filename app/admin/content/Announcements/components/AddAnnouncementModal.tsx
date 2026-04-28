@@ -8,7 +8,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
     DialogFooter
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Megaphone, Info, Calendar, Pin, AlertTriangle, Loader2 } from "lucide-react";
+import { Megaphone, Info, Calendar, Pin, Loader2 } from "lucide-react";
 
 export function AddAnnouncementModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useAnnouncements();
