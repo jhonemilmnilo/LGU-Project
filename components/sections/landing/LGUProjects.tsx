@@ -31,8 +31,8 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
     if (!projects || filteredProjects.length === 0) return null;
 
     return (
-        <section id="projects" className="py-12 px-6 max-w-7xl mx-auto space-y-10">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <section id="projects" className="pt-16 md:pt-20 pb-12 px-6 max-w-7xl mx-auto">
+            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-0.5 bg-primary" />
@@ -45,7 +45,7 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
 
                 <Link href="/user/projects">
                     <Button 
-                        className="px-8 py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-primary/25 active:scale-95 group flex items-center gap-3"
+                        className="px-8 py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-primary/25 active:scale-95 group flex items-center gap-3 w-full md:w-auto justify-center"
                     >
                         <FolderKanban className="w-4 h-4" />
                         View All Projects
@@ -53,7 +53,7 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-10">
                 {filteredProjects.map((project, idx) => (
                     <motion.div
                         key={project.id}
@@ -64,10 +64,10 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
                     >
                         <Link 
                             href={`/user/projects/${project.id}`}
-                            className="group block bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] overflow-hidden hover:border-primary/40 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full active:scale-[0.98]"
+                            className="group block bg-white dark:bg-[#0f1117] rounded-3xl md:rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] overflow-hidden hover:border-primary/40 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col h-full active:scale-[0.98]"
                         >
                             {/* Image Header */}
-                            <div className="relative h-56 w-full overflow-hidden">
+                            <div className="relative h-32 md:h-56 w-full overflow-hidden">
                                 <Image
                                     src={project.imageUrl || "/projects/default.png"}
                                     alt={project.title}
@@ -76,7 +76,7 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                 
-                                <div className="absolute top-6 left-6">
+                                <div className="absolute top-4 md:top-6 left-4 md:left-6">
                                     <span className={cn(
                                         "px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest backdrop-blur-md border shadow-lg",
                                         project.status === "Completed" 
@@ -87,7 +87,7 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
                                     </span>
                                 </div>
 
-                                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
+                                <div className="absolute bottom-4 md:bottom-6 left-4 md:left-6 right-4 md:right-6 flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-white/90">
                                         <MapPin className="w-3.5 h-3.5 text-primary" />
                                         <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[150px]">
@@ -102,25 +102,25 @@ export function LGUProjects({ projects }: LGUProjectsProps) {
                             </div>
 
                             {/* Content */}
-                            <div className="p-8 space-y-4 flex-1 flex flex-col">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1.5 text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                            <div className="p-3.5 md:p-8 space-y-2.5 md:space-y-4 flex-1 flex flex-col">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <div className="flex items-center gap-1.5 text-[8px] md:text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                                         <Calendar className="w-2.5 h-2.5" />
                                         {project.startDate ? format(new Date(project.startDate), "MMM yyyy") : "TBA"}
                                     </div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{project.category}</span>
+                                    <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">{project.category}</span>
                                 </div>
 
-                                <div className="space-y-2 flex-1">
-                                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
+                                <div className="space-y-1.5 md:space-y-2 flex-1">
+                                    <h3 className="text-base md:text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
                                         {project.title}
                                     </h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic line-clamp-3 leading-relaxed">
+                                    <p className="text-[9px] md:text-xs text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 md:line-clamp-3 leading-relaxed">
                                         {project.description}
                                     </p>
                                 </div>
 
-                                <div className="pt-6">
+                                <div className="pt-3 md:pt-6">
                                     <div className="w-full bg-slate-100 dark:bg-white/5 h-2 rounded-full overflow-hidden shadow-inner">
                                         <motion.div 
                                             initial={{ width: 0 }}

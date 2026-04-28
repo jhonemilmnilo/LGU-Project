@@ -41,7 +41,7 @@ export function AnnouncementsNews({ announcements, news }: AnnouncementsNewsProp
     const filteredNews = news;
 
     return (
-        <section id="news" className="pt-8 md:pt-12 pb-24 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <section id="news" className="pt-8 md:pt-12 pb-8 md:pb-12 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
             
             {/* Left Column: Public Announcements */}
             <div className="flex flex-col h-full">
