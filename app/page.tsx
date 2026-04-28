@@ -271,7 +271,7 @@ export default async function Home({
 
             <Hero slides={slides} themeColor={themeColor} />
 
-            <div className="space-y-4 pb-6 md:pb-20">
+            <div className="space-y-4 pb-6 md:pb-0">
                 {showDiningLodging && <DiningLodging items={discoveryItems} />}
                 {showPlacesToVisit && <PlacesToVisit spots={tourismSpots} />}
 

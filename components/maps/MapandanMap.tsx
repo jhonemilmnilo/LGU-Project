@@ -42,6 +42,26 @@ function LocateMeControl({ onLocationFound }: { onLocationFound: (pos: [number, 
     );
 }
 
+function AutoFitBound({ geoJson }: { geoJson: GeoJSONFeature }) {
+    const map = useMap();
+    useEffect(() => {
+        if (geoJson) {
+            try {
+                const bbox = turf.bbox(geoJson as any);
+                const bounds = L.latLngBounds([bbox[1], bbox[0]], [bbox[3], bbox[2]]);
+                map.fitBounds(bounds, { padding: [0, 0] });
+                // Force an extra zoom in for a tighter view
+                setTimeout(() => {
+                    map.setZoom(map.getZoom() + 2);
+                }, 300);
+            } catch (e) {
+                console.error("Error fitting bounds", e);
+            }
+        }
+    }, [map, geoJson]);
+    return null;
+}
+
 
 export default function MapandanMap() {
     const [boundaryGeoJson, setBoundaryGeoJson] = useState<GeoJSONFeature | null>(null);
@@ -109,17 +129,20 @@ export default function MapandanMap() {
                 )}
                 {/* Tracing the EXACT border of Mapandan dynamically */}
                 {boundaryGeoJson && (
-                    <GeoJSON
-                        key="border"
-                        data={boundaryGeoJson}
-                        style={{
-                            color: "#3b82f6", // Neon Blue border natively tracing the real Mapandan!
-                            weight: 3,
-                            fillColor: "#1e40af",
-                            fillOpacity: 0.15,
-                            dashArray: "10, 10"
-                        }}
-                    />
+                    <>
+                        <GeoJSON
+                            key="border"
+                            data={boundaryGeoJson}
+                            style={{
+                                color: "#3b82f6", // Neon Blue border natively tracing the real Mapandan!
+                                weight: 3,
+                                fillColor: "#1e40af",
+                                fillOpacity: 0.15,
+                                dashArray: "10, 10"
+                            }}
+                        />
+                        <AutoFitBound geoJson={boundaryGeoJson} />
+                    </>
                 )}
 
                 {/* User Location Marker - Clean Blue Dot style */}

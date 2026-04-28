@@ -60,7 +60,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
     const latest = collections[0];
 
     return (
-        <section id="church" className="pt-0 md:pt-24 pb-12 md:pb-24 px-6 bg-white dark:bg-slate-950 relative">
+        <section id="church" className="pt-0 md:pt-12 pb-12 md:pb-12 px-6 bg-white dark:bg-slate-950 relative">
             {/* Background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full" />

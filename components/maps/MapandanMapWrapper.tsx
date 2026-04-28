@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 const MapandanMap = dynamic(() => import("./MapandanMap"), {
     ssr: false,
     loading: () => (
-        <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse text-slate-500">
+        <div className="w-full h-full min-h-[300px] md:min-h-[400px] flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse text-slate-500">
             <Loader2 className="animate-spin mb-2" size={32} />
             <span className="font-bold text-sm tracking-widest uppercase">Loading Satellite Map...</span>
         </div>
@@ -16,15 +16,8 @@ const MapandanMap = dynamic(() => import("./MapandanMap"), {
 
 export default function MapandanMapWrapper() {
     return (
-        <div className="w-full h-[500px] rounded-3xl shadow-2xl overflow-hidden border-2 border-slate-200 dark:border-white/5 relative z-0">
-            {/* The dynamically loaded Map */}
+        <div className="w-full h-full rounded-[2rem] md:rounded-3xl shadow-2xl overflow-hidden border-2 border-slate-200 dark:border-white/5 relative z-0">
             <MapandanMap />
-            
-            {/* Cool Overlays over the Map */}
-            <div className="absolute top-4 left-4 z-50 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 pointer-events-none">
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <span className="text-xs font-black tracking-widest uppercase text-white shadow-sm">Mapandan Territory</span>
-            </div>
         </div>
     );
 }
