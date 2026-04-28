@@ -20,6 +20,14 @@ interface InitialHotline {
 
 export function EmergencyReport({ initialHotlines = [], showMap = true }: { initialHotlines?: InitialHotline[], showMap?: boolean }) {
     const [copied, setCopied] = React.useState<string | null>(null);
+    const [isMobile, setIsMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+    React.useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const getIcon = (category: string) => {
         const cat = category?.toLowerCase() || "";
@@ -49,7 +57,7 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
             {/* Disaster Monitoring (Side by Side Maps) */}
             {showMap && (
                 <div className="max-w-7xl mx-auto mb-16 md:mb-24 relative z-10">
-                    <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-slate-950/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-12">
+                    <div className="sticky md:static top-[70px] md:top-auto z-40 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-slate-950/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-12">
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <CloudLightning className="w-8 h-8 text-blue-500 animate-pulse" />
@@ -63,31 +71,52 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                         {/* Mapandan Border Map (Left Side) */}
-                        <motion.div 
-                            initial={{ opacity: 0, x: -24 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            className="rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[350px] md:h-[500px] relative bg-[#050505]"
-                        >
-                            <MapandanMapWrapper />
-                        </motion.div>
+                        {isMobile ? (
+                            <div className="rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[350px] md:h-[500px] relative bg-[#050505]">
+                                <MapandanMapWrapper />
+                            </div>
+                        ) : (
+                            <motion.div 
+                                initial={{ opacity: 0, x: -24 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                className="rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[350px] md:h-[500px] relative bg-[#050505]"
+                            >
+                                <MapandanMapWrapper />
+                            </motion.div>
+                        )}
 
                         {/* Live Weather / Typhoon Map */}
-                        <motion.div 
-                            initial={{ opacity: 0, x: 24 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            className="bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[350px] md:h-[500px] relative"
-                        >
-                            <iframe 
-                                width="100%" 
-                                height="100%" 
-                                src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=12.8797&lon=121.7740" 
-                                frameBorder="0"
-                                title="Live Weather Map"
-                                className="absolute inset-0"
-                            />
-                        </motion.div>
+                        {isMobile ? (
+                            <div className="bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[350px] md:h-[500px] relative">
+                                <iframe 
+                                    width="100%" 
+                                    height="100%" 
+                                    src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=12.8797&lon=121.7740" 
+                                    frameBorder="0"
+                                    title="Live Weather Map"
+                                    loading="lazy"
+                                    className="absolute inset-0"
+                                />
+                            </div>
+                        ) : (
+                            <motion.div 
+                                initial={{ opacity: 0, x: 24 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                className="bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden h-[350px] md:h-[500px] relative"
+                            >
+                                <iframe 
+                                    width="100%" 
+                                    height="100%" 
+                                    src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=12.8797&lon=121.7740" 
+                                    frameBorder="0"
+                                    title="Live Weather Map"
+                                    loading="lazy"
+                                    className="absolute inset-0"
+                                />
+                            </motion.div>
+                        )}
                     </div>
                 </div>
             )}
@@ -95,7 +124,7 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
             {/* Emergency Hotlines Container */}
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 relative z-10">
                 <div className="space-y-12">
-                    <div className="space-y-4 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-slate-950/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+                    <div className="space-y-4 sticky md:static top-[70px] md:top-auto z-40 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-slate-950/95 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                         <div className="flex items-center gap-3">
                             <Siren className="w-6 h-6 md:w-8 md:h-8 text-red-500 animate-pulse" />
                             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-white">Emergency Hotlines</h2>
@@ -113,32 +142,43 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
                                     const Icon = getIcon(hotline.category);
                                     const primaryNumber = hotline.mobileNumber || hotline.telephone || "N/A";
                                     
+                                    const hotlineCard = (
+                                        <div
+                                            onClick={() => copyToClipboard(primaryNumber, hotline.name)}
+                                            className="p-4 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-[2rem] flex items-center gap-3 md:gap-4 hover:bg-white/10 transition-all group cursor-pointer relative"
+                                        >
+                                            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center group-hover:bg-primary transition-colors">
+                                                <Icon className="w-5 h-5 md:w-6 md:h-6 text-slate-300 group-hover:text-white" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary transition-colors truncate">{hotline.name}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-base md:text-lg font-black tracking-tighter text-white">{primaryNumber}</p>
+                                                    {copied === primaryNumber && (
+                                                        <span className="text-[9px] md:text-[10px] font-bold text-emerald-500 italic animate-in fade-in zoom-in">Copied!</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="hidden md:flex w-8 h-8 rounded-full bg-white/5 items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                            </div>
+                                        </div>
+                                    );
+
                                     return (
                                         <Tooltip key={hotline.id}>
                                             <TooltipTrigger asChild>
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    whileInView={{ opacity: 1, scale: 1 }}
-                                                    transition={{ delay: idx * 0.1 }}
-                                                    onClick={() => copyToClipboard(primaryNumber, hotline.name)}
-                                                    className="p-4 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-[2rem] flex items-center gap-3 md:gap-4 hover:bg-white/10 transition-all group cursor-pointer relative"
-                                                >
-                                                    <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center group-hover:bg-primary transition-colors">
-                                                        <Icon className="w-5 h-5 md:w-6 md:h-6 text-slate-300 group-hover:text-white" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary transition-colors truncate">{hotline.name}</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="text-base md:text-lg font-black tracking-tighter text-white">{primaryNumber}</p>
-                                                            {copied === primaryNumber && (
-                                                                <span className="text-[9px] md:text-[10px] font-bold text-emerald-500 italic animate-in fade-in zoom-in">Copied!</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="hidden md:flex w-8 h-8 rounded-full bg-white/5 items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                                                    </div>
-                                                </motion.div>
+                                                {isMobile ? (
+                                                    hotlineCard
+                                                ) : (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.95 }}
+                                                        whileInView={{ opacity: 1, scale: 1 }}
+                                                        transition={{ delay: idx * 0.1 }}
+                                                    >
+                                                        {hotlineCard}
+                                                    </motion.div>
+                                                )}
                                             </TooltipTrigger>
                                             <TooltipContent className="bg-slate-900 border-white/10 p-4 rounded-2xl max-w-xs shadow-2xl">
                                                 <div className="space-y-3">
@@ -192,14 +232,20 @@ export function EmergencyReport({ initialHotlines = [], showMap = true }: { init
                 </div>
 
                 {/* Report Form Component */}
-                <motion.div
-                    initial={{ opacity: 0, x: 24 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    className="relative"
-                >
-                    <ReportForm />
-                </motion.div>
+                {isMobile ? (
+                    <div className="relative">
+                        <ReportForm />
+                    </div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, x: 24 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="relative"
+                    >
+                        <ReportForm />
+                    </motion.div>
+                )}
             </div>
         </section>
     );

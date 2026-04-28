@@ -19,14 +19,22 @@ interface ServicesProps {
     themeColor?: string;
 }
 
-
-
 export function Services({ services = [], themeColor }: ServicesProps) {
     const displayServices = services.length > 0 ? services : [];
+    const [isMobile, setIsMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+    React.useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    const gridClass = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-16";
 
     return (
         <section id="services" className="pt-8 md:pt-8 pb-6 md:pb-12 px-6 max-w-7xl mx-auto">
-            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+            <div className="sticky md:static top-[70px] md:top-auto z-40 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-0.5 rounded-full" style={{ backgroundColor: themeColor || "var(--primary-theme)" }} />
@@ -36,8 +44,6 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                         Services
                     </h2>
                 </div>
-                
-
             </div>
 
             {displayServices.length === 0 ? (
@@ -47,51 +53,28 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                     <p className="text-slate-500 font-medium text-sm mt-1">Select a specific Barangay to view available community services.</p>
                 </div>
             ) : (
-                <motion.div 
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "100px" }}
-                    variants={{
-                        hidden: {},
-                        visible: { transition: { staggerChildren: 0.1 } }
-                    }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-16"
-                >
-
-                    {displayServices.map((service) => {
-                        return (
-                            <motion.div
-                                key={service.id}
-                                variants={{
-                                    hidden: { opacity: 0, y: 20 },
-                                    visible: { opacity: 1, y: 0 }
-                                }}
-                                className="group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative"
-                            >
-                                <Link href={service.code.startsWith("CEDULA") ? "/user/services/cedula" : `/user/services/${service.id}`} className="block p-5 md:p-8 h-full">
-                                    <div 
-                                        className="absolute top-0 right-0 w-20 md:w-24 h-20 md:h-24 blur-2xl -mr-10 -mt-10 md:-mr-12 md:-mt-12 transition-all opacity-10 group-hover:opacity-20" 
-                                        style={{ backgroundColor: themeColor || "var(--primary-theme)" }}
-                                    />
-                                    
-                                    <div className="relative z-10">
-                                        <div className="space-y-1.5 md:space-y-2">
-                                            <h3 
-                                                className="text-lg md:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-tight transition-colors"
-                                                style={{ "--hover-color": themeColor || "var(--primary-theme)" } as any}
-                                            >
-                                                {service.name}
-                                            </h3>
-                                            <p className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 italic line-clamp-2">
-                                                {service.description}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </motion.div>
-                        );
-                    })}
-                </motion.div>
+                isMobile ? (
+                    <div className={gridClass}>
+                        {displayServices.map((service) => (
+                            <ServiceCard key={service.id} service={service} themeColor={themeColor} isMobile={isMobile} />
+                        ))}
+                    </div>
+                ) : (
+                    <motion.div 
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "100px" }}
+                        variants={{
+                            hidden: {},
+                            visible: { transition: { staggerChildren: 0.1 } }
+                        }}
+                        className={gridClass}
+                    >
+                        {displayServices.map((service) => (
+                            <ServiceCard key={service.id} service={service} themeColor={themeColor} isMobile={isMobile} />
+                        ))}
+                    </motion.div>
+                )
             )}
 
             <div className="flex justify-center mt-8 md:mt-12">
@@ -113,5 +96,49 @@ export function Services({ services = [], themeColor }: ServicesProps) {
     );
 }
 
+function ServiceCard({ service, themeColor, isMobile }: { service: Service; themeColor?: string; isMobile: boolean }) {
+    const cardClasses = "group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative";
+    
+    const content = (
+        <Link href={service.code.startsWith("CEDULA") ? "/user/services/cedula" : `/user/services/${service.id}`} className="block p-5 md:p-8 h-full">
+            <div 
+                className="absolute top-0 right-0 w-20 md:w-24 h-20 md:h-24 blur-2xl -mr-10 -mt-10 md:-mr-12 md:-mt-12 transition-all opacity-10 group-hover:opacity-20 pointer-events-none" 
+                style={{ backgroundColor: themeColor || "var(--primary-theme)" }}
+            />
+            
+            <div className="relative z-10">
+                <div className="space-y-1.5 md:space-y-2">
+                    <h3 
+                        className="text-lg md:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-tight transition-colors"
+                        style={{ "--hover-color": themeColor || "var(--primary-theme)" } as any}
+                    >
+                        {service.name}
+                    </h3>
+                    <p className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 italic line-clamp-2">
+                        {service.description}
+                    </p>
+                </div>
+            </div>
+        </Link>
+    );
 
+    if (isMobile) {
+        return (
+            <div className={cardClasses}>
+                {content}
+            </div>
+        );
+    }
 
+    return (
+        <motion.div
+            variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 }
+            }}
+            className={cardClasses}
+        >
+            {content}
+        </motion.div>
+    );
+}

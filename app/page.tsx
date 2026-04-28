@@ -2,35 +2,32 @@ import * as React from "react";
 import nextDynamic from "next/dynamic";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { Hero } from "@/components/sections/landing/Hero";
 import { HashScrollHandler } from "@/components/shared/HashScrollHandler";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ClientOnly } from "@/components/shared/ClientOnly";
+import { HeroSkeleton } from "@/components/sections/landing/skeletons/HeroSkeleton";
+import { GovernmentSkeleton } from "@/components/sections/landing/skeletons/GovernmentSkeleton";
+import { DiningLodgingSkeleton } from "@/components/sections/landing/skeletons/DiningLodgingSkeleton";
+import { PlacesToVisitSkeleton } from "@/components/sections/landing/skeletons/PlacesToVisitSkeleton";
 
-function SectionSkeleton() {
-  return (
-    <div className="w-full py-12 px-6 max-w-7xl mx-auto space-y-8 animate-pulse">
-      <div className="flex justify-center">
-        <Skeleton className="h-12 w-[300px] rounded-full" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Skeleton className="h-[300px] rounded-3xl w-full" />
-        <Skeleton className="h-[300px] rounded-3xl w-full" />
-        <Skeleton className="h-[300px] rounded-3xl w-full hidden lg:block" />
-      </div>
-    </div>
-  );
-}
+import { EventsCalendarSkeleton } from "@/components/sections/landing/skeletons/EventsCalendarSkeleton";
+import { AnnouncementsNewsSkeleton } from "@/components/sections/landing/skeletons/AnnouncementsNewsSkeleton";
+import { JobBoardSkeleton } from "@/components/sections/landing/skeletons/JobBoardSkeleton";
+import { LGUProjectsSkeleton } from "@/components/sections/landing/skeletons/LGUProjectsSkeleton";
+import { ServicesSkeleton } from "@/components/sections/landing/skeletons/ServicesSkeleton";
+import { EmergencyReportSkeleton } from "@/components/sections/landing/skeletons/EmergencyReportSkeleton";
+import { ParishCornerSkeleton } from "@/components/sections/landing/skeletons/ParishCornerSkeleton";
 
-const DiningLodging = nextDynamic(() => import("@/components/sections/landing/DiningLodging").then(m => m.DiningLodging), { loading: () => <SectionSkeleton /> });
-const PlacesToVisit = nextDynamic(() => import("@/components/sections/landing/PlacesToVisit").then(m => m.PlacesToVisit), { loading: () => <SectionSkeleton /> });
-const EventsCalendarSection = nextDynamic(() => import("@/components/sections/landing/EventsCalendarSection").then(m => m.EventsCalendarSection), { loading: () => <SectionSkeleton /> });
-const AnnouncementsNews = nextDynamic(() => import("@/components/sections/landing/AnnouncementsNews").then(m => m.AnnouncementsNews), { loading: () => <SectionSkeleton /> });
-const JobBoard = nextDynamic(() => import("@/components/sections/landing/JobBoard").then(m => m.JobBoard), { loading: () => <SectionSkeleton /> });
-const LGUProjects = nextDynamic(() => import("@/components/sections/landing/LGUProjects").then(m => m.LGUProjects), { loading: () => <SectionSkeleton /> });
-const Government = nextDynamic(() => import("@/components/sections/landing/Government").then(m => m.Government), { loading: () => <SectionSkeleton /> });
-const Services = nextDynamic(() => import("@/components/sections/landing/Services").then(m => m.Services), { loading: () => <SectionSkeleton /> });
-const EmergencyReport = nextDynamic(() => import("@/components/sections/landing/EmergencyReport").then(m => m.EmergencyReport), { loading: () => <SectionSkeleton /> });
-const ParishCorner = nextDynamic(() => import("../components/sections/landing/ParishCorner"), { loading: () => <SectionSkeleton /> });
+const Hero = nextDynamic(() => import("@/components/sections/landing/Hero").then(m => m.Hero), { loading: () => <HeroSkeleton /> });
+const DiningLodging = nextDynamic(() => import("@/components/sections/landing/DiningLodging").then(m => m.DiningLodging), { loading: () => <DiningLodgingSkeleton /> });
+const PlacesToVisit = nextDynamic(() => import("@/components/sections/landing/PlacesToVisit").then(m => m.PlacesToVisit), { loading: () => <PlacesToVisitSkeleton /> });
+const EventsCalendarSection = nextDynamic(() => import("@/components/sections/landing/EventsCalendarSection").then(m => m.EventsCalendarSection), { loading: () => <EventsCalendarSkeleton /> });
+const AnnouncementsNews = nextDynamic(() => import("@/components/sections/landing/AnnouncementsNews").then(m => m.AnnouncementsNews), { loading: () => <AnnouncementsNewsSkeleton /> });
+const JobBoard = nextDynamic(() => import("@/components/sections/landing/JobBoard").then(m => m.JobBoard), { loading: () => <JobBoardSkeleton /> });
+const LGUProjects = nextDynamic(() => import("@/components/sections/landing/LGUProjects").then(m => m.LGUProjects), { loading: () => <LGUProjectsSkeleton /> });
+const Government = nextDynamic(() => import("@/components/sections/landing/Government").then(m => m.Government), { loading: () => <GovernmentSkeleton /> });
+const Services = nextDynamic(() => import("@/components/sections/landing/Services").then(m => m.Services), { loading: () => <ServicesSkeleton /> });
+const EmergencyReport = nextDynamic(() => import("@/components/sections/landing/EmergencyReport").then(m => m.EmergencyReport), { loading: () => <EmergencyReportSkeleton /> });
+const ParishCorner = nextDynamic(() => import("../components/sections/landing/ParishCorner"), { loading: () => <ParishCornerSkeleton /> });
 import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
@@ -287,34 +284,74 @@ export default async function Home({
                 barangays={barangays}
             />
 
-            <Hero slides={slides} themeColor={themeColor} />
+            <ClientOnly delay={1000} fallback={<HeroSkeleton />}>
+                <Hero slides={slides} themeColor={themeColor} />
+            </ClientOnly>
 
             <div className="space-y-4 pb-6 md:pb-0">
-                {showDiningLodging && <DiningLodging items={discoveryItems} />}
-                {showPlacesToVisit && <PlacesToVisit spots={tourismSpots} />}
+                {showDiningLodging && (
+                    <ClientOnly delay={1000} fallback={<DiningLodgingSkeleton />}>
+                        <DiningLodging items={discoveryItems} />
+                    </ClientOnly>
+                )}
+                {showPlacesToVisit && (
+                    <ClientOnly delay={1000} fallback={<PlacesToVisitSkeleton />}>
+                        <PlacesToVisit spots={tourismSpots} />
+                    </ClientOnly>
+                )}
 
                 {/* Major Updates: Events with Calendar */}
-                {showEvents && <EventsCalendarSection events={events} />}
+                {showEvents && (
+                    <ClientOnly delay={1000} fallback={<EventsCalendarSkeleton />}>
+                        <EventsCalendarSection events={events} />
+                    </ClientOnly>
+                )}
 
                 {/* Announcements & News Section */}
-                {showAnnouncements && <AnnouncementsNews announcements={announcements} news={news} />}
+                {showAnnouncements && (
+                    <ClientOnly delay={1000} fallback={<AnnouncementsNewsSkeleton />}>
+                        <AnnouncementsNews announcements={announcements} news={news} />
+                    </ClientOnly>
+                )}
 
                 {/* Infrastructure Projects Section */}
-                {showLGUProjects && <LGUProjects projects={projects} />}
+                {showLGUProjects && (
+                    <ClientOnly delay={1000} fallback={<LGUProjectsSkeleton />}>
+                        <LGUProjects projects={projects} />
+                    </ClientOnly>
+                )}
 
-                {showJobs && <JobBoard jobs={jobs} />}
-                {showGovernment && <Government officials={officials} barangay={selectedBarangay} />}
-                {showServices && <Services services={services} themeColor={themeColor} />}
+                {showJobs && (
+                    <ClientOnly delay={1000} fallback={<JobBoardSkeleton />}>
+                        <JobBoard jobs={jobs} />
+                    </ClientOnly>
+                )}
+                {showGovernment && (
+                    <ClientOnly delay={1000} fallback={<GovernmentSkeleton />}>
+                        <Government officials={officials} barangay={selectedBarangay} />
+                    </ClientOnly>
+                )}
+                {showServices && (
+                    <ClientOnly delay={1000} fallback={<ServicesSkeleton />}>
+                        <Services services={services} themeColor={themeColor} />
+                    </ClientOnly>
+                )}
             </div>
 
             {showChurch && (
-                <ParishCorner
-                    info={churchInfo}
-                    schedules={churchSchedules}
-                    collections={latestCollection}
-                />
+                <ClientOnly delay={1000} fallback={<ParishCornerSkeleton />}>
+                    <ParishCorner
+                        info={churchInfo}
+                        schedules={churchSchedules}
+                        collections={latestCollection}
+                    />
+                </ClientOnly>
             )}
-            {showEmergency && <EmergencyReport initialHotlines={hotlines} showMap={showMap} />}
+            {showEmergency && (
+                <ClientOnly delay={1000} fallback={<EmergencyReportSkeleton />}>
+                    <EmergencyReport initialHotlines={hotlines} showMap={showMap} />
+                </ClientOnly>
+            )}
             <Footer
                 logoUrl={logoUrl}
                 brandWord1={brandWord1}
