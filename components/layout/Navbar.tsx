@@ -367,10 +367,10 @@ export function Navbar({
                             {isAuth ? (
                                 <Button
                                     onClick={() => signOut({ callbackUrl: "/" })}
-                                    className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white h-12 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all border border-red-500/20"
+                                    className="w-full bg-red-500 hover:bg-red-600 text-white h-12 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-500/20"
                                 >
                                     <LogOut className="w-4 h-4" />
-                                    Logout from Hub
+                                    Log out
                                 </Button>
                             ) : (
                                 <Link href="/auth/login" onClick={() => setIsOpen(false)}>

@@ -105,33 +105,36 @@ export function PastMayorsExhibit({ mayors, brandWord1 = "Mapandan", brandWord2 
     return (
         <section 
             id="past-mayors"
-            className="relative w-full bg-[#080810] text-[#f8f9fa] overflow-hidden flex flex-col py-10 md:py-10 font-sans selection:bg-white/20"
+            className="relative w-full bg-[#080810] text-[#f8f9fa] flex flex-col py-10 md:py-10 font-sans selection:bg-white/20"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
             aria-label={isBarangayView ? "Historical Timeline of Past Captains" : "Historical Timeline of Past Mayors"}
         >
-            {/* Dark Ambient Glow Bottom */}
-            <div 
-                className="absolute -bottom-1/2 left-0 right-0 h-full opacity-30 blur-[120px] transition-colors duration-1000 select-none pointer-events-none"
-                style={{ backgroundColor: currentColor }}
-            />
+            {/* Background wrapper to prevent bleed without breaking sticky */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                {/* Dark Ambient Glow Bottom */}
+                <div 
+                    className="absolute -bottom-1/2 left-0 right-0 h-full opacity-30 blur-[120px] transition-colors duration-1000 select-none"
+                    style={{ backgroundColor: currentColor }}
+                />
 
-            {/* Subtle SVG Grid Overlay */}
-            <div className="absolute inset-0 z-0 opacity-[0.04] pointer-events-none mix-blend-overlay" 
-                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} 
-            />
+                {/* Subtle SVG Grid Overlay */}
+                <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay" 
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} 
+                />
+            </div>
 
             {/* Header */}
-            <div className="relative z-20 container mx-auto px-4 py-1 flex flex-col items-center">
-                <div className="flex items-center gap-2 text-white/60 mb-4">
+            <div className="sticky top-20 z-50 pt-4 pb-2 md:pt-1 md:pb-1 bg-[#080810]/95 backdrop-blur-xl md:bg-transparent md:backdrop-blur-none container mx-auto px-4 flex flex-col items-center w-full border-b border-white/5 md:border-none">
+                <div className="flex items-center gap-2 text-white/60 mb-2 md:mb-4">
                     <div className="h-px w-8 bg-white/20" />
                     <span className="uppercase tracking-[0.4em] text-xs font-bold text-white/50">{brandWord1} {brandWord2}</span>
                     <div className="h-px w-8 bg-white/20" />
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
+                <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
                     Past <span className="opacity-50">{isBarangayView ? "Captains" : "Mayors"}</span>
                 </h2>
-                <div className="w-px h-12 bg-gradient-to-b from-white/20 to-transparent" />
+                <div className="w-px h-8 md:h-12 bg-gradient-to-b from-white/20 to-transparent mt-2" />
             </div>
 
             {/* Main Carousel Area */}

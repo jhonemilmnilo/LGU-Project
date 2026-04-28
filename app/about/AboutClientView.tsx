@@ -126,7 +126,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
             </motion.div>
 
             {/* Main Content Blocks */}
-            <div className="max-w-7xl mx-auto px-4 md:px-8 mt-20 md:mt-32 space-y-24 md:space-y-40">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 md:mt-32 space-y-10 md:space-y-40">
                 
                 {/* Mayor's Message - Now the First Primary Block */}
                 <motion.div 
@@ -135,13 +135,13 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     viewport={{ once: true, margin: "-100px" }}
                     variants={fadeIn}
                 >
-                    <Card className="rounded-[3rem] shadow-2xl border-none bg-white dark:bg-slate-950 overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
+                    <Card className="rounded-none md:rounded-[3rem] shadow-none md:shadow-2xl border-none bg-transparent md:bg-white md:dark:bg-slate-950 overflow-visible md:overflow-hidden relative">
+                        <div className="hidden md:block absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
                         
                         <div className="flex flex-col lg:flex-row items-stretch h-full w-full">
                             {/* Photo Section */}
                             {aboutData.mayorImageUrl ? (
-                                <div className="lg:w-2/5 relative min-h-[300px] md:min-h-[400px] lg:self-stretch p-4 md:p-6 pb-0 lg:pb-6 lg:pr-0">
+                                <div className="lg:w-2/5 relative h-[350px] md:h-[450px] lg:h-auto lg:self-stretch p-0 md:p-6 pb-0 lg:pb-6 lg:pr-0">
                                     <div className="relative w-full h-full rounded-[2rem] overflow-hidden shadow-2xl">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img 
@@ -162,15 +162,15 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             )}
 
                             {/* Message Section */}
-                            <div className="lg:w-3/5 p-6 md:p-16 lg:p-20 relative z-10 flex flex-col justify-center">
-                                <div className="flex items-center gap-3 mb-4 md:mb-6">
+                            <div className="lg:w-3/5 p-0 py-4 md:p-16 lg:p-20 relative z-10 flex flex-col justify-center">
+                                <div className="flex items-center gap-3 mb-2 md:mb-6">
                                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
                                         <Quote className="w-4 h-4" />
                                     </div>
                                     <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Message from the Office</h2>
                                 </div>
                                 
-                                <h3 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-6 md:mb-10 tracking-tighter leading-none">
+                                <h3 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-4 md:mb-10 tracking-tighter leading-none">
                                     {isBarangayView ? "Captain's" : "Mayor's"} <br/><span style={{ color: themeColor }}>Message</span>
                                 </h3>
                                 
@@ -191,9 +191,9 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     whileInView="visible"
                     viewport={{ once: true, margin: "-100px" }}
                     variants={fadeIn}
-                    className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-center"
+                    className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-24 items-center"
                 >
-                    <div className="lg:col-span-5 space-y-6 relative">
+                    <div className="lg:col-span-5 space-y-4 md:space-y-6 relative">
                         {/* Decorative Icon */}
                         <div className="absolute -top-10 -left-10 opacity-5 dark:opacity-10 pointer-events-none">
                             <Building2 className="w-48 h-48" style={{ color: themeColor }} />
@@ -207,9 +207,9 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                         </h3>
                     </div>
                     <div className="lg:col-span-7">
-                        <Card className="border-none shadow-2xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: themeColor }} />
-                            <CardContent className="p-6 md:p-12">
+                        <Card className="border-none shadow-none md:shadow-2xl bg-transparent md:bg-white/50 md:dark:bg-slate-900/50 md:backdrop-blur-xl relative overflow-visible md:overflow-hidden">
+                            <div className="hidden md:block absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: themeColor }} />
+                            <CardContent className="p-0 py-2 md:p-12">
                                 <p className="text-base md:text-xl text-slate-700 dark:text-slate-300 leading-loose whitespace-pre-wrap font-medium">
                                     {aboutData.history}
                                 </p>
@@ -226,7 +226,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     whileInView="visible"
                     viewport={{ once: true, margin: "-100px" }}
                     variants={staggerContainer}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-12"
                 >
                     {/* Mission Card */}
                     <motion.div variants={fadeIn} className="h-full">
@@ -234,12 +234,12 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500 pointer-events-none">
                                 <Target className="w-48 h-48" style={{ color: themeColor }} />
                             </div>
-                            <CardContent className="p-6 md:p-14 flex flex-col h-full relative z-10">
-                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-6 md:mb-8 shadow-lg" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
-                                    <Target className="w-6 h-6 md:w-8 md:h-8" />
+                            <CardContent className="p-5 md:p-14 flex flex-col h-full relative z-10">
+                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-8 shadow-lg" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
+                                    <Target className="w-5 h-5 md:w-8 md:h-8" />
                                 </div>
-                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-400 mb-2">Our Goal</h2>
-                                <h3 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-4 md:mb-6">Mission</h3>
+                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-400 mb-1 md:mb-2">Our Goal</h2>
+                                <h3 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white mb-2 md:mb-6">Mission</h3>
                                 <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-wrap flex-grow">
                                     {aboutData.mission}
                                 </p>
@@ -253,12 +253,12 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-500 pointer-events-none">
                                 <Eye className="w-48 h-48 text-white" />
                             </div>
-                            <CardContent className="p-6 md:p-14 flex flex-col h-full relative z-10">
-                                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/20 flex items-center justify-center mb-6 md:mb-8 shadow-lg text-white backdrop-blur-md">
-                                    <Eye className="w-6 h-6 md:w-8 md:h-8" />
+                            <CardContent className="p-5 md:p-14 flex flex-col h-full relative z-10">
+                                <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/20 flex items-center justify-center mb-4 md:mb-8 shadow-lg text-white backdrop-blur-md">
+                                    <Eye className="w-5 h-5 md:w-8 md:h-8" />
                                 </div>
-                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-white/70 mb-2">Our Future</h2>
-                                <h3 className="text-3xl md:text-4xl font-black text-white mb-4 md:mb-6">Vision</h3>
+                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-white/70 mb-1 md:mb-2">Our Future</h2>
+                                <h3 className="text-2xl md:text-4xl font-black text-white mb-2 md:mb-6">Vision</h3>
                                 <p className="text-base md:text-lg text-white/90 leading-relaxed font-medium whitespace-pre-wrap flex-grow">
                                     {aboutData.vision}
                                 </p>
@@ -275,12 +275,12 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     variants={fadeIn}
                     className="max-w-5xl mx-auto"
                 >
-                    <div className="relative p-6 md:p-16 rounded-[2rem] md:rounded-[3rem] text-center border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/50 shadow-inner overflow-hidden">
+                    <div className="relative p-0 py-4 md:p-16 rounded-none md:rounded-[3rem] text-center border-none md:border md:border-slate-200 md:dark:border-white/10 bg-transparent md:bg-slate-50/50 md:dark:bg-slate-900/50 md:shadow-inner overflow-hidden">
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px" style={{ background: `linear-gradient(90deg, transparent, ${themeColor}, transparent)` }} />
                         
-                        <HeartHandshake className="w-10 h-10 md:w-12 md:h-12 mx-auto mb-6 md:mb-8 opacity-80" style={{ color: themeColor }} />
-                        <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.3em] text-slate-400 mb-4 md:mb-6">Guiding Principles</h2>
-                        <h3 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 md:mb-10 tracking-tight">Core Values</h3>
+                        <HeartHandshake className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-4 md:mb-8 opacity-80" style={{ color: themeColor }} />
+                        <h2 className="text-[10px] md:text-sm font-extrabold uppercase tracking-[0.3em] text-slate-400 mb-2 md:mb-6">Guiding Principles</h2>
+                        <h3 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 md:mb-10 tracking-tight">Core Values</h3>
                         
                         <div className="relative">
                             <Quote className="absolute -top-4 md:-top-8 -left-2 md:-left-8 w-10 h-10 md:w-16 md:h-16 opacity-10 rotate-180" style={{ color: themeColor }} />
@@ -298,7 +298,7 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
             </div>
 
             {pastMayors && pastMayors.length > 0 && (
-                <div className="w-full mt-24">
+                <div className="w-full mt-10 md:mt-24">
                     <PastMayorsExhibit 
                         mayors={pastMayors} 
                         brandWord1={brandWord1} 
