@@ -42,7 +42,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
 
     return (
         <section id="leadership" className="pt-8 md:pt-24 pb-12 md:pb-24 px-6 max-w-7xl mx-auto">
-            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
+            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
                 <div className="flex items-center justify-center gap-4">
                     <div className="h-px w-8 md:w-12 bg-primary/20" />
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">The Leadership</span>

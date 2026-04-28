@@ -38,7 +38,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
     return (
         <section id="tourism" className="pt-8 md:pt-12 pb-8 md:pb-12 px-6 max-w-7xl mx-auto">
-            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-0.5 bg-primary" />
@@ -47,14 +47,6 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                     <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                         Gallery
                     </h2>
-                </div>
-
-                <div
-                    onClick={() => router.push("/user/tourism")}
-                    className="px-8 py-4 bg-primary text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all cursor-pointer shadow-xl shadow-primary/25 active:scale-95 group flex items-center gap-3"
-                >
-                    <Compass className="w-4 h-4 group-hover:rotate-45 transition-transform" />
-                    Explore Entire Gallery
                 </div>
             </div>
 
@@ -172,6 +164,16 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                         )}
                     />
                 ))}
+            </div>
+            
+            <div className="flex justify-center mt-8 md:mt-12">
+                <div
+                    onClick={() => router.push("/user/tourism")}
+                    className="w-full md:w-[400px] px-8 py-3.5 md:py-5 bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all cursor-pointer shadow-xl shadow-primary/25 active:scale-95 group flex items-center justify-center gap-2 md:gap-3 border-none"
+                >
+                    <Compass className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover:rotate-45 transition-transform" />
+                    Explore Entire Gallery
+                </div>
             </div>
         </section>
     );

@@ -43,7 +43,7 @@ export function JobBoard({ jobs = [] }: { jobs: Job[] }) {
     return (
         <section id="careers" className="pt-0 md:pt-24 pb-12 md:pb-24 px-6 bg-slate-50 dark:bg-white/5 border-y border-slate-100 dark:border-white/5">
             <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
-                <div className="text-center space-y-2 md:space-y-4 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-slate-50/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+                <div className="text-center space-y-2 md:space-y-4 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-slate-50/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                     <h2 className="text-2xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                         Serve the Community
                     </h2>

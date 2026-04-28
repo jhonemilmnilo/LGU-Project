@@ -60,54 +60,34 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
     const latest = collections[0];
 
     return (
-        <section id="church" className="py-24 px-6 bg-white dark:bg-slate-950 relative overflow-hidden">
+        <section id="church" className="pt-0 md:pt-24 pb-12 md:pb-24 px-6 bg-white dark:bg-slate-950 relative">
             {/* Background elements */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full -z-10" />
-            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/5 blur-[100px] rounded-full -z-10" />
+            <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full" />
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/5 blur-[100px] rounded-full" />
+            </div>
 
-            <div className="max-w-7xl mx-auto space-y-16">
+            <div className="max-w-7xl mx-auto">
                 {/* Header Area */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 relative z-10">
-                    <div className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 relative z-30 sticky md:static top-[70px] md:top-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-16">
+                    <div className="space-y-2 md:space-y-4 w-full">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-2xl shadow-lg" style={{ backgroundColor: info.themeColor || '#2563eb', boxShadow: `0 10px 15px -3px ${info.themeColor}33` }}>
-                                <Church className="w-8 h-8 text-white" />
+                            <div className="p-2 md:p-3 rounded-2xl shadow-lg" style={{ backgroundColor: info.themeColor || '#2563eb', boxShadow: `0 10px 15px -3px ${info.themeColor}33` }}>
+                                <Church className="w-6 h-6 md:w-8 md:h-8 text-white" />
                             </div>
-                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
+                            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
                                 Church Information
                             </h2>
                         </div>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-xl text-lg leading-relaxed">
+                        <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-xl text-xs md:text-lg leading-relaxed">
                             Welcome to the <span className="text-slate-900 dark:text-white font-black">{info.name}</span> stewardship and information hub. 
                             Stay connected with our community through mass schedules and financial reports.
                         </p>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-4">
-                        <Link href="/user/church">
-                            <Button 
-                                className="px-8 py-4 h-auto bg-primary hover:opacity-90 text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-primary/25 active:scale-95 group flex items-center gap-3 border-none"
-                            >
-                                <MapPin className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                Learn more...
-                            </Button>
-                        </Link>
-                        {info.flyerUrl && (
-                            <a 
-                                href={info.flyerUrl} 
-                                download 
-                                className="flex items-center gap-3 px-6 py-4 text-white rounded-[2rem] font-black uppercase italic tracking-tighter text-sm transition-all shadow-xl group"
-                                style={{ backgroundColor: info.themeColor || '#2563eb', boxShadow: `0 10px 15px -3px ${info.themeColor}4d` }}
-                            >
-                                <Download className="w-5 h-5 group-hover:bounce transition-transform" />
-                                <span>Get Weekly Flyer</span>
-                            </a>
-                        )}
-                    </div>
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 relative z-10">
                     
                     {/* LEFT SIDE: Mass Schedule */}
                     <motion.div 
@@ -264,6 +244,27 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                             </div>
                         </div>
                     </motion.div>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 w-full pt-6 md:pt-10">
+                    <Button asChild className="w-full md:w-[400px] px-8 py-3.5 md:py-5 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[9px] md:text-[10px] rounded-[2rem] transition-all shadow-xl shadow-primary/25 active:scale-95 group flex items-center justify-center gap-2 md:gap-3 border-none">
+                        <Link href="/user/church">
+                            <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover:scale-110 transition-transform" />
+                            Learn more about the Parish
+                        </Link>
+                    </Button>
+                    
+                    {info.flyerUrl && (
+                        <a 
+                            href={info.flyerUrl} 
+                            download 
+                            className="w-full md:w-[400px] flex items-center justify-center gap-2 md:gap-3 px-8 py-3.5 md:py-5 text-white rounded-[2rem] font-black uppercase italic tracking-widest text-[9px] md:text-[10px] transition-all shadow-xl group"
+                            style={{ backgroundColor: info.themeColor || '#2563eb', boxShadow: `0 10px 15px -3px ${info.themeColor}4d` }}
+                        >
+                            <Download className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover:bounce transition-transform" />
+                            <span>Download Weekly Flyer</span>
+                        </a>
+                    )}
                 </div>
             </div>
         </section>

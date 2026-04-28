@@ -25,8 +25,8 @@ export function Services({ services = [], themeColor }: ServicesProps) {
     const displayServices = services.length > 0 ? services : [];
 
     return (
-        <section id="services" className="pt-8 md:pt-12 pb-12 px-6 max-w-7xl mx-auto">
-            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+        <section id="services" className="pt-8 md:pt-12 pb-6 md:pb-12 px-6 max-w-7xl mx-auto">
+            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-0.5 rounded-full" style={{ backgroundColor: themeColor || "var(--primary-theme)" }} />
@@ -37,19 +37,7 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                     </h2>
                 </div>
                 
-                <Link href="/user/services" className="w-full md:w-auto">
-                    <Button 
-                        style={{ 
-                            backgroundColor: themeColor || "var(--primary-theme)",
-                            borderColor: themeColor || "var(--primary-theme)",
-                            color: "white"
-                        }}
-                        className="rounded-full px-8 font-black uppercase tracking-widest text-[10px] h-12 gap-2 border-2 transition-all hover:opacity-90 shadow-lg shadow-primary/20 w-full md:w-auto"
-                    >
-                        Access All Services
-                        <ArrowUpRight className="w-4 h-4" />
-                    </Button>
-                </Link>
+
             </div>
 
             {displayServices.length === 0 ? (
@@ -96,6 +84,22 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                     })}
                 </div>
             )}
+
+            <div className="flex justify-center mt-8 md:mt-12">
+                <Link href="/user/services" className="w-full md:w-auto">
+                    <Button 
+                        style={{ 
+                            backgroundColor: themeColor || "var(--primary-theme)",
+                            borderColor: themeColor || "var(--primary-theme)",
+                            color: "white"
+                        }}
+                        className="rounded-[2rem] px-8 py-3.5 md:px-12 md:py-5 font-black uppercase tracking-widest text-[9px] md:text-[10px] h-auto gap-2 md:gap-3 border-2 transition-all hover:opacity-90 shadow-xl shadow-primary/20 w-full md:w-[400px] flex items-center justify-center"
+                    >
+                        Access All Services
+                        <ArrowUpRight className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                    </Button>
+                </Link>
+            </div>
         </section>
     );
 }
