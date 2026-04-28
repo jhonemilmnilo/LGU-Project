@@ -161,7 +161,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 mt-8 md:mt-12">
                 {displaySpots.map((_, idx) => (
                     <button
                         key={idx}
