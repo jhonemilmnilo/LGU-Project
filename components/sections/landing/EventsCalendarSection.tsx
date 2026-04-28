@@ -92,8 +92,8 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
             <div className="flex flex-col lg:flex-row gap-16">
                 
                 {/* Left Side: Calendar */}
-                <div className="flex-1 space-y-8">
-                    <div className="space-y-2">
+                <div className="flex-1">
+                    <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none space-y-2 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                         <div className="flex items-center gap-3 text-primary">
                             <CalendarIcon className="w-5 h-5" />
                             <span className="text-[10px] font-black uppercase tracking-[0.3em]">Town Calendar</span>
@@ -103,7 +103,7 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                         </h2>
                     </div>
 
-                    <div className="bg-white dark:bg-[#0f1117] rounded-[2rem] p-6 border border-slate-200 dark:border-[#2a3040] shadow-2xl shadow-primary/5 ring-1 ring-slate-200 dark:ring-white/5 max-w-md">
+                    <div className="mt-8 bg-white dark:bg-[#0f1117] rounded-[2rem] p-6 border border-slate-200 dark:border-[#2a3040] shadow-2xl shadow-primary/5 ring-1 ring-slate-200 dark:ring-white/5 max-w-md">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                                 {format(currentDate, "MMMM yyyy")}
@@ -133,21 +133,21 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                 </div>
 
                 {/* Right Side: Event Details */}
-                <div className="w-full lg:w-[450px] space-y-8">
-                    <div className="flex items-center justify-between">
+                <div className="w-full lg:w-[450px]">
+                    <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex items-center justify-between border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-4 md:mb-0">
                         <div className="space-y-1">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Selected Date</p>
-                            <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                            <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                                 {format(selectedDate, "MMM dd, yyyy")}
                             </h3>
                         </div>
-                        <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20">
-                            <Sparkles className="w-5 h-5 text-white" />
+                        <div className="p-2 md:p-3 bg-primary rounded-xl md:rounded-2xl shadow-lg shadow-primary/20 shrink-0">
+                            <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-white" />
                         </div>
                     </div>
 
                     <ScrollArea 
-                        className="h-[560px] pr-4" 
+                        className="mt-4 md:mt-8 h-[400px] md:h-[560px] pr-4" 
                         viewportClassName="snap-y snap-mandatory"
                     >
                         <div className="flex flex-col gap-1 pr-3">
@@ -160,19 +160,19 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ delay: idx * 0.1 }}
-                                            className="group bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-8 border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
+                                            className="group bg-slate-50 dark:bg-white/5 rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
                                         >
-                                            <div className="relative z-10 space-y-4">
+                                            <div className="relative z-10 space-y-3 md:space-y-4">
                                                 <div className="flex items-start justify-between">
                                                     <span className="px-3 py-1 bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest rounded-full border border-primary/20">
                                                         {event.category}
                                                     </span>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
+                                                <div className="space-y-1.5 md:space-y-2">
+                                                    <h4 className="text-lg md:text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
                                                         {event.title}
                                                     </h4>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2">
+                                                    <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2">
                                                         {event.description}
                                                     </p>
                                                 </div>
@@ -195,12 +195,12 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="h-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[3rem]"
+                                    className="h-full flex flex-col items-center justify-center p-8 md:p-12 text-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-3xl md:rounded-[3rem]"
                                 >
-                                    <div className="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                                        <CalendarIcon className="w-8 h-8 text-slate-200" />
+                                    <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-3 md:mb-4">
+                                        <CalendarIcon className="w-6 h-6 md:w-8 md:h-8 text-slate-200" />
                                     </div>
-                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic leading-tight">
+                                    <p className="text-xs md:text-sm font-black text-slate-400 uppercase tracking-widest italic leading-tight">
                                         No scheduled events<br/>on this date.
                                     </p>
                                 </motion.div>
@@ -209,7 +209,7 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
                         </div>
                     </ScrollArea>
                     
-                    <Link href="/user/events">
+                    <Link href="/user/events" className="block mt-6 md:mt-8">
                         <Button className="w-full py-4 h-auto bg-primary hover:opacity-90 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] transition-all shadow-xl shadow-primary/25 active:scale-95 flex items-center justify-center gap-3 group">
                             <CalendarIcon className="w-4 h-4" />
                             View Full Calendar
