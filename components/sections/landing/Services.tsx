@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { FileText, ArrowUpRight, ShieldCheck, Briefcase, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -20,12 +19,7 @@ interface ServicesProps {
     themeColor?: string;
 }
 
-const colors = [
-    { color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-500/10" },
-    { color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
-    { color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-500/10" },
-    { color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-500/10" },
-];
+
 
 export function Services({ services = [], themeColor }: ServicesProps) {
     const displayServices = services.length > 0 ? services : [];
@@ -68,7 +62,6 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-16">
 
                     {displayServices.map((service, idx) => {
-                        const style = colors[idx % colors.length];
                         return (
                             <motion.div
                                 key={service.id}
@@ -84,12 +77,7 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                                         style={{ backgroundColor: themeColor || "var(--primary-theme)" }}
                                     />
                                     
-                                    <div className="space-y-4 md:space-y-6 relative z-10">
-                                        <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:bg-blue-600 group-hover:scale-110", style.bg)}>
-                                            {idx % 3 === 0 ? <FileText className={cn("w-6 h-6 md:w-7 md:h-7 group-hover:text-white transition-colors", style.color)} /> : 
-                                             idx % 3 === 1 ? <Briefcase className={cn("w-6 h-6 md:w-7 md:h-7 group-hover:text-white transition-colors", style.color)} /> :
-                                             <Zap className={cn("w-6 h-6 md:w-7 md:h-7 group-hover:text-white transition-colors", style.color)} />}
-                                        </div>
+                                    <div className="relative z-10">
                                         <div className="space-y-1.5 md:space-y-2">
                                             <h3 
                                                 className="text-lg md:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-tight transition-colors"
@@ -100,18 +88,6 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                                             <p className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 italic line-clamp-2">
                                                 {service.description}
                                             </p>
-                                        </div>
-                                        <div className="pt-3 md:pt-4 flex items-center justify-end border-t border-slate-50 dark:border-white/5">
-                                            <span 
-                                                className="text-[10px] font-black uppercase tracking-widest transition-opacity"
-                                                style={{ color: themeColor || "var(--primary-theme)" }}
-                                            >
-                                                Request Now
-                                            </span>
-                                            <ArrowUpRight 
-                                                className="w-4 h-4 text-slate-300 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" 
-                                                style={{ "--hover-color": themeColor || "var(--primary-theme)" } as any}
-                                            />
                                         </div>
                                     </div>
                                 </Link>

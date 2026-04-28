@@ -41,17 +41,17 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
     if (!leader) return null;
 
     return (
-        <section id="leadership" className="py-24 px-6 max-w-7xl mx-auto space-y-20">
-            <div className="text-center space-y-6">
+        <section id="leadership" className="pt-8 md:pt-24 pb-12 md:pb-24 px-6 max-w-7xl mx-auto">
+            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
                 <div className="flex items-center justify-center gap-4">
-                    <div className="h-px w-12 bg-primary/20" />
+                    <div className="h-px w-8 md:w-12 bg-primary/20" />
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">The Leadership</span>
-                    <div className="h-px w-12 bg-primary/20" />
+                    <div className="h-px w-8 md:w-12 bg-primary/20" />
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                     {isFiltered ? `${barangay} Officials` : "Municipal Government"}
                 </h2>
-                <p className="text-slate-500 font-medium italic max-w-xl mx-auto">
+                <p className="text-slate-500 font-medium italic max-w-xl mx-auto text-xs md:text-base">
                     {isFiltered 
                         ? `Meet the dedicated leaders of Barangay ${barangay}.`
                         : "A dedicated team working together for a sustainable and prosperous Mapandan."
@@ -82,7 +82,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                 )}
             </div>
 
-            <div className="flex flex-col items-center space-y-16">
+            <div className="flex flex-col items-center space-y-6 md:space-y-10">
                 {/* Leader Card */}
                 <Link href={`/user/leadership/${leader.id}`} className="block">
                     <motion.div
@@ -117,7 +117,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                 </Link>
 
                 {/* Council Members */}
-                <div className="flex flex-wrap justify-center gap-x-6 md:gap-x-10 gap-y-12 w-full pt-10">
+                <div className="flex flex-wrap justify-center gap-x-6 md:gap-x-10 gap-y-10 md:gap-y-12 w-full pt-4 md:pt-6">
                     {members.map((member, idx) => (
                         <Link key={member.id} href={`/user/leadership/${member.id}`} className="block">
                             <motion.div
