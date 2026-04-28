@@ -26,7 +26,7 @@ export function Services({ services = [], themeColor }: ServicesProps) {
 
     return (
         <section id="services" className="pt-8 md:pt-8 pb-6 md:pb-12 px-6 max-w-7xl mx-auto">
-            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-0.5 rounded-full" style={{ backgroundColor: themeColor || "var(--primary-theme)" }} />
@@ -47,16 +47,25 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                     <p className="text-slate-500 font-medium text-sm mt-1">Select a specific Barangay to view available community services.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-16">
+                <motion.div 
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "100px" }}
+                    variants={{
+                        hidden: {},
+                        visible: { transition: { staggerChildren: 0.1 } }
+                    }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-16"
+                >
 
-                    {displayServices.map((service, idx) => {
+                    {displayServices.map((service) => {
                         return (
                             <motion.div
                                 key={service.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                viewport={{ once: true }}
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0 }
+                                }}
                                 className="group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative"
                             >
                                 <Link href={service.code.startsWith("CEDULA") ? "/user/services/cedula" : `/user/services/${service.id}`} className="block p-5 md:p-8 h-full">
@@ -82,7 +91,7 @@ export function Services({ services = [], themeColor }: ServicesProps) {
                             </motion.div>
                         );
                     })}
-                </div>
+                </motion.div>
             )}
 
             <div className="flex justify-center mt-8 md:mt-12">

@@ -42,7 +42,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
 
     return (
         <section id="leadership" className="pt-8 md:pt-24 pb-12 md:pb-8 px-6 max-w-7xl mx-auto">
-            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
+            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
                 <div className="flex items-center justify-center gap-4">
                     <div className="h-px w-8 md:w-12 bg-primary/20" />
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">The Leadership</span>
@@ -117,16 +117,26 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                 </Link>
 
                 {/* Council Members */}
-                <div className="flex flex-wrap justify-center gap-x-6 md:gap-x-10 gap-y-10 md:gap-y-12 w-full pt-4 md:pt-6">
-                    {members.map((member, idx) => (
-                        <Link key={member.id} href={`/user/leadership/${member.id}`} className="block">
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                viewport={{ once: true }}
-                                className="group flex flex-col items-center space-y-4 text-center w-[140px] sm:w-[160px] md:w-[180px] hover:-translate-y-1 transition-transform"
-                            >
+                <motion.div 
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "100px" }}
+                    variants={{
+                        hidden: {},
+                        visible: { transition: { staggerChildren: 0.1 } }
+                    }}
+                    className="flex flex-wrap justify-center gap-x-6 md:gap-x-10 gap-y-10 md:gap-y-12 w-full pt-4 md:pt-6"
+                >
+                    {members.map((member) => (
+                        <motion.div 
+                            key={member.id} 
+                            variants={{
+                                hidden: { opacity: 0, y: 20 },
+                                visible: { opacity: 1, y: 0 }
+                            }}
+                        >
+                            <Link href={`/user/leadership/${member.id}`} className="block">
+                                <div className="group flex flex-col items-center space-y-4 text-center w-[140px] sm:w-[160px] md:w-[180px] hover:-translate-y-1 transition-transform">
                                 <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-2 border-white dark:border-slate-800 shadow-xl overflow-hidden ring-2 ring-slate-100 dark:ring-white/5 bg-slate-100 dark:bg-slate-800 transition-all duration-300">
                                     {member.imageUrl ? (
                                         <Image
@@ -145,10 +155,11 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                                     <h4 className="text-[11px] sm:text-xs md:text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight group-hover:text-primary transition-colors">{member.name.replace('Hon. ', '')}</h4>
                                     <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">{member.position}</p>
                                 </div>
-                            </motion.div>
-                        </Link>
+                                </div>
+                            </Link>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
                 <div className="pt-12 text-center w-full flex justify-center">
                     <Link
                         href="/user/officials"

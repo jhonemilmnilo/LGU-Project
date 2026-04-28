@@ -95,6 +95,18 @@ export function Navbar({
         setMounted(true);
     }, []);
 
+    // Prevent body scroll when mobile menu is open
+    React.useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [isOpen]);
+
     // Unified main navigation links for all users
     const mainLinks = [
         { name: "About", href: "/about", icon: Info },

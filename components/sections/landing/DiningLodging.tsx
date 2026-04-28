@@ -27,7 +27,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
 
     return (
         <section id="experience" className="pt-16 pb-8 md:pb-12 px-6 max-w-7xl mx-auto">
-            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
+            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-2 md:space-y-4">
                     <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                         Kainan at Tuluyan
@@ -52,22 +52,32 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 mt-6 md:mt-10 lg:mt-12">
-                {items.map((item, idx) => {
+            <motion.div 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "100px" }}
+                variants={{
+                    hidden: {},
+                    visible: { transition: { staggerChildren: 0.1 } }
+                }}
+                className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 mt-6 md:mt-10 lg:mt-12"
+            >
+                {items.map((item) => {
                     const isDining = item.itemType === "kainan";
                     const CategoryIcon = isDining ? Utensils : Bed;
                     const subCategory = isDining ? item.cuisineType : item.type;
                     const detailHref = isDining ? `/user/dining/${item.id}` : `/user/accommodation/${item.id}`;
 
                     return (
-                        <Link key={item.id} href={detailHref}>
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                viewport={{ once: true }}
-                                className="group relative flex flex-col space-y-2 md:space-y-4 cursor-pointer"
-                            >
+                        <motion.div
+                            key={item.id}
+                            variants={{
+                                hidden: { opacity: 0, y: 20 },
+                                visible: { opacity: 1, y: 0 }
+                            }}
+                        >
+                            <Link href={detailHref}>
+                                <div className="group relative flex flex-col space-y-2 md:space-y-4 cursor-pointer">
                                 <div className="relative aspect-[4/3] rounded-2xl md:rounded-[2rem] overflow-hidden shadow-lg md:shadow-xl ring-1 ring-slate-200 dark:ring-white/5 transition-transform duration-500 group-hover:scale-[1.02] group-hover:ring-primary/40">
                                     {item.imageUrl ? (
                                         <Image
@@ -106,11 +116,12 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                                         {item.description}
                                     </p>
                                 </div>
-                            </motion.div>
-                        </Link>
+                                </div>
+                            </Link>
+                        </motion.div>
                     );
                 })}
-            </div>
+            </motion.div>
         </section>
     );
 }
