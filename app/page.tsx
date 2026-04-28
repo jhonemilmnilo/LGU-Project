@@ -4,17 +4,33 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/landing/Hero";
 import { HashScrollHandler } from "@/components/shared/HashScrollHandler";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const DiningLodging = nextDynamic(() => import("@/components/sections/landing/DiningLodging").then(m => m.DiningLodging));
-const PlacesToVisit = nextDynamic(() => import("@/components/sections/landing/PlacesToVisit").then(m => m.PlacesToVisit));
-const EventsCalendarSection = nextDynamic(() => import("@/components/sections/landing/EventsCalendarSection").then(m => m.EventsCalendarSection));
-const AnnouncementsNews = nextDynamic(() => import("@/components/sections/landing/AnnouncementsNews").then(m => m.AnnouncementsNews));
-const JobBoard = nextDynamic(() => import("@/components/sections/landing/JobBoard").then(m => m.JobBoard));
-const LGUProjects = nextDynamic(() => import("@/components/sections/landing/LGUProjects").then(m => m.LGUProjects));
-const Government = nextDynamic(() => import("@/components/sections/landing/Government").then(m => m.Government));
-const Services = nextDynamic(() => import("@/components/sections/landing/Services").then(m => m.Services));
-const EmergencyReport = nextDynamic(() => import("@/components/sections/landing/EmergencyReport").then(m => m.EmergencyReport));
-const ParishCorner = nextDynamic(() => import("../components/sections/landing/ParishCorner"));
+function SectionSkeleton() {
+  return (
+    <div className="w-full py-12 px-6 max-w-7xl mx-auto space-y-8 animate-pulse">
+      <div className="flex justify-center">
+        <Skeleton className="h-12 w-[300px] rounded-full" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Skeleton className="h-[300px] rounded-3xl w-full" />
+        <Skeleton className="h-[300px] rounded-3xl w-full" />
+        <Skeleton className="h-[300px] rounded-3xl w-full hidden lg:block" />
+      </div>
+    </div>
+  );
+}
+
+const DiningLodging = nextDynamic(() => import("@/components/sections/landing/DiningLodging").then(m => m.DiningLodging), { loading: () => <SectionSkeleton /> });
+const PlacesToVisit = nextDynamic(() => import("@/components/sections/landing/PlacesToVisit").then(m => m.PlacesToVisit), { loading: () => <SectionSkeleton /> });
+const EventsCalendarSection = nextDynamic(() => import("@/components/sections/landing/EventsCalendarSection").then(m => m.EventsCalendarSection), { loading: () => <SectionSkeleton /> });
+const AnnouncementsNews = nextDynamic(() => import("@/components/sections/landing/AnnouncementsNews").then(m => m.AnnouncementsNews), { loading: () => <SectionSkeleton /> });
+const JobBoard = nextDynamic(() => import("@/components/sections/landing/JobBoard").then(m => m.JobBoard), { loading: () => <SectionSkeleton /> });
+const LGUProjects = nextDynamic(() => import("@/components/sections/landing/LGUProjects").then(m => m.LGUProjects), { loading: () => <SectionSkeleton /> });
+const Government = nextDynamic(() => import("@/components/sections/landing/Government").then(m => m.Government), { loading: () => <SectionSkeleton /> });
+const Services = nextDynamic(() => import("@/components/sections/landing/Services").then(m => m.Services), { loading: () => <SectionSkeleton /> });
+const EmergencyReport = nextDynamic(() => import("@/components/sections/landing/EmergencyReport").then(m => m.EmergencyReport), { loading: () => <SectionSkeleton /> });
+const ParishCorner = nextDynamic(() => import("../components/sections/landing/ParishCorner"), { loading: () => <SectionSkeleton /> });
 import prisma from "@/lib/db/prisma";
 import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";

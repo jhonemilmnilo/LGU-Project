@@ -57,8 +57,8 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                 whileInView="visible"
                 viewport={{ once: true, margin: "100px" }}
                 variants={{
-                    hidden: {},
-                    visible: { transition: { staggerChildren: 0.1 } }
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
                 }}
                 className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 mt-6 md:mt-10 lg:mt-12"
             >
@@ -69,21 +69,17 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                     const detailHref = isDining ? `/user/dining/${item.id}` : `/user/accommodation/${item.id}`;
 
                     return (
-                        <motion.div
-                            key={item.id}
-                            variants={{
-                                hidden: { opacity: 0, y: 20 },
-                                visible: { opacity: 1, y: 0 }
-                            }}
-                        >
+                        <div key={item.id}>
                             <Link href={detailHref}>
                                 <div className="group relative flex flex-col space-y-2 md:space-y-4 cursor-pointer">
-                                <div className="relative aspect-[4/3] rounded-2xl md:rounded-[2rem] overflow-hidden shadow-lg md:shadow-xl ring-1 ring-slate-200 dark:ring-white/5 transition-transform duration-500 group-hover:scale-[1.02] group-hover:ring-primary/40">
+                                <div className="relative aspect-[4/3] rounded-2xl md:rounded-[2rem] overflow-hidden shadow-sm md:shadow-xl ring-1 ring-slate-200 dark:ring-white/5 transition-transform duration-500 group-hover:scale-[1.02] group-hover:ring-primary/40">
                                     {item.imageUrl ? (
                                         <Image
                                             src={item.imageUrl}
                                             alt={item.name}
                                             fill
+                                            sizes="(max-width: 768px) 50vw, 300px"
+                                            loading="lazy"
                                             className="object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
                                     ) : (
@@ -118,7 +114,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
                                 </div>
                                 </div>
                             </Link>
-                        </motion.div>
+                        </div>
                     );
                 })}
             </motion.div>

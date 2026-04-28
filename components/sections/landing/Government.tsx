@@ -94,7 +94,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                     >
                         <div className="relative">
                             <div className="absolute inset-0 bg-primary rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
-                            <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-full border-4 border-white dark:border-slate-800 shadow-2xl overflow-hidden ring-4 ring-primary/20 bg-slate-100 dark:bg-slate-800">
+                            <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-full border-4 border-white dark:border-slate-800 shadow-md md:shadow-2xl overflow-hidden ring-2 md:ring-4 ring-primary/20 bg-slate-100 dark:bg-slate-800">
                                 {leader.imageUrl ? (
                                     <Image
                                         src={leader.imageUrl}
@@ -122,27 +122,23 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                     whileInView="visible"
                     viewport={{ once: true, margin: "100px" }}
                     variants={{
-                        hidden: {},
-                        visible: { transition: { staggerChildren: 0.1 } }
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
                     }}
                     className="flex flex-wrap justify-center gap-x-6 md:gap-x-10 gap-y-10 md:gap-y-12 w-full pt-4 md:pt-6"
                 >
                     {members.map((member) => (
-                        <motion.div 
-                            key={member.id} 
-                            variants={{
-                                hidden: { opacity: 0, y: 20 },
-                                visible: { opacity: 1, y: 0 }
-                            }}
-                        >
+                        <div key={member.id}>
                             <Link href={`/user/leadership/${member.id}`} className="block">
                                 <div className="group flex flex-col items-center space-y-4 text-center w-[140px] sm:w-[160px] md:w-[180px] hover:-translate-y-1 transition-transform">
-                                <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-2 border-white dark:border-slate-800 shadow-xl overflow-hidden ring-2 ring-slate-100 dark:ring-white/5 bg-slate-100 dark:bg-slate-800 transition-all duration-300">
+                                <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-2 border-white dark:border-slate-800 shadow-sm md:shadow-xl overflow-hidden ring-1 md:ring-2 ring-slate-100 dark:ring-white/5 bg-slate-100 dark:bg-slate-800 transition-all duration-300">
                                     {member.imageUrl ? (
                                         <Image
                                             src={member.imageUrl}
                                             alt={member.name}
                                             fill
+                                            sizes="(max-width: 768px) 100px, 150px"
+                                            loading="lazy"
                                             className="object-cover group-hover:scale-110 transition-all duration-500"
                                         />
                                     ) : (
@@ -157,7 +153,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                                 </div>
                                 </div>
                             </Link>
-                        </motion.div>
+                        </div>
                     ))}
                 </motion.div>
                 <div className="pt-12 text-center w-full flex justify-center">
