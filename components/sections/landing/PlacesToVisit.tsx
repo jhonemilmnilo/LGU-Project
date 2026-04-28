@@ -18,6 +18,14 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
     const [activeIndex, setActiveIndex] = React.useState(0);
     const [isPaused, setIsPaused] = React.useState(false);
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const displaySpots = spots || [];
 
@@ -61,7 +69,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                     return (
                         <motion.div
                             key={spot.id}
-                            layout
+                            layout={!isMobile}
                             onClick={() => router.push(`/user/tourism/${spot.id}`)}
                             initial={false}
                             animate={{
