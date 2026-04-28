@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
- 
+
 import { Camera, Map as MapIcon, Compass, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TourismSpot } from "@prisma/client";
@@ -15,7 +15,7 @@ interface PlacesToVisitProps {
 
 export function PlacesToVisit({ spots }: PlacesToVisitProps) {
     const router = useRouter();
-    
+
     const [activeIndex, setActiveIndex] = React.useState(0);
     const [isPaused, setIsPaused] = React.useState(false);
 
@@ -37,8 +37,8 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
 
 
     return (
-        <section id="tourism" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <section id="tourism" className="pt-8 md:pt-12 pb-8 md:pb-12 px-6 max-w-7xl mx-auto">
+            <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-0.5 bg-primary" />
@@ -59,7 +59,7 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
             </div>
 
             <div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-flow-dense"
+                className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 grid-flow-dense mt-6 md:mt-10 lg:mt-12"
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
             >
@@ -80,8 +80,8 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                                 ease: "anticipate"
                             }}
                             className={cn(
-                                "group relative h-[280px] rounded-[2rem] overflow-hidden shadow-xl cursor-pointer transition-all duration-700",
-                                isActive ? "md:col-span-2 ring-2 ring-primary shadow-primary/20" : "col-span-1 ring-1 ring-slate-200 dark:ring-white/5 opacity-80 hover:opacity-100"
+                                "group relative h-[180px] md:h-[280px] rounded-2xl md:rounded-[2rem] overflow-hidden shadow-xl cursor-pointer transition-all duration-700",
+                                isActive ? "col-span-2 ring-2 ring-primary shadow-primary/20" : "col-span-1 ring-1 ring-slate-200 dark:ring-white/5 opacity-80 hover:opacity-100"
                             )}
                         >
                             <Image
@@ -104,21 +104,24 @@ export function PlacesToVisit({ spots }: PlacesToVisitProps) {
                             <div className="absolute inset-0 bg-primary/10 mix-blend-overlay z-10" />
 
                             {/* Content */}
-                            <div className="absolute bottom-6 left-6 right-6 z-20 space-y-3">
-                                <div className="flex items-center gap-3">
+                            <div className="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 z-20 space-y-2 md:space-y-3">
+                                <div className="flex items-center gap-2 md:gap-3">
                                     <div className={cn(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center border transition-all duration-500",
-                                        isActive ? "bg-primary border-primary/50 shadow-lg" : "bg-white/10 backdrop-blur-md border-white/20"
+                                        "rounded-lg flex items-center justify-center border transition-all duration-500 shrink-0",
+                                        isActive ? "w-8 h-8 bg-primary border-primary/50 shadow-lg" : "w-6 h-6 md:w-8 md:h-8 bg-white/10 backdrop-blur-md border-white/20"
                                     )}>
-                                        {isActive ? <Compass className="w-4 h-4 text-white animate-spin-slow" /> : <Camera className="w-4 h-4 text-white" />}
+                                        {isActive ? <Compass className="w-4 h-4 text-white animate-spin-slow" /> : <Camera className="w-3 h-3 md:w-4 md:h-4 text-white" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl lg:text-2xl font-black text-white uppercase italic tracking-tighter leading-tight truncate">
+                                        <h3 className={cn(
+                                            "font-black text-white uppercase italic tracking-tighter leading-tight truncate",
+                                            isActive ? "text-lg md:text-xl lg:text-2xl" : "text-sm md:text-xl lg:text-2xl"
+                                        )}>
                                             {spot.name}
                                         </h3>
-                                        <p className="text-primary/90 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
-                                            <MapIcon className="w-2.5 h-2.5" />
-                                            {spot.address}
+                                        <p className="text-primary/90 text-[7px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                                            <MapIcon className="w-2 md:w-2.5 h-2 md:h-2.5 min-w-[8px]" />
+                                            <span className="truncate">{spot.address}</span>
                                         </p>
                                     </div>
                                     {isActive && (

@@ -26,7 +26,7 @@ export function DiningLodging({ items }: DiningLodgingProps) {
     if (!items || items.length === 0) return null;
 
     return (
-        <section id="experience" className="py-16 px-6 max-w-7xl mx-auto">
+        <section id="experience" className="pt-16 pb-8 md:pb-12 px-6 max-w-7xl mx-auto">
             <div className="sticky md:static top-[70px] md:top-auto z-30 md:z-auto pb-4 pt-2 -mx-6 px-6 md:mx-0 md:px-0 bg-white/95 dark:bg-slate-950/95 md:bg-transparent md:dark:bg-transparent backdrop-blur-xl md:backdrop-blur-none flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-6 md:mb-0">
                 <div className="space-y-2 md:space-y-4">
                     <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">

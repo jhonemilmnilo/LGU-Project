@@ -88,7 +88,7 @@ export function EventsCalendarSection({ events }: EventsCalendarSectionProps) {
     const selectedEvents = filteredEvents.filter(event => isSameDay(new Date(event.startDate), selectedDate));
 
     return (
-        <section id="events" className="py-12 px-6 max-w-7xl mx-auto">
+        <section id="events" className="pt-4 md:pt-8 pb-12 px-6 max-w-7xl mx-auto">
             <div className="flex flex-col lg:flex-row gap-16">
                 
                 {/* Left Side: Calendar */}
