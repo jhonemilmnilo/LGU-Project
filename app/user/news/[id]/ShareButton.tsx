@@ -8,13 +8,45 @@ export default function ShareButton() {
     const [copied, setCopied] = useState(false);
 
     const handleShare = async () => {
+        const url = window.location.href;
+        const title = document.title;
+
+        // Try native share API first (better for mobile)
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: title,
+                    url: url
+                });
+                return;
+            } catch (err) {
+                // If user cancelled, don't do anything
+                if ((err as Error).name === 'AbortError') return;
+                // Otherwise fall back to clipboard
+            }
+        }
+
+        // Fallback to clipboard
         try {
-            await navigator.clipboard.writeText(window.location.href);
+            await navigator.clipboard.writeText(url);
             setCopied(true);
             toast.success("Link copied to clipboard!");
             setTimeout(() => setCopied(false), 2000);
         } catch {
-            toast.error("Failed to copy link.");
+            // Ultimate fallback for non-secure contexts or legacy browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = url;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                setCopied(true);
+                toast.success("Link copied to clipboard!");
+                setTimeout(() => setCopied(false), 2000);
+            } catch {
+                toast.error("Failed to copy link.");
+            }
+            document.body.removeChild(textArea);
         }
     };
 

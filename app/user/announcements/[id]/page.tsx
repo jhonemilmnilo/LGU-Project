@@ -1,7 +1,7 @@
 import prisma from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { Megaphone, Tag, Pin, Info, Clock, Home, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Megaphone, Tag, Pin, Clock, Home, AlertTriangle, ShieldCheck } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 
@@ -28,9 +28,9 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
     return (
         <div className="min-h-screen pb-20 space-y-8 md:space-y-16">
             {/* Breadcrumb section */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0 bg-transparent md:bg-transparent backdrop-blur-none border-none shadow-none">
+            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                 <Breadcrumb>
-                    <BreadcrumbList className="bg-transparent backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
+                    <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
@@ -115,19 +115,6 @@ export default async function AnnouncementDetailPage({ params }: { params: Promi
                             <p className="text-sm md:text-3xl text-slate-600 dark:text-slate-300 font-medium italic leading-relaxed md:leading-[1.6] whitespace-pre-wrap">
                                 {announcement.content}
                             </p>
-                        </div>
-
-                        {/* Footer Disclaimer */}
-                        <div className="p-8 bg-white dark:bg-white/5 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 flex items-start gap-6 shadow-md">
-                            <div className="w-12 h-12 bg-red-50 dark:bg-white/10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border border-slate-100 dark:border-white/5">
-                                <Info className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div className="space-y-2">
-                                <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest italic">Public Information Office</h4>
-                                <p className="text-[10px] md:text-xs text-slate-500 font-medium italic leading-relaxed">
-                                    This is an official public notice from the local government of Mapandan. For inquiries, please visit the Municipal Hall or contact our official hotlines.
-                                </p>
-                            </div>
                         </div>
                     </div>
 

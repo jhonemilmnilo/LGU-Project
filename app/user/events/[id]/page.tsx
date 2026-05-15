@@ -28,9 +28,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
     return (
         <div className="min-h-screen pb-20 space-y-4 md:space-y-10">
             {/* Breadcrumb section */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0 bg-transparent md:bg-transparent backdrop-blur-none border-none shadow-none">
+            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                 <Breadcrumb>
-                    <BreadcrumbList className="bg-transparent backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
+                    <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
