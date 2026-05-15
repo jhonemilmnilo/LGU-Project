@@ -2,9 +2,10 @@ import prisma from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Clock, Phone, Facebook, Utensils, Navigation, Home } from "lucide-react";
+import { MapPin, Clock, Utensils, Navigation, Home } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { ContactButtons } from "./ContactButtons";
 
 export default async function DiningDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -27,31 +28,33 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
 
     return (
         <div className="min-h-screen pb-20 space-y-10">
-            {/* Header / Nav */}
-            <Breadcrumb>
-                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-white/10 w-fit shadow-sm">
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
-                                <Home className="w-3.5 h-3.5 mb-0.5" />
-                                Home
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="text-white/50" />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/user/dining" className="text-[10px] font-black uppercase tracking-widest text-white transition-colors">
-                                Dining Hub
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[100px] sm:max-w-[150px] md:max-w-[200px] truncate">{item.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+            {/* Breadcrumb section */}
+            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 py-2 md:py-0 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
+                <Breadcrumb>
+                    <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                                    <Home className="w-3.5 h-3.5 mb-0.5" />
+                                    Home
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/dining" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                                    Dining Hub
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="hidden sm:block" />
+                        <BreadcrumbItem className="hidden sm:block">
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[150px] truncate">{item.name}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
 
             {/* Compact Hero Section */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-10 items-start">
@@ -116,22 +119,15 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
 
                     <div className="space-y-3 md:space-y-4 pt-2">
                         <h3 className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Connect with Establishment</h3>
-                        <div className="flex flex-wrap gap-2 md:gap-3">
-                            {item.contactNumber && (
-                                <Button variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl border-slate-200 dark:border-white/10 font-black uppercase tracking-widest text-[8px] md:text-[9px] flex items-center gap-2 md:gap-3 shadow-sm hover:border-primary/50 transition-colors w-full sm:w-auto">
-                                    <Phone className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
-                                    {item.contactNumber}
-                                </Button>
-                            )}
-                            {item.facebookUrl && (
-                                <Link href={item.facebookUrl} target="_blank" className="w-full sm:w-auto">
-                                    <Button variant="outline" className="w-full sm:w-auto h-10 md:h-12 px-4 md:px-6 rounded-xl border-slate-200 dark:border-white/10 font-black uppercase tracking-widest text-[8px] md:text-[9px] flex items-center gap-2 md:gap-3 shadow-sm hover:border-primary/50 transition-colors">
-                                        <Facebook className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
-                                        Facebook Page
-                                    </Button>
-                                </Link>
-                            )}
-                        </div>
+                        <ContactButtons 
+                            contactNumber={item.contactNumber} 
+                            facebookUrl={item.facebookUrl} 
+                        />
+                        <ContactButtons 
+                            contactNumber={item.contactNumber} 
+                            facebookUrl={item.facebookUrl} 
+                            isMobile={true}
+                        />
                     </div>
 
                     {/* Shorter Map Section - Always visible */}
