@@ -71,8 +71,8 @@ export default function UserServiceRequestsPage() {
             case "REJECTED": return { color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20", icon: X, label: "DECLINED" };
             
             // Dispute Lifecycle
-            case "RETURN_REQUESTED": return { color: "text-white", bg: "bg-orange-500", border: "border-transparent", icon: Activity, label: "RETURN REQUESTED", opacity: 1 };
-            case "REFUND_REQUESTED": return { color: "text-white", bg: "bg-orange-500", border: "border-transparent", icon: DollarSign, label: "REFUND REQUESTED", opacity: 1 };
+            case "RETURN_REQUESTED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Activity, label: "RETURN REQUESTED", opacity: 1 };
+            case "REFUND_REQUESTED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "REFUND REQUESTED", opacity: 1 };
             case "RETURNED": return { color: "text-white", bg: "bg-slate-600", border: "border-transparent", icon: Package, label: "RETURNED", opacity: 1 };
             case "REFUNDED": return { color: "text-white", bg: "bg-slate-600", border: "border-transparent", icon: DollarSign, label: "REFUNDED", opacity: 1 };
             case "DISPUTE_REJECTED": return { color: "text-white", bg: "bg-red-600", border: "border-transparent", icon: X, label: "DISPUTE REJECTED", opacity: 1 };

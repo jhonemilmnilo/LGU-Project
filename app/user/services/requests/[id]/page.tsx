@@ -1032,7 +1032,13 @@ export default function RequestHubPage() {
                                             {/* Return/Refund Trigger */}
                                             <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
                                                 <DialogTrigger asChild>
-                                                    <Button variant="ghost" className="h-10 px-4 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10 rounded-xl text-[9px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                                                    <Button 
+                                                        className="h-10 px-4 text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic flex items-center gap-2 shadow-lg transition-all active:scale-95"
+                                                        style={{ 
+                                                            backgroundColor: themeColor,
+                                                            boxShadow: `0 10px 20px -5px ${themeColor}40`
+                                                        }}
+                                                    >
                                                         <AlertCircle className="w-4 h-4" />
                                                         Return or Refund
                                                     </Button>
@@ -1040,7 +1046,7 @@ export default function RequestHubPage() {
                                                 <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2rem] shadow-2xl p-8">
                                                     <DialogHeader className="space-y-4">
                                                         <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                            Dispute <span className="text-orange-500">Resolution</span>
+                                                            Dispute <span style={{ color: themeColor }}>Resolution</span>
                                                         </DialogTitle>
                                                         <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
                                                             Submit a formal request for document issues
@@ -1056,11 +1062,14 @@ export default function RequestHubPage() {
                                                                         key={type}
                                                                         onClick={() => setDisputeType(type as any)}
                                                                         className={cn(
-                                                                            "h-12 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all border-2",
-                                                                            disputeType === type 
-                                                                                ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20" 
-                                                                                : "bg-slate-50 dark:bg-white/5 text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-white/10"
+                                                                            "h-12 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all border-2"
                                                                         )}
+                                                                        style={{
+                                                                            backgroundColor: disputeType === type ? themeColor : undefined,
+                                                                            color: disputeType === type ? "white" : undefined,
+                                                                            borderColor: disputeType === type ? themeColor : "transparent",
+                                                                            boxShadow: disputeType === type ? `0 10px 20px -5px ${themeColor}40` : undefined
+                                                                        }}
                                                                     >
                                                                         {type}
                                                                     </button>
@@ -1072,7 +1081,8 @@ export default function RequestHubPage() {
                                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Reason for Request</Label>
                                                             <Textarea 
                                                                 placeholder="Please describe the issue in detail (e.g., Damaged, Incorrect Details, etc.)"
-                                                                className="min-h-[120px] bg-slate-50 dark:bg-white/5 border-none rounded-2xl font-bold italic text-sm p-5 focus:ring-2 focus:ring-orange-500/20"
+                                                                className="min-h-[120px] bg-slate-50 dark:bg-white/5 border-none rounded-2xl font-bold italic text-sm p-5 focus:ring-2"
+                                                                style={{ "--tw-ring-color": `${themeColor}20` } as any}
                                                                 value={disputeReason}
                                                                 onChange={(e) => setDisputeReason(e.target.value)}
                                                             />
@@ -1086,7 +1096,7 @@ export default function RequestHubPage() {
                                                                         <Image src={disputePreview} alt="Dispute Proof" fill className="object-cover" />
                                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                                             <Button variant="secondary" size="sm" className="h-8 px-4 font-black italic uppercase text-[9px] tracking-widest rounded-xl relative overflow-hidden">
-                                                                                <Camera className="w-3 h-3 mr-2" /> Change Photo
+                                                                                <Camera className="w-3 h-3 mr-2" style={{ color: themeColor }} /> Change Photo
                                                                                 <input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
                                                                             </Button>
                                                                         </div>
@@ -1106,7 +1116,11 @@ export default function RequestHubPage() {
                                                         <Button 
                                                             onClick={handleDispute} 
                                                             disabled={isDisputing || !disputeReason}
-                                                            className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-xl shadow-orange-500/20 text-[10px] font-black uppercase tracking-widest italic transition-all active:scale-95 flex items-center gap-2"
+                                                            className="w-full h-14 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic transition-all active:scale-95 flex items-center gap-2"
+                                                            style={{ 
+                                                                backgroundColor: themeColor,
+                                                                boxShadow: `0 20px 40px -10px ${themeColor}40`
+                                                            }}
                                                         >
                                                             {isDisputing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                                             Submit Dispute Request
