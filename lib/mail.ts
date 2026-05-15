@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED";
     to: string;
     name: string;
     remarks?: string | null;
@@ -293,7 +293,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <div style="width: 64px; height: 64px; background: ${primaryGreen}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
                         <span style="color: white; font-size: 32px;">🔄</span>
                     </div>
-                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Dispute Approved</h1>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request Approved</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your recent return/refund request for Transaction ID <strong style="font-family: monospace;">${transactionId || "N/A"}</strong> has been <strong>APPROVED</strong> by the Municipal Treasury Office.</p>
@@ -310,7 +310,32 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 </div>` : ""}
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Automated Notification</p>
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "DISPUTE_REJECTED") {
+        subject = `Update: Resolution Notice - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryRed}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">✕</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request Declined</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">This is to inform you that your recent request (Return/Refund) for Transaction ID <strong style="font-family: monospace;">${transactionId || "N/A"}</strong> has been <strong>DECLINED</strong> after further review by the Municipal Treasury Office.</p>
+                
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #991b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Reason for Decision</p>
+                    <p style="color: #7f1d1d; font-size: 14px; margin: 0; line-height: 1.5;">${remarks || "No additional remarks provided."}</p>
+                </div>
+
+                <p style="color: #64748b; font-size: 13px;">The original transaction record remains final. If you have further questions, please visit the Municipal Treasury Office personally.</p>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
             </div>
         </div>`;
     }

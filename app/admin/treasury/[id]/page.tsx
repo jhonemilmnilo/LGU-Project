@@ -414,7 +414,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     // Ensure total amount always includes delivery fee in display if calculated on the fly
     const displayTotal = fiscal ? calcResult.totalAmount : (calcResult.totalAmount + (transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0));
 
-    const steps = [
+    const baseSteps = [
         { id: "FOR_REQUESTING", label: "EVALUATION" },
         { id: "EVALUATED", label: "ASSESSMENT" },
         { id: "PAID", label: "PAID" },
@@ -427,7 +427,20 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED", 
             label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED" 
         },
-    ].filter(step => {
+    ];
+
+    // Logic to add terminal or dispute steps
+    let steps = [...baseSteps];
+    const status = transaction.status as string;
+
+    if (status === "REJECTED") {
+        steps.push({ id: "REJECTED", label: "REJECTED" });
+    } else if (status.includes("RETURN") || status.includes("REFUND") || status === "DISPUTE_REJECTED") {
+        const disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");
+        steps.push({ id: status, label: disputeLabel });
+    }
+
+    steps = steps.filter(step => {
         // Fast-track: Remove PROCESSING step for Digital Delivery (PAID phase skip)
         if (step.id === "FOR_PROCESSING" && 
             transaction.fulfillmentType === "DELIVERY" && 

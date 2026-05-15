@@ -1159,6 +1159,19 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
             }
         }
 
+        // Trigger Email Notification for Rejected Disputes
+        if (action === 'REJECT') {
+            if (tx.user?.email) {
+                await sendEmail({
+                    type: "DISPUTE_REJECTED",
+                    to: tx.user.email,
+                    name: tx.user.name || "Resident",
+                    transactionId: transactionId,
+                    remarks: remarks
+                });
+            }
+        }
+
         revalidatePath("/admin/treasury");
         revalidatePath(`/admin/treasury/${transactionId}`);
         revalidatePath("/user/services/requests");

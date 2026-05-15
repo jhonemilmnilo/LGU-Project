@@ -393,7 +393,7 @@ export default function RequestHubPage() {
             case "REFUNDED":
                 return { label: "REFUNDED", color: "bg-slate-600 text-white border-slate-600 shadow-slate-600/20", icon: DollarSign };
             case "DISPUTE_REJECTED":
-                return { label: "REJECTED", color: "bg-red-600 text-white border-red-600 shadow-red-600/20", icon: XCircle };
+                return { label: "RETURN REJECTED", color: "bg-red-600 text-white border-red-600 shadow-red-600/20", icon: XCircle };
                 
             default:
                 return { label: status.replace(/_/g, " "), color: "bg-slate-900 text-white border-slate-900", icon: Clock };
