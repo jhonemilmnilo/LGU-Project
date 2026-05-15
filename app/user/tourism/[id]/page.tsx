@@ -106,9 +106,9 @@ function DetailContent({ item }: { item: any }) {
     return (
         <div className="min-h-screen pb-20 space-y-4 md:space-y-10">
             {/* Breadcrumb section */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 py-2 md:py-0 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
+            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0 bg-transparent md:bg-transparent backdrop-blur-none border-none shadow-none">
                 <Breadcrumb>
-                    <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbList className="bg-transparent backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
@@ -197,7 +197,7 @@ function DetailContent({ item }: { item: any }) {
                     {hasQuickInfo && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
                             {item.entranceFee && (
-                                <div className="p-4 md:p-8 bg-slate-50 dark:bg-white/5 rounded-2xl md:rounded-[2.5rem] space-y-2 border border-slate-100 dark:border-white/5 transition-colors hover:border-primary/20 group">
+                                <div className="p-4 md:p-8 bg-white dark:bg-white/5 rounded-2xl md:rounded-[2.5rem] space-y-2 border border-slate-200 dark:border-white/10 shadow-md transition-all hover:border-primary/20 group">
                                     <div className="flex items-center gap-2 md:gap-3 text-primary">
                                         <Wallet className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                         <h3 className="text-[8px] md:text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Entrance Fee</h3>
@@ -207,7 +207,7 @@ function DetailContent({ item }: { item: any }) {
                             )}
 
                             {item.bestTimeToVisit && (
-                                <div className="p-4 md:p-8 bg-slate-50 dark:bg-white/5 rounded-2xl md:rounded-[2.5rem] space-y-2 border border-slate-100 dark:border-white/5 transition-colors hover:border-primary/20 group">
+                                <div className="p-4 md:p-8 bg-white dark:bg-white/5 rounded-2xl md:rounded-[2.5rem] space-y-2 border border-slate-200 dark:border-white/10 shadow-md transition-all hover:border-primary/20 group">
                                     <div className="flex items-center gap-2 md:gap-3 text-primary">
                                         <Clock className="w-3.5 h-3.5 md:w-5 md:h-5" />
                                         <h3 className="text-[8px] md:text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Best Time</h3>

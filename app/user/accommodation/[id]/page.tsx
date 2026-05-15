@@ -29,9 +29,9 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
     return (
         <div className="min-h-screen pb-20 space-y-4 md:space-y-10">
             {/* Breadcrumb section */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 py-2 md:py-0 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
+            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0 bg-transparent md:bg-transparent backdrop-blur-none border-none shadow-none">
                 <Breadcrumb>
-                    <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbList className="bg-transparent backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
@@ -134,7 +134,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                             <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Key Amenities</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                                 {amenities.map((amenity, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 p-3 md:p-4 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl md:rounded-3xl hover:border-primary/30 transition-colors group/item shadow-sm">
+                                    <div key={idx} className="flex items-center gap-3 p-3 md:p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl md:rounded-3xl hover:border-primary/30 transition-all group/item shadow-md">
                                         <div className="w-2 h-2 rounded-full bg-primary group-hover:scale-125 transition-transform" />
                                         <span className="text-[9px] md:text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest italic">
                                             {amenity}
@@ -166,7 +166,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                                 </Link>
                             )}
                         </div>
-                        <div className="relative h-[250px] md:h-[400px] w-full rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 bg-slate-100 group/map">
+                        <div className="relative h-[250px] md:h-[400px] w-full rounded-2xl md:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/5 bg-slate-100 group/map">
                             <iframe
                                 width="100%"
                                 height="100%"
@@ -177,7 +177,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                                 loading="lazy"
                                 className="transition-all duration-700"
                             ></iframe>
-                            <div className="absolute inset-0 pointer-events-none border-[12px] border-white/10 dark:border-white/5 rounded-[2.5rem] md:rounded-[3.5rem] z-10" />
+                            <div className="absolute inset-0 pointer-events-none border-[12px] border-white/10 dark:border-white/5 rounded-2xl md:rounded-2xl z-10" />
                         </div>
                     </div>
                 </div>

@@ -29,9 +29,9 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
     return (
         <div className="min-h-screen pb-20 space-y-10">
             {/* Breadcrumb section */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 py-2 md:py-0 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
+            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0 bg-transparent md:bg-transparent backdrop-blur-none border-none shadow-none">
                 <Breadcrumb>
-                    <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
+                    <BreadcrumbList className="bg-transparent backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
                                 <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
@@ -100,7 +100,7 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
 
                     {/* Smaller Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                        <div className="p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl md:rounded-[2rem] space-y-1.5 md:space-y-2 border border-slate-100 dark:border-white/5">
+                        <div className="p-4 md:p-5 bg-white dark:bg-white/5 rounded-2xl md:rounded-[2rem] space-y-1.5 md:space-y-2 border border-slate-200 dark:border-white/10 shadow-md transition-all hover:border-primary/20 group">
                             <div className="flex items-center gap-2 text-primary">
                                 <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                 <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Opening Hours</h3>
@@ -108,7 +108,7 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
                             <p className="text-[10px] md:text-xs font-bold text-slate-500 italic">{item.openingHours || "Contact establishment"}</p>
                         </div>
 
-                        <div className="p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl md:rounded-[2rem] space-y-1.5 md:space-y-2 border border-slate-100 dark:border-white/5">
+                        <div className="p-4 md:p-5 bg-white dark:bg-white/5 rounded-2xl md:rounded-[2rem] space-y-1.5 md:space-y-2 border border-slate-200 dark:border-white/10 shadow-md transition-all hover:border-primary/20 group">
                             <div className="flex items-center gap-2 text-primary">
                                 <Utensils className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                 <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Cuisine</h3>
