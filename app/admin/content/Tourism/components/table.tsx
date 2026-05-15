@@ -40,17 +40,16 @@ export function TourismTable() {
             <UITable>
                 <TableHeader>
                     <TableRow className="bg-slate-50/50 dark:bg-[#1e2330] border-slate-200 dark:border-[#2a3040] hover:bg-slate-50 dark:hover:bg-[#1e2330]">
-                        <TableHead className="w-[350px] font-bold text-slate-900 dark:text-slate-100 py-5 pl-6">Spot & Category</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Location</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Entrance Fee</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Status</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-right pr-6">Action</TableHead>
+                        <TableHead className="w-[350px] font-bold text-slate-900 dark:text-slate-100 py-5 pl-6 text-xs uppercase tracking-widest">Gallery Item</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Address / Location</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center text-xs uppercase tracking-widest">Status</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-right pr-6 text-xs uppercase tracking-widest">Action</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredData.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5} className="h-64 text-center">
+                            <TableCell colSpan={4} className="h-64 text-center">
                                 <div className="flex flex-col items-center justify-center space-y-3">
                                     <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                                         <Camera className="w-8 h-8 text-slate-400" />
@@ -81,9 +80,6 @@ export function TourismTable() {
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{item.name}</p>
-                                            <Badge variant="outline" className="mt-1 bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30 rounded-md py-0 px-2 text-[10px] font-bold">
-                                                {item.category}
-                                            </Badge>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -92,11 +88,6 @@ export function TourismTable() {
                                         <MapPin className="w-3 h-3 mr-1.5 text-blue-500" />
                                         <span className="truncate max-w-[200px]">{item.address}</span>
                                     </div>
-                                </TableCell>
-                                <TableCell>
-                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                        {item.entranceFee || "Free Entry"}
-                                    </span>
                                 </TableCell>
                                 <TableCell className="text-center">
                                     {item.isPublished ? (
@@ -126,7 +117,7 @@ export function TourismTable() {
                                                     setIsAddModalOpen(true);
                                                 }}
                                             >
-                                                <Camera className="w-4 h-4 mr-2 text-slate-500" /> Edit Spot Details
+                                                <Camera className="w-4 h-4 mr-2 text-slate-500" /> Edit Entry Details
                                             </DropdownMenuItem>
 
                                             <DropdownMenuItem

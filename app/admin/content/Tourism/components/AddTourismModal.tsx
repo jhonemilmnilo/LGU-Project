@@ -15,8 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Image as ImageIcon, X, Loader2, Camera, Info, Clock, Wallet } from "lucide-react";
+import { MapPin, Image as ImageIcon, X, Loader2, Camera, Info } from "lucide-react";
 
 export function AddTourismModal() {
     const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useTourism();
@@ -44,7 +43,6 @@ export function AddTourismModal() {
         }
     };
 
-    const categories = ["Beach", "Falls", "Island", "Historical", "Park", "Other"];
 
     return (
         <Dialog open={isAddModalOpen} onOpenChange={(open) => {
@@ -62,7 +60,7 @@ export function AddTourismModal() {
                         </div>
                         <div>
                             <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                {editingData ? "Edit Tourism Spot" : "Add New Destination"}
+                                {editingData ? "Edit Gallery Item" : "Add New Gallery Image"}
                             </DialogTitle>
                             <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
                                 Fill in the details to showcase another beautiful spot in Mapandan.
@@ -81,54 +79,17 @@ export function AddTourismModal() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-slate-700 dark:text-slate-300 font-bold">Spot Name</Label>
+                                <Label className="text-slate-700 dark:text-slate-300 font-bold">Image Title</Label>
                                 <Input
                                     name="name"
                                     required
                                     defaultValue={editingData?.name || ""}
-                                    placeholder="e.g. Umaguit Island Eco-Park"
+                                    placeholder="e.g. Umaguit Island Sunset"
                                     className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Category</Label>
-                                    <Select name="category" defaultValue={editingData?.category || "Beach"}>
-                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                                            {categories.map(cat => (
-                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                        <Wallet className="w-3 h-3 mr-1" /> Entrance Fee
-                                    </Label>
-                                    <Input
-                                        name="entranceFee"
-                                        defaultValue={editingData?.entranceFee || ""}
-                                        placeholder="e.g. Free or ₱50.00"
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                    <Clock className="w-3 h-3 mr-1" /> Best Time to Visit
-                                </Label>
-                                <Input
-                                    name="bestTimeToVisit"
-                                    defaultValue={editingData?.bestTimeToVisit || ""}
-                                    placeholder="e.g. Summer, Early Morning"
-                                    className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                />
-                            </div>
+                            <input type="hidden" name="category" value="Other" />
 
                             <div className="space-y-2">
                                 <Label className="text-slate-700 dark:text-slate-300 font-bold">Description</Label>
@@ -167,29 +128,11 @@ export function AddTourismModal() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Latitude</Label>
-                                    <Input
-                                        name="latitude"
-                                        type="number"
-                                        step="any"
-                                        defaultValue={editingData?.latitude || ""}
-                                        placeholder="16.123..."
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold">Longitude</Label>
-                                    <Input
-                                        name="longitude"
-                                        type="number"
-                                        step="any"
-                                        defaultValue={editingData?.longitude || ""}
-                                        placeholder="119.890..."
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                    />
-                                </div>
+                            <div className="hidden">
+                                <Input name="latitude" type="hidden" defaultValue={editingData?.latitude || ""} />
+                                <Input name="longitude" type="hidden" defaultValue={editingData?.longitude || ""} />
+                                <Input name="entranceFee" type="hidden" defaultValue={editingData?.entranceFee || ""} />
+                                <Input name="bestTimeToVisit" type="hidden" defaultValue={editingData?.bestTimeToVisit || ""} />
                             </div>
 
                             <div className="space-y-2">
@@ -270,7 +213,7 @@ export function AddTourismModal() {
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                             ) : (
-                                editingData ? "Update Details" : "Publish Landmark"
+                                editingData ? "Update Image" : "Post to Gallery"
                             )}
                         </Button>
                     </DialogFooter>

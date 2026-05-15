@@ -161,11 +161,6 @@ export function UserTourismView({
                                         <Compass className="w-2 h-2 md:w-3.5 md:h-3.5" />
                                         Gallery
                                     </span>
-                                    {item.category && (
-                                        <span className="inline-flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-1.5 bg-white/95 backdrop-blur-none md:backdrop-blur-md rounded-full text-[5px] md:text-[9px] font-black uppercase tracking-[0.15em] text-slate-900 shadow-lg">
-                                            {item.category}
-                                        </span>
-                                    )}
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             </div>
