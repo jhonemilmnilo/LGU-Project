@@ -38,6 +38,8 @@ const STATUS_TABS = [
     { value: "RELEASED", label: "Released", color: "text-slate-600", activeColor: "bg-slate-700 text-white" },
     { value: "REJECTED", label: "Rejected", color: "text-red-500", activeColor: "bg-red-500 text-white" },
     { value: "CANCELLED", label: "Cancelled", color: "text-red-400", activeColor: "bg-red-600 text-white" },
+    { value: "RETURN_REQUESTED", label: "Return Req.", color: "text-orange-500", activeColor: "bg-orange-500 text-white" },
+    { value: "REFUND_REQUESTED", label: "Refund Req.", color: "text-orange-500", activeColor: "bg-orange-500 text-white" },
 ];
 
 // Helper: format exact date & time
@@ -259,9 +261,14 @@ export default function TreasuryDashboard() {
                                                             "PAID": "text-emerald-600",
                                                             "RELEASED": "text-slate-600",
                                                             "REJECTED": "text-red-600",
+                                                            "RETURN_REQUESTED": "text-orange-500",
+                                                            "REFUND_REQUESTED": "text-orange-500",
+                                                            "RETURNED": "text-slate-500",
+                                                            "REFUNDED": "text-slate-500",
+                                                            "DISPUTE_REJECTED": "text-red-700",
                                                         } as Record<string, string>)[tx.status] || "text-slate-500"
                                                     )}>
-                                                        {tx.isCancelled ? "CANCELLED" : tx.status?.replace("_", " ")}
+                                                        {tx.isCancelled ? "CANCELLED" : tx.status?.replace(/_/g, " ")}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>

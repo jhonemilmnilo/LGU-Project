@@ -1114,3 +1114,59 @@ export async function requestReturnOrRefund(formData: FormData) {
         return { success: false, error: "Failed to submit dispute request" };
     }
 }
+
+/**
+ * Resolve a Dispute (Admin side)
+ */
+export async function resolveDispute(transactionId: string, action: 'APPROVE' | 'REJECT', remarks: string) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const tx = await prisma.transaction.findUnique({
+            where: { id: transactionId },
+            include: { user: true }
+        });
+
+        if (!tx) return { success: false, error: "Transaction not found" };
+
+        let newStatus: string;
+        if (action === 'APPROVE') {
+            newStatus = (tx.status as any) === "RETURN_REQUESTED" ? "PAID" : "REFUNDED";
+        } else {
+            newStatus = "DISPUTE_REJECTED";
+        }
+
+        const updated = await prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+                status: newStatus as any,
+                disputeRemarks: remarks,
+                updatedAt: new Date()
+            } as any
+        });
+
+        // Trigger Email Notification for Approved Returns
+        if (action === 'APPROVE' && (tx.status as any) === "RETURN_REQUESTED") {
+            if (tx.user?.email) {
+                await sendEmail({
+                    type: "DISPUTE_APPROVED",
+                    to: tx.user.email,
+                    name: tx.user.name || "Resident",
+                    transactionId: transactionId,
+                    remarks: remarks
+                });
+            }
+        }
+
+        revalidatePath("/admin/treasury");
+        revalidatePath(`/admin/treasury/${transactionId}`);
+        revalidatePath("/user/services/requests");
+        revalidatePath(`/user/services/requests/${transactionId}`);
+        
+        return { success: true, data: updated };
+    } catch (error: any) {
+        console.error("Dispute resolution error:", error);
+        return { success: false, error: error.message };
+    }
+}

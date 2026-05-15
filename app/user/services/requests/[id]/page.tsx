@@ -393,7 +393,7 @@ export default function RequestHubPage() {
             case "REFUNDED":
                 return { label: "REFUNDED", color: "bg-slate-600 text-white border-slate-600 shadow-slate-600/20", icon: DollarSign };
             case "DISPUTE_REJECTED":
-                return { label: "DISPUTE REJECTED", color: "bg-red-600 text-white border-red-600 shadow-red-600/20", icon: XCircle };
+                return { label: "REJECTED", color: "bg-red-600 text-white border-red-600 shadow-red-600/20", icon: XCircle };
                 
             default:
                 return { label: status.replace(/_/g, " "), color: "bg-slate-900 text-white border-slate-900", icon: Clock };
@@ -510,7 +510,7 @@ export default function RequestHubPage() {
                         </div>
 
                         {/* Cancellation Trigger */}
-                        {!request.isCancelled && !["FOR_PROCESSING", "EVALUATED", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "UNPAID", "PAID", "RELEASED", "REJECTED"].includes(request.status) && (
+                        {!request.isCancelled && !["FOR_PROCESSING", "EVALUATED", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "UNPAID", "PAID", "RELEASED", "REJECTED", "DISPUTE_REJECTED"].includes(request.status) && (
                             <Button 
                                 onClick={handleCancel}
                                 disabled={isCancelling}
@@ -957,7 +957,29 @@ export default function RequestHubPage() {
                         </Card>
                     </TabsContent>
 
-                    <TabsContent value="logistics" className="mt-0">
+                    <TabsContent value="logistics" className="mt-0 space-y-10">
+                        {request.disputeRemarks && request.status !== 'DELIVERED' && request.status !== 'RELEASED' && (
+                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                                <Card className="p-8 md:p-10 border-none bg-orange-500/10 dark:bg-orange-500/5 shadow-xl rounded-[2.5rem] relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10"><AlertCircle className="w-16 h-16 rotate-12" /></div>
+                                    <div className="relative z-10 space-y-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/20">
+                                                <Info className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-600 dark:text-orange-500 italic">Dispute Resolution Update</h3>
+                                                <p className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Official Statement from Treasury</p>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 bg-white/50 dark:bg-black/20 rounded-2xl border border-orange-200/50 dark:border-white/5 italic font-bold text-sm text-slate-700 dark:text-slate-200">
+                                            {request.disputeRemarks}
+                                        </div>
+                                    </div>
+                                </Card>
+                            </motion.div>
+                        )}
+
                         <div className="grid grid-cols-1 items-start">
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">

@@ -14,7 +14,9 @@ import {
     RefreshCcw,
     ZoomIn,
     ZoomOut,
-    ExternalLink
+    ExternalLink,
+    AlertCircle,
+    Ban
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -25,7 +27,8 @@ import {
     rejectTransaction,
     uploadECopyAction,
     getSystemSettingAction,
-    getDeliveryFeeByBarangay
+    getDeliveryFeeByBarangay,
+    resolveDispute
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -165,6 +168,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         word2: "Express",
         logo: ""
     });
+    const [isResolvingDispute, setIsResolvingDispute] = useState(false);
+    const [disputeModalOpen, setDisputeModalOpen] = useState(false);
+    const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -298,6 +304,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     }, [transaction, ctcNumber, eCopyFile, router]);
+
+    const handleResolveDispute = async () => {
+        if (!remarks) { toast.error("Remarks required for resolution"); return; }
+        setIsResolvingDispute(true);
+        try {
+            const res = await resolveDispute(transaction.id, disputeAction, remarks);
+            if (res.success) {
+                toast.success(`Dispute ${disputeAction === 'APPROVE' ? 'Approved' : 'Rejected'}`);
+                setDisputeModalOpen(false);
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Resolution failed");
+            }
+        } finally {
+            setIsResolvingDispute(false);
+        }
+    };
 
     useEffect(() => {
         if (isRejecting) {
@@ -656,11 +679,67 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                         )}
 
+                        {/* 3. DISPUTE EVIDENCE (Return / Refund) */}
+                        {(transaction.status.includes("RETURN") || transaction.status.includes("REFUND") || transaction.status === "DISPUTE_REJECTED") && (
+                            <div className="md:col-span-2 bg-orange-500/5 p-8 rounded-[2.5rem] border border-orange-500/20 space-y-6 animate-in slide-in-from-bottom-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-orange-500 rounded-2xl text-white shadow-lg shadow-orange-500/20">
+                                            <AlertCircle className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-orange-500 tracking-widest italic">Citizen Dispute Filed</p>
+                                            <p className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">
+                                                Request for {transaction.status.includes("REFUND") ? "Financial Refund" : "Document Return"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Badge className="bg-orange-500 text-white font-black italic uppercase tracking-widest text-[9px] px-4 py-1.5 rounded-full">
+                                        PENDING REVIEW
+                                    </Badge>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                                    <div className="space-y-3">
+                                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic ml-1">Stated Reason</p>
+                                        <div className="p-6 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 italic font-medium text-sm text-slate-600 dark:text-slate-300 min-h-[100px]">
+                                            {transaction.disputeReason || "No reason provided."}
+                                        </div>
+                                    </div>
+                                    
+                                    {transaction.disputeProofUrl && (
+                                        <div className="space-y-3">
+                                            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic ml-1">Evidence Provided</p>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in shadow-md hover:shadow-xl transition-all">
+                                                        <Image src={transaction.disputeProofUrl} alt="Proof" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                                <ZoomIn className="w-6 h-6 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </DialogTrigger>
+                                                <LightboxView src={transaction.disputeProofUrl} alt="Evidence" label="Citizen Evidence Proof" />
+                                            </Dialog>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {transaction.disputeRemarks && (
+                                    <div className="p-6 bg-slate-900 rounded-2xl space-y-2 border border-white/10">
+                                        <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest italic">Resolution Remarks</p>
+                                        <p className="text-xs font-bold text-white italic italic leading-relaxed">&quot;{transaction.disputeRemarks}&quot;</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* RIGHT COLUMN: Workflow Tracking & Actions */}
-                <div className="col-span-12 lg:col-span-4 space-y-8">
+                <div className="col-span-12 lg:col-span-4 space-y-8 sticky top-16 self-start">
                     
                     {/* WORKFLOW TRACKING */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-10 shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-slate-50 dark:border-white/5 space-y-10">
@@ -853,8 +932,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         )}
 
-                                        {/* Gated CTC Entry: Locked for processed digital/delivery flows. */}
-                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING")) ? (
+                                        {/* Gated CTC Entry: Locked for processed digital/delivery flows or if already recorded (e.g. after a Return) */}
+                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING" || transaction.cedula?.ctcNumber)) ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
                                                 <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -937,6 +1016,81 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* DISPUTE RESOLUTION ACTIONS */}
+                                {(transaction.status === "RETURN_REQUESTED" || transaction.status === "REFUND_REQUESTED") && (
+                                    <div className="space-y-3 animate-in slide-in-from-bottom-4">
+                                        <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 text-center space-y-1 mb-4">
+                                            <p className="text-[10px] font-black uppercase text-orange-600 dark:text-orange-500 italic">Review Action Required</p>
+                                            <p className="text-[11px] font-bold text-orange-900/60 dark:text-orange-400/60 leading-relaxed uppercase tracking-tight italic">
+                                                Assess the citizen&apos;s claim before resolving the dispute.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Dialog open={disputeModalOpen && disputeAction === 'APPROVE'} onOpenChange={(open) => { setDisputeModalOpen(open); setDisputeAction('APPROVE'); setRemarks(''); }}>
+                                                <DialogTrigger asChild>
+                                                    <Button className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-600/20 transition-all active:scale-95">
+                                                        <Check className="w-4 h-4 mr-2" /> Approve Request
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                                    <DialogHeader className="space-y-3">
+                                                        <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                            Approve <span className="text-emerald-500">Resolution</span>
+                                                        </DialogTitle>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Official Final Decision Registry</p>
+                                                    </DialogHeader>
+                                                    <div className="space-y-6 py-6">
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Resolution Remarks</Label>
+                                                            <Textarea 
+                                                                placeholder="Reason for approval (e.g., Confirmed damage, Refund processed...)" 
+                                                                value={remarks} 
+                                                                onChange={(e) => setRemarks(e.target.value)}
+                                                                className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <Button onClick={handleResolveDispute} disabled={isResolvingDispute} className="w-full h-14 bg-emerald-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
+                                                        {isResolvingDispute ? "Processing..." : "Confirm & Resolve Dispute"}
+                                                    </Button>
+                                                </DialogContent>
+                                            </Dialog>
+
+                                            <Dialog open={disputeModalOpen && disputeAction === 'REJECT'} onOpenChange={(open) => { setDisputeModalOpen(open); setDisputeAction('REJECT'); setRemarks(''); }}>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" className="h-14 rounded-2xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95">
+                                                        <Ban className="w-4 h-4 mr-2" /> Decline Claim
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                                    <DialogHeader className="space-y-3">
+                                                        <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                            Decline <span className="text-red-500">Claim</span>
+                                                        </DialogTitle>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Official Rejection Protocol</p>
+                                                    </DialogHeader>
+                                                    <div className="space-y-6 py-6">
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Rejection</Label>
+                                                            <Textarea 
+                                                                placeholder="Why is this claim being declined? (e.g., Invalid evidence, No issues found...)" 
+                                                                value={remarks} 
+                                                                onChange={(e) => setRemarks(e.target.value)}
+                                                                className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <Button onClick={handleResolveDispute} disabled={isResolvingDispute} className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all">
+                                                        {isResolvingDispute ? "Processing..." : "Confirm Rejection"}
+                                                    </Button>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {transaction.status === "RELEASED" && (
                                     <div className="bg-primary p-8 rounded-[2.5rem] text-white text-center space-y-4 shadow-2xl shadow-primary/40 animate-in zoom-in-95">
                                         <BadgeCheck className="w-12 h-12 mx-auto" />

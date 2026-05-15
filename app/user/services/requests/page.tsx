@@ -75,7 +75,7 @@ export default function UserServiceRequestsPage() {
             case "REFUND_REQUESTED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "REFUND REQUESTED", opacity: 1 };
             case "RETURNED": return { color: "text-white", bg: "bg-slate-600", border: "border-transparent", icon: Package, label: "RETURNED", opacity: 1 };
             case "REFUNDED": return { color: "text-white", bg: "bg-slate-600", border: "border-transparent", icon: DollarSign, label: "REFUNDED", opacity: 1 };
-            case "DISPUTE_REJECTED": return { color: "text-white", bg: "bg-red-600", border: "border-transparent", icon: X, label: "DISPUTE REJECTED", opacity: 1 };
+            case "DISPUTE_REJECTED": return { color: "text-white", bg: "bg-red-600", border: "border-transparent", icon: X, label: "REJECTED", opacity: 1 };
             
             default: return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: status.replace("_", " ") };
         }
@@ -194,9 +194,6 @@ export default function UserServiceRequestsPage() {
                                         <Badge className={cn("inline-flex items-center gap-1.5 font-black uppercase tracking-widest text-[8px] italic px-4 py-1.5 rounded-full border border-opacity-30 w-full justify-center", style.color, style.bg, style.border)}>
                                             {style.label}
                                         </Badge>
-                                        <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic">
-                                            {req.isCancelled ? "DISCONTINUED" : `Phase ${req.status === "RELEASED" ? "4/4" : req.status === "PAID" ? "3/4" : req.status === "EVALUATED" ? "2/4" : "1/4"}`}
-                                        </span>
                                     </div>
                                     <div className="h-10 w-10 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
                                         <ChevronRight className="w-5 h-5" />
