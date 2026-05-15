@@ -611,6 +611,11 @@ model Transaction {
   podData           Json?             // Stores paidAmount, change, timestamp, etc.
   inRouteAt         DateTime?         // Tracking for when the delivery started
   deliveredAt       DateTime?
+
+  // Dispute / Return / Refund
+  disputeReason     String?
+  disputeRemarks    String?
+  disputeProofUrl   String?
   
   cedula            Cedula?           // One-to-one link to the issued document
   
@@ -655,6 +660,13 @@ enum TransactionStatus {
   PAID
   RELEASED
   REJECTED
+  
+  // Dispute Lifecycle
+  RETURN_REQUESTED
+  REFUND_REQUESTED
+  RETURNED
+  REFUNDED
+  DISPUTE_REJECTED
 }
 
 enum FulfillmentType {

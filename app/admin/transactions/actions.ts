@@ -1063,3 +1063,54 @@ export async function cancelTransaction(id: string) {
         return { success: false, error: "Failed to cancel transaction" };
     }
 }
+
+/**
+ * Request Return or Refund (Resident side)
+ */
+export async function requestReturnOrRefund(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const id = formData.get("id") as string;
+        const type = formData.get("type") as "RETURN" | "REFUND";
+        const reason = formData.get("reason") as string;
+        const proofFile = formData.get("proofFile") as File;
+
+        const tx = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!tx || tx.userId !== session.user.id) {
+            return { success: false, error: "Transaction not found" };
+        }
+
+        if (tx.status !== "DELIVERED") {
+            return { success: false, error: "Only delivered transactions can be returned or refunded." };
+        }
+
+        let proofUrl = null;
+        if (proofFile && proofFile.size > 0) {
+            proofUrl = await processFileUpload(proofFile, "disputes");
+        }
+
+        const newStatus = type === "RETURN" ? "RETURN_REQUESTED" : "REFUND_REQUESTED";
+
+        const updated = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: newStatus as any,
+                disputeReason: reason,
+                disputeProofUrl: proofUrl,
+                updatedAt: new Date()
+            } as any
+        });
+
+        revalidatePath("/user/services/requests");
+        revalidatePath(`/user/services/requests/${id}`);
+        return { success: true, data: updated };
+    } catch (error) {
+        console.error("Dispute request error:", error);
+        return { success: false, error: "Failed to submit dispute request" };
+    }
+}

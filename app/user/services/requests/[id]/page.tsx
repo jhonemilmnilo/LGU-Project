@@ -26,7 +26,8 @@ import {
     ExternalLink,
     AlertCircle,
     QrCode,
-    Search
+    Search,
+    Package
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -39,6 +40,16 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { format } from "date-fns";
 import {
     Breadcrumb,
@@ -59,7 +70,8 @@ import {
     finalizeTransactionFulfillment, 
     getSystemSettingAction,
     getPublicBarangayLogistics,
-    cancelTransaction
+    cancelTransaction,
+    requestReturnOrRefund
 } from "@/app/admin/transactions/actions";
 import { getCedulaPenaltyRateLabel } from "@/lib/cedula";
 import Link from "next/link";
@@ -78,6 +90,14 @@ export default function RequestHubPage() {
     const [loading, setLoading] = useState(true);
     const [isFinalizing, setIsFinalizing] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isDisputing, setIsDisputing] = useState(false);
+
+    // Dispute States
+    const [disputeOpen, setDisputeOpen] = useState(false);
+    const [disputeType, setDisputeType] = useState<"RETURN" | "REFUND">("RETURN");
+    const [disputeReason, setDisputeReason] = useState("");
+    const [disputeFile, setDisputeFile] = useState<File | null>(null);
+    const [disputePreview, setDisputePreview] = useState<string | null>(null);
 
     // Logistics & Payment States
     const [localFulfillment, setLocalFulfillment] = useState<"PICK_UP" | "DELIVERY" | "E_COPY">("PICK_UP");
@@ -295,6 +315,46 @@ export default function RequestHubPage() {
         }
     };
 
+    const handleDisputeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setDisputeFile(file);
+            setDisputePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleDispute = async () => {
+        if (!disputeReason) {
+            toast.error("Please provide a reason for your request.");
+            return;
+        }
+
+        setIsDisputing(true);
+        try {
+            const formData = new FormData();
+            formData.append("id", id);
+            formData.append("type", disputeType);
+            formData.append("reason", disputeReason);
+            if (disputeFile) {
+                formData.append("proofFile", disputeFile);
+            }
+
+            const res = await requestReturnOrRefund(formData);
+            if (res.success) {
+                toast.success(`${disputeType === "RETURN" ? "Return" : "Refund"} request submitted successfully.`);
+                setDisputeOpen(false);
+                window.location.reload();
+            } else {
+                toast.error(res.error || "Failed to submit request");
+            }
+        } catch (error) {
+            console.error("Dispute error:", error);
+            toast.error("Network error during submission");
+        } finally {
+            setIsDisputing(false);
+        }
+    };
+
     const getStatusConfig = (status: string) => {
         if (request?.isCancelled) {
             return { label: "CANCELLED", color: "bg-red-600 text-white border-transparent shadow-red-500/20", icon: XCircle };
@@ -322,6 +382,19 @@ export default function RequestHubPage() {
                 return { label: "RELEASED", color: "bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/20", icon: CheckCircle2 };
             case "REJECTED":
                 return { label: "REJECTED", color: "bg-red-500 text-white border-red-500 shadow-red-500/20", icon: XCircle };
+            
+            // Dispute Lifecycle
+            case "RETURN_REQUESTED":
+                return { label: "RETURN REQUESTED", color: "bg-orange-500 text-white border-orange-500 shadow-orange-500/20", icon: Activity };
+            case "REFUND_REQUESTED":
+                return { label: "REFUND REQUESTED", color: "bg-orange-500 text-white border-orange-500 shadow-orange-500/20", icon: DollarSign };
+            case "RETURNED":
+                return { label: "RETURNED", color: "bg-slate-600 text-white border-slate-600 shadow-slate-600/20", icon: Package };
+            case "REFUNDED":
+                return { label: "REFUNDED", color: "bg-slate-600 text-white border-slate-600 shadow-slate-600/20", icon: DollarSign };
+            case "DISPUTE_REJECTED":
+                return { label: "DISPUTE REJECTED", color: "bg-red-600 text-white border-red-600 shadow-red-600/20", icon: XCircle };
+                
             default:
                 return { label: status.replace(/_/g, " "), color: "bg-slate-900 text-white border-slate-900", icon: Clock };
         }
@@ -945,14 +1018,102 @@ export default function RequestHubPage() {
 
                                 {request.status === "DELIVERED" && request.podUrl && (
                                     <div className="bg-emerald-500/5 p-8 md:p-10 rounded-[2.5rem] border border-emerald-500/20 space-y-8 animate-in slide-in-from-right-8 duration-700 delay-100">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                                                <Camera className="w-5 h-5" />
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                                                    <Camera className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic opacity-70">Delivery Validation</p>
+                                                    <p className="text-xs font-bold italic tracking-tight text-slate-900 dark:text-white">Proof of Delivery (POD)</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic opacity-70">Delivery Validation</p>
-                                                <p className="text-xs font-bold italic tracking-tight text-slate-900 dark:text-white">Proof of Delivery (POD)</p>
-                                            </div>
+                                            
+                                            {/* Return/Refund Trigger */}
+                                            <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="ghost" className="h-10 px-4 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10 rounded-xl text-[9px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                                                        <AlertCircle className="w-4 h-4" />
+                                                        Return or Refund
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2rem] shadow-2xl p-8">
+                                                    <DialogHeader className="space-y-4">
+                                                        <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                            Dispute <span className="text-orange-500">Resolution</span>
+                                                        </DialogTitle>
+                                                        <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                                                            Submit a formal request for document issues
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+
+                                                    <div className="space-y-8 py-6">
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Resolution Type</Label>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {["RETURN", "REFUND"].map((type) => (
+                                                                    <button
+                                                                        key={type}
+                                                                        onClick={() => setDisputeType(type as any)}
+                                                                        className={cn(
+                                                                            "h-12 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all border-2",
+                                                                            disputeType === type 
+                                                                                ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20" 
+                                                                                : "bg-slate-50 dark:bg-white/5 text-slate-400 border-transparent hover:bg-slate-100 dark:hover:bg-white/10"
+                                                                        )}
+                                                                    >
+                                                                        {type}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Reason for Request</Label>
+                                                            <Textarea 
+                                                                placeholder="Please describe the issue in detail (e.g., Damaged, Incorrect Details, etc.)"
+                                                                className="min-h-[120px] bg-slate-50 dark:bg-white/5 border-none rounded-2xl font-bold italic text-sm p-5 focus:ring-2 focus:ring-orange-500/20"
+                                                                value={disputeReason}
+                                                                onChange={(e) => setDisputeReason(e.target.value)}
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 italic">Proof of Issue (Image)</Label>
+                                                            <div className="w-full aspect-[16/9] bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">
+                                                                {disputePreview ? (
+                                                                    <>
+                                                                        <Image src={disputePreview} alt="Dispute Proof" fill className="object-cover" />
+                                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                            <Button variant="secondary" size="sm" className="h-8 px-4 font-black italic uppercase text-[9px] tracking-widest rounded-xl relative overflow-hidden">
+                                                                                <Camera className="w-3 h-3 mr-2" /> Change Photo
+                                                                                <input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                                                        <Upload className="w-6 h-6 text-slate-300 mb-2" />
+                                                                        <p className="text-[9px] font-black uppercase text-slate-400 italic">Upload Photo Evidence</p>
+                                                                        <input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <DialogFooter>
+                                                        <Button 
+                                                            onClick={handleDispute} 
+                                                            disabled={isDisputing || !disputeReason}
+                                                            className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-xl shadow-orange-500/20 text-[10px] font-black uppercase tracking-widest italic transition-all active:scale-95 flex items-center gap-2"
+                                                        >
+                                                            {isDisputing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                                            Submit Dispute Request
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
                                         </div>
                                         <Button asChild variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10 transition-all group">
                                             <a href={request.podUrl} target="_blank" rel="noopener noreferrer">
