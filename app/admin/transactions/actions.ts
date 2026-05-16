@@ -121,7 +121,7 @@ async function processFileUpload(file: File, folder: string = "transactions"): P
         const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
         const storagePath = `services/${folder}/${filename}`;
         
-        const publicUrl = await uploadFile(buffer, storagePath);
+        const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
         return publicUrl;
     } catch (error) {
         console.error("File upload error:", error);

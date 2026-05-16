@@ -92,27 +92,31 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                                             <span className="ml-2 px-2 py-0.5 text-[8px] font-black text-white rounded-md tracking-tighter" style={{ backgroundColor: info.themeColor || '#2563eb' }}>TODAY</span>
                                         ) : null}
                                     </div>
-                                    <span className="text-[9px] font-bold text-slate-400 italic">LITURGICAL GUIDE</span>
+                                    <span className="text-[9px] font-bold text-slate-400 italic"> GUIDE</span>
                                 </div>
                                 <div className="px-2 md:px-6 pt-3 pb-2 md:py-6 space-y-4 md:space-y-4">
                                     {group.slots.map((s: any, sIdx: number) => (
                                         <div key={sIdx} className="relative pl-5 md:pl-6 border-l-2 border-blue-600/20 last:border-0 pb-2">
                                             <div className="absolute top-0 left-[-5px] w-2 h-2 rounded-full bg-blue-600" />
-                                            <div className="flex items-baseline justify-between gap-4">
-                                                <div className="space-y-1">
+                                            <div className="flex flex-row items-center justify-between gap-4">
+                                                <div className="flex items-center gap-4">
                                                     <p className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">{s.time}</p>
-                                                    {s.description && (
-                                                        <div className="flex items-start gap-1.5 opacity-80">
-                                                            <Info className="w-3 h-3 text-blue-500 mt-0.5 shrink-0" />
-                                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 italic font-medium leading-relaxed">{s.description}</p>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex md:hidden items-center gap-2">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest italic" style={{ color: info.themeColor || '#2563eb' }}>{s.language || "English"}</span>
+                                                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{s.type || "Mass"}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-1">
+                                                <div className="hidden md:flex flex-col items-end gap-1">
                                                     <span className="text-[9px] font-black uppercase tracking-widest italic" style={{ color: info.themeColor || '#2563eb' }}>{s.language || "English"}</span>
                                                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{s.type || "Mass"}</span>
                                                 </div>
                                             </div>
+                                            {s.description && (
+                                                <div className="flex items-start gap-1.5 opacity-80 mt-1">
+                                                    <Info className="w-3 h-3 text-blue-500 mt-0.5 shrink-0" />
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 italic font-medium leading-relaxed">{s.description}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -121,7 +125,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                     </div>
                 ) : (
                     <div className="py-20 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-[2rem]">
-                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No liturgical schedules posted yet.</p>
+                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No schedules posted yet.</p>
                     </div>
                 )}
             </div>

@@ -70,7 +70,7 @@ export async function processImageUpload(formData: FormData, fieldName: string =
             const storagePath = `${folder}/${filename}`;
             
             const buffer = Buffer.from(await file.arrayBuffer());
-            const publicUrl = await uploadFile(buffer, storagePath);
+            const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
             
             if (!publicUrl) throw new Error("Upload failed");
 
@@ -91,7 +91,10 @@ export async function processImageUpload(formData: FormData, fieldName: string =
 }
 export async function processFileUpload(formData: FormData, fieldName: string): Promise<string | null> {
     const file = formData.get(fieldName) as File | null;
-    const existingUrl = formData.get(fieldName + "Url")?.toString() || null;
+    const existingUrl = formData.get(fieldName + "Url")?.toString() || 
+                        formData.get("flyerUrl")?.toString() || 
+                        formData.get("imageUrl")?.toString() || 
+                        null;
 
     if (file && file.size > 0 && file.name !== "undefined") {
         try {
@@ -100,7 +103,7 @@ export async function processFileUpload(formData: FormData, fieldName: string): 
             const folder = fieldName.includes("flyer") ? "church" : "uploads";
             const storagePath = `${folder}/${filename}`;
             
-            const publicUrl = await uploadFile(buffer, storagePath);
+            const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
             
             if (publicUrl) {
                 // Auto-delete old file

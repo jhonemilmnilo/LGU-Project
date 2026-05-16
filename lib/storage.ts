@@ -12,14 +12,15 @@ const DEFAULT_BUCKET = "system-assets";
 export async function uploadFile(
     file: File | Buffer,
     path: string,
-    bucket: string = DEFAULT_BUCKET
+    bucket: string = DEFAULT_BUCKET,
+    contentType?: string
 ): Promise<string | null> {
     try {
         const { data, error } = await supabaseAdmin.storage
             .from(bucket)
             .upload(path, file, {
                 upsert: true, // Overwrite if exists
-                contentType: (file as any).type || 'image/png'
+                contentType: contentType || (file as any).type || 'application/octet-stream'
             });
 
         if (error) {

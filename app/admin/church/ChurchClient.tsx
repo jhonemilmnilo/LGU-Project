@@ -275,7 +275,7 @@ export default function ChurchClient({
                         )}
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">
-                        {info.barangay ? `Administrative transparency for local ${info.barangay} parish works.` : "Centralized administrative ledger and global schedules for Agno Parish."}
+                        {info.barangay ? `Administrative transparency for local ${info.barangay} parish works.` : "Centralized administrative ledger and global schedules for Mapandan Parish."}
                     </p>
                 </div>
 
@@ -482,7 +482,7 @@ export default function ChurchClient({
                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
                                     <Clock className="w-5 h-5 text-blue-500" />
                                 </div>
-                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Liturgical Timetable</h3>
+                                <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white"> Timetable</h3>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Management Mode</span>
                         </div>
@@ -500,7 +500,7 @@ export default function ChurchClient({
                                         <div className="flex items-center gap-2">
                                             <Calendar className={`w-4 h-4 ${group.isPriority ? 'text-amber-500' : 'text-blue-500'}`} />
                                             <span className={`text-[10px] font-black uppercase italic tracking-widest ${group.isPriority ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>
-                                                {group.day} {group.isPriority ? '• Liturgical Highlight' : ''}
+                                                {group.day} {group.isPriority ? '• Highlight' : ''}
                                             </span>
                                         </div>
                                         <span className={`text-[9px] font-black uppercase tracking-widest italic ${group.isPriority ? 'text-white/30' : 'text-slate-400'}`}>
@@ -802,7 +802,7 @@ export default function ChurchClient({
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 italic flex items-center gap-1">
-                                    <Info size={10} /> Liturgical Description
+                                    <Info size={10} /> Description
                                 </label>
                                 <textarea
                                     value={schForm.description}
