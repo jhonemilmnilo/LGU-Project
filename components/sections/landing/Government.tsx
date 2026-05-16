@@ -52,7 +52,7 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
 
     return (
         <section id="leadership" className="pt-8 md:pt-24 pb-12 md:pb-8 px-6 max-w-7xl mx-auto">
-            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-40 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white dark:bg-slate-950 md:bg-transparent md:dark:bg-transparent backdrop-blur-none border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
+            <div className="text-center space-y-4 md:space-y-6 sticky md:static top-[70px] md:top-auto z-40 md:z-auto pb-4 pt-6 -mx-6 px-6 md:mx-0 md:px-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none mb-10 md:mb-20">
                 <div className="flex items-center justify-center gap-4">
                     <div className="h-px w-8 md:w-12 bg-primary/20" />
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">The Leadership</span>
@@ -61,12 +61,6 @@ export function Government({ officials = [], barangay = "All" }: { officials?: O
                 <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                     {isFiltered ? `${barangay} Officials` : "Municipal Government"}
                 </h2>
-                <p className="text-slate-500 font-medium italic max-w-xl mx-auto text-xs md:text-base">
-                    {isFiltered 
-                        ? `Meet the dedicated leaders of Barangay ${barangay}.`
-                        : "A dedicated team working together for a sustainable and prosperous Mapandan."
-                    }
-                </p>
 
                 {isFiltered && (
                     <div className="flex justify-center p-1.5 bg-slate-100 dark:bg-white/5 rounded-3xl max-w-sm mx-auto mt-10">
