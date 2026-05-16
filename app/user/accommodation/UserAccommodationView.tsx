@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { 
-    Bed, 
-    MapPin, 
-    Home, 
+import {
+    Bed,
+    MapPin,
+    Home,
     ArrowRight,
     Search,
     Filter
@@ -13,7 +13,7 @@ import {
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -22,12 +22,12 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { cn } from "@/lib/utils";
@@ -53,9 +53,9 @@ interface UserAccommodationViewProps {
     activeBarangays?: string[];
 }
 
-export function UserAccommodationView({ 
-    initialAccommodations = [], 
-    activeBarangays = [] 
+export function UserAccommodationView({
+    initialAccommodations = [],
+    activeBarangays = []
 }: UserAccommodationViewProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedBarangay, setSelectedBarangay] = useState("All");
@@ -66,8 +66,8 @@ export function UserAccommodationView({
 
     const filteredAccommodations = useMemo(() => {
         return initialAccommodations.filter(item => {
-            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesBarangay = selectedBarangay === "All" || item.barangay === selectedBarangay;
             return matchesSearch && matchesBarangay;
         });
@@ -113,7 +113,7 @@ export function UserAccommodationView({
                         <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2">
                             <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         </div>
-                        <Input 
+                        <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search..."
@@ -160,7 +160,7 @@ export function UserAccommodationView({
                                     className="object-cover transition-transform duration-1000 group-hover:scale-110"
                                     priority={idx < 3}
                                 />
-                                
+
                                 {/* Badges */}
                                 <div className="absolute top-2 left-2 md:top-6 md:left-6 z-20 flex flex-col items-start gap-1 md:gap-2">
                                     <span className="inline-flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-2 bg-primary text-white rounded-full text-[6px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
@@ -190,12 +190,12 @@ export function UserAccommodationView({
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     <p className="text-[8px] md:text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 md:line-clamp-2 leading-relaxed h-6 md:h-10">
                                         {item.description}
                                     </p>
                                 </div>
-                                
+
                                 <div className="flex items-center justify-between md:justify-between pt-2 md:pt-8 mt-auto border-t border-slate-100 dark:border-white/5">
                                     <div className="flex flex-col">
                                         <span className="text-[6px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5 md:mb-1">Starts at</span>

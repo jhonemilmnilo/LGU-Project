@@ -2,26 +2,25 @@
 
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { 
-    Clock, 
-    Eye, 
-    CheckCircle2, 
-    XCircle, 
+import {
+    Clock,
+    Eye,
+    CheckCircle2,
+    XCircle,
     Home,
     FileText,
     Activity,
-    ChevronRight,
     Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 import { getUserReports } from "@/app/admin/actions";
@@ -76,80 +75,86 @@ export default function UserReportsPage() {
     }
 
     return (
-        <div className="space-y-10 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-            <Breadcrumb>
-                <BreadcrumbList className="bg-black/20 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-white/10 w-fit shadow-sm">
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors">
-                                <Home className="w-3.5 h-3.5 mb-0.5" />
-                                Home
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="text-white/50" />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[200px] truncate">My Reports</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
- 
-             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div className="space-y-4">
-                    <div className="space-y-0.5">
-                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Citizen <span className="text-primary">Reports</span></h1>
-                        <p className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] ml-1">LGU Tracking List</p>
+        <div className="space-y-6 md:space-y-12 pb-20 max-w-7xl mx-auto px-4 md:px-10 pt-4 md:pt-12">
+            {/* Navigation - Glass Bar Sticky */}
+            <div className="sticky top-[72px] md:top-[88px] z-50 w-fit pointer-events-none">
+                <Breadcrumb className="pointer-events-auto">
+                    <BreadcrumbList className="bg-white/90 dark:bg-black/80 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] w-fit flex items-center gap-1">
+                        <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/" className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                                    <Home className="w-3.5 h-3.5 mb-0.5" />
+                                    Home
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="opacity-20" />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary italic">My Reports Hub</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
+                <div className="space-y-2 md:space-y-4">
+                    <div className="space-y-0.5 md:space-y-1">
+                        <h1 className="text-3xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">Citizen <span className="text-primary">Reports</span></h1>
+                        <p className="text-[8px] md:text-[10px] font-black text-primary uppercase tracking-[0.4em] ml-1 opacity-70">LGU Tracking Hub • Real-time Status</p>
                     </div>
-                    <p className="text-slate-500 font-medium italic max-w-2xl text-lg leading-relaxed">
-                        List of all concerns and reports you have submitted to the Local Government Unit.
+                    <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-2xl text-xs md:text-xl leading-relaxed">
+                        Track the progress of your submitted concerns and reports in real-time.
                     </p>
                 </div>
             </div>
- 
-            <div className="grid grid-cols-1 gap-4">
+
+            <div className="grid grid-cols-1 gap-3 md:gap-6">
                 {reports.length > 0 ? reports.map((report: Report) => {
                     const style = getStatusStyle(report.status);
                     const StatusIcon = style.icon;
-                    
+
                     return (
-                        <div 
-                            key={report.id} 
-                            onClick={() => {
-                                console.log("Navigating to:", `/user/reports/${report.id}`);
-                                router.push(`/user/reports/${report.id}`);
-                            }}
-                            className="bg-white dark:bg-[#1e2330] rounded-3xl border border-slate-200 dark:border-[#2a3040] p-6 hover:border-primary/40 group transition-all cursor-pointer select-none active:scale-[0.99]"
+                        <div
+                            key={report.id}
+                            onClick={() => router.push(`/user/reports/${report.id}`)}
+                            className="bg-white dark:bg-[#0d0f14] rounded-2xl md:rounded-[2.5rem] border border-slate-200 dark:border-white/5 p-3 md:p-8 hover:border-primary/40 group transition-all cursor-pointer select-none active:scale-[0.98] relative overflow-hidden"
                         >
-                            <div className="flex flex-col sm:flex-row items-center gap-6 justify-between">
-                                <div className="flex items-center gap-6 flex-1 min-w-0 w-full sm:w-auto">
-                                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm", style.bg)}>
-                                        <StatusIcon className={cn("w-7 h-7", style.color)} />
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                                <StatusIcon className="w-24 h-24" />
+                            </div>
+
+                            <div className="flex items-center gap-3 md:gap-8 justify-between relative z-10">
+                                <div className="flex items-center gap-3 md:gap-8 flex-1 min-w-0">
+                                    <div className={cn("w-10 h-10 md:w-20 md:h-20 rounded-xl md:rounded-[1.5rem] flex items-center justify-center shrink-0 shadow-2xl transition-transform group-hover:scale-105", style.bg, "border border-white/10")}>
+                                        <StatusIcon className={cn("w-5 h-5 md:w-10 md:h-10", style.color)} />
                                     </div>
-                                    <div className="space-y-1 min-w-0">
-                                        <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white italic truncate leading-tight group-hover:text-primary transition-colors">{report.category}</h3>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{format(new Date(report.createdAt), "MMM d, yyyy")}</span>
-                                            <div className="h-1 w-1 rounded-full bg-slate-300" />
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">ID: #{report.id.slice(-6)}</span>
+                                    <div className="space-y-0.5 md:space-y-1.5 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h3 className="text-sm md:text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white italic truncate leading-tight group-hover:text-primary transition-colors">{report.category}</h3>
+                                            <Badge variant="outline" className={cn("md:hidden font-black uppercase tracking-widest text-[7px] italic px-2 py-0.5 rounded-md border-opacity-30", style.color, style.bg, style.border)}>
+                                                {report.status.replace(/_/g, " ")}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2 md:gap-4">
+                                            <span className="text-[8px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">{format(new Date(report.createdAt), "MMM d, yyyy")}</span>
+                                            <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
+                                            <span className="text-[8px] md:text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">ID: #{report.id.slice(-6)}</span>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                                    <Badge variant="outline" className={cn("font-black uppercase tracking-widest text-[9px] italic px-4 py-1.5 rounded-full border border-opacity-30", style.color, style.bg, style.border)}>
+                                <div className="flex items-center gap-4 md:gap-10 shrink-0">
+                                    <Badge variant="outline" className={cn("hidden md:flex font-black uppercase tracking-widest text-[10px] italic px-6 py-2.5 rounded-full border border-opacity-30 shadow-xl", style.color, style.bg, style.border)}>
                                         {report.status.replace(/_/g, " ")}
                                     </Badge>
-                                    <div className="h-12 w-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                                        <ChevronRight className="w-5 h-5" />
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     );
                 }) : (
-                    <div className="py-32 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[4rem] bg-white dark:bg-black/10">
-                        <FileText className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                        <p className="text-slate-400 font-black uppercase tracking-[0.2em] italic">No reports found...</p>
+                    <div className="py-20 md:py-40 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[2rem] md:rounded-[4rem] bg-slate-50/50 dark:bg-white/[0.02]">
+                        <FileText className="w-12 h-12 md:w-20 md:h-20 text-slate-200 dark:text-white/10 mx-auto mb-6" />
+                        <p className="text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.4em] italic text-[10px] md:text-base">No active reports found</p>
+                        <p className="text-slate-300 dark:text-slate-600 font-medium italic text-[8px] md:text-xs mt-2 uppercase tracking-widest">Submit a new concern to get started</p>
                     </div>
                 )}
             </div>

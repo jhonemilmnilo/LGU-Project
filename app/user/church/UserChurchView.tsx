@@ -113,7 +113,7 @@ export function UserChurchView({
     return (
         <div className="min-h-screen bg-white dark:bg-[#0a0c10] pb-24">
             <div className="max-w-5xl mx-auto px-4 md:px-0 pt-4 md:pt-10 space-y-6 md:space-y-12">
-                
+
                 {/* Sticky Mobile Breadcrumbs */}
                 <div className="sticky top-[70px] z-40 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 -mx-4 px-4 py-3 md:hidden mb-4">
                     <Breadcrumb>
@@ -228,7 +228,7 @@ export function UserChurchView({
                     <div className="lg:col-span-8 lg:sticky lg:top-24 h-fit space-y-6 md:space-y-10">
                         <div className="bg-white dark:bg-[#0d0f14] rounded-2xl md:rounded-[2.5rem] border border-slate-200 dark:border-white/5 p-4 md:p-10 shadow-2xl space-y-8 md:space-y-12 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-5"><Church className="w-32 h-32" /></div>
-                            
+
                             <div className="relative z-10 space-y-8 md:space-y-12">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -247,8 +247,8 @@ export function UserChurchView({
                                             viewport={{ once: true }}
                                             className={cn(
                                                 "rounded-2xl md:rounded-3xl border transition-all overflow-hidden",
-                                                group.isPriority 
-                                                    ? "bg-slate-950 border-white/10 ring-2 ring-primary/20" 
+                                                group.isPriority
+                                                    ? "bg-slate-950 border-white/10 ring-2 ring-primary/20"
                                                     : "bg-slate-50 dark:bg-white/[0.02] border-slate-100 dark:border-white/5"
                                             )}
                                         >
@@ -297,7 +297,7 @@ export function UserChurchView({
                         {/* Latest Collection Card */}
                         <Card className="p-6 md:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-2xl md:rounded-[3rem] relative overflow-hidden group min-h-[500px] flex flex-col">
                             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700"><TrendingUp className="w-24 h-24" /></div>
-                            
+
                             <div className="relative z-10 space-y-6 flex-1 flex flex-col min-h-0">
                                 <div className="flex items-center gap-3 shrink-0">
                                     <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary border border-primary/20"><Info className="w-4 h-4" /></div>
@@ -406,18 +406,18 @@ export function UserChurchView({
 
                         {/* Interactive Map Block */}
                         <div className="relative h-[250px] md:h-[300px] bg-slate-100 dark:bg-white/5 rounded-2xl md:rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-2xl overflow-hidden group">
-                            <iframe 
-                                width="100%" 
-                                height="100%" 
-                                frameBorder="0" 
-                                scrolling="no" 
-                                marginHeight={0} 
-                                marginWidth={0} 
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                frameBorder="0"
+                                scrolling="no"
+                                marginHeight={0}
+                                marginWidth={0}
                                 src={`https://maps.google.com/maps?q=${info.latitude || 16.0354},${info.longitude || 120.4431}&hl=en&z=15&output=embed`}
                                 className="w-full h-full"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent pointer-events-none" />
-                            
+
                             <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
                                 <div className="space-y-0.5">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-white italic">Location</p>

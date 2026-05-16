@@ -21,7 +21,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
     const amenities = item.amenities ? item.amenities.split(',').map(a => a.trim()) : [];
 
     // Map implementation without API key
-    const mapQuery = item.latitude && item.longitude 
+    const mapQuery = item.latitude && item.longitude
         ? `${item.latitude},${item.longitude}`
         : `${item.name}, ${item.address}, Mapandan, Pangasinan`;
     const publicMapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
@@ -74,7 +74,7 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                                 <Bed className="w-16 h-16 text-slate-200 dark:text-white/10" />
                             </div>
                         )}
-                        
+
                         {/* Status/Type Badge */}
                         <div className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
                             <span className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-xl">
@@ -93,9 +93,9 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
                     </div>
 
                     {/* Quick Contact Bar for Mobile */}
-                    <ContactButtons 
-                        contactNumber={item.contactNumber} 
-                        websiteUrl={item.websiteUrl} 
+                    <ContactButtons
+                        contactNumber={item.contactNumber}
+                        websiteUrl={item.websiteUrl}
                         isMobile={true}
                     />
                 </div>
@@ -147,9 +147,9 @@ export default async function AccommodationDetailPage({ params }: { params: Prom
 
                     {/* Desktop Contact - Hidden on Mobile */}
                     <div className="hidden lg:block space-y-6 pt-4 border-t border-slate-100 dark:border-white/5">
-                        <ContactButtons 
-                            contactNumber={item.contactNumber} 
-                            websiteUrl={item.websiteUrl} 
+                        <ContactButtons
+                            contactNumber={item.contactNumber}
+                            websiteUrl={item.websiteUrl}
                         />
                     </div>
 

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Newspaper, Calendar, Home, Search, Filter } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Input } from "@/components/ui/input";
-import { 
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -34,9 +34,9 @@ interface UserNewsViewProps {
     activeBarangays?: string[];
 }
 
-export function UserNewsView({ 
-    initialNews = [], 
-    activeBarangays = [] 
+export function UserNewsView({
+    initialNews = [],
+    activeBarangays = []
 }: UserNewsViewProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedBarangay, setSelectedBarangay] = useState("All");
@@ -47,9 +47,9 @@ export function UserNewsView({
 
     const filteredNews = useMemo(() => {
         return initialNews.filter(item => {
-            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 item.category.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.category.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesBarangay = selectedBarangay === "All" || item.barangay === selectedBarangay;
             return matchesSearch && matchesBarangay;
         });
@@ -78,7 +78,7 @@ export function UserNewsView({
                     </BreadcrumbList>
                 </Breadcrumb>
             </div>
-            
+
             {/* Header section with Search/Filter - STICKY on Mobile */}
             <div className="sticky md:static top-[70px] md:top-auto z-40 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent md:dark:bg-transparent px-4 md:px-0 pt-4 pb-3 md:py-0 -mx-4 md:mx-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
                 <div className="space-y-4">
@@ -96,7 +96,7 @@ export function UserNewsView({
                 <div className="flex flex-row items-center gap-2 md:gap-4 w-full lg:w-auto">
                     <div className="relative flex-1 sm:w-[300px] group">
                         <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-                        <Input 
+                        <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search..."
@@ -141,10 +141,10 @@ export function UserNewsView({
                                 {item.imageUrl && (
                                     <div className="relative aspect-[4/3] md:h-56 w-full overflow-hidden">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img 
-                                            src={item.imageUrl} 
-                                            alt={item.title} 
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                        <img
+                                            src={item.imageUrl}
+                                            alt={item.title}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                         />
                                         <div className="absolute top-2 left-2 md:top-4 md:left-4">
                                             <div className="px-2 py-1 md:px-4 md:py-2 bg-white/90 backdrop-blur-md rounded-lg md:rounded-2xl text-[7px] md:text-[10px] font-black uppercase tracking-widest text-primary shadow-xl">
@@ -161,7 +161,7 @@ export function UserNewsView({
                                                 {format(new Date(item.publishDate), "MMM d, yyyy")}
                                             </span>
                                         </div>
-                                        
+
                                         <h3 className="text-sm md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors leading-tight italic line-clamp-2">
                                             {item.title}
                                         </h3>
@@ -177,7 +177,7 @@ export function UserNewsView({
                     </motion.div>
                 ))}
             </div>
-            
+
             {filteredNews.length === 0 && (
                 <div className="mx-4 md:mx-0 py-24 text-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-[2.5rem] md:rounded-[4rem] bg-white dark:bg-black/10">
                     <Newspaper className="w-16 h-16 text-slate-300 mx-auto mb-4" />

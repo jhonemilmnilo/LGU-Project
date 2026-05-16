@@ -18,7 +18,7 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
     }
 
     // Map implementation without API key
-    const mapQuery = item.latitude && item.longitude 
+    const mapQuery = item.latitude && item.longitude
         ? `${item.latitude},${item.longitude}`
         : `${item.name}, ${item.address}, Mapandan, Pangasinan`;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -119,13 +119,13 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
 
                     <div className="space-y-3 md:space-y-4 pt-2">
                         <h3 className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Connect with Establishment</h3>
-                        <ContactButtons 
-                            contactNumber={item.contactNumber} 
-                            facebookUrl={item.facebookUrl} 
+                        <ContactButtons
+                            contactNumber={item.contactNumber}
+                            facebookUrl={item.facebookUrl}
                         />
-                        <ContactButtons 
-                            contactNumber={item.contactNumber} 
-                            facebookUrl={item.facebookUrl} 
+                        <ContactButtons
+                            contactNumber={item.contactNumber}
+                            facebookUrl={item.facebookUrl}
                             isMobile={true}
                         />
                     </div>
@@ -142,7 +142,7 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
                                 allowFullScreen
                                 loading="lazy"
                             ></iframe>
-                            
+
                             {/* Floating Directions Button - Fixed and visible */}
                             {item.googleMapsUrl && (
                                 <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">

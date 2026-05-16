@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { 
-    MapPin, 
-    Clock, 
-    Utensils, 
-    Home, 
+import {
+    MapPin,
+    Clock,
+    Utensils,
+    Home,
     ArrowRight,
     Search,
     Filter
@@ -13,7 +13,7 @@ import {
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -23,12 +23,12 @@ import {
 import Link from "next/link";
 import React, { useState, useMemo } from "react";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
 export interface Dining {
@@ -55,9 +55,9 @@ interface UserDiningViewProps {
     activeBarangays?: string[];
 }
 
-export default function UserDiningView({ 
-    initialDining = [], 
-    activeBarangays = [] 
+export default function UserDiningView({
+    initialDining = [],
+    activeBarangays = []
 }: UserDiningViewProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedBarangay, setSelectedBarangay] = useState("All");
@@ -68,8 +68,8 @@ export default function UserDiningView({
 
     const filteredDining = useMemo(() => {
         return initialDining.filter(item => {
-            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesBarangay = selectedBarangay === "All" || item.barangay === selectedBarangay;
             return matchesSearch && matchesBarangay;
         });
@@ -115,7 +115,7 @@ export default function UserDiningView({
                         <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2">
                             <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         </div>
-                        <Input 
+                        <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search..."
@@ -153,64 +153,64 @@ export default function UserDiningView({
                         className="group bg-white dark:bg-[#0f1117] rounded-xl md:rounded-[3.5rem] border border-slate-200 dark:border-[#2a3040] hover:border-primary/40 transition-all duration-500 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col h-full active:scale-[0.98]"
                     >
                         <Link href={`/user/dining/${item.id}`} className="flex flex-col h-full">
-                        {/* Image Container */}
-                        <div className="relative aspect-[4/3] sm:aspect-[16/10] overflow-hidden">
-                            <Image
-                                src={item.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800"}
-                                alt={item.name}
-                                fill
-                                className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                                priority={idx < 3}
-                            />
-                            
-                            {/* Badges */}
-                            <div className="absolute top-2 left-2 md:top-6 md:left-6 z-20 flex flex-col items-start gap-1 md:gap-2">
-                                <span className="inline-flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-2 bg-orange-500 text-white rounded-full text-[6px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
-                                    <Utensils className="w-2 h-2 md:w-3.5 md:h-3.5" />
-                                    Kainan
-                                </span>
-                                {item.cuisineType && (
-                                    <span className="inline-flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-1.5 bg-white/95 backdrop-blur-none md:backdrop-blur-md rounded-full text-[5px] md:text-[9px] font-black uppercase tracking-[0.15em] text-slate-900 shadow-lg">
-                                        {item.cuisineType}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        </div>
+                            {/* Image Container */}
+                            <div className="relative aspect-[4/3] sm:aspect-[16/10] overflow-hidden">
+                                <Image
+                                    src={item.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800"}
+                                    alt={item.name}
+                                    fill
+                                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                                    priority={idx < 3}
+                                />
 
-                        {/* Details */}
-                        <div className="p-3 md:p-8 space-y-2 md:space-y-4 flex-1 flex flex-col justify-between">
-                            <div className="space-y-1.5 md:space-y-4">
-                                <div className="space-y-0.5 md:space-y-2">
-                                    <h3 className="text-[11px] md:text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-tight line-clamp-1">
-                                        {item.name}
-                                    </h3>
-                                    <div className="flex items-center gap-1 md:gap-2 text-slate-400 group-hover:text-slate-500 transition-colors">
-                                        <MapPin className="w-2.5 h-2.5 md:w-4 md:h-4 text-primary shrink-0" />
-                                        <span className="text-[6px] md:text-[11px] font-bold uppercase tracking-widest truncate italic">
-                                            {item.address}
+                                {/* Badges */}
+                                <div className="absolute top-2 left-2 md:top-6 md:left-6 z-20 flex flex-col items-start gap-1 md:gap-2">
+                                    <span className="inline-flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-2 bg-orange-500 text-white rounded-full text-[6px] md:text-[10px] font-black uppercase tracking-widest shadow-lg">
+                                        <Utensils className="w-2 h-2 md:w-3.5 md:h-3.5" />
+                                        Kainan
+                                    </span>
+                                    {item.cuisineType && (
+                                        <span className="inline-flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-1.5 bg-white/95 backdrop-blur-none md:backdrop-blur-md rounded-full text-[5px] md:text-[9px] font-black uppercase tracking-[0.15em] text-slate-900 shadow-lg">
+                                            {item.cuisineType}
                                         </span>
+                                    )}
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </div>
+
+                            {/* Details */}
+                            <div className="p-3 md:p-8 space-y-2 md:space-y-4 flex-1 flex flex-col justify-between">
+                                <div className="space-y-1.5 md:space-y-4">
+                                    <div className="space-y-0.5 md:space-y-2">
+                                        <h3 className="text-[11px] md:text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-tight line-clamp-1">
+                                            {item.name}
+                                        </h3>
+                                        <div className="flex items-center gap-1 md:gap-2 text-slate-400 group-hover:text-slate-500 transition-colors">
+                                            <MapPin className="w-2.5 h-2.5 md:w-4 md:h-4 text-primary shrink-0" />
+                                            <span className="text-[6px] md:text-[11px] font-bold uppercase tracking-widest truncate italic">
+                                                {item.address}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-[8px] md:text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 md:line-clamp-2 leading-relaxed h-6 md:h-10">
+                                        {item.description}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-between md:justify-between pt-2 md:pt-8 mt-auto border-t border-slate-100 dark:border-white/5">
+                                    <div className="hidden md:flex flex-1">
+                                        <Button className="h-9 md:h-12 px-4 md:px-8 bg-primary text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[9px] flex items-center gap-1.5 md:gap-2 shadow-md hover:shadow-lg transition-shadow">
+                                            Explore
+                                            <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                        </Button>
+                                    </div>
+                                    <div className="flex items-center gap-1 md:gap-2 text-[6px] md:text-[10px] font-black uppercase text-slate-400 italic shrink-0 w-full md:w-auto justify-end md:justify-end">
+                                        <Clock className="w-2.5 h-2.5 md:w-4 md:h-4 text-primary" />
+                                        <span className="truncate max-w-[90px] md:max-w-none">{item.openingHours || "TBA"}</span>
                                     </div>
                                 </div>
-                                
-                                <p className="text-[8px] md:text-sm text-slate-500 dark:text-slate-400 font-medium italic line-clamp-2 md:line-clamp-2 leading-relaxed h-6 md:h-10">
-                                    {item.description}
-                                </p>
                             </div>
-                            
-                            <div className="flex items-center justify-between md:justify-between pt-2 md:pt-8 mt-auto border-t border-slate-100 dark:border-white/5">
-                                <div className="hidden md:flex flex-1">
-                                    <Button className="h-9 md:h-12 px-4 md:px-8 bg-primary text-white rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[9px] flex items-center gap-1.5 md:gap-2 shadow-md hover:shadow-lg transition-shadow">
-                                        Explore
-                                        <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                    </Button>
-                                </div>
-                                <div className="flex items-center gap-1 md:gap-2 text-[6px] md:text-[10px] font-black uppercase text-slate-400 italic shrink-0 w-full md:w-auto justify-end md:justify-end">
-                                    <Clock className="w-2.5 h-2.5 md:w-4 md:h-4 text-primary" />
-                                    <span className="truncate max-w-[90px] md:max-w-none">{item.openingHours || "TBA"}</span>
-                                </div>
-                            </div>
-                        </div>
                         </Link>
                     </motion.div>
                 ))}

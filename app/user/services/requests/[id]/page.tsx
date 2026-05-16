@@ -60,9 +60,9 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { 
-    getTransactionById, 
-    finalizeTransactionFulfillment, 
+import {
+    getTransactionById,
+    finalizeTransactionFulfillment,
     getSystemSettingAction,
     getPublicBarangayLogistics,
     cancelTransaction,
@@ -289,7 +289,7 @@ export default function RequestHubPage() {
 
     const handleCancel = async () => {
         if (!window.confirm("Are you sure you want to cancel this request?")) return;
-        
+
         setIsCancelling(true);
         try {
             const res = await cancelTransaction(id);
@@ -436,7 +436,7 @@ export default function RequestHubPage() {
     }
 
     return (
-        <div 
+        <div
             className="min-h-screen bg-white dark:bg-[#0a0c10] pb-20"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
@@ -479,9 +479,9 @@ export default function RequestHubPage() {
                                     {request.type?.name || "Request"} <span className="text-primary">Hub</span>
                                 </h1>
                                 <div className="flex items-center gap-2">
-                                    <Badge 
+                                    <Badge
                                         className={cn("px-3 py-1 text-[7px] md:text-[9px] font-black uppercase tracking-widest italic rounded-full border")}
-                                        style={{ 
+                                        style={{
                                             backgroundColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
                                             borderColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
                                             color: statusConfig?.color.includes("bg-primary") ? "white" : undefined
@@ -496,7 +496,7 @@ export default function RequestHubPage() {
                     </div>
 
                     {!request.isCancelled && !["FOR_PROCESSING", "EVALUATED", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "UNPAID", "PAID", "RELEASED", "REJECTED", "DISPUTE_REJECTED"].includes(request.status) && (
-                        <Button 
+                        <Button
                             onClick={handleCancel}
                             disabled={isCancelling}
                             variant="destructive"
