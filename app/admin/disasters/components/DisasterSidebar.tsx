@@ -4,7 +4,7 @@ import { useDisaster } from "../providers/DisasterProvider";
 import { useHousehold } from "../../households/providers/HouseholdProvider";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { addDisasterZone, updateDisasterZone, deleteDisasterZone } from "../../actions";
- 
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Plus, Trash2, AlertCircle, Users, Palette, ShieldAlert, Maximize2 } from "lucide-react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -41,7 +41,7 @@ export function DisasterSidebar() {
 
     const handleAddNewZone = async () => {
         setIsAdding(true);
-        // Default polygon (Square) near Agno center
+        // Default polygon (Square) near Mapandan center
         const defaultZone = {
             type: "New Disaster Layer",
             typeColor: "#3b82f6", // Blue
@@ -57,7 +57,7 @@ export function DisasterSidebar() {
 
         const result = await addDisasterZone(defaultZone);
         if (result.success && result.zone) {
-             
+
             addZone(result.zone as any);
             setActiveZoneId(result.zone.id);
             toast.success("New Risk Zone Added!");
@@ -67,7 +67,7 @@ export function DisasterSidebar() {
         setIsAdding(false);
     };
 
-     
+
     const handleUpdateZone = async (id: string, updates: any) => {
         if (!activeZone) return;
         const updatedData = { ...activeZone, ...updates };
@@ -157,7 +157,7 @@ export function DisasterSidebar() {
                                             const level = e.target.value;
                                             handleUpdateZone(activeZone.id, {
                                                 riskLevel: level,
-                                                 
+
                                                 riskColor: (riskColors as any)[level]
                                             });
                                         }}

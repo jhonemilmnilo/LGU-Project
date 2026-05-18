@@ -393,6 +393,7 @@ export default function RequestHubPage() {
     const residentData = request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
+    const isBusinessPermit = request?.type?.code?.startsWith("BUSINESS_PERMIT");
 
     const computation = useMemo(() => {
         if (!request) return null;
@@ -730,7 +731,7 @@ export default function RequestHubPage() {
                                             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-primary italic bg-primary/5 px-3 py-1 rounded-lg border border-primary/10"><Clock className="w-3 h-3" /> Updated: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</div>
                                         </div>
                                         <div className="grid grid-cols-2 md:grid-cols-2 gap-y-10 md:gap-y-12">
-                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Entity Type</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{additionalData.applicantType}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Submission Cycle</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{format(new Date(request.createdAt), "MMM d, yyyy")}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Payment Channel</p><p className="text-lg md:text-3xl font-black text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
@@ -781,8 +782,8 @@ export default function RequestHubPage() {
                                         <div className="space-y-6">
                                             <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Personal Identity</h4>
                                             <div className="grid grid-cols-2 gap-6 md:gap-8">
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Legal Name</p><p className="text-xs md:text-lg font-bold italic truncate">{residentData.firstName} {residentData.lastName}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Birth Cycle</p><p className="text-xs md:text-lg font-bold italic">{format(new Date(residentData.dateOfBirth), "MMM d, yyyy")}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Name</p><p className="text-xs md:text-lg font-bold italic truncate">{residentData.firstName} {residentData.lastName}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Birth Date</p><p className="text-xs md:text-lg font-bold italic">{format(new Date(residentData.dateOfBirth), "MMM d, yyyy")}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Civil Status</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.civilStatus || "Single"}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Citizenship</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.citizenship || "Filipino"}</p></div>
                                             </div>
@@ -867,10 +868,22 @@ export default function RequestHubPage() {
                                 <div className="space-y-6">
                                     <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Digital Clearance Repository</h4>
                                     <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-                                        {[
-                                            { label: "Identity Matrix", url: additionalData.validIdUrl },
-                                            { label: "Financial Evidence", url: additionalData.proofOfIncomeUrl }
-                                        ].map((doc, i) => (
+                                        {((isBusinessPermit
+                                            ? [
+                                                { label: "Owner's Valid ID", url: additionalData.ownerIdUrl },
+                                                { label: "Cedula (CTC) Copy", url: additionalData.ctcUrl },
+                                                { label: "DTI / SEC Registry", url: additionalData.dtiSecUrl },
+                                                { label: "Barangay Clearance", url: additionalData.brgyClearanceUrl },
+                                                { label: "Location Photo", url: additionalData.locationPhotoUrl },
+                                                { label: "Sanitary Permit", url: additionalData.sanitaryPermitUrl },
+                                                { label: "Fire Safety Certificate", url: additionalData.fireSafetyUrl },
+                                                { label: "BIR Certificate (COR)", url: additionalData.birCorUrl },
+                                            ]
+                                            : [
+                                                { label: "Identity Matrix", url: additionalData.validIdUrl, required: true },
+                                                { label: "Financial Evidence", url: additionalData.proofOfIncomeUrl, required: true },
+                                            ]
+                                        ) as any[]).filter(doc => doc.required || doc.url).map((doc, i) => (
                                             doc.url ? (
                                                 <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer" className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all block">
                                                     <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />

@@ -55,22 +55,22 @@ interface LocationPickerProps {
     title?: string;
 }
 
-export default function LocationPicker({ 
-    initialLat = 16.1158, 
-    initialLng = 119.7997, 
-    onSelect, 
+export default function LocationPicker({
+    initialLat = 16.1158,
+    initialLng = 119.7997,
+    onSelect,
     onClose,
     title = "Select Location"
 }: LocationPickerProps) {
     const [mounted, setMounted] = useState(false);
     const [position, setPosition] = useState<[number, number]>([initialLat, initialLng]);
-    const [agnoBorder, setAgnoBorder] = useState<GeoJSONData | null>(null);
+    const [MapandanBorder, setMapandanBorder] = useState<GeoJSONData | null>(null);
 
     useEffect(() => {
         setMounted(true);
         fetch('/mapandan-border.json')
             .then(res => res.json())
-            .then(data => setAgnoBorder(data))
+            .then(data => setMapandanBorder(data))
             .catch(err => console.error("Failed to load map borders:", err));
 
         // Fix Leaflet icons
@@ -108,10 +108,10 @@ export default function LocationPicker({
                         attribution='Tiles &copy; Esri'
                         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                     />
-                    
-                    {agnoBorder && (
+
+                    {MapandanBorder && (
                         <GeoJSON
-                            data={agnoBorder}
+                            data={MapandanBorder}
                             style={{
                                 color: '#3b82f6',
                                 weight: 2,
@@ -133,14 +133,14 @@ export default function LocationPicker({
                 </div>
 
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-full px-8">
-                   <div className="bg-primary/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-white/20">
-                      <MapPin className="w-3 h-3" /> Click anywhere on map to reposition pin
-                   </div>
+                    <div className="bg-primary/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-white/20">
+                        <MapPin className="w-3 h-3" /> Click anywhere on map to reposition pin
+                    </div>
                 </div>
             </div>
 
             <div className="flex gap-3">
-                <Button 
+                <Button
                     onClick={() => onSelect(position[0], position[1])}
                     className="flex-1 py-4 h-auto bg-primary hover:opacity-90 text-white rounded-xl font-black uppercase tracking-widest text-[10px] italic shadow-xl shadow-primary/25 transition-all"
                 >

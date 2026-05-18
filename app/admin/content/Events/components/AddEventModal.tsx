@@ -41,7 +41,7 @@ export function AddEventModal() {
             if (editingData.imageUrl && !imagePreview?.startsWith("data:")) {
                 setImagePreview(editingData.imageUrl);
             }
-            
+
             // Handle editing existing category
             if (editingData.category) {
                 if (categories.includes(editingData.category)) {
@@ -65,7 +65,7 @@ export function AddEventModal() {
         // Handle @lat,lng format (most common)
         const atMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
         if (atMatch) return { lat: atMatch[1], lng: atMatch[2] };
-        
+
         // Handle !3dLat!4dLng (desktop internal format)
         const bangMatch = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
         if (bangMatch) return { lat: bangMatch[1], lng: bangMatch[2] };
@@ -84,13 +84,13 @@ export function AddEventModal() {
             // Check if it's not part of a zoom level or something else
             const latVal = parseFloat(genericMatch[1]);
             const lngVal = parseFloat(genericMatch[2]);
-            // Mapandan is around 16, 120. Reasonable bounds for Agno/Pangasinan:
+            // Mapandan is around 16, 120. Reasonable bounds for Mapandan/Pangasinan:
             // Lat: 15-17, Lng: 119-121
             if (latVal > 14 && latVal < 18 && lngVal > 118 && lngVal < 122) {
                 return { lat: genericMatch[1], lng: genericMatch[2] };
             }
         }
-        
+
         return null;
     };
 
@@ -105,7 +105,7 @@ export function AddEventModal() {
 
     const handleGoogleMapsUrlChange = (url: string) => {
         setGoogleMapsUrl(url);
-        
+
         // Extract Coordinates from URL
         const coords = extractCoordsFromUrl(url);
         if (coords) {
@@ -179,21 +179,21 @@ export function AddEventModal() {
 
                                     <div className="space-y-2">
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Event Title</Label>
-                                            <Input
-                                                name="title"
-                                                required
-                                                defaultValue={editingData?.title || ""}
-                                                placeholder="e.g. Schedule for Coastal Clean-up"
-                                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
+                                        <Input
+                                            name="title"
+                                            required
+                                            defaultValue={editingData?.title || ""}
+                                            placeholder="e.g. Schedule for Coastal Clean-up"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
+                                        />
+                                        {(currentBarangay || editingData?.barangay) && (
+                                            <input
+                                                type="hidden"
+                                                name="barangay"
+                                                value={editingData?.barangay || currentBarangay || ""}
                                             />
-                                            {(currentBarangay || editingData?.barangay) && (
-                                                <input 
-                                                    type="hidden" 
-                                                    name="barangay" 
-                                                    value={editingData?.barangay || currentBarangay || ""} 
-                                                />
-                                            )}
-                                        </div>
+                                        )}
+                                    </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
@@ -207,8 +207,8 @@ export function AddEventModal() {
                                                         exit={{ opacity: 0, x: 10 }}
                                                         transition={{ duration: 0.2 }}
                                                     >
-                                                        <Select 
-                                                            name="category_trigger" 
+                                                        <Select
+                                                            name="category_trigger"
                                                             value={selectedCategory}
                                                             onValueChange={(val) => {
                                                                 setSelectedCategory(val);
@@ -258,10 +258,10 @@ export function AddEventModal() {
                                                     </motion.div>
                                                 )}
                                             </AnimatePresence>
-                                            <input 
-                                                type="hidden" 
-                                                name="category" 
-                                                value={selectedCategory === "Other" ? otherCategory : selectedCategory} 
+                                            <input
+                                                type="hidden"
+                                                name="category"
+                                                value={selectedCategory === "Other" ? otherCategory : selectedCategory}
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -345,7 +345,7 @@ export function AddEventModal() {
                                             className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
                                         />
                                     </div>
- 
+
                                     <div className="space-y-2">
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Address / Barangay</Label>
                                         <Input

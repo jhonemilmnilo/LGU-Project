@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export const metadata: Metadata = {
-    title: "Treasury Hub | Agno Portal",
+    title: "Treasury Hub | Mapandan Portal",
     description: "Official administrative dashboard for treasury services and financial processing.",
 };
 
