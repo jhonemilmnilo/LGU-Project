@@ -294,14 +294,14 @@ export default function RequestHubPage() {
         try {
             const res = await cancelTransaction(id);
             if (res.success) {
-                toast.success("Request revoked.");
+                toast.success("Request cancelled.");
                 window.location.reload();
             } else {
                 toast.error(res.error || "Failed to cancel");
             }
         } catch (error) {
             console.error("Cancel error:", error);
-            toast.error("Network error during revocation");
+            toast.error("Network error during cancellation");
         } finally {
             setIsCancelling(false);
         }
@@ -393,6 +393,7 @@ export default function RequestHubPage() {
     const residentData = request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
+    const isBusinessPermit = request?.type?.code?.startsWith("BUSINESS_PERMIT");
 
     const computation = useMemo(() => {
         if (!request) return null;
@@ -500,10 +501,10 @@ export default function RequestHubPage() {
                             onClick={handleCancel}
                             disabled={isCancelling}
                             variant="destructive"
-                            className="h-10 md:h-12 px-5 md:px-8 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[10px] italic shadow-lg active:scale-95 transition-all gap-2"
+                            className="h-10 md:h-12 px-5 md:px-8 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[10px] italic shadow-lg active:scale-95 transition-all gap-2 bg-red-600 hover:bg-red-700 text-white border-none shadow-red-500/20"
                         >
                             {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                            Revoke Request
+                            Cancel Request
                         </Button>
                     )}
                 </div>
@@ -730,7 +731,7 @@ export default function RequestHubPage() {
                                             <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-primary italic bg-primary/5 px-3 py-1 rounded-lg border border-primary/10"><Clock className="w-3 h-3" /> Updated: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</div>
                                         </div>
                                         <div className="grid grid-cols-2 md:grid-cols-2 gap-y-10 md:gap-y-12">
-                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Entity Type</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{additionalData.applicantType}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Submission Cycle</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{format(new Date(request.createdAt), "MMM d, yyyy")}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Payment Channel</p><p className="text-lg md:text-3xl font-black text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
@@ -761,13 +762,28 @@ export default function RequestHubPage() {
 
                         <TabsContent value="records" className="mt-0">
                             <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-xl rounded-2xl md:rounded-3xl space-y-12">
+                                {request.type?.code.startsWith("BUSINESS_PERMIT") && (
+                                    <div className="space-y-6 pb-8 border-b border-slate-100 dark:border-white/5">
+                                        <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-emerald-500 italic border-l-4 border-emerald-500 pl-4">Business Information</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Official Business Name</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.businessName}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Trade Name</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.tradeName || "N/A"}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Organization Type</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.orgType}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">DTI / SEC ID</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.dtiSecNumber || "N/A"}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Line of Business</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.lineOfBusiness}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Business Barangay</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.barangay}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Employee Count</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.employeeCount || 1}</p></div>
+                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Store Area (sqm)</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.businessArea ? `${additionalData.businessArea} sqm` : "N/A"}</p></div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16">
                                     <div className="space-y-10">
                                         <div className="space-y-6">
                                             <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Personal Identity</h4>
                                             <div className="grid grid-cols-2 gap-6 md:gap-8">
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Legal Name</p><p className="text-xs md:text-lg font-bold italic truncate">{residentData.firstName} {residentData.lastName}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Birth Cycle</p><p className="text-xs md:text-lg font-bold italic">{format(new Date(residentData.dateOfBirth), "MMM d, yyyy")}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Name</p><p className="text-xs md:text-lg font-bold italic truncate">{residentData.firstName} {residentData.lastName}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Birth Date</p><p className="text-xs md:text-lg font-bold italic">{format(new Date(residentData.dateOfBirth), "MMM d, yyyy")}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Civil Status</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.civilStatus || "Single"}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Citizenship</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.citizenship || "Filipino"}</p></div>
                                             </div>
@@ -775,9 +791,42 @@ export default function RequestHubPage() {
                                         <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
                                             <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
                                             <div className="grid grid-cols-2 gap-6 md:gap-8">
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Annual Gross Income</p><p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">₱{(additionalData.income || 0).toLocaleString()}</p></div>
-                                                {request.cedula?.expiryDate && (
-                                                    <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p><p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">Expires {format(new Date(request.cedula.expiryDate), "MMM d")}</p></div>
+                                                {request.type?.code.startsWith("BUSINESS_PERMIT") ? (
+                                                    <>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">
+                                                                {additionalData.businessType === "NEW" ? "Capital Investment" : "Annual Gross Sales"}
+                                                            </p>
+                                                            <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
+                                                                ₱{(additionalData.capitalInvestment || additionalData.grossSales || 0).toLocaleString()}
+                                                            </p>
+                                                        </div>
+                                                        {request.businessPermit?.expiryDate && (
+                                                            <div className="space-y-1">
+                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                    Expires {format(new Date(request.businessPermit.expiryDate), "MMM d, yyyy")}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="space-y-1">
+                                                            <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Annual Gross Income</p>
+                                                            <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
+                                                                ₱{(additionalData.income || 0).toLocaleString()}
+                                                            </p>
+                                                        </div>
+                                                        {request.cedula?.expiryDate && (
+                                                            <div className="space-y-1">
+                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                    Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -819,10 +868,22 @@ export default function RequestHubPage() {
                                 <div className="space-y-6">
                                     <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Digital Clearance Repository</h4>
                                     <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-                                        {[
-                                            { label: "Identity Matrix", url: additionalData.validIdUrl },
-                                            { label: "Financial Evidence", url: additionalData.proofOfIncomeUrl }
-                                        ].map((doc, i) => (
+                                        {((isBusinessPermit
+                                            ? [
+                                                { label: "Owner's Valid ID", url: additionalData.ownerIdUrl },
+                                                { label: "Cedula (CTC) Copy", url: additionalData.ctcUrl },
+                                                { label: "DTI / SEC Registry", url: additionalData.dtiSecUrl },
+                                                { label: "Barangay Clearance", url: additionalData.brgyClearanceUrl },
+                                                { label: "Location Photo", url: additionalData.locationPhotoUrl },
+                                                { label: "Sanitary Permit", url: additionalData.sanitaryPermitUrl },
+                                                { label: "Fire Safety Certificate", url: additionalData.fireSafetyUrl },
+                                                { label: "BIR Certificate (COR)", url: additionalData.birCorUrl },
+                                            ]
+                                            : [
+                                                { label: "Identity Matrix", url: additionalData.validIdUrl, required: true },
+                                                { label: "Financial Evidence", url: additionalData.proofOfIncomeUrl, required: true },
+                                            ]
+                                        ) as any[]).filter(doc => doc.required || doc.url).map((doc, i) => (
                                             doc.url ? (
                                                 <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer" className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all block">
                                                     <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
@@ -837,7 +898,7 @@ export default function RequestHubPage() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl) && (
+                                    {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
                                         <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>
                                             <div className="relative z-10 space-y-6">
@@ -846,7 +907,7 @@ export default function RequestHubPage() {
                                                     <div><p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Issuance Secured</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Official Digital Record</p></div>
                                                 </div>
                                                 <Button asChild className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl">
-                                                    <a href={request.eCopyUrl || request.cedula?.documentUrl} target="_blank" rel="noopener noreferrer">Retrieve Secure Record <ExternalLink className="w-3 h-3 ml-2" /></a>
+                                                    <a href={request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl} target="_blank" rel="noopener noreferrer">Retrieve Secure Record <ExternalLink className="w-3 h-3 ml-2" /></a>
                                                 </Button>
                                             </div>
                                         </div>

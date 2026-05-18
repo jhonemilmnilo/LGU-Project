@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { 
+import {
     FileText,
     Camera,
     BadgeCheck, ArrowLeft,
@@ -19,10 +19,10 @@ import {
     Ban
 } from "lucide-react";
 import { toast } from "sonner";
-import { 
+import {
     getTransactionById,
-    evaluateCedulaTransaction, 
-    confirmTransactionPayment, 
+    evaluateCedulaTransaction,
+    confirmTransactionPayment,
     releaseCedula,
     rejectTransaction,
     uploadECopyAction,
@@ -38,12 +38,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import IdentityConfirmationVault from "@/components/admin/IdentityConfirmationVault";
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
-    DialogTitle, 
-    DialogTrigger 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from "@/components/ui/dialog";
 
 interface PageProps {
@@ -73,20 +73,20 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
             <DialogHeader className="sr-only">
                 <DialogTitle>{label}</DialogTitle>
             </DialogHeader>
-            
-            <div 
+
+            <div
                 className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-move active:cursor-grabbing select-none"
                 onWheel={handleWheel}
             >
-                <div 
+                <div
                     className="relative w-full h-full transition-transform duration-300 ease-out flex items-center justify-center"
                     style={{ transform: `scale(${scale}) rotate(${rotate}deg)` }}
                 >
-                    <Image 
-                        src={src} 
-                        alt={alt} 
-                        fill 
-                        className="object-contain" 
+                    <Image
+                        src={src}
+                        alt={alt}
+                        fill
+                        className="object-contain"
                         priority
                         draggable={false}
                     />
@@ -98,11 +98,11 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                 <div className="flex items-center gap-1 pr-4 border-r border-white/10">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white italic whitespace-nowrap">{label}</p>
                 </div>
-                
+
                 <div className="flex items-center gap-1">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
                         onClick={() => setScale(s => Math.max(s - 0.2, 0.5))}
                     >
@@ -111,9 +111,9 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                     <div className="w-12 text-center text-[10px] font-black text-white/50 italic">
                         {Math.round(scale * 100)}%
                     </div>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
                         onClick={() => setScale(s => Math.min(s + 0.2, 5))}
                     >
@@ -123,9 +123,9 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
 
                 <div className="w-px h-4 bg-white/10 mx-2" />
 
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
                     onClick={() => setRotate(r => (r + 90) % 360)}
                     title="Rotate 90°"
@@ -133,9 +133,9 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                     <RotateCw className="w-4 h-4" />
                 </Button>
 
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
                     onClick={reset}
                     title="Reset View"
@@ -143,7 +143,7 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                     <RefreshCcw className="w-4 h-4" />
                 </Button>
             </div>
-            
+
             <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan coming soon</p>
         </DialogContent>
     );
@@ -179,7 +179,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 const tx = res.data;
                 setTransaction(tx);
-                
+
                 // Smart Delivery Fee Pre-fill Logic
                 if (tx && tx.fulfillmentType === "DELIVERY") {
                     const fiscal = tx.fiscalSnapshot as any;
@@ -190,10 +190,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         setDeliveryFee(tx.type.deliveryFee);
                     } else {
                         // 2. If new evaluation, look up the Barangay-specific fee
-                        const addr = (typeof tx.deliveryAddress === 'string' 
-                            ? JSON.parse(tx.deliveryAddress || '{}') 
+                        const addr = (typeof tx.deliveryAddress === 'string'
+                            ? JSON.parse(tx.deliveryAddress || '{}')
                             : tx.deliveryAddress) || tx.residentSnapshot;
-                        
+
                         if (addr?.barangay) {
                             getDeliveryFeeByBarangay(addr.barangay).then(brgyRes => {
                                 if (brgyRes.success && brgyRes.data) {
@@ -217,9 +217,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         }
     }, [id]);
 
-    useEffect(() => { 
-        fetchTransaction(); 
-        
+    useEffect(() => {
+        fetchTransaction();
+
         // Fetch theme color
         getSystemSettingAction("theme_color", "#2563eb").then(res => {
             if (res.success && res.data) {
@@ -229,12 +229,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
         // Fetch branding settings
         Promise.all([
-            getSystemSettingAction("brand_word_1", "Agno"),
+            getSystemSettingAction("brand_word_1", "Mapandan"),
             getSystemSettingAction("brand_word_2", "Express"),
             getSystemSettingAction("site_logo", "")
         ]).then(([w1, w2, logo]) => {
             setBranding({
-                word1: w1.data || "Agno",
+                word1: w1.data || "Mapandan",
                 word2: w2.data || "Express",
                 logo: logo.data || ""
             });
@@ -256,8 +256,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             const res = await rejectTransaction(transaction.id, remarks);
-            if (res.success) { 
-                toast.success("Rejected"); 
+            if (res.success) {
+                toast.success("Rejected");
                 router.push("/admin/treasury");
             }
             else toast.error(res.error || "Failed");
@@ -272,9 +272,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             // Strict Validation: E-Copy is REQUIRED for initial processing
-            const eCopyRequired = transaction?.status === "FOR_PROCESSING" || 
-                                 (transaction?.status === "PAID" && (transaction?.fulfillmentType === "E_COPY" || transaction?.fulfillmentType === "DELIVERY"));
-            
+            const eCopyRequired = transaction?.status === "FOR_PROCESSING" ||
+                (transaction?.status === "PAID" && (transaction?.fulfillmentType === "E_COPY" || transaction?.fulfillmentType === "DELIVERY"));
+
             if (eCopyRequired && !eCopyFile && !transaction.eCopyUrl) {
                 toast.error("Digital E-Copy is required before proceeding.");
                 setActionLoading(false);
@@ -290,15 +290,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Upload failed"); setActionLoading(false); return; }
             }
             const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl);
-            if (res.success) { 
+            if (res.success) {
                 const status = res.data?.status;
-                const message = status === "FOR_PICKING" 
-                    ? "Ready for Picking" 
-                    : status === "FOR_CLAIM" 
-                        ? "Marked as Ready for Claiming" 
+                const message = status === "FOR_PICKING"
+                    ? "Ready for Picking"
+                    : status === "FOR_CLAIM"
+                        ? "Marked as Ready for Claiming"
                         : "Document Released";
-                toast.success(message); 
-                setECopyFile(null); 
+                toast.success(message);
+                setECopyFile(null);
                 router.push("/admin/treasury");
             }
             else toast.error(res.error || "Failed");
@@ -393,8 +393,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const propertyValue = Number(additional.propertyValue || 0);
 
     const fiscal = (transaction.fiscalSnapshot as any) || null;
-    const deliveryAddr = transaction.deliveryAddress 
-        ? (typeof transaction.deliveryAddress === 'string' ? JSON.parse(transaction.deliveryAddress) : transaction.deliveryAddress) 
+    const deliveryAddr = transaction.deliveryAddress
+        ? (typeof transaction.deliveryAddress === 'string' ? JSON.parse(transaction.deliveryAddress) : transaction.deliveryAddress)
         : null;
 
     const calcResult = fiscal ? {
@@ -419,13 +419,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         { id: "EVALUATED", label: "ASSESSMENT" },
         { id: "PAID", label: "PAID" },
         { id: "FOR_PROCESSING", label: "PROCESSING" },
-        { 
-            id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM", 
-            label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING" 
+        {
+            id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
+            label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
         },
-        { 
-            id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED", 
-            label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED" 
+        {
+            id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
+            label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
         },
     ];
 
@@ -442,8 +442,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     steps = steps.filter(step => {
         // Fast-track: Remove PROCESSING step for Digital Delivery (PAID phase skip)
-        if (step.id === "FOR_PROCESSING" && 
-            transaction.fulfillmentType === "DELIVERY" && 
+        if (step.id === "FOR_PROCESSING" &&
+            transaction.fulfillmentType === "DELIVERY" &&
             ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType)) {
             return false;
         }
@@ -459,8 +459,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks);
-            if (res.success) { 
-                toast.success("Evaluated Successfully"); 
+            if (res.success) {
+                toast.success("Evaluated Successfully");
                 router.push("/admin/treasury");
             }
             else toast.error(res.error || "Failed");
@@ -482,7 +482,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
 
     return (
-        <div 
+        <div
             className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
             style={{ "--theme_color": themeColor, "--primary-theme": themeColor } as React.CSSProperties}
         >
@@ -499,13 +499,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             </header>
 
             <main className="max-w-[1400px] mx-auto px-8 grid grid-cols-12 gap-8 mt-4">
-                
+
                 {/* LEFT COLUMN: Assessment & Identity */}
                 <div className="col-span-12 lg:col-span-8 space-y-8">
-                    
+
                     {/* MAIN ASSESSMENT CARD */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
-                        
+
                         {/* IDENTIFIER */}
                         <div className="space-y-4">
                             <div className="space-y-1">
@@ -514,11 +514,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 </span>
                                 <div className="flex items-center gap-4 group">
                                     <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                        {transaction.type.requiresBusinessName 
+                                        {transaction.type.requiresBusinessName
                                             ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
                                             : `${resident.firstName} ${resident.lastName}`}
                                     </h1>
-                                    
+
                                     <IdentityConfirmationVault resident={resident} themeColor={themeColor} />
                                 </div>
                             </div>
@@ -633,7 +633,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Verification</span>
                                 </div>
-                                
+
                                 <div className={cn(
                                     "grid gap-4",
                                     ((transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && (transaction.status === "DELIVERED" && transaction.podUrl)) ? "grid-cols-2" : "grid-cols-1"
@@ -719,7 +719,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             {transaction.disputeReason || "No reason provided."}
                                         </div>
                                     </div>
-                                    
+
                                     {transaction.disputeProofUrl && (
                                         <div className="space-y-3">
                                             <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic ml-1">Evidence Provided</p>
@@ -753,15 +753,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                 {/* RIGHT COLUMN: Workflow Tracking & Actions */}
                 <div className="col-span-12 lg:col-span-4 space-y-8 sticky top-16 self-start">
-                    
+
                     {/* WORKFLOW TRACKING */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-10 shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-slate-50 dark:border-white/5 space-y-10">
                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic">Workflow Tracking</span>
-                        
+
                         <div className="space-y-12 relative">
                             {/* Vertical Line */}
                             <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-slate-100 dark:bg-slate-800" />
-                            
+
                             {steps.map((step, idx) => {
                                 const isPast = idx < currentStepIdx;
                                 const isCurrent = idx === currentStepIdx;
@@ -769,9 +769,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     <div key={idx} className="flex items-center gap-6 relative z-10">
                                         <div className={cn(
                                             "w-8 h-8 rounded-full flex items-center justify-center font-black italic text-[11px] transition-all duration-500",
-                                            isPast ? "bg-primary text-white shadow-lg shadow-primary/20" : 
-                                            isCurrent ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ring-[6px] ring-primary/10" : 
-                                            "bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-white/5 text-slate-300 dark:text-slate-600"
+                                            isPast ? "bg-primary text-white shadow-lg shadow-primary/20" :
+                                                isCurrent ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] ring-[6px] ring-primary/10" :
+                                                    "bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-white/5 text-slate-300 dark:text-slate-600"
                                         )}>
                                             {isPast ? <Check className="w-4 h-4" /> : idx + 1}
                                         </div>
@@ -789,111 +789,111 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                     {/* DIGITAL ISSUANCE (E-COPY) - Visible in FOR_PROCESSING, FOR_CLAIM (if not yet recorded), or for PAID digital deliveries */}
                     {(
-                        transaction.status === "FOR_PROCESSING" || 
-                        (transaction.status === "FOR_CLAIM" && 
-                            !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") && 
+                        transaction.status === "FOR_PROCESSING" ||
+                        (transaction.status === "FOR_CLAIM" &&
+                            !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") &&
                             !transaction.eCopyUrl
                         ) ||
                         (transaction.status === "PAID" && (
-                            transaction.fulfillmentType === "E_COPY" || 
+                            transaction.fulfillmentType === "E_COPY" ||
                             (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
                         ))
                     ) && (
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
-                            <div className="relative">
-                                {transaction.status !== "RELEASED" && (
-                                    <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
-                                )}
-                                
-                                {transaction.status === "RELEASED" ? (
-                                    <a 
-                                        href={transaction.eCopyUrl || "#"} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="flex flex-col items-center justify-center rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-48 border-solid overflow-hidden group relative"
-                                    >
-                                        {transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg") || transaction.eCopyUrl.includes("image")) ? (
-                                            <Image 
-                                                src={transaction.eCopyUrl} 
-                                                fill 
-                                                className="object-cover opacity-80 hover:opacity-100 transition-opacity" 
-                                                alt="Official Registry" 
-                                                unoptimized
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-3">
-                                                <div className="p-4 rounded-2xl bg-primary text-white shadow-lg">
-                                                    <FileText className="w-6 h-6" />
-                                                </div>
-                                                <span className="text-[10px] font-black uppercase tracking-widest italic text-primary text-center">
-                                                    View Registry (PDF)
-                                                </span>
-                                            </div>
-                                        )}
-                                        <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-primary" /></div>
-                                    </a>
-                                ) : (
-                                    <label htmlFor="main-ecopy-upload" className={cn(
-                                        "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
-                                        eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
-                                    )}>
-                                        {(eCopyPreview || transaction.eCopyUrl) ? (
-                                            <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
-                                                {/* Image Preview */}
-                                                {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg")))) ? (
-                                                    <Image 
-                                                        src={eCopyPreview || transaction.eCopyUrl} 
-                                                        fill 
-                                                        className="object-cover opacity-60 group-hover:opacity-100 transition-opacity" 
-                                                        alt="Registry Preview"
-                                                        unoptimized
-                                                    />
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
-                                                        <FileText className="w-12 h-12" />
-                                                        <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">PDF Document Ready</span>
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Hover Overlay */}
-                                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
-                                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
-                                                        <Upload className="w-4 h-4" />
-                                                    </div>
-                                                    <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
-                                                </div>
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
+                                <div className="relative">
+                                    {transaction.status !== "RELEASED" && (
+                                        <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
+                                    )}
 
-                                                {/* Info Bar */}
-                                                <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                                                    <div className="flex items-center gap-3 overflow-hidden">
-                                                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                            <Check className="w-3.5 h-3.5 text-primary" />
+                                    {transaction.status === "RELEASED" ? (
+                                        <a
+                                            href={transaction.eCopyUrl || "#"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex flex-col items-center justify-center rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-48 border-solid overflow-hidden group relative"
+                                        >
+                                            {transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg") || transaction.eCopyUrl.includes("image")) ? (
+                                                <Image
+                                                    src={transaction.eCopyUrl}
+                                                    fill
+                                                    className="object-cover opacity-80 hover:opacity-100 transition-opacity"
+                                                    alt="Official Registry"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="p-4 rounded-2xl bg-primary text-white shadow-lg">
+                                                        <FileText className="w-6 h-6" />
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest italic text-primary text-center">
+                                                        View Registry (PDF)
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-primary" /></div>
+                                        </a>
+                                    ) : (
+                                        <label htmlFor="main-ecopy-upload" className={cn(
+                                            "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                            eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
+                                        )}>
+                                            {(eCopyPreview || transaction.eCopyUrl) ? (
+                                                <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                                                    {/* Image Preview */}
+                                                    {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg")))) ? (
+                                                        <Image
+                                                            src={eCopyPreview || transaction.eCopyUrl}
+                                                            fill
+                                                            className="object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                            alt="Registry Preview"
+                                                            unoptimized
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
+                                                            <FileText className="w-12 h-12" />
+                                                            <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">PDF Document Ready</span>
                                                         </div>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate">
-                                                            {eCopyFile?.name || "Registry-Record-ID-" + transaction.id.slice(-6).toUpperCase()}
-                                                        </span>
+                                                    )}
+
+                                                    {/* Hover Overlay */}
+                                                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
+                                                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                                            <Upload className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
+                                                    </div>
+
+                                                    {/* Info Bar */}
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                                <Check className="w-3.5 h-3.5 text-primary" />
+                                                            </div>
+                                                            <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate">
+                                                                {eCopyFile?.name || "Registry-Record-ID-" + transaction.id.slice(-6).toUpperCase()}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 scale-110">
-                                                    <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                                </div>
-                                                <div className="text-center space-y-1">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
-                                                        Attach E-Copy Registry
-                                                    </span>
-                                                    <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">PDF or Image up to 5MB</span>
-                                                </div>
-                                            </>
-                                        )}
-                                    </label>
-                                )}
+                                            ) : (
+                                                <>
+                                                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 scale-110">
+                                                        <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                    </div>
+                                                    <div className="text-center space-y-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
+                                                            Attach E-Copy Registry
+                                                        </span>
+                                                        <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">PDF or Image up to 5MB</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </label>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
                     {/* EXECUTIVE ACTIONS */}
                     <div className="space-y-4 pt-4">
@@ -904,8 +904,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
                                             {actionLoading ? "Processing..." : "Confirm Assessment"}
                                         </Button>
-                                        <Button 
-                                            onClick={() => setIsRejecting(true)} 
+                                        <Button
+                                            onClick={() => setIsRejecting(true)}
                                             className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
                                         >
                                             Decline Initial Request
@@ -929,21 +929,21 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
                                         {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
-                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && 
-                                         transaction.fulfillmentType !== "E_COPY" && 
-                                         !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) && 
-                                         !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") && 
-                                         transaction.status !== "FOR_PICKING" && (
-                                            <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                                <Button 
-                                                    onClick={handleConfirmPayment} 
-                                                    disabled={actionLoading} 
-                                                    className="w-full h-14 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
-                                                >
-                                                    {actionLoading ? "Processing Verification..." : "Verify Financial Record"}
-                                                </Button>
-                                            </div>
-                                        )}
+                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") &&
+                                            transaction.fulfillmentType !== "E_COPY" &&
+                                            !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) &&
+                                            !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") &&
+                                            transaction.status !== "FOR_PICKING" && (
+                                                <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                                    <Button
+                                                        onClick={handleConfirmPayment}
+                                                        disabled={actionLoading}
+                                                        className="w-full h-14 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
+                                                    >
+                                                        {actionLoading ? "Processing Verification..." : "Verify Financial Record"}
+                                                    </Button>
+                                                </div>
+                                            )}
 
                                         {/* Gated CTC Entry: Locked for processed digital/delivery flows or if already recorded (e.g. after a Return) */}
                                         {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING" || transaction.cedula?.ctcNumber)) ? (
@@ -962,29 +962,29 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             <div className="space-y-6 animate-in zoom-in-95">
                                                 {/* Digital Copy Warning (Conditional) */}
                                                 {(
-                                                    transaction.status === "FOR_PROCESSING" || 
+                                                    transaction.status === "FOR_PROCESSING" ||
                                                     (transaction.status === "PAID" && (
-                                                        transaction.fulfillmentType === "E_COPY" || 
+                                                        transaction.fulfillmentType === "E_COPY" ||
                                                         (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
                                                     ))
                                                 ) && !eCopyFile && !transaction.eCopyUrl && (
-                                                    <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
-                                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
-                                                            <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                                                        <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
+                                                            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                                <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+                                                            </div>
+                                                            <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
+                                                            <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable document processing.</p>
                                                         </div>
-                                                        <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
-                                                        <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable document processing.</p>
-                                                    </div>
-                                                )}
+                                                    )}
 
                                                 {/* Always show CTC Input for these phases */}
                                                 <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
                                                     <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Registry Serial Entry (CTC No.)</Label>
-                                                    <Input 
-                                                        value={ctcNumber} 
-                                                        onChange={(e) => setCtcNumber(e.target.value)} 
-                                                        placeholder="ENTER SERIAL..." 
-                                                        className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase" 
+                                                    <Input
+                                                        value={ctcNumber}
+                                                        onChange={(e) => setCtcNumber(e.target.value)}
+                                                        placeholder="ENTER SERIAL..."
+                                                        className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
                                                     />
                                                 </div>
                                             </div>
@@ -993,7 +993,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <div className="space-y-3 pt-2">
                                             {/* WAYBILL GENERATION: Required for Delivery Dispatch */}
                                             {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID" || transaction.status === "FOR_PICKING") && (
-                                                <Button 
+                                                <Button
                                                     onClick={handlePrintWaybill}
                                                     variant="outline"
                                                     className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all mb-2"
@@ -1004,22 +1004,22 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                             {transaction.status !== "FOR_PICKING" && (
                                                 <>
-                                                    <Button 
-                                                        onClick={handleRelease} 
+                                                    <Button
+                                                        onClick={handleRelease}
                                                         disabled={
-                                                            actionLoading || 
+                                                            actionLoading ||
                                                             // Requirement: CTC needed for initial processing
                                                             (!["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
                                                             // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows
                                                             ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl)
-                                                        } 
+                                                        }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
                                                         {actionLoading ? "Processing..." : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                                     </Button>
 
-                                                    <Button 
-                                                        onClick={() => setIsRejecting(true)} 
+                                                    <Button
+                                                        onClick={() => setIsRejecting(true)}
                                                         className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
                                                     >
                                                         Decline Registry Process
@@ -1057,9 +1057,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     <div className="space-y-6 py-6">
                                                         <div className="space-y-3">
                                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Resolution Remarks</Label>
-                                                            <Textarea 
-                                                                placeholder="Reason for approval (e.g., Confirmed damage, Refund processed...)" 
-                                                                value={remarks} 
+                                                            <Textarea
+                                                                placeholder="Reason for approval (e.g., Confirmed damage, Refund processed...)"
+                                                                value={remarks}
                                                                 onChange={(e) => setRemarks(e.target.value)}
                                                                 className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
                                                             />
@@ -1087,9 +1087,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     <div className="space-y-6 py-6">
                                                         <div className="space-y-3">
                                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Rejection</Label>
-                                                            <Textarea 
-                                                                placeholder="Why is this claim being declined? (e.g., Invalid evidence, No issues found...)" 
-                                                                value={remarks} 
+                                                            <Textarea
+                                                                placeholder="Why is this claim being declined? (e.g., Invalid evidence, No issues found...)"
+                                                                value={remarks}
                                                                 onChange={(e) => setRemarks(e.target.value)}
                                                                 className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
                                                             />
@@ -1129,14 +1129,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
             {/* HIGH-FIDELITY MUNICIPAL WAYBILL (PRINT ONLY) */}
             <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible text-black font-sans leading-tight">
-                <style dangerouslySetInnerHTML={{ __html: `
+                <style dangerouslySetInnerHTML={{
+                    __html: `
                     @media print {
                         @page { size: 100mm 150mm; margin: 0; }
                         body { visibility: hidden; }
                         .print-only { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 5mm; }
                     }
                 `}} />
-                
+
                 <div className="print-only flex flex-col h-full border-[3px] border-black rounded-sm">
                     {/* Header: Dynamic Branding */}
                     <div className="border-b-[3px] border-black p-3 flex items-center justify-between bg-black text-white">
@@ -1161,9 +1162,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         <div className="relative w-40 h-40 bg-white p-2 border border-slate-100 shadow-sm flex items-center justify-center">
                             {/* Standard img tag used for reliable print rendering */}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${transaction.id}`} 
-                                alt="Tracking QR" 
+                            <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${transaction.id}`}
+                                alt="Tracking QR"
                                 className="w-full h-full p-2"
                             />
                         </div>
@@ -1196,14 +1197,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         {deliveryAddr.street && `${deliveryAddr.street} `}
                                         {deliveryAddr.sitio && `Sitio ${deliveryAddr.sitio}, `}
                                         {deliveryAddr.purok && `Purok ${deliveryAddr.purok}, `}
-                                        <br/>
-                                        Barangay {deliveryAddr.barangay},<br/>
+                                        <br />
+                                        Barangay {deliveryAddr.barangay},<br />
                                         {deliveryAddr.municipality}, {deliveryAddr.province}
                                     </>
                                 ) : (
                                     <>
-                                        {resident.houseNumber && `${resident.houseNumber}, `}{resident.street}<br/>
-                                        Barangay {resident.barangay},<br/>
+                                        {resident.houseNumber && `${resident.houseNumber}, `}{resident.street}<br />
+                                        Barangay {resident.barangay},<br />
                                         {resident.municipality}, {resident.province}
                                     </>
                                 )}
@@ -1239,7 +1240,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     <div className="flex-1 p-3 flex flex-col justify-end italic">
                         <div className="border-t-[2px] border-black border-dotted pt-2">
                             <p className="text-[7px] font-bold uppercase leading-relaxed text-slate-600">
-                                * Official document for municipal logistics use only. Handle with extreme care. 
+                                * Official document for municipal logistics use only. Handle with extreme care.
                                 If document is damaged, please report immediately to the Treasury Office.
                             </p>
                         </div>

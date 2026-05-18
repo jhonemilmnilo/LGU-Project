@@ -24,13 +24,35 @@ export async function getCurrentUserResident() {
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
         const resident = await prisma.resident.findFirst({
-            where: { userId: session.user.id }
+            where: { userId: session.user.id },
+            include: { user: true }
         });
 
         return { success: true, data: resident };
     } catch (error) {
         console.error("Get current resident error:", error);
         return { success: false, error: "Failed to fetch resident profile" };
+    }
+}
+
+/**
+ * Fetches all active barangays from BarangayInfo
+ */
+export async function getBarangaysList() {
+    try {
+        const barangays = await prisma.barangayInfo.findMany({
+            select: {
+                id: true,
+                name: true
+            },
+            orderBy: {
+                name: "asc"
+            }
+        });
+        return { success: true, data: barangays.map(b => b.name) };
+    } catch (error) {
+        console.error("Get barangays list error:", error);
+        return { success: false, error: "Failed to fetch barangays list" };
     }
 }
 
@@ -98,6 +120,181 @@ export async function ensureCedulaTransactionTypes() {
     }
 }
 
+export async function ensureBusinessPermitTransactionTypes() {
+    try {
+        const types = [
+            {
+                code: "BUSINESS_PERMIT_NEW",
+                name: "Business Permit - New",
+                description: "Apply for a new business permit for starting a business in Mapandan, Pangasinan.",
+                level: 1,
+                category: "BPLO",
+                baseFee: 500.00,
+                deliveryFee: 100.00,
+                isFixed: false,
+                requiredDocs: [
+                    "Unified Form Community Tax Certificate (CTC)",
+                    "DTI/SEC/CDA Registration",
+                    "Barangay Clearance",
+                    "Valid ID of Business Owner",
+                    "Photo of Business Location",
+                    "Sanitary Permit",
+                    "Fire Safety Inspection Certificate"
+                ],
+                formSchema: {
+                    businessType: "NEW",
+                    fields: ["businessName", "tradeName", "orgType", "dtiSecNumber", "lineOfBusiness", "capitalInvestment", "employeeCount", "businessArea"]
+                },
+                requiresBusinessName: true,
+                supportsECopy: true,
+                logicCode: "business_permit_calc_v1"
+            },
+            {
+                code: "BUSINESS_PERMIT_RENEW",
+                name: "Business Permit - Renewal",
+                description: "Renew your existing business permit. Calculated based on previous annual gross sales.",
+                level: 1,
+                category: "BPLO",
+                baseFee: 500.00,
+                deliveryFee: 100.00,
+                isFixed: false,
+                requiredDocs: [
+                    "Unified Form Community Tax Certificate (CTC)",
+                    "DTI/SEC/CDA Registration",
+                    "Barangay Clearance",
+                    "Valid ID of Business Owner",
+                    "Photo of Business Location",
+                    "Sanitary Permit",
+                    "Fire Safety Inspection Certificate"
+                ],
+                formSchema: {
+                    businessType: "RENEWAL",
+                    fields: ["businessName", "tradeName", "orgType", "permitNumber", "lineOfBusiness", "grossSales", "employeeCount", "businessArea"]
+                },
+                requiresBusinessName: true,
+                supportsECopy: true,
+                logicCode: "business_permit_calc_v1"
+            }
+        ];
+
+        for (const t of types) {
+            await prisma.transactionType.upsert({
+                where: { code: t.code },
+                update: {
+                    requiresBusinessName: t.requiresBusinessName,
+                    supportsECopy: t.supportsECopy,
+                    deliveryFee: t.deliveryFee,
+                    baseFee: t.baseFee,
+                    requiredDocs: t.requiredDocs,
+                    formSchema: t.formSchema
+                },
+                create: t
+            });
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Ensure business permit types error:", error);
+        return { success: false, error: "Failed to initialize BPLO service types" };
+    }
+}
+
+export async function submitBusinessPermitTransaction(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const typeId = formData.get("typeId") as string;
+        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
+        const additionalData = JSON.parse(formData.get("additionalData") as string);
+
+        // Strike penalty check
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { rejectionCount: true }
+        });
+        if (user && user.rejectionCount >= 3) {
+            return { success: false, error: "Submission blocked: Account suspended due to 3 rejection strikes. Please apply onsite at the Municipal Hall." };
+        }
+
+        // Process BPLO Checklist file uploads
+        const ctcFile = formData.get("ctcFile") as File;
+        const dtiSecFile = formData.get("dtiSecFile") as File;
+        const brgyClearanceFile = formData.get("brgyClearanceFile") as File;
+        const ownerIdFile = formData.get("ownerIdFile") as File;
+        const locationPhotoFile = formData.get("locationPhotoFile") as File;
+        const sanitaryPermitFile = formData.get("sanitaryPermitFile") as File;
+        const fireSafetyFile = formData.get("fireSafetyFile") as File;
+        const birCorFile = formData.get("birCorFile") as File | null;
+
+        const ctcUrl = await processFileUpload(ctcFile, "bp_ctc");
+        const dtiSecUrl = await processFileUpload(dtiSecFile, "bp_dti");
+        const brgyClearanceUrl = await processFileUpload(brgyClearanceFile, "bp_brgy");
+        const ownerIdUrl = await processFileUpload(ownerIdFile, "bp_owner_id");
+        const locationPhotoUrl = await processFileUpload(locationPhotoFile, "bp_location");
+        const sanitaryPermitUrl = await processFileUpload(sanitaryPermitFile, "bp_sanitary");
+        const fireSafetyUrl = await processFileUpload(fireSafetyFile, "bp_fire");
+        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : null;
+
+        // Merge all BPLO file URLs into additionalData
+        const updatedAdditionalData = {
+            ...additionalData,
+            ctcUrl,
+            dtiSecUrl,
+            brgyClearanceUrl,
+            ownerIdUrl,
+            locationPhotoUrl,
+            sanitaryPermitUrl,
+            fireSafetyUrl,
+            birCorUrl
+        };
+
+        const [transaction] = await prisma.$transaction([
+            // 1. Create BPLO Transaction
+            prisma.transaction.create({
+                data: {
+                    userId: session.user.id,
+                    typeId,
+                    status: "FOR_REQUESTING",
+                    fulfillmentType: additionalData.fulfillmentType || null,
+                    paymentType: null,
+                    residentSnapshot,
+                    additionalData: updatedAdditionalData,
+                    totalAmount: 0,
+                    businessName: additionalData.businessName || null,
+                } as any
+            }),
+            // 2. Update permanent resident snapshot profile
+            prisma.resident.update({
+                where: { userId: session.user.id },
+                data: {
+                    firstName: residentSnapshot.firstName,
+                    middleName: residentSnapshot.middleName,
+                    lastName: residentSnapshot.lastName,
+                    suffix: residentSnapshot.suffix,
+                    dateOfBirth: residentSnapshot.dateOfBirth ? new Date(residentSnapshot.dateOfBirth) : undefined,
+                    civilStatus: residentSnapshot.civilStatus,
+                    citizenship: residentSnapshot.citizenship,
+                    houseNumber: residentSnapshot.houseNumber,
+                    street: residentSnapshot.street,
+                    barangay: residentSnapshot.barangay,
+                    municipality: residentSnapshot.municipality,
+                    province: residentSnapshot.province,
+                    contactNumber: residentSnapshot.contactNumber,
+                    email: residentSnapshot.email,
+                }
+            })
+        ]);
+
+        revalidatePath("/user/services");
+        revalidatePath("/admin/transactions");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Submit business permit error:", error);
+        return { success: false, error: "Failed to submit permit request" };
+    }
+}
+
 export async function uploadECopyAction(formData: FormData) {
     try {
         const file = formData.get("file") as File;
@@ -160,6 +357,7 @@ export async function getTransactionById(id: string) {
             include: {
                 type: true,
                 cedula: true,
+                businessPermit: true,
                 user: {
                     select: {
                         id: true,
@@ -924,7 +1122,8 @@ export async function getUserTransactions() {
             where: { userId: session.user.id },
             include: {
                 type: true,
-                cedula: true
+                cedula: true,
+                businessPermit: true
             },
             orderBy: { createdAt: "desc" }
         });

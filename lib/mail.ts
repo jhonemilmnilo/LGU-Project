@@ -241,7 +241,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 </div>
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Agno Municipal Logistics • Automated Notification</p>
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Municipal Logistics • Automated Notification</p>
             </div>
         </div>`;
     } else if (type === "NEW_PICKUP_ALERT") {
@@ -281,7 +281,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 </div>
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Agno Municipal Logistics • Fleet Dispatch System</p>
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Municipal Logistics • Fleet Dispatch System</p>
             </div>
         </div>`;
     } else if (type === "DISPUTE_APPROVED") {

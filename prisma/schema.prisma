@@ -618,6 +618,7 @@ model Transaction {
   disputeProofUrl   String?
   
   cedula            Cedula?           // One-to-one link to the issued document
+  businessPermit    BusinessPermit?   // One-to-one link to the issued business permit
   
   isCancelled       Boolean           @default(false)
   createdAt         DateTime          @default(now())
@@ -645,6 +646,32 @@ model Cedula {
   
   issuedBy       String      // Name of the Treasury Personnel
   verificationId String      @unique @default(cuid()) // Unique hash for the QR Code
+}
+
+model BusinessPermit {
+  id                 String      @id @default(cuid())
+  transactionId      String      @unique
+  transaction        Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  permitNumber       String      @unique // The physical serial number from the booklet / license index
+  taxYear            Int         // e.g., 2026
+  dateIssued         DateTime    @default(now())
+  expiryDate         DateTime    // Standard BPLO permit expiration is Dec 31
+  
+  businessName       String      // Legal Entity Name
+  tradeName          String?     // Operating Trade Name
+  orgType            String      // Sole Proprietorship, Partnership, Corp, Coop
+  dtiSecNumber       String?     // Business Registration ID
+  lineOfBusiness     String      // Primary Industry Classification
+  
+  capitalInvestment  Float
+  grossSales         Float       @default(0)
+  employeeCount      Int         @default(1)
+  businessArea       Float?      // In square meters
+  
+  documentUrl        String?     // Link to official generated E-Permit PDF
+  issuedBy           String      // BPLO / Treasury Approver Name
+  verificationId     String      @unique @default(cuid()) // Secure hash for verification QR Code
 }
 
 enum TransactionStatus {

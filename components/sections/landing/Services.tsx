@@ -100,7 +100,16 @@ function ServiceCard({ service, themeColor, isMobile }: { service: Service; them
     const cardClasses = "group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative";
     
     const content = (
-        <Link href={service.code.startsWith("CEDULA") ? "/user/services/cedula" : `/user/services/${service.id}`} className="block p-5 md:p-8 h-full">
+        <Link 
+            href={
+                service.code.startsWith("CEDULA") 
+                    ? "/user/services/cedula" 
+                    : service.code.startsWith("BUSINESS_PERMIT")
+                        ? "/user/services/business-permit"
+                        : `/user/services/${service.id}`
+            } 
+            className="block p-5 md:p-8 h-full"
+        >
             <div 
                 className="absolute top-0 right-0 w-20 md:w-24 h-20 md:h-24 blur-2xl -mr-10 -mt-10 md:-mr-12 md:-mt-12 transition-all opacity-10 group-hover:opacity-20 pointer-events-none" 
                 style={{ backgroundColor: themeColor || "var(--primary-theme)" }}

@@ -33,6 +33,8 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ensureBusinessPermitTransactionTypes } from "@/app/admin/transactions/actions";
+
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,9 @@ export default async function Home({
     const { barangay } = await searchParams;
     const selectedBarangay = typeof barangay === "string" ? barangay : "All";
     const isFiltered = selectedBarangay !== "All";
+
+    // Ensure all Business Permit types are seeded in the database
+    await ensureBusinessPermitTransactionTypes();
 
     // Validate barangay: if a specific barangay is requested, check if it exists in the database
     if (isFiltered) {
@@ -238,20 +243,34 @@ export default async function Home({
         prisma.transactionType.findMany({
             where: {
                 isActive: true,
-                code: "CEDULA_IND",
+                OR: [
+                    { code: "CEDULA_IND" },
+                    { code: "BUSINESS_PERMIT_NEW" }
+                ],
                 level: isFiltered ? 2 : 1
             },
             orderBy: { name: "asc" }
         })
     ]);
 
-    const services = (transactionTypes as any[]).map(t => ({
-        id: t.id,
-        code: t.code,
-        name: t.name,
-        description: t.description || "",
-        fee: t.baseFee
-    }));
+    const services = (transactionTypes as any[]).map(t => {
+        if (t.code === "BUSINESS_PERMIT_NEW") {
+            return {
+                id: t.id,
+                code: "BUSINESS_PERMIT",
+                name: "Business Permit",
+                description: "Apply for a new business permit or renew an existing one online.",
+                fee: t.baseFee
+            };
+        }
+        return {
+            id: t.id,
+            code: t.code,
+            name: t.name,
+            description: t.description || "",
+            fee: t.baseFee
+        };
+    });
 
     // Merge and shuffle discovery items
     const discoveryItems = [
