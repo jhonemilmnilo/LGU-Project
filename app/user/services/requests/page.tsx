@@ -168,20 +168,20 @@ export default function UserServiceRequestsPage() {
                             <div 
                                 key={req.id} 
                                 onClick={() => router.push(`/user/services/requests/${req.id}`)}
-                                className="group bg-white dark:bg-white/5 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 p-3 md:p-5 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 transition-all cursor-pointer select-none active:scale-[0.99] flex flex-col md:flex-row items-center gap-4 md:gap-8"
+                                className="group bg-white dark:bg-white/5 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 p-3 md:p-5 transition-all cursor-pointer select-none active:scale-[0.99] flex flex-col md:flex-row items-center gap-4 md:gap-8"
                             >
                                 <div className="flex items-center gap-4 md:gap-6 flex-1 w-full">
-                                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-primary/5 flex items-center justify-center shrink-0 group-hover:bg-primary transition-colors duration-500">
-                                        <FileText className="w-5 h-5 md:w-7 md:h-7 text-primary group-hover:text-white transition-colors" />
+                                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 transition-colors duration-500 bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white">
+                                        <FileText className="w-5 h-5 md:w-7 md:h-7 transition-colors" />
                                     </div>
                                     <div className="space-y-0.5 md:space-y-1 min-w-0">
-                                        <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white italic truncate group-hover:text-primary transition-colors">
+                                        <h3 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic truncate transition-colors text-slate-900 dark:text-white group-hover:text-primary">
                                             {req.type?.name || "Service Request"}
                                         </h3>
                                         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-slate-400">
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{format(new Date(req.createdAt), "MMM d, yyyy")}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
-                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.fulfillmentType?.replace("_", " ")}</span>
+                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.fulfillmentType?.replace("_", " ") || "PENDING EVAL"}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic truncate max-w-[80px] md:max-w-none">#{req.id.slice(-6).toUpperCase()}</span>
                                         </div>
