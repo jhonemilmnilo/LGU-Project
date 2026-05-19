@@ -70,7 +70,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 15 }}
                         transition={{ type: "spring", duration: 0.5 }}
-                        className="relative w-full max-w-2xl bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col z-10 max-h-[85vh]"
+                        className="relative w-full max-w-2xl bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col z-10 max-h-[80vh] sm:max-h-[85vh]"
                     >
                         {/* Ambient Glow behind header */}
                         <div 
@@ -79,7 +79,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                         />
 
                         {/* Modal Header */}
-                        <div className="p-6 md:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10">
+                        <div className="p-4 sm:p-6 md:p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0">
                                     <ShieldCheck className="w-5 h-5 text-primary" style={{ color: themeColor }} />
@@ -100,7 +100,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                         </div>
 
                         {/* Tab Switcher */}
-                        <div className="px-6 md:px-8 pt-4 pb-2 flex border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] gap-2">
+                        <div className="px-4 sm:px-8 pt-3 sm:pt-4 pb-2 flex border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
                             {[
                                 { id: "PRIVACY", label: "Privacy Policy", icon: ShieldCheck },
                                 { id: "TERMS", label: "Terms of Service", icon: Scale }
@@ -112,14 +112,14 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id as TabType)}
                                         className={cn(
-                                            "flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest italic transition-all",
+                                            "flex items-center gap-1.5 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic transition-all shrink-0",
                                             isSelected 
-                                                ? "text-white shadow-md animate-pulse"
+                                                ? "text-white shadow-sm sm:shadow-md"
                                                 : "text-slate-400 hover:text-slate-700 dark:hover:text-white"
                                         )}
                                         style={isSelected ? { backgroundColor: themeColor } : undefined}
                                     >
-                                        <Icon className="w-3.5 h-3.5" />
+                                        <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                         {tab.label}
                                     </button>
                                 );
@@ -130,35 +130,42 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                         <div 
                             ref={containerRef}
                             onScroll={(e) => handleScroll(e, activeTab)}
-                            className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 text-slate-600 dark:text-slate-300 scrollbar-thin max-h-[45vh]"
+                            className="p-4 sm:p-6 md:p-8 overflow-y-auto space-y-4 flex-1 text-slate-600 dark:text-slate-300 scrollbar-thin max-h-[40vh] sm:max-h-[45vh]"
                         >
                             {activeTab === "PRIVACY" ? (
-                                <div className="space-y-4 text-xs md:text-sm font-medium leading-relaxed italic">
-                                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex gap-3 text-emerald-600 dark:text-emerald-400">
-                                        <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
-                                        <p className="font-bold text-[10px] md:text-xs uppercase tracking-wide">
-                                            R.A. 10173 Data Privacy Act Compliance Statement
+                                <div className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs md:text-sm font-medium leading-relaxed italic">
+                                    <div 
+                                        className="p-3 sm:p-4 rounded-xl flex gap-3 border items-center"
+                                        style={{ 
+                                            backgroundColor: `${themeColor}0a`, 
+                                            borderColor: `${themeColor}20`, 
+                                            color: themeColor 
+                                        }}
+                                    >
+                                        <ShieldCheck className="w-4 h-4 sm:w-5 h-5 shrink-0" />
+                                        <p className="font-black text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider">
+                                            R.A. 10173 Data Privacy Compliance
                                         </p>
                                     </div>
 
-                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs block pt-2">
+                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] sm:text-xs block pt-1 sm:pt-2">
                                         1. Scope of Personal Data Collected
                                     </h4>
                                     <p>
-                                        In compliance with the Data Privacy Act of 2012 (R.A. 10173) of the Republic of the Philippines, the Municipal Government of Mapandan, Pangasinan collects, processes, and protects personal and corporate data required for online municipal clearances, community tax certificates (Cedula), and business permit filings.
+                                        In compliance with the Data Privacy Act of 2012 (R.A. 10173) of the Republic of the Philippines, the Municipal Government of Mapandan, Pangasinan collects, processes, and protects personal and corporate data required for online community tax certificates (Cedula) and business permit filings.
                                     </p>
                                     <p>
-                                        This includes, but is not limited to: your full name, birth date, contact number, residence address, occupation, tax details, corporate registration copies, government-issued IDs, and annual income or gross capitalization declarations.
+                                        This includes: your full name, birth date, contact number, address, occupation, tax details, corporate registration copies, government-issued IDs, and annual income or gross capitalization declarations.
                                     </p>
 
-                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs block pt-2">
+                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] sm:text-xs block pt-1 sm:pt-2">
                                         2. Purpose of Collection and Processing
                                     </h4>
                                     <p>
                                         Your personal and business data is solely used to verify your identity, assess appropriate municipal taxation fees, inspect licensing checklists, track municipal records, and securely approve or reject electronic request filings.
                                     </p>
 
-                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs block pt-2">
+                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] sm:text-xs block pt-1 sm:pt-2">
                                         3. Safety Safeguards and Retention
                                     </h4>
                                     <p>
@@ -166,32 +173,39 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                                     </p>
                                 </div>
                             ) : (
-                                <div className="space-y-4 text-xs md:text-sm font-medium leading-relaxed italic">
-                                    <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex gap-3 text-amber-600 dark:text-amber-400">
-                                        <Scale className="w-5 h-5 shrink-0 mt-0.5" />
-                                        <p className="font-bold text-[10px] md:text-xs uppercase tracking-wide">
+                                <div className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs md:text-sm font-medium leading-relaxed italic">
+                                    <div 
+                                        className="p-3 sm:p-4 rounded-xl flex gap-3 border items-center"
+                                        style={{ 
+                                            backgroundColor: `${themeColor}0a`, 
+                                            borderColor: `${themeColor}20`, 
+                                            color: themeColor 
+                                        }}
+                                    >
+                                        <Scale className="w-4 h-4 sm:w-5 h-5 shrink-0" />
+                                        <p className="font-black text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider">
                                             Official Filing Integrity & Rules
                                         </p>
                                     </div>
 
-                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs block pt-2">
+                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] sm:text-xs block pt-1 sm:pt-2">
                                         1. Accuracy of Declarations
                                     </h4>
                                     <p>
                                         By using this online service portal, you solemnly swear under pain of perjury that all details, financial declarations (such as annual capitalization and gross sales), and documents uploaded are genuine, accurate, and correct.
                                     </p>
 
-                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs block pt-2">
+                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-[10px] sm:text-xs block pt-1 sm:pt-2">
                                         2. Original Scans & File Integrity
                                     </h4>
                                     <p>
                                         All submitted requirements (e.g. Barangay Clearances, UMID IDs, DTI Registry copies) must be clear, high-resolution original document scans. Blurred, modified, or forged files will result in immediate rejection of the filing request.
                                     </p>
 
-                                    <h4 className="font-black text-slate-800 dark:text-white uppercase tracking-wider text-xs block pt-2 text-red-500">
+                                    <h4 className="font-black text-red-500 dark:text-red-400 uppercase tracking-wider text-[10px] sm:text-xs block pt-1 sm:pt-2">
                                         3. Three-Strike Account Suspension Rule
                                     </h4>
-                                    <p className="text-red-500 dark:text-red-400 font-bold">
+                                    <p className="font-bold text-red-500 dark:text-red-400">
                                         IMPORTANT: In order to protect municipal resources, EMapandan LGU enforces a strict Three-Strike Rejection Policy. If your applications are rejected 3 times due to fraudulent data, false values, or intentional document violations, your online portal access will be permanently suspended, requiring you to apply in-person directly at the Mapandan Municipal Hall.
                                     </p>
                                 </div>
@@ -199,33 +213,41 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-6 md:p-8 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="p-4 sm:p-6 md:p-8 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             {/* Side-by-side Read Progress Indicators */}
                             <div className="flex items-center gap-4 flex-wrap">
                                 <div className="flex items-center gap-1.5">
-                                    <div className={cn(
-                                        "w-4 h-4 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0",
-                                        hasReadPrivacy 
-                                            ? "bg-emerald-500 border-emerald-500 text-white" 
-                                            : "border-slate-300 dark:border-white/20"
-                                    )}>
-                                        {hasReadPrivacy && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                    <div 
+                                        className={cn(
+                                            "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0",
+                                            hasReadPrivacy ? "text-white" : "border-slate-300 dark:border-white/20"
+                                        )}
+                                        style={hasReadPrivacy ? { backgroundColor: themeColor, borderColor: themeColor } : undefined}
+                                    >
+                                        {hasReadPrivacy && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                                     </div>
-                                    <span className={cn("text-[8px] font-black uppercase tracking-widest transition-colors", hasReadPrivacy ? "text-emerald-500" : "text-slate-400")}>
+                                    <span 
+                                        className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest transition-colors"
+                                        style={hasReadPrivacy ? { color: themeColor } : { color: "#94a3b8" }}
+                                    >
                                         Privacy Policy
                                     </span>
                                 </div>
 
                                 <div className="flex items-center gap-1.5">
-                                    <div className={cn(
-                                        "w-4 h-4 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0",
-                                        hasReadTerms 
-                                            ? "bg-emerald-500 border-emerald-500 text-white" 
-                                            : "border-slate-300 dark:border-white/20"
-                                    )}>
-                                        {hasReadTerms && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                    <div 
+                                        className={cn(
+                                            "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0",
+                                            hasReadTerms ? "text-white" : "border-slate-300 dark:border-white/20"
+                                        )}
+                                        style={hasReadTerms ? { backgroundColor: themeColor, borderColor: themeColor } : undefined}
+                                    >
+                                        {hasReadTerms && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                                     </div>
-                                    <span className={cn("text-[8px] font-black uppercase tracking-widest transition-colors", hasReadTerms ? "text-emerald-500" : "text-slate-400")}>
+                                    <span 
+                                        className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest transition-colors"
+                                        style={hasReadTerms ? { color: themeColor } : { color: "#94a3b8" }}
+                                    >
                                         Terms of Service
                                     </span>
                                 </div>
@@ -235,7 +257,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                                 <Button
                                     variant="outline"
                                     onClick={onClose}
-                                    className="h-10 px-5 rounded-full text-[9px] font-black uppercase tracking-widest italic"
+                                    className="h-9 sm:h-10 px-4 sm:px-5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic"
                                 >
                                     Decline
                                 </Button>
@@ -243,10 +265,10 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                                     onClick={onAccept}
                                     disabled={!hasReadPrivacy || !hasReadTerms}
                                     className={cn(
-                                        "h-10 px-6 text-white rounded-full text-[9px] font-black uppercase tracking-widest italic transition-all active:scale-95 shadow-md",
+                                        "h-9 sm:h-10 px-4 sm:px-6 text-white rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic transition-all active:scale-95 shadow-md",
                                         (!hasReadPrivacy || !hasReadTerms)
                                             ? "opacity-30 cursor-not-allowed bg-slate-200 dark:bg-white/5 text-slate-400 border border-slate-300 dark:border-white/10"
-                                            : "shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:scale-105 active:scale-95 animate-pulse"
+                                            : "shadow-lg hover:scale-105 active:scale-95"
                                     )}
                                     style={hasReadPrivacy && hasReadTerms ? { backgroundColor: themeColor } : undefined}
                                 >

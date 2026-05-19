@@ -1116,9 +1116,9 @@ export default function BusinessPermitWizardPage() {
                                             </div>
 
                                             <div className="space-y-4 pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
-                                                <div className="flex justify-between items-end">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Assessed Due</span>
-                                                    <span className="text-4xl font-black text-slate-900 dark:text-white font-mono leading-none">₱{calcResult.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                                                <div className="flex justify-between items-end flex-wrap gap-2">
+                                                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Total Assessed Due</span>
+                                                    <span className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono leading-none">₱{calcResult.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1167,7 +1167,7 @@ export default function BusinessPermitWizardPage() {
                     setPrivacyAccepted(true);
                     setIsPrivacyModalOpen(false);
                 }}
-                themeColor="#10b981"
+                themeColor="var(--primary-theme)"
             />
         </div>
     );

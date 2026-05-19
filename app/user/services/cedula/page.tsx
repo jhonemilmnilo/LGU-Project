@@ -827,7 +827,7 @@ export default function CedulaApplicationPage() {
                     setPrivacyAccepted(true);
                     setIsPrivacyModalOpen(false);
                 }}
-                themeColor="#10b981"
+                themeColor="var(--primary-theme)"
             />
         </div>
     );
