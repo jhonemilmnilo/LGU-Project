@@ -221,6 +221,24 @@ export async function ensureCivilRegistryTransactionTypes() {
                 supportsECopy: true
             },
             {
+                code: "LCR_BIRTH_REG",
+                name: "Birth Registration (New Record)",
+                description: "Register a new birth record with the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 100.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Certificate of Live Birth", "Marriage Certificate of Parents", "Valid ID of Informant"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "BIRTH_REG",
+                    fields: ["fullName", "dateOfBirth", "placeOfBirth", "fathersName", "mothersName"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            },
+            {
                 code: "LCR_MARRIAGE",
                 name: "Marriage Certificate (Certified Copy)",
                 description: "Request for a certified true copy of a marriage certificate from the Local Civil Registry.",
@@ -311,22 +329,36 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
             submittedAt: new Date().toISOString()
         };
 
-        const [transaction] = await prisma.$transaction([
-            prisma.transaction.create({
+        const transaction = await prisma.$transaction(async (tx: any) => {
+            const t = await tx.transaction.create({
                 data: {
                     userId: session.user.id,
                     typeId,
                     status: "FOR_REQUESTING",
                     fulfillmentType: additionalData.fulfillmentType || "PICK_UP",
-                    paymentType: null, // Moves to payment module later
+                    paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: additionalData.totalAmount || 150,
-                    // Note: Basic subject info can be stored in businessName field or additionalData
-                    businessName: additionalData.subjectName || null, 
-                } as any
-            }),
-            prisma.resident.update({
+                    businessName: additionalData.subjectName || null,
+                }
+            });
+
+            await tx.birthCertificateRequest.create({
+                data: {
+                    transactionId: t.id,
+                    subjectName: additionalData.subjectName,
+                    subjectName2: additionalData.spouseName || null,
+                    dateOfEvent: new Date(additionalData.dateOfEvent),
+                    placeOfEvent: additionalData.placeOfEvent,
+                    fatherName: additionalData.fatherName || null,
+                    motherName: additionalData.motherName || null,
+                    issuedBy: "SYSTEM_GEN",
+                    registryNumber: `REQ-${t.id.slice(-6).toUpperCase()}`
+                }
+            });
+
+            await tx.resident.update({
                 where: { userId: session.user.id },
                 data: {
                     firstName: residentSnapshot.firstName,
@@ -336,8 +368,10 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                     contactNumber: residentSnapshot.contactNumber,
                     email: residentSnapshot.email,
                 }
-            })
-        ]);
+            });
+
+            return t;
+        });
 
         revalidatePath("/user/services");
         revalidatePath("/admin/transactions");
@@ -345,6 +379,101 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
     } catch (error) {
         console.error("Submit civil registry error:", error);
         return { success: false, error: "Failed to submit registry request" };
+    }
+}
+
+export async function submitBirthRegistration(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const typeId = formData.get("typeId") as string;
+        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
+        const additionalData = JSON.parse(formData.get("additionalData") as string);
+
+        // File uploads
+        const files: Record<string, string | null> = {};
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File && value.size > 0) {
+                const url = await processFileUpload(value, "lcr_birth_reg");
+                files[key] = url;
+            }
+        }
+
+        const updatedAdditionalData = {
+            ...additionalData,
+            ...files,
+            registryType: "BIRTH_REG",
+            submittedAt: new Date().toISOString()
+        };
+
+        const transaction = await prisma.$transaction(async (tx: any) => {
+            // Create the transaction record for tracking
+            const t = await tx.transaction.create({
+                data: {
+                    userId: session.user.id,
+                    typeId,
+                    status: "FOR_REQUESTING",
+                    fulfillmentType: additionalData.fulfillmentType || "PICK_UP",
+                    paymentType: null,
+                    residentSnapshot,
+                    additionalData: updatedAdditionalData,
+                    totalAmount: additionalData.totalAmount || 100,
+                    businessName: additionalData.subjectName || null,
+                }
+            });
+
+            // Save to BirthCertificateRegistry table
+            await tx.birthCertificateRegistry.create({
+                data: {
+                    registryNumber: `REG-${t.id.slice(-6).toUpperCase()}`,
+                    subjectName: additionalData.subjectName,
+                    dateOfEvent: new Date(additionalData.dateOfEvent),
+                    placeOfEvent: additionalData.placeOfEvent,
+                    fatherName: additionalData.fatherName || null,
+                    motherName: additionalData.motherName || null,
+                }
+            });
+
+            // Update resident contact info
+            await tx.resident.update({
+                where: { userId: session.user.id },
+                data: {
+                    contactNumber: residentSnapshot.contactNumber,
+                    email: residentSnapshot.email,
+                }
+            });
+
+            return t;
+        });
+
+        revalidatePath("/user/services");
+        revalidatePath("/admin/transactions");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Submit birth registration error:", error);
+        return { success: false, error: "Failed to submit birth registration" };
+    }
+}
+
+export async function searchCivilRegistryRecords(type: string, query: string) {
+    try {
+        if (type === "BIRTH") {
+            const records = await prisma.birthCertificateRegistry.findMany({
+                where: {
+                    subjectName: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                take: 5
+            });
+            return { success: true, data: records };
+        }
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Search LCR records error:", error);
+        return { success: false, error: "Failed to search records" };
     }
 }
 
@@ -507,6 +636,7 @@ export async function getTransactionById(id: string) {
                 type: true,
                 cedula: true,
                 businessPermit: true,
+                birthCertificateRequest: true,
                 user: {
                     select: {
                         id: true,
