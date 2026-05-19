@@ -34,6 +34,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 /**
  * multi-step form for Cedula Application.
  */
@@ -829,6 +830,8 @@ export default function CedulaApplicationPage() {
                 }}
                 themeColor="var(--primary-theme)"
             />
+            {/* Secure Idle Inactivity Timer */}
+            <SecureIdleTimer />
         </div>
     );
 }

@@ -8,7 +8,6 @@ import {
     ChevronRight,
     Loader2,
     Check,
-    AlertCircle,
     Home,
     Upload,
     Sparkles,
@@ -33,10 +32,10 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-permit";
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -113,9 +112,7 @@ export default function BusinessPermitWizardPage() {
     const [dbBarangays, setDbBarangays] = useState<string[]>([]);
     const [bpTypes, setBpTypes] = useState<any[]>([]);
 
-    // Inactivity State
-    const [idleTime, setIdleTime] = useState(0);
-    const [showIdleModal, setShowIdleModal] = useState(false);
+
 
     const [formData, setFormData] = useState<FormState>({
         typeId: "",
@@ -145,43 +142,7 @@ export default function BusinessPermitWizardPage() {
         birCorFile: null
     });
 
-    // --- IDLE TIMER SECURE LOGOUT (2 Minutes) ---
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setIdleTime(prev => {
-                const nextTime = prev + 1;
-                // At 90 seconds, prompt 30-second warning modal
-                if (nextTime === 90) {
-                    setShowIdleModal(true);
-                }
-                // At 120 seconds (2 mins), force logout
-                if (nextTime >= 120) {
-                    clearInterval(interval);
-                    signOut({ callbackUrl: "/auth/login" });
-                    toast.warning("Securely signed out due to 2 minutes of inactivity.");
-                }
-                return nextTime;
-            });
-        }, 1000);
 
-        const resetTimer = () => {
-            setIdleTime(0);
-            setShowIdleModal(false);
-        };
-
-        window.addEventListener("mousemove", resetTimer);
-        window.addEventListener("keydown", resetTimer);
-        window.addEventListener("scroll", resetTimer);
-        window.addEventListener("click", resetTimer);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener("mousemove", resetTimer);
-            window.removeEventListener("keydown", resetTimer);
-            window.removeEventListener("scroll", resetTimer);
-            window.removeEventListener("click", resetTimer);
-        };
-    }, []);
 
     // --- INITIALIZATION & DRAFT HYDRATION ---
     useEffect(() => {
@@ -571,34 +532,8 @@ export default function BusinessPermitWizardPage() {
                 })}
             </div>
 
-            {/* Inactivity Warning Modal */}
-            <AnimatePresence>
-                {showIdleModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0.95 }}
-                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[3rem] p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative overflow-hidden"
-                        >
-                            <div className="w-16 h-16 bg-amber-500/10 border-2 border-amber-500 rounded-[1.5rem] flex items-center justify-center mx-auto text-amber-500 animate-pulse">
-                                <AlertCircle className="w-8 h-8" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Inactivity Warning</h3>
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
-                                    Are you still there? You will be securely signed out in <span className="text-amber-500">{120 - idleTime}s</span> due to security compliance.
-                                </p>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Secure Idle Inactivity Timer */}
+            <SecureIdleTimer />
 
             {/* Step Content */}
             <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">
