@@ -14,11 +14,13 @@ import {
     Sparkles,
     TrendingUp,
     Lock,
-    User
+    User,
+    Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -34,9 +36,10 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-permit";
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList } from "@/app/admin/transactions/actions";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
 // --- TYPES ---
-type Step = "PATHWAY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
+type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
 
 interface FormState {
     typeId: string;
@@ -55,6 +58,7 @@ interface FormState {
     fulfillmentType: "PICK_UP" | "DELIVERY" | "E_COPY";
     deliveryAddress: string;
     deliveryPhone: string;
+    residentData?: any; // Added for editable user details matching Cedula
 
     // Files
     ctcFile: File | null;
@@ -69,7 +73,8 @@ interface FormState {
 
 const STEPS: { id: Step; label: string; icon: any }[] = [
     { id: "PATHWAY", label: "Status", icon: Sparkles },
-    { id: "PROFILE", label: "Identity", icon: User },
+    { id: "USER_IDENTITY", label: "Identity", icon: User },
+    { id: "PROFILE", label: "Business", icon: Building2 },
     { id: "CHECKLIST", label: "Documents", icon: Upload },
     { id: "SUBMIT", label: "Submit", icon: CheckCircle2 },
 ];
@@ -95,6 +100,7 @@ const MAPANDAN_BARANGAYS = [
 export default function BusinessPermitWizardPage() {
     const router = useRouter();
     const draftRestored = useRef(false);
+    const contactInputRef = useRef<HTMLInputElement>(null);
 
     const [currentStep, setCurrentStep] = useState<Step>("PATHWAY");
     const [loading, setLoading] = useState(true);
@@ -103,6 +109,7 @@ export default function BusinessPermitWizardPage() {
     const [calcResult, setCalcResult] = useState<BusinessPermitResult | null>(null);
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [dbBarangays, setDbBarangays] = useState<string[]>([]);
     const [bpTypes, setBpTypes] = useState<any[]>([]);
 
@@ -127,6 +134,7 @@ export default function BusinessPermitWizardPage() {
         fulfillmentType: "E_COPY",
         deliveryAddress: "",
         deliveryPhone: "",
+        residentData: {},
         ctcFile: null,
         dtiSecFile: null,
         brgyClearanceFile: null,
@@ -196,6 +204,7 @@ export default function BusinessPermitWizardPage() {
 
                     setFormData(prev => ({
                         ...prev,
+                        residentData: resident,
                         barangay: resident.barangay || "",
                         deliveryPhone: resident.contactNumber || "",
                         deliveryAddress: resident.houseNumber
@@ -318,6 +327,9 @@ export default function BusinessPermitWizardPage() {
         switch (stepId) {
             case "PATHWAY":
                 return !!formData.typeId;
+            case "USER_IDENTITY":
+                const r = formData.residentData;
+                return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
             case "PROFILE":
                 if (!formData.businessName || !formData.lineOfBusiness || !formData.barangay) return false;
                 if (formData.businessType === "NEW") {
@@ -359,7 +371,9 @@ export default function BusinessPermitWizardPage() {
 
     const handleNext = () => {
         if (!isStepValid(currentStep)) {
-            if (currentStep === "PROFILE") {
+            if (currentStep === "USER_IDENTITY") {
+                toast.error("Municipal profile record not loaded. Please contact administration.");
+            } else if (currentStep === "PROFILE") {
                 toast.error("Please fill out all required business profile details.");
             } else if (currentStep === "CHECKLIST") {
                 toast.error("All 7 checklist requirements are mandatory. Please upload all missing documents.");
@@ -388,7 +402,7 @@ export default function BusinessPermitWizardPage() {
         try {
             const submitData = new FormData();
             submitData.append("typeId", formData.typeId);
-            submitData.append("residentSnapshot", JSON.stringify(initialResident));
+            submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
 
             // Merge textual profiles into additionalData metadata
             submitData.append("additionalData", JSON.stringify({
@@ -486,7 +500,15 @@ export default function BusinessPermitWizardPage() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Permit Portal</BreadcrumbPage>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                        Services
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic" style={{ color: "var(--primary-theme)" }}>Permit Portal</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
@@ -503,7 +525,7 @@ export default function BusinessPermitWizardPage() {
             </div>
 
             {/* Progress Stepper */}
-            <div className="grid grid-cols-4 gap-1.5 md:gap-4 relative px-1 md:px-2">
+            <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2">
                 {STEPS.map((step, idx) => {
                     const isActive = currentStep === step.id;
                     const isCompleted = STEPS.findIndex(s => s.id === currentStep) > idx;
@@ -601,17 +623,21 @@ export default function BusinessPermitWizardPage() {
                                         {[
                                             {
                                                 id: "NEW",
-                                                label: "New Business Permit",
-                                                desc: "For newly registered businesses in Mapandan. Based on initial declared capitalization investment.",
+                                                code: "BUSINESS_PERMIT_NEW",
                                                 icon: Sparkles
                                             },
                                             {
                                                 id: "RENEWAL",
-                                                label: "Permit Renewal",
-                                                desc: "For existing businesses renewing for the current year. Calculated on previous annual gross receipts/sales.",
+                                                code: "BUSINESS_PERMIT_RENEW",
                                                 icon: TrendingUp
                                             }
                                         ].map(opt => {
+                                            const matchedType = bpTypes.find((t: any) => t.code === opt.code);
+                                            const label = matchedType?.name || (opt.id === "NEW" ? "New Business Permit" : "Permit Renewal");
+                                            const desc = matchedType?.description || (opt.id === "NEW" 
+                                                ? "For newly registered businesses in Mapandan. Based on initial declared capitalization investment." 
+                                                : "For existing businesses renewing for the current year. Calculated on previous annual gross receipts/sales.");
+
                                             const Icon = opt.icon;
                                             const isSelected = formData.businessType === opt.id;
                                             return (
@@ -628,10 +654,10 @@ export default function BusinessPermitWizardPage() {
                                                     </div>
                                                     <div className="space-y-1 md:space-y-2 relative z-10">
                                                         <h4 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">
-                                                            {opt.label}
+                                                            {label}
                                                         </h4>
                                                         <p className={cn("text-[9px] md:text-[11px] font-bold uppercase italic tracking-widest leading-relaxed", isSelected ? "text-white/70" : "text-slate-400")}>
-                                                            {opt.desc}
+                                                            {desc}
                                                         </p>
                                                     </div>
                                                     {isSelected && (
@@ -646,7 +672,146 @@ export default function BusinessPermitWizardPage() {
                                 </div>
                             )}
 
-                            {/* STEP 2: PROFILE FORMS */}
+                            {/* STEP 2: USER PROFILE REVIEW */}
+                            {currentStep === "USER_IDENTITY" && (
+                                <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="space-y-1">
+                                        <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight text-slate-900 dark:text-white">
+                                            Identity <span className="text-primary italic">Confirmation</span>
+                                        </h2>
+                                        <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">
+                                            Verify and refine your personal records for this certificate.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4 md:space-y-6">
+                                        {/* Row 1: Names */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</Label>
+                                                <Input
+                                                    value={formData.residentData?.firstName || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, firstName: e.target.value } }))}
+                                                    readOnly={!!initialResident?.firstName}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.firstName && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Middle Name</Label>
+                                                <Input
+                                                    value={formData.residentData?.middleName || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, middleName: e.target.value } }))}
+                                                    readOnly={!!initialResident?.middleName}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.middleName && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</Label>
+                                                <Input
+                                                    value={formData.residentData?.lastName || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, lastName: e.target.value } }))}
+                                                    readOnly={!!initialResident?.lastName}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.lastName && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Suffix</Label>
+                                                <Input
+                                                    value={formData.residentData?.suffix || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, suffix: e.target.value } }))}
+                                                    readOnly={!!initialResident?.suffix}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.suffix && "bg-slate-50 text-slate-400")}
+                                                    placeholder="Jr."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <Separator className="opacity-50" />
+
+                                        {/* Row 2: Personal */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
+                                                <Input
+                                                    type="date"
+                                                    value={formData.residentData?.dateOfBirth ? new Date(formData.residentData.dateOfBirth).toISOString().split('T')[0] : ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, dateOfBirth: e.target.value } }))}
+                                                    readOnly={!!initialResident?.dateOfBirth}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.dateOfBirth && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Age</Label>
+                                                <Input
+                                                    value={(() => {
+                                                        if (!formData.residentData?.dateOfBirth) return "";
+                                                        const today = new Date();
+                                                        const birthDate = new Date(formData.residentData.dateOfBirth);
+                                                        let age = today.getFullYear() - birthDate.getFullYear();
+                                                        const m = today.getMonth() - birthDate.getMonth();
+                                                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                        return age;
+                                                    })()}
+                                                    readOnly
+                                                    className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Civil Status</Label>
+                                                <Input
+                                                    value={formData.residentData?.civilStatus || "N/A"}
+                                                    readOnly
+                                                    className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Citizenship</Label>
+                                                <Input
+                                                    value={formData.residentData?.citizenship || "Filipino"}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, citizenship: e.target.value } }))}
+                                                    readOnly={!!initialResident?.citizenship}
+                                                    className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.citizenship && "bg-slate-50 text-slate-400")}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Contact & Occupation */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Occupation</Label>
+                                                <div className="relative">
+                                                    <Input
+                                                        value={formData.residentData?.occupation || ""}
+                                                        onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, occupation: e.target.value } }))}
+                                                        readOnly={!!initialResident?.occupation}
+                                                        className={cn("h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm", !!initialResident?.occupation && "bg-slate-50 text-slate-400")}
+                                                        placeholder="e.g. Employee"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
+                                                <Input
+                                                    ref={contactInputRef}
+                                                    value={formData.residentData?.contactNumber || ""}
+                                                    onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
+                                                    className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm"
+                                                    placeholder="09xx xxx xxxx"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
+                                        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                                        <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
+                                            Note: Changes will update your Resident Profile upon submission.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* STEP 3: PROFILE FORMS */}
                             {currentStep === "PROFILE" && (
                                 <div className="space-y-8">
                                     <div className="border-b border-slate-100 dark:border-white/5 pb-4">
@@ -904,18 +1069,32 @@ export default function BusinessPermitWizardPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Privacy Acceptance checkbox */}
-                                            <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5">
-                                                <input
-                                                    type="checkbox"
-                                                    id="privacy"
-                                                    checked={privacyAccepted}
-                                                    onChange={e => setPrivacyAccepted(e.target.checked)}
-                                                    className="mt-1 w-4.5 h-4.5 rounded border-slate-200 text-emerald-500 focus:ring-emerald-500/20 cursor-pointer"
-                                                />
-                                                <label htmlFor="privacy" className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-relaxed cursor-pointer select-none">
-                                                    I officially accept the EMapandan <span className="text-emerald-500 underline">Data Privacy Agreement</span>. I declare under penalty of perjury that all submitted capitalization metrics and checklist document drops are 100% legal, genuine, and correct.
-                                                </label>
+                                            {/* Privacy Acceptance checkbox card */}
+                                            <div
+                                                onClick={() => {
+                                                    if (privacyAccepted) {
+                                                        setPrivacyAccepted(false);
+                                                    } else {
+                                                        setIsPrivacyModalOpen(true);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 select-none",
+                                                    privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/[0.02] border-transparent hover:border-primary/20"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                                                    privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
+                                                )}>
+                                                    {privacyAccepted && <Check className="w-3.5 h-3.5" />}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
+                                                    <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                                                        I officially accept the EMapandan Data Privacy Agreement & Terms. I declare under penalty of perjury that all submitted details are 100% legal and genuine. Click to review agreement.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -951,7 +1130,7 @@ export default function BusinessPermitWizardPage() {
                 </div>
 
                 {/* Integrated Navigation Card Actions */}
-                <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-end">
+                <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-end items-center">
                     <Button
                         onClick={currentStep === "SUBMIT" ? onSubmit : handleNext}
                         disabled={submitting || !isStepValid(currentStep)}
@@ -981,6 +1160,15 @@ export default function BusinessPermitWizardPage() {
                     </div>
                 </div>
             </div>
+            <PrivacyTermsModal
+                isOpen={isPrivacyModalOpen}
+                onClose={() => setIsPrivacyModalOpen(false)}
+                onAccept={() => {
+                    setPrivacyAccepted(true);
+                    setIsPrivacyModalOpen(false);
+                }}
+                themeColor="#10b981"
+            />
         </div>
     );
 }

@@ -33,6 +33,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 /**
  * multi-step form for Cedula Application.
  */
@@ -84,6 +85,8 @@ export default function CedulaApplicationPage() {
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);
+    const [cedulaTypes, setCedulaTypes] = useState<any[]>([]);
+    const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const incomeInputRef = useRef<HTMLInputElement>(null);
     const contactInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,11 +114,10 @@ export default function CedulaApplicationPage() {
                 // Fetch Types
                 const typesRes = await getTransactionTypes();
                 if (typesRes.success) {
-                    const cedulaTypes = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
-                    if (cedulaTypes.length > 0) {
-                        // We store the types but wait for user to pick in Step 1
-                        (window as any)._cedulaTypes = cedulaTypes;
-                        const individualType = cedulaTypes.find((t: any) => t.code === "CEDULA_IND") || cedulaTypes[0];
+                    const filtered = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
+                    setCedulaTypes(filtered);
+                    if (filtered.length > 0) {
+                        const individualType = filtered.find((t: any) => t.code === "CEDULA_IND") || filtered[0];
                         setFormData(prev => ({ ...prev, typeId: individualType.id }));
                     }
                 }
@@ -280,7 +282,15 @@ export default function CedulaApplicationPage() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Cedula Portal</BreadcrumbPage>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    Services
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic" style={{ color: "var(--primary-theme)" }}>Cedula Portal</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -367,28 +377,29 @@ export default function CedulaApplicationPage() {
                                             {[
                                                 { 
                                                     id: "INDIVIDUAL", 
-                                                    label: "Individual Citizen", 
-                                                    desc: "For private citizens, professionals, and employees.", 
                                                     icon: User,
                                                     code: "CEDULA_IND"
                                                 },
                                                 { 
                                                     id: "JURIDICAL", 
-                                                    label: "Juridical Entity", 
-                                                    desc: "For corporations, partnerships, and business firms.", 
                                                     icon: Sparkles,
                                                     code: "CEDULA_JUR"
                                                 }
                                             ].map(opt => {
+                                                const matched = cedulaTypes.find((t: any) => t.code === opt.code);
+                                                const label = matched?.name || (opt.id === "INDIVIDUAL" ? "Individual Citizen" : "Juridical Entity");
+                                                const desc = matched?.description || (opt.id === "INDIVIDUAL" ? "For private citizens, professionals, and employees." : "For corporations, partnerships, and business firms.");
+                                                
                                                 const Icon = opt.icon;
                                                 const isSelected = formData.applicantType === opt.id;
                                                 return (
                                                     <button
                                                         key={opt.id}
                                                         onClick={() => {
-                                                            const types = (window as any)._cedulaTypes || [];
-                                                            const t = types.find((x: any) => x.code === opt.code) || types[0];
-                                                            setFormData(p => ({ ...p, applicantType: opt.id as any, typeId: t.id }));
+                                                            const t = cedulaTypes.find((x: any) => x.code === opt.code) || cedulaTypes[0];
+                                                            if (t) {
+                                                                setFormData(p => ({ ...p, applicantType: opt.id as any, typeId: t.id }));
+                                                            }
                                                         }}
                                                         className={cn(
                                                             "p-6 md:p-10 rounded-2xl md:rounded-[3rem] border-2 md:border-4 transition-all duration-500 text-left relative group select-none overflow-hidden",
@@ -400,10 +411,10 @@ export default function CedulaApplicationPage() {
                                                         </div>
                                                         <div className="space-y-1 md:space-y-2 relative z-10">
                                                             <h4 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">
-                                                                {opt.label}
+                                                                {label}
                                                             </h4>
                                                             <p className={cn("text-[9px] md:text-[11px] font-bold uppercase italic tracking-widest leading-relaxed", isSelected ? "text-white/70" : "text-slate-400")}>
-                                                                {opt.desc}
+                                                                {desc}
                                                             </p>
                                                         </div>
                                                         {isSelected && (
@@ -743,7 +754,13 @@ export default function CedulaApplicationPage() {
 
                                     <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
                                         <div
-                                            onClick={() => setPrivacyAccepted(!privacyAccepted)}
+                                            onClick={() => {
+                                                if (privacyAccepted) {
+                                                    setPrivacyAccepted(false);
+                                                } else {
+                                                    setIsPrivacyModalOpen(true);
+                                                }
+                                            }}
                                             className={cn(
                                                 "p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all cursor-pointer flex items-start gap-3 md:gap-4 select-none",
                                                 privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
@@ -756,9 +773,9 @@ export default function CedulaApplicationPage() {
                                                 {privacyAccepted && <Check className="w-3.5 h-3.5" />}
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy Agreement</p>
+                                                <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
                                                 <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
-                                                    I authorize the LGU to process my personal information in accordance with the Data Privacy Act. I confirm all info is true and correct.
+                                                    I authorize the LGU to process my personal information in accordance with the Data Privacy Act. I confirm all info is true and correct. Click to review agreement.
                                                 </p>
                                             </div>
                                         </div>
@@ -803,6 +820,15 @@ export default function CedulaApplicationPage() {
                     </span>
                 </div>
             </div>
+            <PrivacyTermsModal
+                isOpen={isPrivacyModalOpen}
+                onClose={() => setIsPrivacyModalOpen(false)}
+                onAccept={() => {
+                    setPrivacyAccepted(true);
+                    setIsPrivacyModalOpen(false);
+                }}
+                themeColor="#10b981"
+            />
         </div>
     );
 }

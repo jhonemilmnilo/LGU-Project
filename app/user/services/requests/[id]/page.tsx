@@ -394,6 +394,7 @@ export default function RequestHubPage() {
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
     const isBusinessPermit = request?.type?.code?.startsWith("BUSINESS_PERMIT");
+    const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
 
     const computation = useMemo(() => {
         if (!request) return null;
@@ -707,7 +708,7 @@ export default function RequestHubPage() {
                                 <div className="pt-8 border-t border-slate-100 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                                     <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-5 h-5" /></div><div className="text-left leading-none"><p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 italic">Assessment Verified</p><p className="text-[8px] font-bold text-slate-400 uppercase italic mt-1">Official Registry Ready</p></div></div>
                                     <Button onClick={handleFinalize} disabled={isFinalizing || ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile)} className="w-full md:w-auto h-14 md:h-16 px-12 bg-primary hover:opacity-90 text-white rounded-xl md:rounded-2xl shadow-xl shadow-primary/20 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: themeColor }}>
-                                        {isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Secure Application"}
+                                        {isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Save"}
                                     </Button>
                                 </div>
                             </div>
@@ -764,12 +765,15 @@ export default function RequestHubPage() {
                             <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-xl rounded-2xl md:rounded-3xl space-y-12">
                                 {request.type?.code.startsWith("BUSINESS_PERMIT") && (
                                     <div className="space-y-6 pb-8 border-b border-slate-100 dark:border-white/5">
-                                        <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-emerald-500 italic border-l-4 border-emerald-500 pl-4">Business Information</h4>
+                                        <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Business Information</h4>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Official Business Name</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.businessName}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Trade Name</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.tradeName || "N/A"}</p></div>
-                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Organization Type</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.orgType}</p></div>
-                                            <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">DTI / SEC ID</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.dtiSecNumber || "N/A"}</p></div>
+                                            {!isRenewal ? (
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">DTI / SEC ID</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.dtiSecNumber || "N/A"}</p></div>
+                                            ) : (
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Existing Permit No.</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.permitNumber || "N/A"}</p></div>
+                                            )}
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Line of Business</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.lineOfBusiness}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Business Barangay</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.barangay}</p></div>
                                             <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Employee Count</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.employeeCount || 1}</p></div>
@@ -907,7 +911,7 @@ export default function RequestHubPage() {
                                                     <div><p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Issuance Secured</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Official Digital Record</p></div>
                                                 </div>
                                                 <Button asChild className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl">
-                                                    <a href={request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl} target="_blank" rel="noopener noreferrer">Retrieve Secure Record <ExternalLink className="w-3 h-3 ml-2" /></a>
+                                                    <a href={request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl} target="_blank" rel="noopener noreferrer">Open The E-Copy Record <ExternalLink className="w-3 h-3 ml-2" /></a>
                                                 </Button>
                                             </div>
                                         </div>
@@ -921,7 +925,7 @@ export default function RequestHubPage() {
                                                     <div><p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic leading-none opacity-70">POD Protocol</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1 text-slate-900 dark:text-white">Fulfillment Snapshot</p></div>
                                                 </div>
                                                 <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
-                                                    <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Dispute Issue</Button></DialogTrigger>
+                                                    <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Report Issue</Button></DialogTrigger>
                                                     <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2rem] shadow-2xl p-8">
                                                         <DialogHeader className="space-y-2"><DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Resolution <span style={{ color: themeColor }}>Center</span></DialogTitle><DialogDescription className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Submit formal dispute for validation</DialogDescription></DialogHeader>
                                                         <div className="space-y-8 py-6">
