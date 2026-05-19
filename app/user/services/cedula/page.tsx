@@ -33,6 +33,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 /**
  * multi-step form for Cedula Application.
  */
@@ -85,6 +86,7 @@ export default function CedulaApplicationPage() {
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);
     const [cedulaTypes, setCedulaTypes] = useState<any[]>([]);
+    const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const incomeInputRef = useRef<HTMLInputElement>(null);
     const contactInputRef = useRef<HTMLInputElement>(null);
 
@@ -288,7 +290,7 @@ export default function CedulaApplicationPage() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Cedula Portal</BreadcrumbPage>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic" style={{ color: "var(--primary-theme)" }}>Cedula Portal</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
@@ -752,7 +754,13 @@ export default function CedulaApplicationPage() {
 
                                     <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
                                         <div
-                                            onClick={() => setPrivacyAccepted(!privacyAccepted)}
+                                            onClick={() => {
+                                                if (privacyAccepted) {
+                                                    setPrivacyAccepted(false);
+                                                } else {
+                                                    setIsPrivacyModalOpen(true);
+                                                }
+                                            }}
                                             className={cn(
                                                 "p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all cursor-pointer flex items-start gap-3 md:gap-4 select-none",
                                                 privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
@@ -765,9 +773,9 @@ export default function CedulaApplicationPage() {
                                                 {privacyAccepted && <Check className="w-3.5 h-3.5" />}
                                             </div>
                                             <div className="space-y-1">
-                                                <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy Agreement</p>
+                                                <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
                                                 <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
-                                                    I authorize the LGU to process my personal information in accordance with the Data Privacy Act. I confirm all info is true and correct.
+                                                    I authorize the LGU to process my personal information in accordance with the Data Privacy Act. I confirm all info is true and correct. Click to review agreement.
                                                 </p>
                                             </div>
                                         </div>
@@ -812,6 +820,15 @@ export default function CedulaApplicationPage() {
                     </span>
                 </div>
             </div>
+            <PrivacyTermsModal
+                isOpen={isPrivacyModalOpen}
+                onClose={() => setIsPrivacyModalOpen(false)}
+                onAccept={() => {
+                    setPrivacyAccepted(true);
+                    setIsPrivacyModalOpen(false);
+                }}
+                themeColor="#10b981"
+            />
         </div>
     );
 }

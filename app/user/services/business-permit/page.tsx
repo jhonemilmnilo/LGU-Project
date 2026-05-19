@@ -36,6 +36,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-permit";
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList } from "@/app/admin/transactions/actions";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -108,6 +109,7 @@ export default function BusinessPermitWizardPage() {
     const [calcResult, setCalcResult] = useState<BusinessPermitResult | null>(null);
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [dbBarangays, setDbBarangays] = useState<string[]>([]);
     const [bpTypes, setBpTypes] = useState<any[]>([]);
 
@@ -506,7 +508,7 @@ export default function BusinessPermitWizardPage() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Permit Portal</BreadcrumbPage>
+                                <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic" style={{ color: "var(--primary-theme)" }}>Permit Portal</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
@@ -1067,18 +1069,32 @@ export default function BusinessPermitWizardPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Privacy Acceptance checkbox */}
-                                            <div className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5">
-                                                <input
-                                                    type="checkbox"
-                                                    id="privacy"
-                                                    checked={privacyAccepted}
-                                                    onChange={e => setPrivacyAccepted(e.target.checked)}
-                                                    className="mt-1 w-4.5 h-4.5 rounded border-slate-200 text-emerald-500 focus:ring-emerald-500/20 cursor-pointer"
-                                                />
-                                                <label htmlFor="privacy" className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-relaxed cursor-pointer select-none">
-                                                    I officially accept the EMapandan <span className="text-emerald-500 underline">Data Privacy Agreement</span>. I declare under penalty of perjury that all submitted capitalization metrics and checklist document drops are 100% legal, genuine, and correct.
-                                                </label>
+                                            {/* Privacy Acceptance checkbox card */}
+                                            <div
+                                                onClick={() => {
+                                                    if (privacyAccepted) {
+                                                        setPrivacyAccepted(false);
+                                                    } else {
+                                                        setIsPrivacyModalOpen(true);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 select-none",
+                                                    privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/[0.02] border-transparent hover:border-primary/20"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                                                    privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
+                                                )}>
+                                                    {privacyAccepted && <Check className="w-3.5 h-3.5" />}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
+                                                    <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                                                        I officially accept the EMapandan Data Privacy Agreement & Terms. I declare under penalty of perjury that all submitted details are 100% legal and genuine. Click to review agreement.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1144,6 +1160,15 @@ export default function BusinessPermitWizardPage() {
                     </div>
                 </div>
             </div>
+            <PrivacyTermsModal
+                isOpen={isPrivacyModalOpen}
+                onClose={() => setIsPrivacyModalOpen(false)}
+                onAccept={() => {
+                    setPrivacyAccepted(true);
+                    setIsPrivacyModalOpen(false);
+                }}
+                themeColor="#10b981"
+            />
         </div>
     );
 }

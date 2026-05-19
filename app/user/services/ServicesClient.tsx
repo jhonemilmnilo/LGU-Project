@@ -177,7 +177,7 @@ export default function ServicesClient({ initialServices, themeColor }: Services
                         </BreadcrumbItem>
                         <BreadcrumbSeparator className="opacity-40" />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-black uppercase tracking-widest text-[8px] md:text-[9px] text-slate-400 italic">Services Portal</BreadcrumbPage>
+                            <BreadcrumbPage className="font-black uppercase tracking-widest text-[8px] md:text-[9px] italic" style={{ color: themeColor }}>Services Portal</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
