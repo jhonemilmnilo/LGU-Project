@@ -33,7 +33,7 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { ensureBusinessPermitTransactionTypes } from "@/app/admin/transactions/actions";
+import { ensureBusinessPermitTransactionTypes, ensureCivilRegistryTransactionTypes } from "@/app/admin/transactions/actions";
 
 
 export const dynamic = 'force-dynamic';
@@ -47,8 +47,9 @@ export default async function Home({
     const selectedBarangay = typeof barangay === "string" ? barangay : "All";
     const isFiltered = selectedBarangay !== "All";
 
-    // Ensure all Business Permit types are seeded in the database
+    // Ensure all service types are seeded in the database
     await ensureBusinessPermitTransactionTypes();
+    await ensureCivilRegistryTransactionTypes();
 
     // Validate barangay: if a specific barangay is requested, check if it exists in the database
     if (isFiltered) {
@@ -245,7 +246,8 @@ export default async function Home({
                 isActive: true,
                 OR: [
                     { code: "CEDULA_IND" },
-                    { code: "BUSINESS_PERMIT_NEW" }
+                    { code: "BUSINESS_PERMIT_NEW" },
+                    { code: "LCR_BIRTH" }
                 ],
                 level: isFiltered ? 2 : 1
             },
@@ -260,6 +262,15 @@ export default async function Home({
                 code: "BUSINESS_PERMIT",
                 name: "Business Permit",
                 description: "Apply for a new business permit or renew an existing one online.",
+                fee: t.baseFee
+            };
+        }
+        if (t.code === "LCR_BIRTH") {
+            return {
+                id: t.id,
+                code: "CIVIL_REGISTRY",
+                name: "Civil Registry",
+                description: "Request certified copies of Birth, Marriage, or Death Certificates.",
                 fee: t.baseFee
             };
         }
