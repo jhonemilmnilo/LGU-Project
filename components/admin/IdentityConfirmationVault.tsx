@@ -172,61 +172,77 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                                 </div>
                             </div>
 
-                            {/* Business Row 2 - Fluid adaptive grid spacing based on Renewal Status */}
-                            <div className={`col-span-12 ${isRenewal ? "md:col-span-3" : "md:col-span-4"} space-y-3`}>
+                            {/* Business Row 2 - Perfect static column layout keeping fields on same line */}
+                            <div className="col-span-12 md:col-span-3 space-y-3">
                                 <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Business Barangay</label>
                                 <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] gap-4 text-slate-100 uppercase">
                                     <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
                                     <span className="truncate">{additional?.businessBarangay || additional?.barangay || resident?.barangay || "--"}</span>
                                 </div>
                             </div>
-                            <div className={`col-span-12 ${isRenewal ? "md:col-span-3" : "md:col-span-4"} space-y-3`}>
+                            <div className="col-span-12 md:col-span-3 space-y-3">
                                 <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Line of Business</label>
                                 <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
                                     {additional?.lineOfBusiness || "General"}
                                 </div>
                             </div>
-                            <div className={`col-span-12 ${isRenewal ? "md:col-span-3" : "md:col-span-4"} space-y-3`}>
-                                <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">DTI / SEC Registration</label>
-                                <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
-                                    {additional?.dtiSecNumber || "--"}
-                                </div>
-                            </div>
-                            {isRenewal && (
-                                <div className="col-span-12 md:col-span-3 space-y-3 animate-in slide-in-from-right-4 duration-300">
-                                    <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Existing Permit No.</label>
-                                    <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] gap-3 text-primary">
-                                        <Hash className="w-3.5 h-3.5 flex-shrink-0" />
-                                        <span className="truncate">{additional?.existingPermitNumber || additional?.existingPermitNo || additional?.permitNumber || "--"}</span>
-                                    </div>
-                                </div>
-                            )}
+                            {!isRenewal ? (
+                                 <>
+                                     <div className="col-span-12 md:col-span-3 space-y-3">
+                                         <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">DTI / SEC Registration</label>
+                                         <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
+                                             {additional?.dtiSecNumber || "--"}
+                                         </div>
+                                     </div>
+                                     <div className="hidden md:block md:col-span-3" />
+                                 </>
+                             ) : (
+                                 <>
+                                     <div className="col-span-12 md:col-span-3 space-y-3 animate-in slide-in-from-right-4 duration-300">
+                                         <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Existing Permit No.</label>
+                                         <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] gap-3 text-primary">
+                                             <Hash className="w-3.5 h-3.5 flex-shrink-0" />
+                                             <span className="truncate">{additional?.existingPermitNumber || additional?.existingPermitNo || additional?.permitNumber || "--"}</span>
+                                         </div>
+                                     </div>
+                                     <div className="hidden md:block md:col-span-3" />
+                                 </>
+                             )}
 
-                            {/* Business Row 3 */}
-                            <div className="col-span-12 md:col-span-3 space-y-3">
-                                <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Employee Count</label>
-                                <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
-                                    {additional?.employeeCount || "1"}
-                                </div>
-                            </div>
-                            <div className="col-span-12 md:col-span-3 space-y-3">
-                                <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Store Area</label>
-                                <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
-                                    {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
-                                </div>
-                            </div>
-                            <div className="col-span-12 md:col-span-3 space-y-3">
-                                <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Initial Capitalization</label>
-                                <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
-                                    {additional?.capitalInvestment ? "₱" + Number(additional.capitalInvestment).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "₱0.00"}
-                                </div>
-                            </div>
-                            <div className="col-span-12 md:col-span-3 space-y-3">
-                                <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Declared Gross Sales</label>
-                                <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
-                                    {additional?.grossSales ? "₱" + Number(additional.grossSales).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "₱0.00"}
-                                </div>
-                            </div>
+                             {/* Business Row 3 */}
+                             <div className="col-span-12 md:col-span-3 space-y-3">
+                                 <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Employee Count</label>
+                                 <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
+                                     {additional?.employeeCount || "1"}
+                                 </div>
+                             </div>
+                             <div className="col-span-12 md:col-span-3 space-y-3">
+                                 <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Store Area</label>
+                                 <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
+                                     {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
+                                 </div>
+                             </div>
+                             {!isRenewal ? (
+                                 <>
+                                     <div className="col-span-12 md:col-span-3 space-y-3">
+                                         <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Initial Capitalization</label>
+                                         <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
+                                             {additional?.capitalInvestment ? "₱" + Number(additional.capitalInvestment).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "₱0.00"}
+                                         </div>
+                                     </div>
+                                     <div className="hidden md:block md:col-span-3" />
+                                 </>
+                             ) : (
+                                 <>
+                                     <div className="col-span-12 md:col-span-3 space-y-3">
+                                         <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Declared Gross Sales</label>
+                                         <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
+                                             {additional?.grossSales ? "₱" + Number(additional.grossSales).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "₱0.00"}
+                                         </div>
+                                     </div>
+                                     <div className="hidden md:block md:col-span-3" />
+                                 </>
+                             )}
                         </div>
                     )}
 

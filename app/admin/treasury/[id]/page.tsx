@@ -478,6 +478,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType)) {
             return false;
         }
+        // Over-the-counter Cash on Pick Up: Remove PAID step from middle tracking
+        if (step.id === "PAID" &&
+            transaction.fulfillmentType === "PICK_UP" &&
+            transaction.paymentType === "CASH") {
+            return false;
+        }
         return true;
     });
 
@@ -697,9 +703,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 <DialogTrigger asChild>
                                                     <div className={cn(
                                                         "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center",
-                                                        transaction.paymentReference?.startsWith("/uploads/") && "cursor-zoom-in"
+                                                        transaction.paymentReference && "cursor-zoom-in"
                                                     )}>
-                                                        {transaction.paymentReference?.startsWith("/uploads/") ? (
+                                                        {transaction.paymentReference ? (
                                                             <>
                                                                 <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
                                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -713,7 +719,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         )}
                                                     </div>
                                                 </DialogTrigger>
-                                                {transaction.paymentReference?.startsWith("/uploads/") && (
+                                                {transaction.paymentReference && (
                                                     <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
                                                 )}
                                             </Dialog>
