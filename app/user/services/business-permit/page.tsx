@@ -621,17 +621,21 @@ export default function BusinessPermitWizardPage() {
                                         {[
                                             {
                                                 id: "NEW",
-                                                label: "New Business Permit",
-                                                desc: "For newly registered businesses in Mapandan. Based on initial declared capitalization investment.",
+                                                code: "BUSINESS_PERMIT_NEW",
                                                 icon: Sparkles
                                             },
                                             {
                                                 id: "RENEWAL",
-                                                label: "Permit Renewal",
-                                                desc: "For existing businesses renewing for the current year. Calculated on previous annual gross receipts/sales.",
+                                                code: "BUSINESS_PERMIT_RENEW",
                                                 icon: TrendingUp
                                             }
                                         ].map(opt => {
+                                            const matchedType = bpTypes.find((t: any) => t.code === opt.code);
+                                            const label = matchedType?.name || (opt.id === "NEW" ? "New Business Permit" : "Permit Renewal");
+                                            const desc = matchedType?.description || (opt.id === "NEW" 
+                                                ? "For newly registered businesses in Mapandan. Based on initial declared capitalization investment." 
+                                                : "For existing businesses renewing for the current year. Calculated on previous annual gross receipts/sales.");
+
                                             const Icon = opt.icon;
                                             const isSelected = formData.businessType === opt.id;
                                             return (
@@ -648,10 +652,10 @@ export default function BusinessPermitWizardPage() {
                                                     </div>
                                                     <div className="space-y-1 md:space-y-2 relative z-10">
                                                         <h4 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">
-                                                            {opt.label}
+                                                            {label}
                                                         </h4>
                                                         <p className={cn("text-[9px] md:text-[11px] font-bold uppercase italic tracking-widest leading-relaxed", isSelected ? "text-white/70" : "text-slate-400")}>
-                                                            {opt.desc}
+                                                            {desc}
                                                         </p>
                                                     </div>
                                                     {isSelected && (
