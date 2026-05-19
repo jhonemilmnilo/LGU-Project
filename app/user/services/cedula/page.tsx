@@ -280,6 +280,14 @@ export default function CedulaApplicationPage() {
                         </BreadcrumbItem>
                         <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    Services
+                                </Link>
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
+                        <BreadcrumbItem>
                             <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Cedula Portal</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
