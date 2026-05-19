@@ -10,7 +10,8 @@ import {
     Info, 
     ShieldCheck, 
     Coins, 
-    ChevronDown
+    ChevronDown,
+    FileText
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -40,55 +41,116 @@ interface ServicesClientProps {
     themeColor: string;
 }
 
-export default function ServicesClient({ initialServices: _initialServices, themeColor }: ServicesClientProps) {
+export default function ServicesClient({ initialServices, themeColor }: ServicesClientProps) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [expandedCode, setExpandedCode] = useState<string | null>("CEDULA");
+    const [expandedCode, setExpandedCode] = useState<string | null>("TREASURER");
 
-    // Static list of premium high-level service gateways
-    const servicesData = [
-        {
-            title: "Community Tax Certificate",
-            code: "CEDULA",
-            alias: "Cedula (CTC) Portal",
-            category: "TREASURER",
-            department: "Municipal Treasurer Office",
-            description: "Secure your official Community Tax Certificate (CTC) online for personal clearance or corporate registration with dynamic municipal rate assessment.",
-            link: "/user/services/cedula",
-            requirements: [
-                "Valid Government ID (e.g. UMID, Driver's License)",
-                "Proof of Annual Income (e.g. Payslip, BIR 2316, or Income Declaration)"
-            ],
-            icon: Coins,
-            accentBg: "bg-blue-500/10 dark:bg-blue-500/5",
-            borderColor: "border-blue-500/10 dark:border-blue-500/5",
-            hoverAccent: "group-hover:border-blue-500/30 dark:group-hover:border-blue-500/20",
-            buttonShadow: "shadow-blue-500/10"
-        },
-        {
-            title: "Business Permit & Licensing",
-            code: "BUSINESS_PERMIT",
-            alias: "BPLO Operations Gate",
-            category: "BPLO",
-            department: "Business Permits & Licensing Office",
-            description: "Apply for a new municipal business permit or renew your existing enterprise operation license online with digital checklist validation.",
-            link: "/user/services/business-permit",
-            requirements: [
-                "Unified Application Form",
-                "Community Tax Certificate (Cedula)",
-                "DTI / SEC / CDA Registry Copy",
-                "Barangay Business Clearance",
-                "Location Photograph",
-                "Sanitary Permit",
-                "Fire Safety Inspection Certificate",
-                "BIR Certificate of Registration (COR - Optional)"
-            ],
-            icon: Building2,
-            accentBg: "bg-emerald-500/10 dark:bg-emerald-500/5",
-            borderColor: "border-emerald-500/10 dark:border-emerald-500/5",
-            hoverAccent: "group-hover:border-emerald-500/30 dark:group-hover:border-emerald-500/20",
-            buttonShadow: "shadow-emerald-500/10"
+    // 1. Group dynamically strictly based on the database 'category' field!
+    const categoriesMap = new Map<string, TransactionType[]>();
+    initialServices.forEach(s => {
+        const cat = s.category ? s.category.toUpperCase() : "GENERAL";
+        if (!categoriesMap.has(cat)) {
+            categoriesMap.set(cat, []);
         }
-    ];
+        categoriesMap.get(cat)!.push(s);
+    });
+
+    // 2. Dynamic document checklist aggregation and deduplication helper
+    const extractUnifiedChecklist = (types: TransactionType[]): string[] => {
+        const uniqueDocs = new Set<string>();
+        types.forEach(t => {
+            let docs: string[] = [];
+            if (Array.isArray(t.requiredDocs)) {
+                docs = t.requiredDocs as string[];
+            } else if (typeof t.requiredDocs === "string") {
+                try {
+                    docs = JSON.parse(t.requiredDocs);
+                } catch {
+                    docs = [];
+                }
+            } else if (t.requiredDocs && typeof t.requiredDocs === "object") {
+                try {
+                    docs = Object.values(t.requiredDocs) as string[];
+                } catch {
+                    docs = [];
+                }
+            }
+            docs.forEach(d => {
+                if (d && typeof d === "string") {
+                    uniqueDocs.add(d.trim());
+                }
+            });
+        });
+        return Array.from(uniqueDocs);
+    };
+
+    // 3. Construct unified dynamic services list based on category groups
+    const servicesData = [];
+
+    const slugify = (text: string): string => {
+        return text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)+/g, "");
+    };
+
+    for (const [categoryName, items] of categoriesMap.entries()) {
+        const categoryDocs = extractUnifiedChecklist(items);
+        
+        let title = "";
+        let department = "";
+        let description = "";
+        let link = "";
+        let icon = FileText;
+        let accentBg = "bg-blue-500/10 dark:bg-blue-500/5";
+        let borderColor = "border-blue-500/10 dark:border-blue-500/5";
+        let buttonShadow = "shadow-blue-500/10";
+
+        if (categoryName === "TREASURER") {
+            title = "TREASURER SERVICES";
+            department = "Municipal Treasurer Office";
+            description = "Secure your official Community Tax Certificate (CTC) online for personal clearance or corporate registration with dynamic municipal rate assessment.";
+            link = "/user/services/cedula";
+            icon = Coins;
+            accentBg = "bg-blue-500/10 dark:bg-blue-500/5";
+            borderColor = "border-blue-500/10 dark:border-blue-500/5";
+            buttonShadow = "shadow-blue-500/10";
+        } else if (categoryName === "BPLO") {
+            title = "BPLO SERVICES";
+            department = "Business Permits & Licensing Office";
+            description = "Apply for a new municipal business permit or renew your existing enterprise operation license online with digital checklist validation.";
+            link = "/user/services/business-permit";
+            icon = Building2;
+            accentBg = "bg-emerald-500/10 dark:bg-emerald-500/5";
+            borderColor = "border-emerald-500/10 dark:border-emerald-500/5";
+            buttonShadow = "shadow-emerald-500/10";
+        } else {
+            // General or other office categories dynamically added to the DB in the future
+            title = `${categoryName} SERVICES`;
+            department = `${categoryName} Office`;
+            description = items[0]?.description || "Access official municipality gateways and submit your digital applications securely.";
+            link = `/user/services/${slugify(categoryName)}`;
+            icon = FileText;
+        }
+
+        servicesData.push({
+            title: title,
+            code: categoryName, // Bind toggle expansion state to Category Name
+            alias: title,
+            category: categoryName,
+            department: department,
+            description: description,
+            link: link,
+            requirements: categoryDocs.length > 0 ? categoryDocs : [
+                "Valid Government ID",
+                "Official Supporting Documents"
+            ],
+            icon: icon,
+            accentBg: accentBg,
+            borderColor: borderColor,
+            buttonShadow: buttonShadow
+        });
+    }
 
     // Filter services based on search query
     const filteredServices = servicesData.filter(service => {
@@ -122,7 +184,7 @@ export default function ServicesClient({ initialServices: _initialServices, them
             </div>
 
             {/* Premium Header/Banner with Ambient Gradient Backdrop */}
-            <div className="relative overflow-hidden bg-slate-900 dark:bg-[#0c1017] p-8 md:p-14 rounded-[2.5rem] md:rounded-[3rem] border border-slate-800 dark:border-white/5 text-white shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="relative overflow-hidden bg-slate-900 dark:bg-[#0c1017] p-6 md:p-14 rounded-2xl md:rounded-[3rem] border border-slate-800 dark:border-white/5 text-white shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-8">
                 <div 
                     className="absolute top-0 right-0 w-96 h-96 blur-[120px] rounded-full opacity-20 pointer-events-none -mr-40 -mt-40 transition-colors duration-700" 
                     style={{ backgroundColor: themeColor }}
@@ -169,7 +231,7 @@ export default function ServicesClient({ initialServices: _initialServices, them
                     />
                 </div>
                 <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">
-                    {filteredServices.length} portals available
+                    {filteredServices.length} categories available
                 </div>
             </div>
 
@@ -198,16 +260,16 @@ export default function ServicesClient({ initialServices: _initialServices, them
                                     initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: idx * 0.05 }}
-                                    className={`group bg-white dark:bg-[#0c1017] rounded-3xl border ${isExpanded ? "border-slate-300 dark:border-white/10 shadow-[0_15px_45px_-15px_rgba(0,0,0,0.03)]" : "border-slate-100 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10"} transition-all duration-300 overflow-hidden`}
+                                    className={`group bg-white dark:bg-[#0c1017] rounded-2xl md:rounded-3xl border ${isExpanded ? "border-slate-300 dark:border-white/10 shadow-[0_15px_45px_-15px_rgba(0,0,0,0.03)]" : "border-slate-100 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10"} transition-all duration-300 overflow-hidden`}
                                 >
                                     {/* Accordion Header */}
                                     <button
                                         onClick={() => toggleAccordion(service.code)}
-                                        className="w-full p-6 md:p-8 flex items-center justify-between text-left gap-6 focus:outline-none"
+                                        className="w-full p-5 md:p-8 flex items-center justify-between text-left gap-4 md:gap-6 focus:outline-none"
                                     >
-                                        <div className="flex items-center gap-4 md:gap-6">
-                                            <div className={`w-11 h-11 ${service.accentBg} border ${service.borderColor} rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300`}>
-                                                <Icon className="w-5 h-5" style={{ color: themeColor }} />
+                                        <div className="flex items-center gap-3 md:gap-6">
+                                            <div className={`w-10 h-10 md:w-11 md:h-11 ${service.accentBg} border ${service.borderColor} rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-300`}>
+                                                <Icon className="w-4 h-4 md:w-5 md:h-5" style={{ color: themeColor }} />
                                             </div>
                                             <div className="space-y-1">
                                                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic block leading-none">{service.department}</span>
@@ -236,7 +298,7 @@ export default function ServicesClient({ initialServices: _initialServices, them
                                                 transition={{ duration: 0.3 }}
                                                 className="border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.005]"
                                             >
-                                                <div className="p-6 md:p-8 space-y-6 md:space-y-8">
+                                                <div className="p-5 md:p-8 space-y-6 md:space-y-8">
                                                     {/* Description */}
                                                     <p className="text-xs font-semibold italic leading-relaxed text-slate-500 dark:text-slate-400">
                                                         {service.description}
