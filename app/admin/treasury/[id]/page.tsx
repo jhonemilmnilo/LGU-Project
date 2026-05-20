@@ -174,7 +174,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
-    const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") || false;
+    const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
+    const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -519,8 +520,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
 
-    const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
-    const isLCR = transaction.type.code.startsWith("LCR_") || transaction.type.code.startsWith("CIVIL_REGISTRY");
+
 
     return (
         <div
@@ -560,12 +560,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             : `${resident.firstName} ${resident.lastName}`}
                                     </h1>
 
-                                    <IdentityConfirmationVault 
-                                        resident={resident} 
+                                    <IdentityConfirmationVault
+                                        resident={resident}
                                         additional={additional}
                                         isBusinessPermit={isBusinessPermit}
                                         transactionTypeCode={transaction?.type?.code}
-                                        themeColor={themeColor} 
+                                        themeColor={themeColor}
                                     />
                                 </div>
                             </div>
@@ -655,8 +655,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Date</span>
                                                     <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                        {(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent) 
-                                                            ? format(new Date(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent), "MMM d, yyyy") 
+                                                        {(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent)
+                                                            ? format(new Date(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent), "MMM d, yyyy")
                                                             : "N/A"}
                                                     </p>
                                                 </div>

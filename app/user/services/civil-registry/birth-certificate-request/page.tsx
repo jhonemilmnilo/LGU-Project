@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
@@ -9,14 +9,12 @@ import {
     Loader2,
     Check,
     AlertCircle,
-    Home,
     Sparkles,
     Baby,
     Heart,
     Skull,
     ArrowRight,
     CreditCard,
-    Truck,
     Info,
     Upload,
     Search,
@@ -36,16 +34,6 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
 import {
     Select,
     SelectContent,
@@ -53,8 +41,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
     getCurrentUserResident,
@@ -64,7 +50,7 @@ import {
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+
 
 // --- TYPES ---
 
@@ -181,6 +167,9 @@ export default function CivilRegistryPage() {
         relationship: ""
     });
 
+    const isRestoredRef = useRef(false);
+    const prevRelationshipRef = useRef<string>("");
+
     // Persist progress to session storage
     useEffect(() => {
         const savedStep = sessionStorage.getItem("civil-registry-step");
@@ -195,6 +184,7 @@ export default function CivilRegistryPage() {
                     ...parsed,
                     files: {} // Ensure files are empty as they can't be stringified
                 }));
+                isRestoredRef.current = true;
             } catch (e) {
                 console.error("Failed to parse saved form", e);
             }
@@ -212,6 +202,16 @@ export default function CivilRegistryPage() {
     }, [currentStep, form, loading]);
 
     useEffect(() => {
+        prevRelationshipRef.current = form.relationship;
+    }, [form.relationship]);
+
+    useEffect(() => {
+        if (loading) return;
+        if (isRestoredRef.current) {
+            isRestoredRef.current = false;
+            return;
+        }
+
         if (form.relationship === "SELF" && resident) {
             setForm(prev => ({
                 ...prev,
@@ -231,7 +231,7 @@ export default function CivilRegistryPage() {
                 motherMiddleName: resident.motherMiddleName || prev.motherMiddleName,
                 motherLastName: resident.motherLastName || prev.motherLastName,
             }));
-        } else if (form.relationship && form.relationship !== "SELF") {
+        } else if (form.relationship && form.relationship !== "SELF" && prevRelationshipRef.current === "SELF") {
             setForm(prev => ({
                 ...prev,
                 fullName: "",
@@ -251,7 +251,7 @@ export default function CivilRegistryPage() {
                 motherLastName: "",
             }));
         }
-    }, [form.relationship, resident]);
+    }, [form.relationship, resident, loading]);
 
     useEffect(() => {
         async function init() {
@@ -1217,6 +1217,7 @@ export default function CivilRegistryPage() {
                                                     />
                                                     {(form.files["validIdFront"] || resident?.idFrontUrl) ? (
                                                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden group/preview shadow-lg">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                                             <img 
                                                                 src={form.files["validIdFront"] ? URL.createObjectURL(form.files["validIdFront"] as File) : resident.idFrontUrl} 
                                                                 alt="ID Front Preview" 
@@ -1259,6 +1260,7 @@ export default function CivilRegistryPage() {
                                                     />
                                                     {(form.files["validIdBack"] || resident?.idBackUrl) ? (
                                                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden group/preview shadow-lg">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                                             <img 
                                                                 src={form.files["validIdBack"] ? URL.createObjectURL(form.files["validIdBack"] as File) : resident.idBackUrl} 
                                                                 alt="ID Back Preview" 

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 import { 
     Baby, 
     Skull, 
@@ -23,7 +22,6 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { ClipboardList, Stethoscope, Mail, Clock, ShieldCheck, MapPin, Building2, UserCheck, Users } from "lucide-react";
 
 const REGISTRY_TYPES = [
     { 
@@ -64,8 +62,8 @@ const REGISTRY_TYPES = [
             "PSA Negative Certification (for Late Registration)",
             "Affidavit of Delay (for Late Registration)"
         ],
-        href: "#",
-        available: false
+        href: "/user/services/civil-registry/death-registration",
+        available: true
     },
     { 
         id: "MARRIAGE", 
@@ -154,7 +152,7 @@ export default function CivilRegistryPage() {
 
             {/* Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {REGISTRY_TYPES.map((type, idx) => {
+                {REGISTRY_TYPES.map((type) => {
                     const Icon = type.icon;
                     const colorMap: Record<string, { bg: string, text: string, border: string, hover: string }> = {
                         blue: { bg: "bg-blue-500/10", text: "text-blue-500", border: "border-blue-500/20", hover: "hover:border-blue-500" },

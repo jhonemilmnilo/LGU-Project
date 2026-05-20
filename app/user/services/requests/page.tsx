@@ -179,7 +179,7 @@ export default function UserServiceRequestsPage() {
                                             {req.type?.name || "Service Request"}
                                         </h3>
                                         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-slate-400">
-                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{format(new Date(req.createdAt), "MMM d, yyyy")}</span>
+                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.createdAt ? format(new Date(req.createdAt), "MMM d, yyyy") : "N/A"}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.fulfillmentType?.replace("_", " ") || "PENDING EVAL"}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
