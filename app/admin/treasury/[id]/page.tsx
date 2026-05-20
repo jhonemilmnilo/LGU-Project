@@ -32,6 +32,7 @@ import {
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
+import { calculateBusinessPermit } from "@/lib/business-permit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -172,6 +173,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
+    const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") || false;
+
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
         try {
@@ -266,9 +269,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const handleRelease = useCallback(async () => {
 
-        // CTC required for all initial processing phases
+        // CTC or Permit Number required for all initial processing phases
         const ctcRequired = !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
-        if (!ctcNumber && ctcRequired && !transaction?.cedula?.ctcNumber) { toast.error("CTC Number Required"); return; }
+        if (!ctcNumber && ctcRequired && !transaction?.cedula?.ctcNumber && !transaction?.businessPermit?.permitNumber) {
+            toast.error(isBusinessPermit ? "Permit Number Required" : "CTC Number Required");
+            return;
+        }
         setActionLoading(true);
         try {
             // Strict Validation: E-Copy is REQUIRED for initial processing
@@ -303,7 +309,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, router]);
+    }, [transaction, ctcNumber, eCopyFile, router, isBusinessPermit]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -403,7 +409,24 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         penalty: fiscal.penaltyCharge,
         deliveryFee: fiscal.deliveryFee || 0,
         totalAmount: fiscal.totalAmount
-    } : calculateCedula({
+    } : isBusinessPermit ? (() => {
+        const cap = Number(additional.capitalInvestment || 0);
+        const sales = Number(additional.grossSales || 0);
+        const res = calculateBusinessPermit({
+            type: additional.businessType === "NEW" ? "NEW" : "RENEWAL",
+            capitalization: cap,
+            grossSales: sales,
+            fulfillmentType: transaction.fulfillmentType,
+            deliveryFee
+        });
+        return {
+            basicTax: res.baseFee,
+            additionalTax: res.taxAmount,
+            penalty: 0,
+            deliveryFee: res.deliveryFee,
+            totalAmount: res.totalAmount
+        };
+    })() : calculateCedula({
         type: additional.applicantType || "INDIVIDUAL",
         income,
         propertyValue,
@@ -413,6 +436,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     // Ensure total amount always includes delivery fee in display if calculated on the fly
     const displayTotal = fiscal ? calcResult.totalAmount : (calcResult.totalAmount + (transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0));
+
+    const declaredValue = isBusinessPermit
+        ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
+        : income;
+
+    const declaredLabel = isBusinessPermit
+        ? (additional.businessType === "NEW" ? "Capital Investment" : "Declared Gross Sales")
+        : "Declared Gross";
 
     const baseSteps = [
         { id: "FOR_REQUESTING", label: "EVALUATION" },
@@ -445,6 +476,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (step.id === "FOR_PROCESSING" &&
             transaction.fulfillmentType === "DELIVERY" &&
             ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType)) {
+            return false;
+        }
+        // Over-the-counter Cash on Pick Up: Remove PAID step from middle tracking
+        if (step.id === "PAID" &&
+            transaction.fulfillmentType === "PICK_UP" &&
+            transaction.paymentType === "CASH") {
             return false;
         }
         return true;
@@ -522,7 +559,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             : `${resident.firstName} ${resident.lastName}`}
                                     </h1>
 
-                                    <IdentityConfirmationVault resident={resident} themeColor={themeColor} />
+                                    <IdentityConfirmationVault 
+                                        resident={resident} 
+                                        additional={additional}
+                                        isBusinessPermit={isBusinessPermit}
+                                        transactionTypeCode={transaction?.type?.code}
+                                        themeColor={themeColor} 
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -530,8 +573,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         {/* TOP METRICS GRID */}
                         <div className="grid grid-cols-3 gap-6">
                             <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Declared Gross</span>
-                                <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{income.toLocaleString()}</p>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
+                                <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
                             </div>
                             <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
@@ -553,11 +596,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Tax Computation Breakdown</h3>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                    <span>Basic Community Tax</span>
+                                    <span>{isBusinessPermit ? "Base Mayor's Permit Fee" : "Basic Community Tax"}</span>
                                     <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                    <span>Additional Tax (₱1.00 per ₱1,000 gross)</span>
+                                    <span>{isBusinessPermit ? "Assessed Tax Bill (1% of Basis)" : "Additional Tax (₱1.00 per ₱1,000 gross)"}</span>
                                     <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
                                 </div>
                                 {calcResult.penalty > 0 && (
@@ -663,23 +706,37 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Identity Evidences</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                {[
-                                    { url: additional.validIdUrl, label: "Valid ID Evidence" },
-                                    { url: additional.proofOfIncomeUrl, label: "Income Verification" }
-                                ].map((doc, i) => (
+                                {(isBusinessPermit
+                                    ? [
+                                        { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
+                                        { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
+                                        { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
+                                        { url: additional.brgyClearanceUrl, label: "Barangay Clearance" },
+                                        { url: additional.locationPhotoUrl, label: "Location Photo" },
+                                        { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
+                                        { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
+                                        { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
+                                    ]
+                                    : [
+                                        { url: additional.validIdUrl, label: "Valid ID Evidence" },
+                                        { url: additional.proofOfIncomeUrl, label: "Income Verification" }
+                                    ]
+                                ).filter(doc => doc.url).map((doc, i) => (
                                     <Dialog key={i}>
                                         <DialogTrigger asChild>
-                                            <div className={cn(
-                                                "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center",
-                                                doc.url && "cursor-zoom-in"
-                                            )}>
+                                            <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
                                                 {doc.url ? (
                                                     <>
-                                                        <Image src={doc.url} alt="Doc" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        <Image src={doc.url} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-5 h-5 text-white" />
                                                             </div>
+                                                        </div>
+                                                        <div className="absolute bottom-2 left-2 right-2 z-10">
+                                                            <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
+                                                                {doc.label}
+                                                            </span>
                                                         </div>
                                                     </>
                                                 ) : (
@@ -715,9 +772,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 <DialogTrigger asChild>
                                                     <div className={cn(
                                                         "group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center",
-                                                        transaction.paymentReference?.startsWith("/uploads/") && "cursor-zoom-in"
+                                                        transaction.paymentReference && "cursor-zoom-in"
                                                     )}>
-                                                        {transaction.paymentReference?.startsWith("/uploads/") ? (
+                                                        {transaction.paymentReference ? (
                                                             <>
                                                                 <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
                                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -731,7 +788,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         )}
                                                     </div>
                                                 </DialogTrigger>
-                                                {transaction.paymentReference?.startsWith("/uploads/") && (
+                                                {transaction.paymentReference && (
                                                     <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
                                                 )}
                                             </Dialog>
@@ -1015,7 +1072,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             )}
 
                                         {/* Gated CTC Entry: Locked for processed digital/delivery flows or if already recorded (e.g. after a Return) */}
-                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING" || transaction.cedula?.ctcNumber)) ? (
+                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING" || transaction.cedula?.ctcNumber || transaction.businessPermit?.permitNumber)) ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
                                                 <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -1024,7 +1081,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     {transaction.status === "FOR_PICKING" ? "Ready for Dispatch" : "Document Prepared"}
                                                 </p>
                                                 <p className="text-[11px] font-bold text-emerald-900/60 dark:text-emerald-500/60 tracking-tight italic leading-relaxed">
-                                                    Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || "RECORDED"}</span> is locked and ready for release.
+                                                    Registry Serial <span className="font-mono text-emerald-600 dark:text-emerald-400">#{transaction.cedula?.ctcNumber || transaction.businessPermit?.permitNumber || "RECORDED"}</span> is locked and ready for release.
                                                 </p>
                                             </div>
                                         ) : (
@@ -1048,11 +1105,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                                 {/* Always show CTC Input for these phases */}
                                                 <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
-                                                    <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Registry Serial Entry (CTC No.)</Label>
+                                                    <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
+                                                        {isBusinessPermit ? "Registry Serial Entry (Permit No.)" : "Registry Serial Entry (CTC No.)"}
+                                                    </Label>
                                                     <Input
                                                         value={ctcNumber}
                                                         onChange={(e) => setCtcNumber(e.target.value)}
-                                                        placeholder="ENTER SERIAL..."
+                                                        placeholder={isBusinessPermit ? "ENTER PERMIT NUMBER..." : "ENTER CTC NUMBER..."}
                                                         className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
                                                     />
                                                 </div>
