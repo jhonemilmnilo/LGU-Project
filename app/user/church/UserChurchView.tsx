@@ -115,7 +115,7 @@ export function UserChurchView({
             <div className="max-w-5xl mx-auto px-4 md:px-0 pt-4 md:pt-10 space-y-6 md:space-y-12">
 
                 {/* Sticky Mobile Breadcrumbs */}
-                <div className="sticky top-[70px] z-40 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 -mx-4 px-4 py-3 md:hidden mb-4">
+                <div className="sticky top-[64px] sm:top-[80px] z-40 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 -mx-4 px-4 py-3 md:hidden mb-4">
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
@@ -437,3 +437,4 @@ export function UserChurchView({
         </div>
     );
 }
+

@@ -94,7 +94,7 @@ export function UserAccommodationView({
             </Breadcrumb>
 
             {/* Header section */}
-            <div className="sticky md:static top-[70px] md:top-auto z-40 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent md:dark:bg-transparent px-4 md:px-0 pt-4 pb-3 md:py-0 -mx-4 md:mx-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
+            <div className="sticky md:static top-[64px] sm:top-[80px] md:top-auto z-40 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent md:dark:bg-transparent px-4 md:px-0 pt-4 pb-3 md:py-0 -mx-4 md:mx-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
                 <div className="space-y-4">
                     <div className="flex items-center gap-3 md:gap-4">
                         <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-primary to-primary/80 rounded-xl md:rounded-[22px] flex items-center justify-center shadow-lg md:shadow-2xl shadow-primary/40 transform hover:rotate-3 transition-transform shrink-0">
@@ -223,3 +223,4 @@ export function UserAccommodationView({
         </div>
     );
 }
+

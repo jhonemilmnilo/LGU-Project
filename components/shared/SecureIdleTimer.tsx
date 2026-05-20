@@ -31,7 +31,7 @@ export default function SecureIdleTimer({
                 // At timeout threshold, log out the user automatically
                 if (nextTime >= timeoutSeconds) {
                     clearInterval(interval);
-                    signOut({ callbackUrl: "/auth/login" });
+                    signOut({ callbackUrl: window.location.origin + "/auth/login" });
                     toast.warning(`Securely signed out due to ${Math.floor(timeoutSeconds / 60)} minutes of inactivity.`);
                 }
                 return nextTime;
