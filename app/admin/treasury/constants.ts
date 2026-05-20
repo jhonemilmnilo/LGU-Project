@@ -7,6 +7,6 @@
  * NOTE: This is intentionally a separate file from actions.ts because
  * "use server" files can only export async functions — not constants or objects.
  */
-export const TREASURY_CATEGORIES = ["CEDULA", "Business Permit"] as const;
+export const TREASURY_CATEGORIES = ["CEDULA", "Business Permit", "Civil Registry"] as const;
 
 export type TreasuryCategory = (typeof TREASURY_CATEGORIES)[number];
