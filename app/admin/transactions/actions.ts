@@ -274,6 +274,24 @@ export async function ensureCivilRegistryTransactionTypes() {
                 },
                 requiresBusinessName: false,
                 supportsECopy: true
+            },
+            {
+                code: "LCR_DEATH_REG",
+                name: "Death Registration (New Record)",
+                description: "Register a new death record with the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 100.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Municipal Form No. 103", "Valid ID of Informant"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "DEATH_REG",
+                    fields: ["fullName", "dateOfBirth", "dateOfDeath", "placeOfDeath", "causeOfDeath", "gender", "civilStatus", "fathersName", "mothersName"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
             }
         ];
 
@@ -343,11 +361,11 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                     userId: session.user.id,
                     typeId,
                     status: "FOR_REQUESTING",
-                    fulfillmentType: additionalData.fulfillmentType || "PICK_UP",
+                    fulfillmentType: additionalData.fulfillmentType || null,
                     paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
-                    totalAmount: additionalData.totalAmount || 150,
+                    totalAmount: additionalData.totalAmount || 0,
                     businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
                 }
             });
@@ -412,11 +430,11 @@ export async function submitBirthRegistration(formData: FormData) {
                     userId: session.user.id,
                     typeId,
                     status: "FOR_REQUESTING",
-                    fulfillmentType: additionalData.fulfillmentType || "PICK_UP",
+                    fulfillmentType: additionalData.fulfillmentType || null,
                     paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
-                    totalAmount: additionalData.totalAmount || 100,
+                    totalAmount: additionalData.totalAmount || 0,
                     businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
                 }
             });

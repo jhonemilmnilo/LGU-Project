@@ -694,7 +694,13 @@ export default function RequestHubPage() {
                                                     <div className="col-span-2 md:col-span-2 space-y-2"><Label className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Landmark / Instructions</Label><Input value={address.landmark} onChange={e => setAddress(p => ({ ...p, landmark: e.target.value }))} className="h-10 md:h-12 bg-slate-50 dark:bg-black/20 rounded-xl font-bold italic text-[10px] md:text-sm" /></div>
                                                 </div>
                                                 <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 relative shadow-inner">
-                                                    <LocationPicker lat={localLat} lng={localLng} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
+                                                    <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 relative shadow-inner">
+  {localLat != null && localLng != null ? (
+    <LocationPicker lat={localLat} lng={localLng} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
+  ) : (
+    <LocationPicker lat={16.026} lng={120.454} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
+  )}
+</div>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -1002,7 +1008,7 @@ export default function RequestHubPage() {
                                             </div>
                                         )}
 
-                                        {request.status === "DELIVERED" && request.podUrl && (
+                                        {request?.status === "DELIVERED" && request?.podUrl && (
                                             <div className="bg-emerald-500/5 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border border-emerald-500/20 space-y-6 md:space-y-8 shadow-xl">
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                     <div className="flex items-center gap-4">

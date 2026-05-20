@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
     User,
-    ChevronRight,
     Loader2,
     Check,
     AlertCircle,
@@ -13,7 +12,6 @@ import {
     Sparkles,
     Baby,
     ArrowRight,
-    CreditCard,
     Info,
     Upload,
     Search,
@@ -23,7 +21,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -82,7 +79,6 @@ interface FormState {
     birthType: string;
     registrationType: "STANDARD" | "LATE";
     // Shared
-    deliveryType: "PICK_UP" | "DELIVERY" | "E_COPY";
     paymentType: "E_PAYMENT" | "WALK_IN";
     files: Record<string, File | null>;
     previews: Record<string, string | null>;
@@ -109,7 +105,6 @@ export default function BirthRegistrationPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
-    const [availableTypes, setAvailableTypes] = useState<any[]>([]);
     const [resident, setResident] = useState<any>(null);
 
     const [form, setForm] = useState<FormState>({
@@ -126,7 +121,6 @@ export default function BirthRegistrationPage() {
         motherLastName: "",
         birthType: "SINGLE",
         registrationType: "STANDARD",
-        deliveryType: "PICK_UP",
         paymentType: "E_PAYMENT",
         files: {},
         previews: {},
@@ -145,6 +139,8 @@ export default function BirthRegistrationPage() {
         informantOccupation: ""
     });
 
+    const isRestoredRef = useRef(false);
+
     // Persist progress to session storage
     useEffect(() => {
         const savedStep = sessionStorage.getItem("birth-reg-step");
@@ -159,9 +155,10 @@ export default function BirthRegistrationPage() {
                     ...parsed,
                     files: {} // Ensure files are empty as they can't be stringified
                 }));
+                isRestoredRef.current = true;
                 
                 // If there were previously items but files are empty, it might be a reload recovery
-                if (Object.keys(parsed.files || {}).length > 0 || currentStep !== "IDENTITY") {
+                if (Object.keys(parsed.files || {}).length > 0 || (savedStep && savedStep !== "IDENTITY")) {
                     toast.info("Progress restored. Please re-upload your documents.", {
                         description: "Due to security, files must be re-selected after a page reload.",
                         duration: 6000
@@ -184,6 +181,12 @@ export default function BirthRegistrationPage() {
     }, [currentStep, form, loading]);
 
     useEffect(() => {
+        if (loading) return;
+        if (isRestoredRef.current) {
+            isRestoredRef.current = false;
+            return;
+        }
+
         if (form.relationship === "SELF" && resident) {
             setForm(prev => ({
                 ...prev,
@@ -203,7 +206,7 @@ export default function BirthRegistrationPage() {
                 motherLastName: resident.motherLastName || prev.motherLastName,
             }));
         }
-    }, [form.relationship, resident]);
+    }, [form.relationship, resident, loading]);
 
     useEffect(() => {
         async function init() {
@@ -234,7 +237,6 @@ export default function BirthRegistrationPage() {
                 }
                 if (typesResult.success && typesResult.data) {
                     const lcrTypes = typesResult.data.filter((t: any) => t.category === "Civil Registry");
-                    setAvailableTypes(lcrTypes);
                     
                     const currentDbType = lcrTypes.find((t: any) => t.code === "LCR_BIRTH_REG");
                     if (currentDbType) {
@@ -253,8 +255,6 @@ export default function BirthRegistrationPage() {
         }
         init();
     }, []);
-
-    const dbType = availableTypes.find(t => t.id === form.typeId);
 
     const handleBirthTypeChange = (val: string) => {
         let count = 1;
@@ -348,7 +348,8 @@ export default function BirthRegistrationPage() {
             formData.append("registryType", "BIRTH_REG"); // Submit as birth_reg category type to map correctly inside actions.ts
             formData.append("residentSnapshot", JSON.stringify(residentSnapshot));
 
-            const additionalData = {
+            // Base additional data that is always included
+            const baseAdditionalData = {
                 subjectName,
                 children: form.children, // Store the structured array in additionalData
                 dateOfEvent: form.dateOfEvent,
@@ -358,13 +359,11 @@ export default function BirthRegistrationPage() {
                 fatherName: `${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim(),
                 motherName: `${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim(),
                 relationship: form.relationship,
-                fulfillmentType: form.deliveryType,
-                paymentType: form.paymentType,
                 email: form.email,
                 contactNumber: form.contactNumber,
                 // Informant Details
                 informantName: `${form.informantFirstName} ${form.informantMiddleName} ${form.informantLastName} ${form.informantSuffix}`.replace(/\s+/g, ' ').trim(),
-                informantBirthDate: form.informantBirthDate,
+                informatnBirthDate: form.informantBirthDate,
                 informantAge: form.informantAge,
                 informantCivilStatus: form.informantCivilStatus,
                 informantCitizenship: form.informantCitizenship,
@@ -372,10 +371,10 @@ export default function BirthRegistrationPage() {
                 idType: form.idTypeOverride || resident?.idType,
                 idFrontUrl: resident?.idFrontUrl,
                 idBackUrl: resident?.idBackUrl,
-                totalAmount: (dbType?.baseFee || 100) + (form.deliveryType === "DELIVERY" ? (dbType?.deliveryFee || 100) : 0)
+                paymentType: form.paymentType,
             };
 
-            formData.append("additionalData", JSON.stringify(additionalData));
+            formData.append("additionalData", JSON.stringify(baseAdditionalData));
 
             // Append files
             Object.entries(form.files).forEach(([key, file]) => {
@@ -578,15 +577,11 @@ export default function BirthRegistrationPage() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Occupation <span className="text-red-500">*</span></Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Occupation</Label>
                                             <Input 
-                                                className={cn(
-                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-bold italic",
-                                                    (showErrors && !form.informantOccupation) && "border-red-500/50 bg-red-50/10"
-                                                )}
-                                                placeholder="Enter occupation"
+                                                readOnly
+                                                className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 transition-all font-bold italic"
                                                 value={form.informantOccupation}
-                                                onChange={(e) => setForm({...form, informantOccupation: e.target.value.toUpperCase()})}
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -605,29 +600,12 @@ export default function BirthRegistrationPage() {
                                             )}
                                         </div>
                                     </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Email Address <span className="text-red-500">*</span></Label>
-                                        <Input 
-                                            type="email"
-                                            className={cn(
-                                                "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-bold italic",
-                                                (showErrors && !form.email) && "border-red-500/50 bg-red-50/10"
-                                            )}
-                                            placeholder="e.g. informant@domain.com"
-                                            value={form.email}
-                                            onChange={(e) => setForm({...form, email: e.target.value})}
-                                        />
-                                        {(showErrors && !form.email) && (
-                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                        )}
-                                    </div>
                                 </div>
 
                                 <div className="flex justify-end pt-6">
                                     <Button 
                                         onClick={() => {
-                                            if (!form.relationship || !form.contactNumber || !form.email || !form.informantOccupation) {
+                                            if (!form.relationship || !form.contactNumber) {
                                                 setShowErrors(true);
                                                 toast.error("Please fill in all informant details.", {
                                                     className: "font-black uppercase tracking-widest text-[10px] italic",
@@ -1078,6 +1056,7 @@ export default function BirthRegistrationPage() {
                                                                 <div className="flex items-center gap-3">
                                                                     {form.previews[doc.key] ? (
                                                                         <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
+                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                             <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
                                                                         </div>
                                                                     ) : (
@@ -1125,6 +1104,7 @@ export default function BirthRegistrationPage() {
                                                                 <div className="flex items-center gap-3">
                                                                     {form.previews[doc.key] ? (
                                                                         <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
+                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                             <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
                                                                         </div>
                                                                     ) : (
