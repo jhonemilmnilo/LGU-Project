@@ -634,6 +634,9 @@ export async function getTransactionTypes(level?: number) {
  */
 export async function getTransactionById(id: string) {
     try {
+        const session = await getSession();
+        const user = session?.user as any;
+
         const transaction = await prisma.transaction.findUnique({
             where: { id },
             include: {
@@ -653,6 +656,24 @@ export async function getTransactionById(id: string) {
             }
         });
         if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+
+        // TREASURY_STAFF should not be able to view Business Permits in pre-screening status (FOR_REQUESTING or EVALUATED)
+        if (isBusinessPermit && user?.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(transaction.status)) {
+            return { success: false, error: "Forbidden: Pre-screening and evaluation must be handled by an Admin Aide first." };
+        }
+
+        // ADMIN_AIDE should only be able to view Business Permit transactions
+        if (user?.role === "ADMIN_AIDE" && !isBusinessPermit) {
+            return { success: false, error: "Forbidden: Admin Aides can only access Business Permit transactions." };
+        }
+
+        // Ordinary resident check: can only fetch their own transactions
+        if (user?.role === "USER" && transaction.userId !== user.id) {
+            return { success: false, error: "Forbidden" };
+        }
+
         return { success: true, data: transaction as any };
     } catch (error) {
         console.error("Fetch transaction by id error:", error);
@@ -857,7 +878,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -869,6 +890,11 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         if (!transaction) return { success: false, error: "Transaction not found" };
         
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+
+        // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
+        if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(transaction.status)) {
+            return { success: false, error: "Forbidden: Pre-screening and evaluation must be handled by an Admin Aide first." };
+        }
         const isCedula = transaction.type.code.includes("CEDULA");
 
         if (!isCedula && !isBusinessPermit) {
@@ -1083,7 +1109,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || user.role !== "TREASURY_STAFF" && user.role !== "ADMIN") {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1118,7 +1144,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || user.role !== "TREASURY_STAFF" && user.role !== "ADMIN") {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1322,13 +1348,20 @@ export async function getTreasuryTransactions(status?: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
             return { success: false, error: "Forbidden" };
         }
 
         const where: any = {
             type: { processorRole: "TREASURY_STAFF" }
         };
+
+        if (user.role === "ADMIN_AIDE") {
+            where.type = {
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            };
+        }
 
         if (status && status !== "ALL") {
             if (status === "CANCELLED") {
@@ -1340,6 +1373,16 @@ export async function getTreasuryTransactions(status?: string) {
                 where.status = status;
                 where.isCancelled = false;
             }
+        }
+
+        // TREASURY_STAFF should not see Business Permits in pre-screening status (FOR_REQUESTING or EVALUATED)
+        if (user.role === "TREASURY_STAFF") {
+            where.NOT = {
+                AND: [
+                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                ]
+            };
         }
 
         const transactions = await prisma.transaction.findMany({
@@ -1365,11 +1408,33 @@ export async function getTreasuryTransactions(status?: string) {
  */
 export async function getPendingTreasuryCount() {
     try {
+        const session = await getSession();
+        const user = session?.user as any;
+
+        const where: any = {
+            type: { processorRole: "TREASURY_STAFF" },
+            status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
+        };
+
+        if (user?.role === "ADMIN_AIDE") {
+            where.type = {
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            };
+        }
+
+        // TREASURY_STAFF should not count Business Permits in pre-screening status
+        if (user?.role === "TREASURY_STAFF") {
+            where.NOT = {
+                AND: [
+                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                ]
+            };
+        }
+
         const count = await prisma.transaction.count({
-            where: {
-                type: { processorRole: "TREASURY_STAFF" },
-                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
-            }
+            where
         });
         return { success: true, count };
     } catch (error) {
@@ -1385,26 +1450,62 @@ export async function getTreasuryStatusCounts() {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
             return { success: false, error: "Forbidden", data: {} };
         }
 
         // Group by status for non-cancelled transactions
+        const where: any = {
+            type: { processorRole: "TREASURY_STAFF" },
+            isCancelled: false
+        };
+
+        if (user.role === "ADMIN_AIDE") {
+            where.type = {
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            };
+        }
+
+        if (user.role === "TREASURY_STAFF") {
+            where.NOT = {
+                AND: [
+                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                ]
+            };
+        }
+
         const grouped = await prisma.transaction.groupBy({
             by: ["status"],
-            where: {
-                type: { processorRole: "TREASURY_STAFF" },
-                isCancelled: false
-            },
+            where,
             _count: { _all: true }
         });
 
         // Count cancelled separately
+        const cancelledWhere: any = {
+            type: { processorRole: "TREASURY_STAFF" },
+            isCancelled: true
+        };
+
+        if (user.role === "ADMIN_AIDE") {
+            cancelledWhere.type = {
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            };
+        }
+
+        if (user.role === "TREASURY_STAFF") {
+            cancelledWhere.NOT = {
+                AND: [
+                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                ]
+            };
+        }
+
         const cancelledCount = await prisma.transaction.count({
-            where: {
-                type: { processorRole: "TREASURY_STAFF" },
-                isCancelled: true
-            }
+            where: cancelledWhere
         });
 
         const counts: Record<string, number> = {};
@@ -1427,17 +1528,24 @@ export async function rejectTransaction(id: string, remarks: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
             return { success: false, error: "Forbidden" };
         }
 
-        // 1. Fetch transaction with user details to check rejection history
+        // 1. Fetch transaction with user and type details to check rejection history and type checks
         const tx = await prisma.transaction.findUnique({
             where: { id },
-            include: { user: true }
+            include: { user: true, type: true }
         });
 
         if (!tx) return { success: false, error: "Transaction inaccessible" };
+
+        const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
+
+        // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
+        if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(tx.status)) {
+            return { success: false, error: "Forbidden: Pre-screening and evaluation must be handled by an Admin Aide first." };
+        }
 
         // 2. Update transaction status to REJECTED
         const transaction = await prisma.transaction.update({

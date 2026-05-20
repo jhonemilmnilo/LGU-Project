@@ -15,8 +15,8 @@ export default async function PaymentSettingsPage() {
     const session = await getServerSession(authOptions);
     const role = (session?.user as any)?.role;
 
-    // Restricted to Treasury and Admin
-    if (role !== "TREASURY_STAFF" && role !== "ADMIN") {
+    // Restricted to Treasury, Admin, and Admin Aide
+    if (role !== "TREASURY_STAFF" && role !== "ADMIN" && role !== "ADMIN_AIDE") {
         redirect("/admin/dashboard");
     }
 

@@ -55,14 +55,20 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
+        async redirect({ url, baseUrl }) {
+            // Allows relative callback URLs
+            if (url.startsWith("/")) return `${baseUrl}${url}`
+            // Allows absolute callback URLs (like window.location.origin) even if they differ from NEXTAUTH_URL
+            return url
+        },
         async jwt({ token, user }) {
             if (user) {
-                 
+
                 token.role = (user as any).role;
                 token.id = user.id;
-                 
+
                 token.isPasswordChanged = (user as any).isPasswordChanged;
-                 
+
                 token.managedBarangay = (user as any).managedBarangay;
             }
 
@@ -84,13 +90,13 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user) {
-                 
+
                 (session.user as any).role = token.role;
-                 
+
                 (session.user as any).id = token.id;
-                 
+
                 (session.user as any).isPasswordChanged = token.isPasswordChanged;
-                 
+
                 (session.user as any).managedBarangay = token.managedBarangay;
             }
             return session;

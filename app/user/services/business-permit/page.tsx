@@ -39,6 +39,7 @@ import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-pe
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import { useDraft } from "@/hooks/useDraft";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -227,7 +228,7 @@ function FilePreview({ file }: { file: File }) {
 
 export default function BusinessPermitWizardPage() {
     const router = useRouter();
-    const draftRestored = useRef(false);
+    const { hydrateDraft, hydrateDraftFiles, persistDraft, persistDraftFile, clearDraft } = useDraft<FormState>("emapandan_bp_draft");
     const contactInputRef = useRef<HTMLInputElement>(null);
 
     const [currentStep, setCurrentStep] = useState<Step>("PATHWAY");
@@ -243,6 +244,7 @@ export default function BusinessPermitWizardPage() {
     const [isOtherLine, setIsOtherLine] = useState(false);
     const [isDtiGuideOpen, setIsDtiGuideOpen] = useState(false);
     const [activeGuideKey, setActiveGuideKey] = useState<string | null>(null);
+    const [dtiGuideTab, setDtiGuideTab] = useState<"SOLE" | "CORP">("SOLE");
 
 
 
@@ -327,25 +329,27 @@ export default function BusinessPermitWizardPage() {
                 }
 
                 // Hydrate inputs draft from localStorage
-                const savedDraft = localStorage.getItem("emapandan_bp_draft");
-                if (savedDraft && !draftRestored.current) {
-                    draftRestored.current = true;
-                    const parsed = JSON.parse(savedDraft);
+                hydrateDraft(setFormData, (parsed) => {
                     setFormData(prev => ({
                         ...prev,
                         ...parsed,
-                        // Do not persist raw files in JSON draft
-                        ctcFile: null,
-                        dtiSecFile: null,
-                        brgyClearanceFile: null,
-                        ownerIdFile: null,
-                        locationPhotoFile: null,
-                        sanitaryPermitFile: null,
-                        fireSafetyFile: null,
-                        birCorFile: null
                     }));
-                    toast.success("Draft application restored successfully!");
-                }
+                });
+
+                // Hydrate files from IndexedDB
+                hydrateDraftFiles((files) => {
+                    setFormData(prev => ({
+                        ...prev,
+                        ctcFile: files.ctcFile || null,
+                        dtiSecFile: files.dtiSecFile || null,
+                        brgyClearanceFile: files.brgyClearanceFile || null,
+                        ownerIdFile: files.ownerIdFile || null,
+                        locationPhotoFile: files.locationPhotoFile || null,
+                        sanitaryPermitFile: files.sanitaryPermitFile || null,
+                        fireSafetyFile: files.fireSafetyFile || null,
+                        birCorFile: files.birCorFile || null
+                    }));
+                });
             } catch (err) {
                 console.error("Initialization error:", err);
                 toast.error("Failed to initialize permits portal");
@@ -354,7 +358,7 @@ export default function BusinessPermitWizardPage() {
             }
         }
         init();
-    }, []);
+    }, [hydrateDraft, hydrateDraftFiles]);
 
     // --- SYNCHRONIZE TYPEID REACTIVELY ON PATHWAY TOGGLE ---
     useEffect(() => {
@@ -390,7 +394,7 @@ export default function BusinessPermitWizardPage() {
     };
 
     // --- AUTO-SAVE ON FIELD CHANGES ---
-    const persistDraft = (state: FormState) => {
+    const persistDraftLocal = (state: FormState) => {
         const textInputs = {
             businessType: state.businessType,
             businessName: state.businessName,
@@ -410,13 +414,13 @@ export default function BusinessPermitWizardPage() {
             deliveryAddress: state.deliveryAddress,
             deliveryPhone: state.deliveryPhone
         };
-        localStorage.setItem("emapandan_bp_draft", JSON.stringify(textInputs));
+        persistDraft(textInputs);
     };
 
     const handleInputChange = (field: keyof FormState, value: any) => {
         setFormData(prev => {
             const updated = { ...prev, [field]: value };
-            persistDraft(updated);
+            persistDraftLocal(updated);
             return updated;
         });
     };
@@ -547,9 +551,11 @@ export default function BusinessPermitWizardPage() {
     };
 
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormState) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormState) => {
         if (e.target.files && e.target.files[0]) {
-            setFormData(prev => ({ ...prev, [field]: e.target.files![0] }));
+            const file = e.target.files[0];
+            setFormData(prev => ({ ...prev, [field]: file }));
+            await persistDraftFile(field as string, file);
         }
     };
 
@@ -595,7 +601,7 @@ export default function BusinessPermitWizardPage() {
 
             const res = await submitBusinessPermitTransaction(submitData);
             if (res.success) {
-                localStorage.removeItem("emapandan_bp_draft"); // Purge draft upon successful submission
+                clearDraft(); // Purge draft upon successful submission
                 toast.success("Business Permit application submitted successfully!");
                 router.push("/user/services/requests");
             } else {
@@ -613,7 +619,7 @@ export default function BusinessPermitWizardPage() {
     if (loading) {
         return (
             <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6">
-                <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin shadow-lg shadow-emerald-500/20" />
+                <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-lg shadow-primary/20" />
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic animate-pulse">Synchronizing Business Portal...</p>
             </div>
         );
@@ -968,7 +974,7 @@ export default function BusinessPermitWizardPage() {
                                                 value={formData.businessName}
                                                 onChange={e => handleInputChange("businessName", e.target.value)}
                                                 placeholder="e.g. Mapandan Express Café Inc."
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
                                             />
                                         </div>
 
@@ -979,7 +985,7 @@ export default function BusinessPermitWizardPage() {
                                                 value={formData.tradeName}
                                                 onChange={e => handleInputChange("tradeName", e.target.value)}
                                                 placeholder="e.g. Mapandan Express Café"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
                                             />
                                         </div>
 
@@ -1029,7 +1035,7 @@ export default function BusinessPermitWizardPage() {
                                                 value={formData.building}
                                                 onChange={e => handleInputChange("building", e.target.value)}
                                                 placeholder="e.g. Bldg 4A, Green Meadows (Optional)"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
                                             />
                                         </div>
 
@@ -1040,7 +1046,7 @@ export default function BusinessPermitWizardPage() {
                                                 value={formData.street}
                                                 onChange={e => handleInputChange("street", e.target.value)}
                                                 placeholder="e.g. Rizal Avenue (Optional)"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
                                             />
                                         </div>
 
@@ -1072,7 +1078,7 @@ export default function BusinessPermitWizardPage() {
                                                         value={formData.lineOfBusiness}
                                                         onChange={e => handleInputChange("lineOfBusiness", e.target.value)}
                                                         placeholder="Enter your custom line of business..."
-                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-10 font-bold"
+                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-10 font-bold"
                                                     />
                                                     <button
                                                         type="button"
@@ -1096,7 +1102,7 @@ export default function BusinessPermitWizardPage() {
                                                 value={formData.employeeCount}
                                                 onChange={e => handleInputChange("employeeCount", e.target.value)}
                                                 min="0"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
                                             />
                                         </div>
 
@@ -1107,7 +1113,7 @@ export default function BusinessPermitWizardPage() {
                                                 value={formData.businessArea}
                                                 onChange={e => handleInputChange("businessArea", e.target.value)}
                                                 placeholder="e.g. 120"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
                                             />
                                         </div>
 
@@ -1120,7 +1126,7 @@ export default function BusinessPermitWizardPage() {
                                                      value={formData.capitalInvestment}
                                                      onChange={e => handleInputChange("capitalInvestment", e.target.value)}
                                                      placeholder="e.g. 250,000"
-                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-12 font-mono font-bold"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
                                                 />
                                             </div>
                                         ) : (
@@ -1132,7 +1138,7 @@ export default function BusinessPermitWizardPage() {
                                                      value={formData.grossSales}
                                                      onChange={e => handleInputChange("grossSales", e.target.value)}
                                                      placeholder="e.g. 1,200,000"
-                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-12 font-mono font-bold"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
                                                 />
                                             </div>
                                         )}
@@ -1157,7 +1163,7 @@ export default function BusinessPermitWizardPage() {
                                                     value={formData.dtiSecNumber}
                                                     onChange={e => handleInputChange("dtiSecNumber", e.target.value)}
                                                     placeholder="e.g. DTI-123456789"
-                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 font-bold"
+                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 font-bold"
                                                 />
                                             </div>
                                         ) : (
@@ -1169,7 +1175,7 @@ export default function BusinessPermitWizardPage() {
                                                     value={formData.permitNumber}
                                                     onChange={e => handleInputChange("permitNumber", e.target.value)}
                                                     placeholder="e.g. MP-2025-0816"
-                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 font-bold"
+                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 font-bold"
                                                 />
                                             </div>
                                         )}
@@ -1242,13 +1248,13 @@ export default function BusinessPermitWizardPage() {
                                                     <div className={cn(
                                                         "p-4 md:p-5 bg-slate-50/50 dark:bg-white/[0.02] rounded-3xl border border-dashed flex flex-col gap-4 relative overflow-hidden transition-all duration-300 hover:border-primary/40 shadow-sm",
                                                         (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl))
-                                                            ? "border-emerald-500 dark:border-emerald-500/30 bg-emerald-500/[0.01]" 
+                                                            ? "border-primary dark:border-primary/30 bg-primary/[0.01]" 
                                                             : "border-slate-200 dark:border-white/10"
                                                     )}>
                                                         <div className="flex items-center gap-3.5 w-full text-left">
                                                             <div className={cn(
                                                                 "w-11 h-11 bg-white dark:bg-black/20 border rounded-xl flex items-center justify-center shadow-sm shrink-0",
-                                                                (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) ? "border-emerald-200 dark:border-emerald-500/20 text-emerald-500" : "border-slate-100 dark:border-white/5 text-primary"
+                                                                (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) ? "border-primary/20 dark:border-primary/20 text-primary" : "border-slate-100 dark:border-white/5 text-primary"
                                                             )}>
                                                                 <Upload className={cn("w-4 h-4", (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) && "animate-bounce")} />
                                                             </div>
@@ -1289,7 +1295,7 @@ export default function BusinessPermitWizardPage() {
                                                                     "font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none shadow-md active:scale-[0.98]",
                                                                     (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl))
                                                                         ? "bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white" 
-                                                                        : "bg-emerald-600 dark:bg-emerald-600 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-white"
+                                                                        : "bg-primary hover:bg-primary/90 text-white"
                                                                 )}
                                                             >
                                                                 <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
@@ -1297,7 +1303,8 @@ export default function BusinessPermitWizardPage() {
                                                                 </label>
                                                             </Button>
                                                         </div>
-                                                    </div>                                                </div>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -1458,7 +1465,7 @@ export default function BusinessPermitWizardPage() {
 
             <AnimatePresence>
                 {isDtiGuideOpen && (
-                    <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center p-4 pt-24 sm:pt-4 overflow-y-auto">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -1473,7 +1480,7 @@ export default function BusinessPermitWizardPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-md sm:max-w-lg p-6 sm:p-8 shadow-2xl relative overflow-hidden z-10 space-y-4 sm:space-y-6 max-h-[calc(100vh-120px)] sm:max-h-[85vh] overflow-y-auto"
+                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2.5rem] w-full max-w-md sm:max-w-lg shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[80vh]"
                         >
                             {/* Top Accent line with dynamic theme color */}
                             <div 
@@ -1481,60 +1488,131 @@ export default function BusinessPermitWizardPage() {
                                 style={{ background: "var(--primary-theme)" }}
                             />
 
-                            <div className="space-y-2">
-                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary bg-primary/10 mb-4 shrink-0">
-                                    <HelpCircle className="w-6 h-6" />
-                                </div>
-                                <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">DTI & SEC Registration Guide</h3>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                                    Learn how to easily register your business entity online under the Philippine regulatory compliance laws.
-                                </p>
-                            </div>
+                            {/* Floating Close Button */}
+                            <button
+                                type="button"
+                                onClick={() => setIsDtiGuideOpen(false)}
+                                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all z-20"
+                                title="Close guide"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
 
-                            <div className="space-y-4">
-                                {/* Sole Proprietorship Card */}
-                                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl space-y-2">
-                                    <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
-                                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                            {/* Header Section */}
+                            <div className="p-6 sm:p-8 pb-4 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-primary bg-primary/10 shrink-0">
+                                        <HelpCircle className="w-5 h-5" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h3 className="text-base sm:text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">DTI & SEC Registration</h3>
+                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                                            Philippine regulatory compliance guide
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Custom Toggle Selector */}
+                                <div className="flex p-1 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 relative z-10">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDtiGuideTab("SOLE")}
+                                        className={cn(
+                                            "flex-1 py-2 px-3 rounded-xl text-center text-xs font-black uppercase tracking-widest transition-all select-none",
+                                            dtiGuideTab === "SOLE"
+                                                ? "bg-white dark:bg-black/30 shadow-md text-primary"
+                                                : "text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                        )}
+                                    >
                                         Sole Proprietorship
-                                    </h4>
-                                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold uppercase tracking-wider">
-                                        Register your trade name online using the DTI Business Name Registration System (BNRS) in just 10-15 minutes.
-                                    </p>
-                                    <a 
-                                        href="https://bnrs.dti.gov.ph" 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDtiGuideTab("CORP")}
+                                        className={cn(
+                                            "flex-1 py-2 px-3 rounded-xl text-center text-xs font-black uppercase tracking-widest transition-all select-none",
+                                            dtiGuideTab === "CORP"
+                                                ? "bg-white dark:bg-black/30 shadow-md text-primary"
+                                                : "text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                        )}
                                     >
-                                        Visit DTI BNRS Website <ChevronRight className="w-3 h-3" />
-                                    </a>
-                                </div>
-
-                                {/* Partnership & Corporation Card */}
-                                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl space-y-2">
-                                    <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
-                                        <Building2 className="w-3.5 h-3.5 text-primary" />
-                                        Partnership or Corporation
-                                    </h4>
-                                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold uppercase tracking-wider">
-                                        Submit your articles of incorporation and secure registration numbers through the SEC Electronic Simplified Processing System (eSPARC / CRS).
-                                    </p>
-                                    <a 
-                                        href="https://crs.sec.gov.ph" 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
-                                    >
-                                        Visit SEC eSPARC Portal <ChevronRight className="w-3 h-3" />
-                                    </a>
+                                        Partnership / Corp
+                                    </button>
                                 </div>
                             </div>
 
-                            <div className="pt-2">
+                            {/* Body Section (Scrollable content) */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-2 min-h-[160px] flex flex-col justify-center">
+                                <AnimatePresence mode="wait">
+                                    {dtiGuideTab === "SOLE" ? (
+                                        <motion.div
+                                            key="sole"
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 10 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="space-y-4 w-full"
+                                        >
+                                            {/* Sole Proprietorship Card */}
+                                            <div className="p-5 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl space-y-3 shadow-inner">
+                                                <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
+                                                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                                    Sole Proprietorship
+                                                </h4>
+                                                <p className="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-wider">
+                                                    Register your trade name online using the DTI Business Name Registration System (BNRS) in just 10-15 minutes.
+                                                </p>
+                                                <div className="pt-1">
+                                                    <a 
+                                                        href="https://bnrs.dti.gov.ph" 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
+                                                    >
+                                                        Visit DTI BNRS Website <ChevronRight className="w-3.5 h-3.5" />
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div
+                                            key="corp"
+                                            initial={{ opacity: 0, x: 10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="space-y-4 w-full"
+                                        >
+                                            {/* Partnership & Corporation Card */}
+                                            <div className="p-5 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl space-y-3 shadow-inner">
+                                                <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
+                                                    <Building2 className="w-4 h-4 text-primary animate-pulse" />
+                                                    Partnership or Corporation
+                                                </h4>
+                                                <p className="text-[10px] text-slate-500 leading-relaxed font-bold uppercase tracking-wider">
+                                                    Submit your articles of incorporation and secure registration numbers through the SEC Electronic Simplified Processing System (eSPARC / CRS).
+                                                </p>
+                                                <div className="pt-1">
+                                                    <a 
+                                                        href="https://crs.sec.gov.ph" 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
+                                                    >
+                                                        Visit SEC eSPARC Portal <ChevronRight className="w-3.5 h-3.5" />
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Footer Section */}
+                            <div className="p-6 sm:p-8 pt-4 border-t border-slate-100 dark:border-white/5">
                                 <Button
                                     onClick={() => setIsDtiGuideOpen(false)}
-                                    className="w-full h-12 rounded-xl text-white font-extrabold uppercase italic tracking-widest transition-all"
+                                    className="w-full h-12 rounded-xl text-white font-extrabold uppercase italic tracking-widest transition-all shadow-lg active:scale-[0.98]"
                                     style={{ backgroundColor: "var(--primary-theme)" }}
                                 >
                                     Got it, thanks!
@@ -1548,7 +1626,7 @@ export default function BusinessPermitWizardPage() {
             {/* Document Step-by-Step Guide Modal */}
             <AnimatePresence>
                 {activeGuideKey && STEP_BY_STEP_GUIDES[activeGuideKey] && (
-                    <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center p-4 pt-24 sm:pt-4 overflow-y-auto">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -1563,7 +1641,7 @@ export default function BusinessPermitWizardPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-md sm:max-w-lg p-6 sm:p-8 shadow-2xl relative overflow-hidden z-10 space-y-5 sm:space-y-6 max-h-[90vh] overflow-y-auto"
+                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2.5rem] w-full max-w-md sm:max-w-lg shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[80vh]"
                         >
                             {/* Top Accent Theme Line */}
                             <div 
@@ -1581,35 +1659,44 @@ export default function BusinessPermitWizardPage() {
                                 <X className="w-4 h-4" />
                             </button>
 
-                            <div className="space-y-2">
-                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary bg-primary/10 mb-2 shrink-0">
-                                    <HelpCircle className="w-6 h-6" />
+                            {/* Header Section */}
+                            <div className="p-6 sm:p-8 pb-4 space-y-2">
+                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-primary bg-primary/10 shrink-0">
+                                    <HelpCircle className="w-5 h-5" />
                                 </div>
-                                <h3 className="text-lg sm:text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white pr-8">
+                                <h3 className="text-base sm:text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white pr-8 truncate">
                                     {STEP_BY_STEP_GUIDES[activeGuideKey].title}
                                 </h3>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                                    Follow these official procedural guidelines to successfully acquire this required document.
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                                    Official step-by-step procedural guidelines
                                 </p>
                             </div>
 
-                            <div className="space-y-3.5 pt-1">
+                            {/* Body Section (Custom Scrollable list of steps) */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-2 space-y-3.5">
                                 {STEP_BY_STEP_GUIDES[activeGuideKey].steps.map((step, idx) => (
-                                    <div key={idx} className="flex gap-3 items-start p-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-xl transition-all duration-200 hover:border-primary/20">
-                                        <span className="w-5 h-5 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[10px] text-primary dark:text-emerald-400 font-mono font-black shrink-0 mt-0.5">
+                                    <motion.div 
+                                        key={idx}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        className="flex gap-3.5 items-start p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
+                                    >
+                                        <span className="w-6 h-6 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[10px] text-primary dark:text-primary font-mono font-black shrink-0">
                                             {idx + 1}
                                         </span>
-                                        <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
+                                        <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300 leading-relaxed pt-0.5">
                                             {step}
                                         </p>
-                                    </div>
+                                    </motion.div>
                                 ))}
                             </div>
 
-                            <div className="pt-2">
+                            {/* Footer Section */}
+                            <div className="p-6 sm:p-8 pt-4 border-t border-slate-100 dark:border-white/5">
                                 <Button
                                     onClick={() => setActiveGuideKey(null)}
-                                    className="w-full h-12 rounded-xl text-white font-extrabold uppercase italic tracking-widest transition-all"
+                                    className="w-full h-12 rounded-xl text-white font-extrabold uppercase italic tracking-widest transition-all shadow-lg active:scale-[0.98]"
                                     style={{ backgroundColor: "var(--primary-theme)" }}
                                 >
                                     Got it, thank you!
