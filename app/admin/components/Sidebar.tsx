@@ -153,7 +153,7 @@ export function Sidebar({
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
-    } else if (role === "TREASURY_STAFF") {
+    } else if (role === "TREASURY_STAFF" || role === "ADMIN_AIDE") {
         menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payment Settings"].includes(item.label));
     }
 
@@ -330,7 +330,15 @@ export function Sidebar({
                                         className="text-[10px] text-slate-500 mt-1 hover:opacity-80 cursor-pointer transition-colors font-bold uppercase tracking-widest"
                                         style={{ color: themeColor }}
                                     >
-                                        {role === "CONTENT_ADMIN" ? "Content Admin" : role === "BARANGAY_ADMIN" ? `Brgy. ${session?.user?.managedBarangay || "Admin"}` : "Admin System"}
+                                        {role === "CONTENT_ADMIN" 
+                                            ? "Content Admin" 
+                                            : role === "BARANGAY_ADMIN" 
+                                                ? `Brgy. ${session?.user?.managedBarangay || "Admin"}` 
+                                                : role === "TREASURY_STAFF"
+                                                    ? "Treasury Staff"
+                                                    : role === "ADMIN_AIDE"
+                                                        ? "Admin Aide"
+                                                        : "Admin System"}
                                     </p>
                                 </div>
                             </div>

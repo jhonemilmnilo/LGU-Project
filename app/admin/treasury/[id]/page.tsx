@@ -519,7 +519,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
 
-    const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+
     const isLCR = transaction.type.code.startsWith("LCR_") || transaction.type.code.startsWith("CIVIL_REGISTRY");
 
     return (
