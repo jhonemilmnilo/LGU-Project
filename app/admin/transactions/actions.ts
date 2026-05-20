@@ -306,18 +306,25 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
 
         const typeId = formData.get("typeId") as string;
         const registryType = formData.get("registryType") as string;
-        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
-        const additionalData = JSON.parse(formData.get("additionalData") as string);
+        const residentSnapshotRaw = formData.get("residentSnapshot");
+        const additionalDataRaw = formData.get("additionalData");
 
-        // Required Documents processing (based on scope)
-        // In a real scenario, we'd loop through keys, but for now we'll match the logic
-        // of business permits for specific keys that might be sent from the UI
+        if (!typeId || !registryType || !residentSnapshotRaw || !additionalDataRaw) {
+            return { success: false, error: "Missing required transaction data" };
+        }
+
+        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
+        const additionalData = JSON.parse(additionalDataRaw as string);
+
+        console.log(`Processing ${registryType} transaction for user ${session.user.id}`);
+
         const files: Record<string, string | null> = {};
         
         // Dynamic file extraction from FormData
         for (const [key, value] of formData.entries()) {
             if (value instanceof File && value.size > 0) {
-                const url = await processFileUpload(value, `lcr_${registryType.toLowerCase()}`);
+                // Use a standard bucket and specific folder
+                const url = await processFileUpload(value, `lcr/${registryType.toLowerCase()}`);
                 files[key] = url;
             }
         }
@@ -340,21 +347,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: additionalData.totalAmount || 150,
-                    businessName: additionalData.subjectName || null,
-                }
-            });
-
-            await tx.birthCertificateRequest.create({
-                data: {
-                    transactionId: t.id,
-                    subjectName: additionalData.subjectName,
-                    subjectName2: additionalData.spouseName || null,
-                    dateOfEvent: new Date(additionalData.dateOfEvent),
-                    placeOfEvent: additionalData.placeOfEvent,
-                    fatherName: additionalData.fatherName || null,
-                    motherName: additionalData.motherName || null,
-                    issuedBy: "SYSTEM_GEN",
-                    registryNumber: `REQ-${t.id.slice(-6).toUpperCase()}`
+                    businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
                 }
             });
 
@@ -376,9 +369,13 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
         revalidatePath("/user/services");
         revalidatePath("/admin/transactions");
         return { success: true, data: transaction };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Submit civil registry error:", error);
-        return { success: false, error: "Failed to submit registry request" };
+        // Include the error message for better debugging
+        return { 
+            success: false, 
+            error: error?.message || "Failed to submit registry request" 
+        };
     }
 }
 
@@ -419,19 +416,7 @@ export async function submitBirthRegistration(formData: FormData) {
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: additionalData.totalAmount || 100,
-                    businessName: additionalData.subjectName || null,
-                }
-            });
-
-            // Save to BirthCertificateRegistry table
-            await tx.birthCertificateRegistry.create({
-                data: {
-                    registryNumber: `REG-${t.id.slice(-6).toUpperCase()}`,
-                    subjectName: additionalData.subjectName,
-                    dateOfEvent: new Date(additionalData.dateOfEvent),
-                    placeOfEvent: additionalData.placeOfEvent,
-                    fatherName: additionalData.fatherName || null,
-                    motherName: additionalData.motherName || null,
+                    businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
                 }
             });
 
@@ -593,7 +578,7 @@ async function processFileUpload(file: File, folder: string = "transactions"): P
 
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
+        const filename = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
         const storagePath = `services/${folder}/${filename}`;
         
         const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
@@ -637,6 +622,7 @@ export async function getTransactionById(id: string) {
                 cedula: true,
                 businessPermit: true,
                 birthCertificateRequest: true,
+                birthCertificateRegistry: true,
                 user: {
                     select: {
                         id: true,

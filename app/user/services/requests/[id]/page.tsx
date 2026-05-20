@@ -802,27 +802,27 @@ export default function RequestHubPage() {
                                             <div className="space-y-6">
                                                 <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Subject Information</h4>
                                                 <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5 space-y-4">
-                                                    <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">FullName</p><p className="text-sm font-bold italic uppercase">{additionalData.subjectFirstName} {additionalData.subjectMiddleName} {additionalData.subjectLastName}</p></div>
+                                                    <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">FullName</p><p className="text-sm font-bold italic uppercase">{request.birthCertificateRegistry?.subjectName || `${additionalData.subjectFirstName || ""} ${additionalData.subjectMiddleName || ""} ${additionalData.subjectLastName || ""}`.trim() || additionalData.subjectName || "N/A"}</p></div>
                                                     <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">Sex</p><p className="text-sm font-bold italic uppercase">{additionalData.subjectSex}</p></div>
-                                                        <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">Birth Date</p><p className="text-sm font-bold italic uppercase">{additionalData.subjectBirthDate ? format(new Date(additionalData.subjectBirthDate), "MMM d, yyyy") : "N/A"}</p></div>
+                                                        <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">Sex</p><p className="text-sm font-bold italic uppercase">{additionalData.subjectSex || "N/A"}</p></div>
+                                                        <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">Birth Date</p><p className="text-sm font-bold italic uppercase">{(request.birthCertificateRegistry?.dateOfEvent || additionalData.subjectBirthDate || additionalData.dateOfEvent) ? format(new Date(request.birthCertificateRegistry?.dateOfEvent || additionalData.subjectBirthDate || additionalData.dateOfEvent), "MMM d, yyyy") : "N/A"}</p></div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            {(additionalData.fatherLastName || additionalData.motherLastName) && (
+                                            {(additionalData.fatherLastName || additionalData.motherLastName || request.birthCertificateRegistry?.fatherName || request.birthCertificateRegistry?.motherName) && (
                                                 <div className="space-y-6">
                                                     <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Parental Details</h4>
                                                     <div className="grid grid-cols-1 gap-4">
-                                                        {additionalData.fatherLastName && (
+                                                        {(additionalData.fatherLastName || request.birthCertificateRegistry?.fatherName) && (
                                                             <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5">
                                                                 <p className="text-[8px] uppercase font-black text-primary italic mb-2 tracking-widest">Father</p>
-                                                                <p className="text-sm font-bold italic uppercase">{additionalData.fatherFirstName} {additionalData.fatherMiddleName} {additionalData.fatherLastName}</p>
+                                                                <p className="text-sm font-bold italic uppercase">{request.birthCertificateRegistry?.fatherName || `${additionalData.fatherFirstName} ${additionalData.fatherMiddleName} ${additionalData.fatherLastName}`}</p>
                                                             </div>
                                                         )}
-                                                        {additionalData.motherLastName && (
+                                                        {(additionalData.motherLastName || request.birthCertificateRegistry?.motherName) && (
                                                             <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5">
                                                                 <p className="text-[8px] uppercase font-black text-primary italic mb-2 tracking-widest">Mother</p>
-                                                                <p className="text-sm font-bold italic uppercase">{additionalData.motherFirstName} {additionalData.motherMiddleName} {additionalData.motherLastName}</p>
+                                                                <p className="text-sm font-bold italic uppercase">{request.birthCertificateRegistry?.motherName || `${additionalData.motherFirstName} ${additionalData.motherMiddleName} ${additionalData.motherLastName}`}</p>
                                                             </div>
                                                         )}
                                                     </div>

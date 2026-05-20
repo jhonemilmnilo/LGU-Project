@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ClipboardList, Stethoscope, Mail, Clock, ShieldCheck, MapPin, Building2, UserCheck, Users } from "lucide-react";
 
 const REGISTRY_TYPES = [
     { 
@@ -31,7 +32,7 @@ const REGISTRY_TYPES = [
         icon: FileText, 
         description: "Request a certified true copy of an existing birth certificate.", 
         color: "blue",
-        requirements: ["Valid ID of Applicant", "Authorization Letter (if not owner)", "Proof of Relationship"],
+        requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)", "Proof of Relationship"],
         href: "/user/services/civil-registry/birth-certificate-request",
         available: true
     },
@@ -41,7 +42,13 @@ const REGISTRY_TYPES = [
         icon: Baby, 
         description: "Register a new birth record (timely or late registration).", 
         color: "blue",
-        requirements: ["Certificate of Live Birth", "Marriage Certificate of Parents", "Valid ID of Informant"],
+        requirements: [
+            "Accomplished Municipal Form 102 (from Midwife/Hospital)", 
+            "Marriage Certificate of Parents (if married)", 
+            "Community Tax Certificate (if unmarried for Acknowledgment)",
+            "PSA Negative Certification (for Late Registration)",
+            "Affidavit of Delayed Registration (for Late Registration)"
+        ],
         href: "/user/services/civil-registry/birth-registration",
         available: true
     },
@@ -51,7 +58,12 @@ const REGISTRY_TYPES = [
         icon: Skull, 
         description: "Register a Death or Request a Certified Death Certificate.", 
         color: "slate",
-        requirements: ["Death Certificate Draft", "Burial Permit"],
+        requirements: [
+            "Certificate of Death (issued by Hospital/MCR)",
+            "Burial/Transfer Permit",
+            "PSA Negative Certification (for Late Registration)",
+            "Affidavit of Delay (for Late Registration)"
+        ],
         href: "#",
         available: false
     },
@@ -61,7 +73,12 @@ const REGISTRY_TYPES = [
         icon: Heart, 
         description: "Request a certified copy of a Marriage Certificate.", 
         color: "rose",
-        requirements: ["Marriage Details"],
+        requirements: [
+            "Accomplished Certificate of Marriage",
+            "PSA Negative Certification (for Late Registration)",
+            "Affidavit of Delayed Registration (for Late Registration)",
+            "Certified Copy of Marriage License"
+        ],
         href: "#",
         available: false
     },
@@ -71,7 +88,15 @@ const REGISTRY_TYPES = [
         icon: FileText, 
         description: "Apply for a legal license to be married in the Philippines.", 
         color: "amber",
-        requirements: ["CENOMAR", "Birth Certificates", "Pre-Marriage Counseling Cert"],
+        requirements: [
+            "Municipal Form No. 90",
+            "Community Tax Certificate",
+            "CENOMAR (from PSA)",
+            "Birth Certificates (from PSA)",
+            "Parental Consent/Advice (for 18-21 and 22-25)",
+            "Certificate of Pre-Marriage Counseling",
+            "Certificate of Family Planning"
+        ],
         href: "#",
         available: false
     },
@@ -79,23 +104,31 @@ const REGISTRY_TYPES = [
 
 export default function CivilRegistryPage() {
     return (
-        <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+        <div className="container max-w-5xl mx-auto px-4 py-4 space-y-6 pb-32">
             {/* Breadcrumbs */}
-            <Breadcrumb>
+            <Breadcrumb className="-mt-8 md:-mt-12 mb-4">
                 <BreadcrumbList>
                     <BreadcrumbItem>
-                        <BreadcrumbLink href="/" className="flex items-center gap-1">
-                            <Home className="w-3 h-3" />
-                            Home
+                        <BreadcrumbLink asChild>
+                            <Link href="/user" className="flex items-center gap-1.5 transition-colors hover:text-blue-500 font-bold italic text-[11px] uppercase tracking-wider">
+                                <Home className="w-3.5 h-3.5" />
+                                Home
+                            </Link>
                         </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="opacity-40" />
                     <BreadcrumbItem>
-                        <BreadcrumbLink href="/user/services">Services</BreadcrumbLink>
+                        <BreadcrumbLink asChild>
+                            <Link href="/user/services" className="transition-colors hover:text-blue-500 font-bold italic text-[11px] uppercase tracking-wider">
+                                Services
+                            </Link>
+                        </BreadcrumbLink>
                     </BreadcrumbItem>
-                    <BreadcrumbSeparator />
+                    <BreadcrumbSeparator className="opacity-40" />
                     <BreadcrumbItem>
-                        <BreadcrumbPage>Civil Registry</BreadcrumbPage>
+                        <BreadcrumbPage className="text-blue-500 font-black italic text-[11px] uppercase tracking-wider">
+                            Civil Registry
+                        </BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>

@@ -65,10 +65,12 @@ interface FormState {
     typeId: string;
     registryType: "BIRTH_REG";
     // Fields for the specific registration
-    certFirstName: string;
-    certMiddleName: string;
-    certLastName: string;
-    certSuffix: string;
+    children: {
+        firstName: string;
+        middleName: string;
+        lastName: string;
+        suffix: string;
+    }[];
     dateOfEvent: string;
     placeOfEvent: string;
     fatherFirstName: string;
@@ -77,14 +79,28 @@ interface FormState {
     motherFirstName: string;
     motherMiddleName: string;
     motherLastName: string;
+    birthType: string;
+    registrationType: "STANDARD" | "LATE";
     // Shared
     deliveryType: "PICK_UP" | "DELIVERY" | "E_COPY";
     paymentType: "E_PAYMENT" | "WALK_IN";
     files: Record<string, File | null>;
+    previews: Record<string, string | null>;
     idTypeOverride?: string;
     email: string;
     contactNumber: string;
     relationship: string;
+
+    // Informant details from profile
+    informantFirstName: string;
+    informantMiddleName: string;
+    informantLastName: string;
+    informantSuffix: string;
+    informantBirthDate: string;
+    informantAge: string;
+    informantCivilStatus: string;
+    informantCitizenship: string;
+    informantOccupation: string;
 }
 
 export default function BirthRegistrationPage() {
@@ -99,10 +115,7 @@ export default function BirthRegistrationPage() {
     const [form, setForm] = useState<FormState>({
         typeId: "",
         registryType: "BIRTH_REG",
-        certFirstName: "",
-        certMiddleName: "",
-        certLastName: "",
-        certSuffix: "",
+        children: [{ firstName: "", middleName: "", lastName: "", suffix: "" }],
         dateOfEvent: "",
         placeOfEvent: "",
         fatherFirstName: "",
@@ -111,13 +124,25 @@ export default function BirthRegistrationPage() {
         motherFirstName: "",
         motherMiddleName: "",
         motherLastName: "",
+        birthType: "SINGLE",
+        registrationType: "STANDARD",
         deliveryType: "PICK_UP",
         paymentType: "E_PAYMENT",
         files: {},
+        previews: {},
         idTypeOverride: "",
         email: "",
         contactNumber: "",
-        relationship: ""
+        relationship: "",
+        informantFirstName: "",
+        informantMiddleName: "",
+        informantLastName: "",
+        informantSuffix: "",
+        informantBirthDate: "",
+        informantAge: "",
+        informantCivilStatus: "",
+        informantCitizenship: "",
+        informantOccupation: ""
     });
 
     // Persist progress to session storage
@@ -134,6 +159,14 @@ export default function BirthRegistrationPage() {
                     ...parsed,
                     files: {} // Ensure files are empty as they can't be stringified
                 }));
+                
+                // If there were previously items but files are empty, it might be a reload recovery
+                if (Object.keys(parsed.files || {}).length > 0 || currentStep !== "IDENTITY") {
+                    toast.info("Progress restored. Please re-upload your documents.", {
+                        description: "Due to security, files must be re-selected after a page reload.",
+                        duration: 6000
+                    });
+                }
             } catch (e) {
                 console.error("Failed to parse saved form", e);
             }
@@ -154,10 +187,12 @@ export default function BirthRegistrationPage() {
         if (form.relationship === "SELF" && resident) {
             setForm(prev => ({
                 ...prev,
-                certFirstName: resident.firstName || "",
-                certMiddleName: resident.middleName || "",
-                certLastName: resident.lastName || "",
-                certSuffix: resident.suffix || "",
+                children: [{
+                    firstName: resident.firstName || "",
+                    middleName: resident.middleName || "",
+                    lastName: resident.lastName || "",
+                    suffix: resident.suffix || "",
+                }],
                 placeOfEvent: resident.placeOfBirth || resident.municipality || prev.placeOfEvent,
                 dateOfEvent: resident.dateOfBirth ? new Date(resident.dateOfBirth).toISOString().split('T')[0] : prev.dateOfEvent,
                 fatherFirstName: resident.fatherFirstName || prev.fatherFirstName,
@@ -166,22 +201,6 @@ export default function BirthRegistrationPage() {
                 motherFirstName: resident.motherFirstName || prev.motherFirstName,
                 motherMiddleName: resident.motherMiddleName || prev.motherMiddleName,
                 motherLastName: resident.motherLastName || prev.motherLastName,
-            }));
-        } else if (form.relationship && form.relationship !== "SELF") {
-            setForm(prev => ({
-                ...prev,
-                certFirstName: "",
-                certMiddleName: "",
-                certLastName: "",
-                certSuffix: "",
-                dateOfEvent: "",
-                placeOfEvent: "",
-                fatherFirstName: "",
-                fatherMiddleName: "",
-                fatherLastName: "",
-                motherFirstName: "",
-                motherMiddleName: "",
-                motherLastName: "",
             }));
         }
     }, [form.relationship, resident]);
@@ -196,23 +215,34 @@ export default function BirthRegistrationPage() {
                 ]);
 
                 if (resResult.success && resResult.data) {
-                    setResident(resResult.data);
+                    const r = resResult.data;
+                    setResident(r);
                     setForm(prev => ({
                         ...prev,
-                        email: resResult.data?.email || "",
-                        contactNumber: resResult.data?.contactNumber || "",
+                        email: prev.email || r.email || "",
+                        contactNumber: prev.contactNumber || r.contactNumber || "",
+                        informantFirstName: r.firstName || "",
+                        informantMiddleName: r.middleName || "",
+                        informantLastName: r.lastName || "",
+                        informantSuffix: r.suffix || "",
+                        informantBirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                        informantAge: r.age?.toString() || "",
+                        informantCivilStatus: r.civilStatus || "",
+                        informantCitizenship: r.citizenship || "Filipino",
+                        informantOccupation: r.occupation || ""
                     }));
                 }
                 if (typesResult.success && typesResult.data) {
                     const lcrTypes = typesResult.data.filter((t: any) => t.category === "Civil Registry");
                     setAvailableTypes(lcrTypes);
                     
-                    // Set initial typeId
-                    setForm(prev => {
-                        if (prev.typeId) return prev;
-                        const currentDbType = lcrTypes.find((t: any) => t.code === `LCR_${prev.registryType}`);
-                        return { ...prev, typeId: currentDbType?.id || "" };
-                    });
+                    const currentDbType = lcrTypes.find((t: any) => t.code === "LCR_BIRTH_REG");
+                    if (currentDbType) {
+                        setForm(prev => ({ 
+                            ...prev, 
+                            typeId: prev.typeId || currentDbType.id 
+                        }));
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -226,6 +256,35 @@ export default function BirthRegistrationPage() {
 
     const dbType = availableTypes.find(t => t.id === form.typeId);
 
+    const handleBirthTypeChange = (val: string) => {
+        let count = 1;
+        if (val === "TWIN") count = 2;
+        if (val === "TRIPLET") count = 3;
+        if (val === "OTHERS") count = 4;
+
+        setForm(prev => {
+            const currentChildren = [...prev.children];
+            if (currentChildren.length < count) {
+                // Add more
+                for (let i = currentChildren.length; i < count; i++) {
+                    currentChildren.push({ firstName: "", middleName: "", lastName: "", suffix: "" });
+                }
+            } else if (currentChildren.length > count) {
+                // Remove extra
+                currentChildren.splice(count);
+            }
+            return { ...prev, birthType: val, children: currentChildren };
+        });
+    };
+
+    const handleChildNameChange = (index: number, field: keyof FormState['children'][0], value: string) => {
+        setForm(prev => {
+            const newChildren = [...prev.children];
+            newChildren[index] = { ...newChildren[index], [field]: value.toUpperCase() };
+            return { ...prev, children: newChildren };
+        });
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         const file = e.target.files?.[0] || null;
         if (file) {
@@ -233,16 +292,36 @@ export default function BirthRegistrationPage() {
                 toast.error("File size exceeds 5MB limit.");
                 return;
             }
+
+            // Create preview URL
+            const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
+
             setForm(prev => ({
                 ...prev,
-                files: { ...prev.files, [key]: file }
+                files: { ...prev.files, [key]: file },
+                previews: { ...prev.previews, [key]: previewUrl }
             }));
         }
     };
 
     const handleSubmit = async () => {
+        if (!resident) {
+            toast.error("Resident profile not found. Please complete your profile first.");
+            return;
+        }
+
         if (!form.relationship) {
             toast.error("Please specify your relationship.");
+            return;
+        }
+
+        if (!form.typeId) {
+            toast.error("Service type not initialized. Please refresh the page.");
+            return;
+        }
+
+        if (!form.dateOfEvent) {
+            toast.error("Please provide the date of birth.");
             return;
         }
 
@@ -253,26 +332,29 @@ export default function BirthRegistrationPage() {
 
         setSubmitting(true);
         try {
+            const childrenList = form.children.map(c => `${c.firstName} ${c.middleName} ${c.lastName} ${c.suffix}`.trim());
+            const subjectName = childrenList.join(" & ");
+
+            // Create a full snapshot of the resident, updating only the volatile contact fields
+            const residentSnapshot = {
+                ...resident,
+                contactNumber: form.contactNumber,
+                email: form.email,
+                occupation: form.informantOccupation
+            };
+
             const formData = new FormData();
             formData.append("typeId", form.typeId);
-            formData.append("registryType", "BIRTH"); // Submit as birth category type to map correctly inside actions.ts
-            formData.append("residentSnapshot", JSON.stringify({
-                firstName: resident.firstName,
-                lastName: resident.lastName,
-                middleName: resident.middleName,
-                suffix: resident.suffix,
-                contactNumber: resident.contactNumber,
-                email: resident.email,
-                gender: resident.gender,
-                barangay: resident.barangay,
-                municipality: resident.municipality,
-                province: resident.province
-            }));
+            formData.append("registryType", "BIRTH_REG"); // Submit as birth_reg category type to map correctly inside actions.ts
+            formData.append("residentSnapshot", JSON.stringify(residentSnapshot));
 
             const additionalData = {
-                subjectName: `${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.trim(),
+                subjectName,
+                children: form.children, // Store the structured array in additionalData
                 dateOfEvent: form.dateOfEvent,
                 placeOfEvent: form.placeOfEvent,
+                birthType: form.birthType,
+                registrationType: form.registrationType,
                 fatherName: `${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim(),
                 motherName: `${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim(),
                 relationship: form.relationship,
@@ -280,6 +362,13 @@ export default function BirthRegistrationPage() {
                 paymentType: form.paymentType,
                 email: form.email,
                 contactNumber: form.contactNumber,
+                // Informant Details
+                informantName: `${form.informantFirstName} ${form.informantMiddleName} ${form.informantLastName} ${form.informantSuffix}`.replace(/\s+/g, ' ').trim(),
+                informantBirthDate: form.informantBirthDate,
+                informantAge: form.informantAge,
+                informantCivilStatus: form.informantCivilStatus,
+                informantCitizenship: form.informantCitizenship,
+                informantOccupation: form.informantOccupation,
                 idType: form.idTypeOverride || resident?.idType,
                 idFrontUrl: resident?.idFrontUrl,
                 idBackUrl: resident?.idBackUrl,
@@ -293,6 +382,7 @@ export default function BirthRegistrationPage() {
                 if (file) formData.append(key, file);
             });
 
+            console.log("Submitting with typeId:", form.typeId);
             const res = await submitCivilRegistryTransaction(formData);
             if (res.success && res.data) {
                 toast.success("Birth Registration submitted successfully!");
@@ -300,11 +390,15 @@ export default function BirthRegistrationPage() {
                 sessionStorage.removeItem("birth-reg-form");
                 router.push(`/user/services/requests/${res.data.id}`);
             } else {
-                toast.error(res.error || "Submission failed");
+                toast.error(res.error || "Submission failed", {
+                    description: "Please check your network connection and try again."
+                });
             }
-        } catch (err) {
-            console.error(err);
-            toast.error("An error occurred during submission");
+        } catch (err: any) {
+            console.error("Submission error details:", err);
+            toast.error("Registration failed to submit", {
+                description: err.message || "An unexpected error occurred during submission."
+            });
         } finally {
             setSubmitting(false);
         }
@@ -443,12 +537,63 @@ export default function BirthRegistrationPage() {
                                         )}
                                     </div>
 
+                                    {/* Personal Details Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="md:col-span-1 space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name</Label>
+                                            <Input readOnly value={form.informantFirstName} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                        <div className="md:col-span-1 space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Middle Name</Label>
+                                            <Input readOnly value={form.informantMiddleName} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                        <div className="md:col-span-1 space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name</Label>
+                                            <Input readOnly value={form.informantLastName} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                        <div className="md:col-span-1 space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Suffix</Label>
+                                            <Input readOnly value={form.informantSuffix} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Birth Date</Label>
+                                            <Input readOnly value={form.informantBirthDate} type="date" className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Age</Label>
+                                            <Input readOnly value={form.informantAge} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Civil Status</Label>
+                                            <Input readOnly value={form.informantCivilStatus} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Citizenship</Label>
+                                            <Input readOnly value={form.informantCitizenship} className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 font-bold italic" />
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Occupation <span className="text-red-500">*</span></Label>
+                                            <Input 
+                                                className={cn(
+                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-bold italic",
+                                                    (showErrors && !form.informantOccupation) && "border-red-500/50 bg-red-50/10"
+                                                )}
+                                                placeholder="Enter occupation"
+                                                value={form.informantOccupation}
+                                                onChange={(e) => setForm({...form, informantOccupation: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Contact Number <span className="text-red-500">*</span></Label>
                                             <Input 
                                                 className={cn(
-                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-medium",
+                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-bold italic",
                                                     (showErrors && !form.contactNumber) && "border-red-500/50 bg-red-50/10"
                                                 )}
                                                 placeholder="e.g. 0917XXXXXXX"
@@ -459,29 +604,30 @@ export default function BirthRegistrationPage() {
                                                 <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
                                             )}
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Email Address <span className="text-red-500">*</span></Label>
-                                            <Input 
-                                                type="email"
-                                                className={cn(
-                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-medium",
-                                                    (showErrors && !form.email) && "border-red-500/50 bg-red-50/10"
-                                                )}
-                                                placeholder="e.g. informant@domain.com"
-                                                value={form.email}
-                                                onChange={(e) => setForm({...form, email: e.target.value})}
-                                            />
-                                            {(showErrors && !form.email) && (
-                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Email Address <span className="text-red-500">*</span></Label>
+                                        <Input 
+                                            type="email"
+                                            className={cn(
+                                                "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-bold italic",
+                                                (showErrors && !form.email) && "border-red-500/50 bg-red-50/10"
                                             )}
-                                        </div>
+                                            placeholder="e.g. informant@domain.com"
+                                            value={form.email}
+                                            onChange={(e) => setForm({...form, email: e.target.value})}
+                                        />
+                                        {(showErrors && !form.email) && (
+                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                        )}
                                     </div>
                                 </div>
 
                                 <div className="flex justify-end pt-6">
                                     <Button 
                                         onClick={() => {
-                                            if (!form.relationship || !form.contactNumber || !form.email) {
+                                            if (!form.relationship || !form.contactNumber || !form.email || !form.informantOccupation) {
                                                 setShowErrors(true);
                                                 toast.error("Please fill in all informant details.", {
                                                     className: "font-black uppercase tracking-widest text-[10px] italic",
@@ -513,59 +659,98 @@ export default function BirthRegistrationPage() {
                                     <p className="text-xs text-slate-500 font-medium italic">Provide the birth details of the child</p>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name <span className="text-red-500">*</span></Label>
-                                            <Input 
-                                                className={cn(
-                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
-                                                    (showErrors && !form.certFirstName) && "border-red-500/50 bg-red-50/10"
-                                                )}
-                                                placeholder="First name"
-                                                value={form.certFirstName}
-                                                onChange={(e) => setForm({...form, certFirstName: e.target.value.toUpperCase()})}
-                                            />
-                                            {(showErrors && !form.certFirstName) && (
-                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                            )}
+                                <div className="space-y-8">
+                                    {/* Type of Birth Moved Above */}
+                                    <div className="bg-blue-50/50 dark:bg-blue-500/5 p-6 rounded-[2rem] border border-blue-100 dark:border-blue-500/10 space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                                                <Baby className="w-4 h-4 text-blue-500" />
+                                            </div>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">Type of Birth <span className="text-red-500">*</span></Label>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Middle Name</Label>
-                                            <Input 
-                                                className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium"
-                                                placeholder="Middle name"
-                                                value={form.certMiddleName}
-                                                onChange={(e) => setForm({...form, certMiddleName: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name <span className="text-red-500">*</span></Label>
-                                            <Input 
-                                                className={cn(
-                                                    "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
-                                                    (showErrors && !form.certLastName) && "border-red-500/50 bg-red-50/10"
-                                                )}
-                                                placeholder="Last name"
-                                                value={form.certLastName}
-                                                onChange={(e) => setForm({...form, certLastName: e.target.value.toUpperCase()})}
-                                            />
-                                            {(showErrors && !form.certLastName) && (
-                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                            )}
-                                        </div>
+                                        <Select 
+                                            value={form.birthType} 
+                                            onValueChange={handleBirthTypeChange}
+                                        >
+                                            <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
+                                                <SelectValue placeholder="Select birth type" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                <SelectItem value="SINGLE">Single</SelectItem>
+                                                <SelectItem value="TWIN">Twin</SelectItem>
+                                                <SelectItem value="TRIPLET">Triplet</SelectItem>
+                                                <SelectItem value="OTHERS">Others (Quadruplets+, etc.)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Suffix</Label>
-                                            <Input 
-                                                className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium"
-                                                placeholder="e.g. Jr., III"
-                                                value={form.certSuffix}
-                                                onChange={(e) => setForm({...form, certSuffix: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
+                                    {/* Children Inputs */}
+                                    <div className="space-y-6">
+                                        {form.children.map((child, index) => (
+                                            <div key={index} className="space-y-6 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/2">
+                                                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Child {index + 1}</span>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name <span className="text-red-500">*</span></Label>
+                                                        <Input 
+                                                            className={cn(
+                                                                "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
+                                                                (showErrors && !child.firstName) && "border-red-500/50 bg-red-50/10"
+                                                            )}
+                                                            placeholder="First name"
+                                                            value={child.firstName}
+                                                            onChange={(e) => handleChildNameChange(index, 'firstName', e.target.value)}
+                                                        />
+                                                        {(showErrors && !child.firstName) && (
+                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Middle Name</Label>
+                                                        <Input 
+                                                            className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium"
+                                                            placeholder="Middle name"
+                                                            value={child.middleName}
+                                                            onChange={(e) => handleChildNameChange(index, 'middleName', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name <span className="text-red-500">*</span></Label>
+                                                        <Input 
+                                                            className={cn(
+                                                                "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
+                                                                (showErrors && !child.lastName) && "border-red-500/50 bg-red-50/10"
+                                                            )}
+                                                            placeholder="Last name"
+                                                            value={child.lastName}
+                                                            onChange={(e) => handleChildNameChange(index, 'lastName', e.target.value)}
+                                                        />
+                                                        {(showErrors && !child.lastName) && (
+                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Suffix</Label>
+                                                        <Input 
+                                                            className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium"
+                                                            placeholder="e.g. Jr., III"
+                                                            value={child.suffix}
+                                                            onChange={(e) => handleChildNameChange(index, 'suffix', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Date & Place Shared */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Date of Birth <span className="text-red-500">*</span></Label>
                                             <Input 
@@ -610,7 +795,8 @@ export default function BirthRegistrationPage() {
                                     </Button>
                                     <Button 
                                         onClick={() => {
-                                            if (!form.certFirstName || !form.certLastName || !form.dateOfEvent || !form.placeOfEvent) {
+                                            const hasIncompleteChild = form.children.some(c => !c.firstName || !c.lastName);
+                                            if (hasIncompleteChild || !form.dateOfEvent || !form.placeOfEvent) {
                                                 setShowErrors(true);
                                                 toast.error("Please fill in all required child details.", {
                                                     className: "font-black uppercase tracking-widest text-[10px] italic",
@@ -800,8 +986,21 @@ export default function BirthRegistrationPage() {
                                             <p className="font-black text-slate-900 dark:text-white italic">Birth Registration (New Record)</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Child Name</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{`${form.certFirstName} ${form.certMiddleName} ${form.certLastName} ${form.certSuffix}`.trim()}</p>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Type of Birth</span>
+                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.birthType}</p>
+                                        </div>
+                                        <div className="col-span-2 space-y-2">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Children to Register</span>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                {form.children.map((child, i) => (
+                                                    <div key={i} className="p-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                                                        <span className="text-[8px] font-black text-blue-500 uppercase italic mb-1 block">Child {i + 1}</span>
+                                                        <p className="font-black text-slate-900 dark:text-white italic uppercase text-xs">
+                                                            {`${child.firstName} ${child.middleName} ${child.lastName} ${child.suffix}`.trim()}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="space-y-1">
                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Date of Birth</span>
@@ -827,170 +1026,140 @@ export default function BirthRegistrationPage() {
                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Informant</span>
                                             <p className="font-black text-slate-900 dark:text-white italic uppercase">{resident?.firstName} {resident?.lastName} ({form.relationship})</p>
                                         </div>
-                                        <div className="space-y-1 text-right">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Process Fee</span>
-                                            <p className="text-2xl font-black text-blue-500 italic">₱{(dbType?.baseFee || 100).toLocaleString()}</p>
-                                        </div>
                                     </div>
 
-                                    {/* File Submission Section */}
+                                    {/* Registration Type Toggle */}
                                     <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                                <Upload className="w-3.5 h-3.5 text-blue-500" />
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Registration Type:</span>
+                                            <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-full border border-slate-200 dark:border-white/10">
+                                                <button
+                                                    onClick={() => setForm(prev => ({ ...prev, registrationType: "STANDARD" }))}
+                                                    className={cn(
+                                                        "px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                                                        form.registrationType === "STANDARD" 
+                                                            ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" 
+                                                            : "text-slate-400 hover:text-slate-600"
+                                                    )}
+                                                >
+                                                    Standard
+                                                </button>
+                                                <button
+                                                    onClick={() => setForm(prev => ({ ...prev, registrationType: "LATE" }))}
+                                                    className={cn(
+                                                        "px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                                                        form.registrationType === "LATE" 
+                                                            ? "bg-white dark:bg-slate-800 text-blue-600 shadow-sm" 
+                                                            : "text-slate-400 hover:text-slate-600"
+                                                    )}
+                                                >
+                                                    Late
+                                                </button>
                                             </div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Required Documents Upload</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">
-                                                    Certificate of Live Birth (Hospital Draft) <span className="text-red-500">*</span>
-                                                </Label>
-                                                <div className={cn(
-                                                    "group relative flex flex-col items-center justify-center border-2 border-dashed rounded-[1.5rem] p-4 transition-all duration-300 min-h-[120px]",
-                                                    form.files["liveBirthCertificate"] ? "bg-blue-50/50 border-blue-500/50" : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-blue-500/50"
-                                                )}>
-                                                    <input 
-                                                        type="file" 
-                                                        onChange={(e) => handleFileChange(e, "liveBirthCertificate")}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                        accept="image/*,.pdf"
-                                                    />
-                                                    {form.files["liveBirthCertificate"] ? (
-                                                        <div className="text-center">
-                                                            <Check className="w-8 h-8 text-blue-500 mx-auto mb-1" />
-                                                            <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase italic truncate max-w-[180px]">
-                                                                {form.files["liveBirthCertificate"].name}
-                                                            </p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center space-y-2">
-                                                            <Upload className="w-5 h-5 text-slate-300 mx-auto" />
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Upload Certificate</p>
-                                                        </div>
-                                                    )}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                                                    <Upload className="w-3.5 h-3.5 text-blue-500" />
                                                 </div>
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Required Documents</span>
                                             </div>
 
-                                            <div className="space-y-2">
-                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">
-                                                    Marriage Certificate of Parents <span className="text-red-500">*</span>
-                                                </Label>
-                                                <div className={cn(
-                                                    "group relative flex flex-col items-center justify-center border-2 border-dashed rounded-[1.5rem] p-4 transition-all duration-300 min-h-[120px]",
-                                                    form.files["marriageCertificate"] ? "bg-blue-50/50 border-blue-500/50" : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-blue-500/50"
-                                                )}>
-                                                    <input 
-                                                        type="file" 
-                                                        onChange={(e) => handleFileChange(e, "marriageCertificate")}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                        accept="image/*,.pdf"
-                                                    />
-                                                    {form.files["marriageCertificate"] ? (
-                                                        <div className="text-center">
-                                                            <Check className="w-8 h-8 text-blue-500 mx-auto mb-1" />
-                                                            <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase italic truncate max-w-[180px]">
-                                                                {form.files["marriageCertificate"].name}
-                                                            </p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center space-y-2">
-                                                            <Upload className="w-5 h-5 text-slate-300 mx-auto" />
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Upload Certificate</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-1.5 md:col-span-2 pt-2">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-blue-500/70 ml-1">
-                                                    Informant ID Type <span className="text-red-500">*</span>
-                                                </Label>
-                                                <Select 
-                                                    value={form.idTypeOverride || resident?.idType || ""} 
-                                                    onValueChange={(value) => setForm(prev => ({
-                                                        ...prev,
-                                                        idTypeOverride: value
-                                                    }))}
-                                                >
-                                                    <SelectTrigger className="h-10 rounded-xl border-slate-200 focus:ring-blue-500 shadow-sm text-xs md:text-sm bg-white dark:bg-slate-900 transition-all font-bold">
-                                                        <SelectValue>
-                                                            {form.idTypeOverride || resident?.idType || "Select type of government ID"}
-                                                        </SelectValue>
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
-                                                        <SelectItem value="UMID">Unified Multi-Purpose ID (UMID)</SelectItem>
-                                                        <SelectItem value="DRIVERS_LICENSE">Driver&apos;s License</SelectItem>
-                                                        <SelectItem value="PASSPORT">Passport</SelectItem>
-                                                        <SelectItem value="POSTAL_ID">Postal ID</SelectItem>
-                                                        <SelectItem value="VOTERS_ID">Voter&apos;s ID</SelectItem>
-                                                        <SelectItem value="PRC_ID">PRC ID</SelectItem>
-                                                        <SelectItem value="NATIONAL_ID">National ID (PhilSys)</SelectItem>
-                                                        <SelectItem value="SENIOR_CITIZEN">Senior Citizen ID</SelectItem>
-                                                        <SelectItem value="PWD_ID">PWD ID</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">
-                                                    Valid Informant ID (Front) <span className="text-red-500">*</span>
-                                                </Label>
-                                                <div className={cn(
-                                                    "group relative flex flex-col items-center justify-center border-2 border-dashed rounded-[1.5rem] p-4 transition-all duration-300 min-h-[120px]",
-                                                    (form.files["validIdFront"] || resident?.idFrontUrl) ? "bg-blue-50/50 border-blue-500/50" : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-blue-500/50"
-                                                )}>
-                                                    <input 
-                                                        type="file" 
-                                                        onChange={(e) => handleFileChange(e, "validIdFront")}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                        accept="image/*,.pdf"
-                                                    />
-                                                    {(form.files["validIdFront"] || resident?.idFrontUrl) ? (
-                                                        <div className="text-center">
-                                                            <Check className="w-8 h-8 text-blue-500 mx-auto mb-1" />
-                                                            <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase italic truncate max-w-[180px]">
-                                                                {form.files["validIdFront"] ? form.files["validIdFront"].name : "Saved ID Record"}
-                                                            </p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center space-y-2">
-                                                            <Upload className="w-5 h-5 text-slate-300 mx-auto" />
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Upload Front</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">
-                                                    Valid Informant ID (Back) <span className="text-red-500">*</span>
-                                                </Label>
-                                                <div className={cn(
-                                                    "group relative flex flex-col items-center justify-center border-2 border-dashed rounded-[1.5rem] p-4 transition-all duration-300 min-h-[120px]",
-                                                    (form.files["validIdBack"] || resident?.idBackUrl) ? "bg-blue-50/50 border-blue-500/50" : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-blue-500/50"
-                                                )}>
-                                                    <input 
-                                                        type="file" 
-                                                        onChange={(e) => handleFileChange(e, "validIdBack")}
-                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                        accept="image/*,.pdf"
-                                                    />
-                                                    {(form.files["validIdBack"] || resident?.idBackUrl) ? (
-                                                        <div className="text-center">
-                                                            <Check className="w-8 h-8 text-blue-500 mx-auto mb-1" />
-                                                            <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase italic truncate max-w-[180px]">
-                                                                {form.files["validIdBack"] ? form.files["validIdBack"].name : "Saved ID Record"}
-                                                            </p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-center space-y-2">
-                                                            <Upload className="w-5 h-5 text-slate-300 mx-auto" />
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Upload Back</p>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
+                                                {form.registrationType === "STANDARD" ? (
+                                                    <>
+                                                        {[
+                                                            { key: "marriageCertificate", label: "Marriage Certificate of Parents" },
+                                                            { key: "municipalForm102", label: "Municipal Form 102" },
+                                                            { key: "communityTaxCertificate", label: "Community Tax Certificate" }
+                                                        ].map((doc) => (
+                                                            <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
+                                                                <div className="flex items-center gap-3">
+                                                                    {form.previews[doc.key] ? (
+                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
+                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                                            <FileText className="w-5 h-5 text-slate-300" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
+                                                                        <span className={cn(
+                                                                            "text-[8px] font-black uppercase tracking-[0.2em] italic",
+                                                                            form.files[doc.key] ? "text-green-500" : "text-blue-500/50"
+                                                                        )}>
+                                                                            {form.files[doc.key] ? "Uploaded" : "Pending"}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="relative">
+                                                                    <input 
+                                                                        type="file" 
+                                                                        onChange={(e) => handleFileChange(e, doc.key)}
+                                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                        accept="image/*,.pdf"
+                                                                    />
+                                                                    <div className={cn(
+                                                                        "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                        form.files[doc.key] ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
+                                                                    )}>
+                                                                        {form.files[doc.key] ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {[
+                                                            { key: "negativePSA", label: "Negative Certification from PSA" },
+                                                            { key: "colb", label: "COLB" },
+                                                            { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" },
+                                                            { key: "supportingEvidence1", label: "Supporting Evidence 1" },
+                                                            { key: "supportingEvidence2", label: "Supporting Evidence 2" }
+                                                        ].map((doc) => (
+                                                            <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
+                                                                <div className="flex items-center gap-3">
+                                                                    {form.previews[doc.key] ? (
+                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
+                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                                            <FileText className="w-5 h-5 text-slate-300" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
+                                                                        <span className={cn(
+                                                                            "text-[8px] font-black uppercase tracking-[0.2em] italic",
+                                                                            form.files[doc.key] ? "text-green-500" : "text-blue-500/50"
+                                                                        )}>
+                                                                            {form.files[doc.key] ? "Uploaded" : "Pending"}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="relative">
+                                                                    <input 
+                                                                        type="file" 
+                                                                        onChange={(e) => handleFileChange(e, doc.key)}
+                                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                        accept="image/*,.pdf"
+                                                                    />
+                                                                    <div className={cn(
+                                                                        "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                        form.files[doc.key] ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
+                                                                    )}>
+                                                                        {form.files[doc.key] ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1017,26 +1186,38 @@ export default function BirthRegistrationPage() {
                                             onClick={handleSubmit}
                                             disabled={
                                                 submitting || 
-                                                (!form.idTypeOverride && !resident?.idType) ||
-                                                (!form.files["validIdFront"] && !resident?.idFrontUrl) ||
-                                                (!form.files["validIdBack"] && !resident?.idBackUrl) ||
-                                                !form.files["liveBirthCertificate"] ||
-                                                !form.files["marriageCertificate"]
+                                                (form.registrationType === "STANDARD" ? (
+                                                    !form.files["marriageCertificate"] ||
+                                                    !form.files["municipalForm102"] ||
+                                                    !form.files["communityTaxCertificate"]
+                                                ) : (
+                                                    !form.files["negativePSA"] ||
+                                                    !form.files["colb"] ||
+                                                    !form.files["affidavitDelayed"] ||
+                                                    !form.files["supportingEvidence1"] ||
+                                                    !form.files["supportingEvidence2"]
+                                                ))
                                             }
                                             className={cn(
                                                 "md:col-span-3 h-14 rounded-full font-black uppercase tracking-widest italic text-[11px] transition-all duration-300",
-                                                (!form.idTypeOverride && !resident?.idType) || 
-                                                (!form.files["validIdFront"] && !resident?.idFrontUrl) || 
-                                                (!form.files["validIdBack"] && !resident?.idBackUrl) ||
-                                                !form.files["liveBirthCertificate"] ||
-                                                !form.files["marriageCertificate"]
+                                                (form.registrationType === "STANDARD" ? (
+                                                    !form.files["marriageCertificate"] ||
+                                                    !form.files["municipalForm102"] ||
+                                                    !form.files["communityTaxCertificate"]
+                                                ) : (
+                                                    !form.files["negativePSA"] ||
+                                                    !form.files["colb"] ||
+                                                    !form.files["affidavitDelayed"] ||
+                                                    !form.files["supportingEvidence1"] ||
+                                                    !form.files["supportingEvidence2"]
+                                                ))
                                                     ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
                                                     : "bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20"
                                             )}
                                         >
                                             {submitting ? (
                                                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                            ) : (!form.idTypeOverride && !resident?.idType) || (!form.files["validIdFront"] && !resident?.idFrontUrl) || (!form.files["validIdBack"] && !resident?.idBackUrl) || !form.files["liveBirthCertificate"] || !form.files["marriageCertificate"] ? (
+                                            ) : (form.registrationType === "STANDARD" ? (!form.files["marriageCertificate"] || !form.files["municipalForm102"] || !form.files["communityTaxCertificate"]) : (!form.files["negativePSA"] || !form.files["colb"] || !form.files["affidavitDelayed"] || !form.files["supportingEvidence1"] || !form.files["supportingEvidence2"])) ? (
                                                 <>
                                                     Upload All Required Documents to Submit
                                                     <AlertCircle className="w-5 h-5 ml-2" />
@@ -1068,10 +1249,10 @@ export default function BirthRegistrationPage() {
                     </Card>
                     <Card className="p-6 rounded-[2rem] border-slate-200/50 dark:border-white/5 bg-slate-50 dark:bg-white/5">
                         <div className="flex gap-4">
-                            <CreditCard className="w-5 h-5 text-slate-400 shrink-0" />
+                            <Sparkles className="w-5 h-5 text-slate-400 shrink-0" />
                             <div className="space-y-1">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Registration Fee</h4>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">PHP 100.00 standard administrative filing fee applies for timely registration requests processed via the online portal.</p>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Timeline</h4>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">Standard registrations are processed within 3-5 working days upon verification of submitted documents.</p>
                             </div>
                         </div>
                     </Card>

@@ -620,6 +620,7 @@ model Transaction {
   cedula            Cedula?           // One-to-one link to the issued document
   businessPermit    BusinessPermit?   // One-to-one link to the issued business permit
   birthCertificateRequest BirthCertificateRequest? // One-to-one link to the birth certificate request
+  birthCertificateRegistry BirthCertificateRegistry? // One-to-one link for new registrations
   
   isCancelled       Boolean           @default(false)
   createdAt         DateTime          @default(now())
@@ -703,6 +704,9 @@ model BirthCertificateRequest {
 
 model BirthCertificateRegistry {
   id              String      @id @default(cuid())
+  transactionId   String?     @unique
+  transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   registryNumber  String      @unique // Book/Page number or Registry ID
   dateIssued      DateTime    @default(now())
   
