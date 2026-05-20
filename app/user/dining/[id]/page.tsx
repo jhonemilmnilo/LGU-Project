@@ -29,7 +29,7 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
     return (
         <div className="min-h-screen pb-20 space-y-10">
             {/* Breadcrumb section */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
+            <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                 <Breadcrumb>
                     <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
@@ -161,3 +161,4 @@ export default async function DiningDetailPage({ params }: { params: Promise<{ i
         </div>
     );
 }
+

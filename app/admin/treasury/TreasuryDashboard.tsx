@@ -66,11 +66,15 @@ export default function TreasuryDashboard() {
             const res = await getTreasuryTransactions(status);
             if (res.success) {
                 setTransactions(res.data || []);
+            } else {
+                // Surface the server-side error — toast shows user message, console shows dev detail
+                console.error("[TreasuryDashboard] getTreasuryTransactions failed:", res.error);
+                setTransactions([]);
+                toast.error(res.error || "Failed to load transactions. Check your permissions.");
             }
-            
-            // Fetch stats (Removed unused setStats to comply with lint)
             await getPendingTreasuryCount();
-        } catch {
+        } catch (err) {
+            console.error("[TreasuryDashboard] Unexpected error:", err);
             toast.error("Failed to load transactions");
         } finally {
             setLoading(false);
@@ -88,10 +92,6 @@ export default function TreasuryDashboard() {
             // Silently fail — counts are non-critical
         }
     }, []);
-
-    useEffect(() => {
-        fetchTransactions();
-    }, [fetchTransactions]);
 
     useEffect(() => {
         fetchTransactions();

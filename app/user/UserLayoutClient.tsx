@@ -12,23 +12,23 @@ interface UserLayoutClientProps {
     themeColor?: string;
 }
 
-export default function UserLayoutClient({ 
-    children, 
+export default function UserLayoutClient({
+    children,
     logoUrl,
     brandWord1 = "E",
     brandWord2 = "Mapandan",
     themeColor = "#2563eb"
 }: UserLayoutClientProps) {
     return (
-        <div 
+        <div
             className="min-h-screen bg-slate-50 dark:bg-[#06080a] text-slate-900 dark:text-slate-200 font-sans transition-colors duration-500 flex flex-col selection:bg-primary/30"
             style={{ "--primary-theme": themeColor } as React.CSSProperties}
         >
-            <Navbar 
-                logoUrl={logoUrl} 
-                brandWord1={brandWord1} 
-                brandWord2={brandWord2} 
-                themeColor={themeColor} 
+            <Navbar
+                logoUrl={logoUrl}
+                brandWord1={brandWord1}
+                brandWord2={brandWord2}
+                themeColor={themeColor}
             />
 
             <main className="flex-1 pt-28 md:pt-36 pb-20">

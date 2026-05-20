@@ -5,17 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
-
     Shield, Menu, X, LogIn, LogOut,
-    ChevronDown, Briefcase,
-
+    ChevronDown, Briefcase, Sun, Moon,
     Newspaper, PhoneCall, Info,
-    Compass, MapPin, Globe, Activity
+    Compass, MapPin, Globe, Activity, Archive
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession, signOut } from "next-auth/react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
 import { useBarangay } from "@/components/providers/BarangayProvider";
 import { BarangaySelectionModal } from "@/components/shared/BarangaySelectionModal";
@@ -38,10 +35,12 @@ export function Navbar({
     const { data: session, status } = useSession();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = React.useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
     const [isBarangayModalOpen, setIsBarangayModalOpen] = React.useState(false);
     const { selectedBarangay } = useBarangay();
     const { scrollY } = useScroll();
     const isTransparentNavPage = pathname === "/";
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
 
     const backgroundColor = useTransform(
         scrollY,
@@ -82,17 +81,109 @@ export function Navbar({
     const borderOpacity = useTransform(scrollY, [0, 60], [isTransparentNavPage ? 0 : 1, 1]);
 
     const isAuth = status === "authenticated";
+    const [activeSection, setActiveSection] = React.useState("");
 
+    // EFFECT 1: Immediately sync active state from URL hash when pathname changes.
+    // This handles cross-page navigation (e.g., /about → /#services) where
+    // IntersectionObserver can't fire because sections haven't mounted yet.
+    React.useEffect(() => {
+        if (pathname === "/") {
+            const hash = window.location.hash;
+            if (hash) {
+                setActiveSection(hash);
+            }
+        } else {
+            setActiveSection("");
+        }
+    }, [pathname]);
+
+    // EFFECT 2: IntersectionObserver for scroll-based active detection.
+    // Handles same-page scrolling. Uses a retry loop because sections are
+    // nextDynamic (lazy loaded) and may not exist in DOM immediately.
+    React.useEffect(() => {
+        if (pathname !== "/") return;
+
+        const sectionIds = ["services", "tourism", "news", "careers", "hotlines"];
+        const observers: IntersectionObserver[] = [];
+        let retryTimer: ReturnType<typeof setTimeout>;
+
+        const attachObservers = (attempt = 0) => {
+            sectionIds.forEach((id) => {
+                if (observers.some((o) => (o as any).__id === id)) return;
+                const el = document.getElementById(id);
+                if (!el) return;
+                const observer = new IntersectionObserver(
+                    ([entry]) => {
+                        if (entry.isIntersecting) {
+                            setActiveSection(`#${id}`);
+                        }
+                    },
+                    { threshold: 0.25, rootMargin: "-96px 0px 0px 0px" }
+                );
+                (observer as any).__id = id;
+                observer.observe(el);
+                observers.push(observer);
+            });
+
+            const allFound = sectionIds.every((id) => document.getElementById(id));
+            if (!allFound && attempt < 5) {
+                retryTimer = setTimeout(() => attachObservers(attempt + 1), 500);
+            }
+        };
+
+        attachObservers();
+
+        return () => {
+            observers.forEach((obs) => obs.disconnect());
+            clearTimeout(retryTimer);
+        };
+    }, [pathname]);
+
+    // Smart active link detection
+    const isLinkActive = (href: string): boolean => {
+        if (href.startsWith("/#")) {
+            return pathname === "/" && activeSection === href.slice(1);
+        }
+        if (href === "/") return pathname === "/" && activeSection === "";
+        return pathname === href || pathname.startsWith(href + "/");
+    };
+
+    // Scroll to section or navigate to page
+    const handleNavClick = (e: React.MouseEvent, href: string) => {
+        if (!href.startsWith("/#")) return;
+        const id = href.slice(2);
+        const el = document.getElementById(id);
+        if (el) {
+            e.preventDefault();
+            const navbarHeight = 96;
+            const top = el.getBoundingClientRect().top + window.scrollY - navbarHeight;
+            window.scrollTo({ top, behavior: "smooth" });
+            window.history.pushState(null, "", `#${id}`);
+            setActiveSection(`#${id}`);
+        }
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const userRole = (session?.user as { role?: string })?.role;
     const userName = session?.user?.name || "Member";
+    const userEmail = session?.user?.email || "";
 
-    const { resolvedTheme } = useTheme();
+    const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
         setMounted(true);
+    }, []);
+
+    // Close dropdown when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     // Prevent body scroll when mobile menu is open
@@ -107,7 +198,7 @@ export function Navbar({
         };
     }, [isOpen]);
 
-    // Unified main navigation links for all users
+    // Main nav links (no auth-specific links — those go in the dropdown)
     const mainLinks = [
         { name: "About", href: "/about", icon: Info },
         { name: "Services", href: "/#services", icon: Briefcase },
@@ -117,21 +208,19 @@ export function Navbar({
         { name: "Safety", href: "/#hotlines", icon: PhoneCall },
     ];
 
-    const authLinks = [
-        ...mainLinks,
-        { name: "My Archive", href: "/user/reports", icon: Globe },
+    // Dropdown-specific links (only shown when authenticated)
+    const userDropdownLinks = [
+        { name: "My Archive", href: "/user/reports", icon: Archive },
         { name: "My Requests", href: "/user/services/requests", icon: Activity },
     ];
 
-    const currentLinks = isAuth ? authLinks : mainLinks;
-
-    // Determine effective theme safely for hydration
     const activeTheme = mounted ? resolvedTheme : "light";
+    const isDark = activeTheme === "dark";
 
     return (
         <motion.header
             style={{
-                backgroundColor: activeTheme === "dark" ? darkBackgroundColor : backgroundColor,
+                backgroundColor: isDark ? darkBackgroundColor : backgroundColor,
                 backdropFilter: backdropBlur,
                 boxShadow: shadow,
             }}
@@ -141,54 +230,55 @@ export function Navbar({
                 style={{ opacity: borderOpacity }}
                 className="absolute inset-x-0 bottom-0 h-px bg-slate-200/50 dark:bg-white/5"
             />
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-8 h-20 md:h-24 flex items-center justify-between gap-4">
-                {/* Logo Section */}
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 md:h-24 flex items-center justify-between gap-2 sm:gap-4">
+
+                {/* ── Logo ── */}
                 <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
                     <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden relative"
+                        className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden relative"
                         style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
                     >
                         {logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={logoUrl} alt="Logo" className="w-full h-full object-cover p-2" />
+                            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover p-1.5" />
                         ) : (
-                            <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         )}
                         <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </motion.div>
                     <div className="flex flex-col">
                         <motion.span
-                            style={{ color: activeTheme === "dark" ? darkColor : color }}
-                            className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic leading-none"
+                            style={{ color: isDark ? darkColor : color }}
+                            className="text-lg sm:text-2xl font-black uppercase tracking-tighter italic leading-none"
                         >
                             {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
                         </motion.span>
                         <motion.span
                             style={{ opacity: useTransform(scrollY, [0, 80], [0.7, 0.4]) }}
-                            className="text-[8px] sm:text-[10px] uppercase font-bold tracking-[0.2em] mt-1 hidden sm:block text-slate-400 dark:text-slate-500"
+                            className="text-[7px] sm:text-[10px] uppercase font-bold tracking-[0.2em] mt-0.5 hidden sm:block text-slate-400 dark:text-slate-500"
                         >
                             Smart Municipality
                         </motion.span>
                     </div>
                 </Link>
 
-                {/* Desktop Navigation - Responsive Breakpoints */}
-                <nav className="hidden xl:flex items-center gap-1 bg-white/5 dark:bg-black/5 p-1 rounded-full backdrop-blur-sm">
+                {/* ── Desktop Navigation ── */}
+                <nav className="hidden lg:flex items-center gap-0.5 bg-white/5 dark:bg-black/5 p-1 rounded-full backdrop-blur-sm">
+                    {/* Jurisdiction Switcher */}
                     <button
                         onClick={() => setIsBarangayModalOpen(true)}
-                        className="relative px-5 py-2 group overflow-hidden flex items-center gap-2 transition-all hover:bg-slate-50 dark:hover:bg-white/5 rounded-full"
+                        className="relative px-3 xl:px-5 py-2 group overflow-hidden flex items-center gap-1.5 transition-all hover:bg-slate-50 dark:hover:bg-white/5 rounded-full"
                     >
                         <MapPin
-                            className="w-3.5 h-3.5"
+                            className="w-3.5 h-3.5 shrink-0"
                             style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}
                         />
                         <div className="flex flex-col items-start leading-none">
                             <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Jurisdiction</span>
                             <span
-                                className="text-[11px] font-bold uppercase tracking-wider"
+                                className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider"
                                 style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}
                             >
                                 {selectedBarangay === "All" ? "Mapandan" : selectedBarangay}
@@ -196,33 +286,50 @@ export function Navbar({
                         </div>
                     </button>
 
-                    <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-2" />
+                    <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-1" />
 
-                    {currentLinks.map((link) => {
-                        const isActive = pathname === link.href;
+                    {/* Main nav links */}
+                    {mainLinks.map((link) => {
+                        const isActive = isLinkActive(link.href);
                         return (
                             <Link
                                 key={link.name}
                                 href={link.href}
-                                className="relative px-4 py-2 group overflow-hidden"
+                                onClick={(e) => handleNavClick(e, link.href)}
+                                className="relative px-3 xl:px-4 py-2.5 pb-3 group overflow-hidden rounded-full"
                             >
-                                <motion.div
-                                    style={{ color: activeTheme === "dark" ? darkColor : color }}
-                                    className={cn(
-                                        "relative z-10 text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 transition-colors group-hover:text-[var(--primary-theme)]",
-                                    )}
-                                >
-                                    <link.icon
-                                        className={cn("w-3.5 h-3.5", isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100")}
-                                        style={{ color: isActive ? themeColor : undefined }}
-                                    />
-                                    <span style={{ color: isActive ? themeColor : undefined }}>{link.name}</span>
-                                </motion.div>
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTab"
                                         className="absolute inset-0 rounded-full -z-0"
-                                        style={{ backgroundColor: `${themeColor}15` }}
+                                        style={{ backgroundColor: `${themeColor}18` }}
+                                        initial={false}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                )}
+                                <div
+                                    className="relative z-10 text-[10px] xl:text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 xl:gap-1.5 transition-colors duration-200"
+                                    style={{ color: isActive ? themeColor : undefined }}
+                                >
+                                    <link.icon
+                                        className={cn(
+                                            "w-3 h-3 xl:w-3.5 xl:h-3.5 transition-all duration-200",
+                                            isActive ? "opacity-100 scale-110" : "opacity-60 group-hover:opacity-100"
+                                        )}
+                                    />
+                                    <motion.span
+                                        style={{ color: isActive ? themeColor : (isDark ? darkColor : color) }}
+                                        className="group-hover:opacity-80 transition-opacity"
+                                    >
+                                        {link.name}
+                                    </motion.span>
+                                </div>
+                                {/* Active bottom indicator */}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="activeIndicator"
+                                        className="absolute bottom-1 left-1/2 -translate-x-1/2 h-[3px] w-5 rounded-full"
+                                        style={{ backgroundColor: themeColor }}
                                         initial={false}
                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                     />
@@ -232,153 +339,344 @@ export function Navbar({
                     })}
                 </nav>
 
-                {/* Desktop Actions */}
-                <div className="hidden min-[1100px]:flex items-center gap-3">
-                    <ThemeToggle />
-
-                    <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
-
-
-
-                    <div className="h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
-
+                {/* ── Desktop Right Actions ── */}
+                <div className="hidden lg:flex items-center gap-2 shrink-0">
                     {isAuth ? (
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 pl-2 pr-4 py-1.5 rounded-2xl">
-                                <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white text-[10px] font-black uppercase">
+                        /* ── User Avatar Dropdown ── */
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                onClick={() => setIsDropdownOpen((v) => !v)}
+                                className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 pl-1.5 pr-3 py-1.5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all active:scale-95"
+                            >
+                                {/* Avatar */}
+                                <div
+                                    className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[11px] font-black uppercase shadow-sm"
+                                    style={{ backgroundColor: themeColor }}
+                                >
                                     {userName.charAt(0)}
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Authenticated</span>
-                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[80px] leading-tight">{userName}</span>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 leading-none">Member</span>
+                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white truncate max-w-[90px] leading-tight">{userName}</span>
                                 </div>
-                            </div>
-                            <Button
-                                onClick={() => signOut({ callbackUrl: "/" })}
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </Button>
+                                <ChevronDown
+                                    className={cn(
+                                        "w-3.5 h-3.5 text-slate-400 transition-transform duration-300",
+                                        isDropdownOpen && "rotate-180"
+                                    )}
+                                />
+                            </button>
+
+                            {/* Dropdown Panel */}
+                            <AnimatePresence>
+                                {isDropdownOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        transition={{ type: "spring", damping: 28, stiffness: 400 }}
+                                        className="absolute right-0 top-[calc(100%+10px)] w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 overflow-hidden z-50"
+                                        style={{ boxShadow: "0 20px 60px -10px rgba(0,0,0,0.2)" }}
+                                    >
+                                        {/* Header */}
+                                        <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black uppercase text-sm shadow-md"
+                                                    style={{ backgroundColor: themeColor, boxShadow: `0 4px 12px ${themeColor}50` }}
+                                                >
+                                                    {userName.charAt(0)}
+                                                </div>
+                                                <div className="flex flex-col overflow-hidden">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Authenticated</span>
+                                                    <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{userName}</span>
+                                                    <span className="text-[10px] text-slate-400 truncate">{userEmail}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Menu Items */}
+                                        <div className="py-2">
+                                            {/* Theme Toggle Row */}
+                                            <div className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    {isDark
+                                                        ? <Moon className="w-4 h-4 text-slate-400" />
+                                                        : <Sun className="w-4 h-4 text-slate-400" />
+                                                    }
+                                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                                        {isDark ? "Dark Mode" : "Light Mode"}
+                                                    </span>
+                                                </div>
+                                                {/* Toggle Switch */}
+                                                <button
+                                                    onClick={() => setTheme(isDark ? "light" : "dark")}
+                                                    className={cn(
+                                                        "w-10 h-5.5 rounded-full relative transition-all duration-300 flex items-center px-0.5",
+                                                        isDark ? "bg-slate-700" : "bg-slate-200"
+                                                    )}
+                                                    style={isDark ? { backgroundColor: `${themeColor}80` } : undefined}
+                                                >
+                                                    <motion.div
+                                                        layout
+                                                        className="w-4 h-4 rounded-full bg-white shadow-sm"
+                                                        animate={{ x: isDark ? 18 : 0 }}
+                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                    />
+                                                </button>
+                                            </div>
+
+                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-3 my-1" />
+
+                                            {/* My Archive */}
+                                            <Link
+                                                href="/user/reports"
+                                                onClick={() => setIsDropdownOpen(false)}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group",
+                                                    isLinkActive("/user/reports") && "bg-slate-50 dark:bg-white/5"
+                                                )}
+                                            >
+                                                <Archive
+                                                    className="w-4 h-4 transition-colors"
+                                                    style={{ color: isLinkActive("/user/reports") ? themeColor : undefined }}
+                                                />
+                                                <span
+                                                    className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors"
+                                                    style={{ color: isLinkActive("/user/reports") ? themeColor : undefined }}
+                                                >
+                                                    My Archive
+                                                </span>
+                                                {isLinkActive("/user/reports") && (
+                                                    <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                                                )}
+                                            </Link>
+
+                                            {/* My Requests */}
+                                            <Link
+                                                href="/user/services/requests"
+                                                onClick={() => setIsDropdownOpen(false)}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group",
+                                                    isLinkActive("/user/services/requests") && "bg-slate-50 dark:bg-white/5"
+                                                )}
+                                            >
+                                                <Activity
+                                                    className="w-4 h-4 transition-colors"
+                                                    style={{ color: isLinkActive("/user/services/requests") ? themeColor : undefined }}
+                                                />
+                                                <span
+                                                    className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors"
+                                                    style={{ color: isLinkActive("/user/services/requests") ? themeColor : undefined }}
+                                                >
+                                                    My Requests
+                                                </span>
+                                                {isLinkActive("/user/services/requests") && (
+                                                    <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                                                )}
+                                            </Link>
+
+                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-3 my-1" />
+
+                                            {/* Log Out */}
+                                            <button
+                                                onClick={() => { setIsDropdownOpen(false); signOut({ callbackUrl: window.location.origin + "/" }); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors group"
+                                            >
+                                                <LogOut className="w-4 h-4 text-red-400 group-hover:text-red-500 transition-colors" />
+                                                <span className="text-sm font-semibold text-red-400 group-hover:text-red-500 transition-colors">Log out</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     ) : (
-                        <Link href={isAuth ? "/user/services/requests" : "/auth/login"} className="active:scale-95 transition-all">
-                            <Button
-                                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
-                                className="text-white font-black uppercase tracking-widest px-8 rounded-2xl h-12 flex items-center gap-2 text-[10px] border-none"
+                        /* ── Login Button ── */
+                        <div className="flex items-center gap-2">
+                            {/* Theme toggle for guest */}
+                            <button
+                                onClick={() => setTheme(isDark ? "light" : "dark")}
+                                className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                             >
-                                {isAuth ? <Activity className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
-                                {isAuth ? "Resident Hub" : "Access Resident Hub"}
-                            </Button>
-                        </Link>
+                                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                            </button>
+                            <Link href="/auth/login" className="active:scale-95 transition-all">
+                                <Button
+                                    style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                    className="text-white font-black uppercase tracking-widest px-5 xl:px-8 rounded-2xl h-10 xl:h-12 flex items-center gap-2 text-[10px] border-none"
+                                >
+                                    <LogIn className="w-4 h-4" />
+                                    <span className="hidden xl:inline">Access Resident Hub</span>
+                                    <span className="xl:hidden">Login</span>
+                                </Button>
+                            </Link>
+                        </div>
                     )}
                 </div>
 
-                {/* Small Screen Controls (Desktop layout but smaller window) */}
-                <div className="flex min-[1100px]:hidden items-center gap-2 sm:gap-4">
-                    <ThemeToggle />
+                {/* ── Mobile/Tablet Controls ── */}
+                <div className="flex lg:hidden items-center gap-2">
+                    {/* Theme toggle */}
                     <button
-                        className="p-2 sm:p-2.5 bg-white/5 dark:bg-black/5 rounded-xl border border-white/10"
-                        onClick={() => setIsOpen(!isOpen)}
+                        onClick={() => setTheme(isDark ? "light" : "dark")}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-700 dark:hover:text-white bg-slate-100/80 dark:bg-slate-800/80 transition-all"
                     >
-                        <motion.div style={{ color: activeTheme === "dark" ? darkColor : color }}>
+                        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    </button>
+                    {/* Hamburger */}
+                    <button
+                        className="w-9 h-9 flex items-center justify-center bg-slate-100/80 dark:bg-slate-800/80 rounded-xl border border-white/10 transition-all active:scale-95"
+                        onClick={() => setIsOpen(!isOpen)}
+                        aria-label="Toggle menu"
+                    >
+                        <motion.div style={{ color: isDark ? darkColor : color }}>
                             {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </motion.div>
                     </button>
                 </div>
             </div>
 
-            {/* Premium Mobile Menu */}
+            {/* ── Premium Mobile Menu ── */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -20, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.97 }}
                         transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                        className="lg:hidden absolute top-full left-0 right-0 h-[calc(100vh-80px)] bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 shadow-2xl flex flex-col"
+                        className="absolute top-full left-0 right-0 h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] bg-white/97 dark:bg-slate-950/97 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 shadow-2xl flex flex-col"
                     >
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
-                                {/* Barangay Switcher Card */}
+                            <div className="px-4 sm:px-6 py-5 flex flex-col gap-5 max-w-lg mx-auto">
+
+                                {/* ── User Card (if authenticated) ── */}
+                                {isAuth && (
+                                    <div className="rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 overflow-hidden">
+                                        {/* User Info */}
+                                        <div className="flex items-center gap-3 p-4 border-b border-slate-100 dark:border-white/5">
+                                            <div
+                                                className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-base font-black shadow-md"
+                                                style={{ backgroundColor: themeColor, boxShadow: `0 4px 12px ${themeColor}40` }}
+                                            >
+                                                {userName.charAt(0)}
+                                            </div>
+                                            <div className="flex flex-col overflow-hidden">
+                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">Welcome Back</span>
+                                                <span className="text-sm font-black text-slate-900 dark:text-white italic tracking-tight uppercase truncate">{userName}</span>
+                                                <span className="text-[10px] text-slate-400 truncate">{userEmail}</span>
+                                            </div>
+                                        </div>
+                                        {/* User Quick Links */}
+                                        <div className="grid grid-cols-2 divide-x divide-slate-100 dark:divide-white/5">
+                                            {userDropdownLinks.map((link) => {
+                                                const isActive = isLinkActive(link.href);
+                                                return (
+                                                    <Link
+                                                        key={link.name}
+                                                        href={link.href}
+                                                        onClick={() => setIsOpen(false)}
+                                                        className="flex flex-col items-center gap-1.5 py-3 hover:bg-slate-100 dark:hover:bg-white/5 transition-all active:scale-95"
+                                                    >
+                                                        <div
+                                                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                                                            style={{ backgroundColor: isActive ? themeColor : undefined }}
+                                                        >
+                                                            <link.icon
+                                                                className="w-4 h-4"
+                                                                style={{ color: isActive ? "#fff" : themeColor }}
+                                                            />
+                                                        </div>
+                                                        <span
+                                                            className="text-[10px] font-bold uppercase tracking-wide"
+                                                            style={{ color: isActive ? themeColor : undefined }}
+                                                        >
+                                                            {link.name}
+                                                        </span>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Barangay Switcher ── */}
                                 <button
                                     onClick={() => { setIsBarangayModalOpen(true); setIsOpen(false); }}
-                                    className="w-full p-3 md:p-5 rounded-2xl md:rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-between group active:scale-[0.98] transition-all"
+                                    className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-between group active:scale-[0.98] transition-all"
                                 >
-                                    <div className="flex items-center gap-3 md:gap-4">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-primary shadow-sm">
-                                            <MapPin className="w-5 h-5 md:w-6 md:h-6" style={{ color: themeColor }} />
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm">
+                                            <MapPin className="w-5 h-5" style={{ color: themeColor }} />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Select Jurisdiction</p>
-                                            <p className="text-sm md:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none" style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}>
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Select Jurisdiction</p>
+                                            <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none"
+                                                style={{ color: selectedBarangay !== "All" ? themeColor : undefined }}>
                                                 {selectedBarangay === "All" ? "Municipality" : selectedBarangay}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-white/5">
-                                        <Globe className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-white/5">
+                                        <Globe className="w-3.5 h-3.5 text-slate-400" />
                                     </div>
                                 </button>
 
-                                {/* Main Nav Links */}
+                                {/* ── Main Nav Links ── */}
                                 <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Main Navigation</p>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {currentLinks.map((link) => (
-                                            <Link
-                                                key={link.name}
-                                                href={link.href}
-                                                onClick={() => setIsOpen(false)}
-                                                className={cn(
-                                                    "p-3 md:p-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-between group h-12 md:h-16 transition-all active:scale-[0.98]",
-                                                    pathname === link.href && "bg-primary/10 border border-primary/20"
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-3 md:gap-4">
-                                                    <div className={cn(
-                                                        "w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center transition-colors",
-                                                        pathname === link.href ? "bg-primary text-white" : "bg-white dark:bg-white/10 text-primary group-hover:bg-primary group-hover:text-white"
-                                                    )}>
-                                                        <link.icon className="w-4 h-4 md:w-5 md:h-5" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Navigation</p>
+                                    <div className="grid grid-cols-1 gap-1.5">
+                                        {mainLinks.map((link) => {
+                                            const isMobileActive = isLinkActive(link.href);
+                                            return (
+                                                <Link
+                                                    key={link.name}
+                                                    href={link.href}
+                                                    onClick={(e) => {
+                                                        handleNavClick(e, link.href);
+                                                        setIsOpen(false);
+                                                    }}
+                                                    className="flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.98]"
+                                                    style={isMobileActive
+                                                        ? { borderColor: `${themeColor}40`, backgroundColor: `${themeColor}0d` }
+                                                        : { borderColor: "transparent", backgroundColor: undefined }
+                                                    }
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div
+                                                            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all bg-slate-100 dark:bg-white/10"
+                                                            style={isMobileActive ? { backgroundColor: themeColor } : undefined}
+                                                        >
+                                                            <link.icon
+                                                                className="w-4 h-4"
+                                                                style={{ color: isMobileActive ? "#fff" : themeColor }}
+                                                            />
+                                                        </div>
+                                                        <span
+                                                            className="text-sm font-bold uppercase tracking-wide text-slate-800 dark:text-white"
+                                                            style={isMobileActive ? { color: themeColor } : undefined}
+                                                        >
+                                                            {link.name}
+                                                        </span>
                                                     </div>
-                                                    <span className={cn(
-                                                        "text-sm md:text-base font-bold uppercase tracking-wide transition-colors",
-                                                        pathname === link.href ? "text-primary" : "text-slate-900 dark:text-white"
-                                                    )}>{link.name}</span>
-                                                </div>
-                                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-slate-300">
-                                                    <ChevronDown className="w-3.5 h-3.5 md:w-4 md:h-4 -rotate-90" />
-                                                </div>
-                                            </Link>
-                                        ))}
+                                                    <ChevronDown
+                                                        className="w-4 h-4 -rotate-90 text-slate-300"
+                                                        style={isMobileActive ? { color: themeColor } : undefined}
+                                                    />
+                                                </Link>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-
-                                <div className="h-px bg-slate-100 dark:bg-white/5 mx-2" />
-
-                                {/* User Info Card (Small) */}
-                                {isAuth && (
-                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 mb-4">
-                                        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white text-base font-black shadow-sm">
-                                            {userName.charAt(0)}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">Welcome Back</span>
-                                            <span className="text-sm font-black text-slate-900 dark:text-white italic tracking-tight uppercase truncate max-w-[200px]">{userName}</span>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
-                        {/* Sticky Footer */}
-                        <div className="p-6 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md border-t border-slate-100 dark:border-white/5 pb-12 sm:pb-6">
+                        {/* ── Sticky Footer ── */}
+                        <div className="p-4 sm:p-6 bg-white/60 dark:bg-slate-950/60 backdrop-blur-md border-t border-slate-100 dark:border-white/5 pb-8 sm:pb-6 flex flex-col gap-2">
                             {isAuth ? (
                                 <Button
-                                    onClick={() => signOut({ callbackUrl: "/" })}
+                                    onClick={() => signOut({ callbackUrl: window.location.origin + "/" })}
                                     className="w-full bg-red-500 hover:bg-red-600 text-white h-12 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-500/20"
                                 >
                                     <LogOut className="w-4 h-4" />
@@ -408,4 +706,3 @@ export function Navbar({
         </motion.header>
     );
 }
-

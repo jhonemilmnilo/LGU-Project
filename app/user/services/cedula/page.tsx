@@ -34,6 +34,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 /**
  * multi-step form for Cedula Application.
  */
@@ -269,7 +270,7 @@ export default function CedulaApplicationPage() {
             {/* Header / Breadcrumb */}
         <div className="space-y-4 md:space-y-10">
             {/* Header / Breadcrumb */}
-            <div className="sticky top-[70px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
+            <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                 <Breadcrumb>
                     <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                         <BreadcrumbItem>
@@ -827,8 +828,11 @@ export default function CedulaApplicationPage() {
                     setPrivacyAccepted(true);
                     setIsPrivacyModalOpen(false);
                 }}
-                themeColor="#10b981"
+                themeColor="var(--primary-theme)"
             />
+            {/* Secure Idle Inactivity Timer */}
+            <SecureIdleTimer />
         </div>
     );
 }
+

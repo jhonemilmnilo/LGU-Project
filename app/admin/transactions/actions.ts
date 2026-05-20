@@ -10,7 +10,7 @@ import { calculateBusinessPermit } from "@/lib/business-permit";
 import { sendEmail } from "@/lib/mail";
 import { uploadFile } from "@/lib/storage";
 
-// --- HELPERS ---
+
 
 async function getSession() {
     return await getServerSession(authOptions);
@@ -68,7 +68,7 @@ export async function ensureCedulaTransactionTypes() {
                 name: "Community Tax Certificate - Individual",
                 description: "Tax certificate for individuals including employees, self-employed, and property owners.",
                 level: 1,
-                category: "Treasurer",
+                category: "CEDULA",
                 baseFee: 5.00,
                 deliveryFee: 50.00,
                 isFixed: false,
@@ -86,7 +86,7 @@ export async function ensureCedulaTransactionTypes() {
                 name: "Community Tax Certificate - Juridical",
                 description: "Tax certificate for corporations, partnerships, and other juridical entities.",
                 level: 1,
-                category: "Treasurer",
+                category: "CEDULA",
                 baseFee: 500.00,
                 deliveryFee: 50.00,
                 isFixed: false,
@@ -129,7 +129,7 @@ export async function ensureBusinessPermitTransactionTypes() {
                 name: "Business Permit - New",
                 description: "Apply for a new business permit for starting a business in Mapandan, Pangasinan.",
                 level: 1,
-                category: "BPLO",
+                category: "Business Permit",
                 baseFee: 500.00,
                 deliveryFee: 100.00,
                 isFixed: false,
@@ -155,7 +155,7 @@ export async function ensureBusinessPermitTransactionTypes() {
                 name: "Business Permit - Renewal",
                 description: "Renew your existing business permit. Calculated based on previous annual gross sales.",
                 level: 1,
-                category: "BPLO",
+                category: "Business Permit",
                 baseFee: 500.00,
                 deliveryFee: 100.00,
                 isFixed: false,
@@ -1309,7 +1309,7 @@ export async function getTreasuryTransactions(status?: string) {
         }
 
         const where: any = {
-            type: { category: { in: ["Treasurer", "BPLO"] } }
+            type: { processorRole: "TREASURY_STAFF" }
         };
 
         if (status && status !== "ALL") {
@@ -1349,7 +1349,7 @@ export async function getPendingTreasuryCount() {
     try {
         const count = await prisma.transaction.count({
             where: {
-                type: { category: { in: ["Treasurer", "BPLO"] } },
+                type: { processorRole: "TREASURY_STAFF" },
                 status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
             }
         });
@@ -1375,7 +1375,7 @@ export async function getTreasuryStatusCounts() {
         const grouped = await prisma.transaction.groupBy({
             by: ["status"],
             where: {
-                type: { category: { in: ["Treasurer", "BPLO"] } },
+                type: { processorRole: "TREASURY_STAFF" },
                 isCancelled: false
             },
             _count: { _all: true }
@@ -1384,14 +1384,14 @@ export async function getTreasuryStatusCounts() {
         // Count cancelled separately
         const cancelledCount = await prisma.transaction.count({
             where: {
-                type: { category: { in: ["Treasurer", "BPLO"] } },
+                type: { processorRole: "TREASURY_STAFF" },
                 isCancelled: true
             }
         });
 
         const counts: Record<string, number> = {};
         for (const group of grouped) {
-            counts[group.status] = group._count._all;
+            counts[group.status] = group._count?._all ?? 0;
         }
         counts["CANCELLED"] = cancelledCount;
 
