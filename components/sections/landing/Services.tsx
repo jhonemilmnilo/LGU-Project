@@ -97,7 +97,7 @@ export function Services({ services = [], themeColor }: ServicesProps) {
 }
 
 function ServiceCard({ service, themeColor, isMobile }: { service: Service; themeColor?: string; isMobile: boolean }) {
-    const cardClasses = "group bg-white dark:bg-[#0f1117] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative";
+    const cardClasses = "group bg-white dark:bg-[#0f1117] rounded-2xl md:rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none hover:border-blue-500 hover:-translate-y-2 transition-all overflow-hidden relative";
     
     const content = (
         <Link 

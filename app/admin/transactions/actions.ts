@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { calculateCedula } from "@/lib/cedula";
+import { calculateBusinessPermit } from "@/lib/business-permit";
 
 import { sendEmail } from "@/lib/mail";
 import { uploadFile } from "@/lib/storage";
@@ -848,8 +849,12 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
-        if (transaction.type.code.indexOf("CEDULA") === -1) {
-            return { success: false, error: "Not a Cedula transaction" };
+        
+        const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+        const isCedula = transaction.type.code.includes("CEDULA");
+
+        if (!isCedula && !isBusinessPermit) {
+            return { success: false, error: "Unsupported transaction type" };
         }
 
         const additionalData = transaction.additionalData as any;
@@ -876,13 +881,47 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         }
 
         // Compute the tax
-        const result = calculateCedula({
-            type: additionalData.applicantType || "INDIVIDUAL",
-            income: additionalData.income || 0,
-            propertyValue: additionalData.propertyValue || 0,
-            fulfillmentType: transaction.fulfillmentType,
-            deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
-        });
+        let result: {
+            basicTax: number;
+            additionalTax: number;
+            penalty: number;
+            deliveryFee: number;
+            totalAmount: number;
+        };
+
+        if (isBusinessPermit) {
+            const cap = Number(additionalData.capitalInvestment || 0);
+            const sales = Number(additionalData.grossSales || 0);
+            const bploCalc = calculateBusinessPermit({
+                type: additionalData.businessType === "NEW" ? "NEW" : "RENEWAL",
+                capitalization: cap,
+                grossSales: sales,
+                fulfillmentType: transaction.fulfillmentType,
+                deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
+            });
+            result = {
+                basicTax: bploCalc.baseFee,
+                additionalTax: bploCalc.taxAmount,
+                penalty: 0,
+                deliveryFee: bploCalc.deliveryFee,
+                totalAmount: bploCalc.totalAmount
+            };
+        } else {
+            const cedulaCalc = calculateCedula({
+                type: additionalData.applicantType || "INDIVIDUAL",
+                income: additionalData.income || 0,
+                propertyValue: additionalData.propertyValue || 0,
+                fulfillmentType: transaction.fulfillmentType,
+                deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
+            });
+            result = {
+                basicTax: cedulaCalc.basicTax,
+                additionalTax: cedulaCalc.additionalTax,
+                penalty: cedulaCalc.penalty,
+                deliveryFee: cedulaCalc.deliveryFee,
+                totalAmount: cedulaCalc.totalAmount
+            };
+        }
 
         // Determine New Status
         // Now strictly EVALUATED as the resident will choose fulfillment later
@@ -1067,23 +1106,46 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true, user: true, cedula: true }
+            include: { type: true, user: true, cedula: true, businessPermit: true }
         });
 
         if (!transaction || !["PAID", "FOR_CLAIM", "FOR_PROCESSING"].includes(transaction.status as any)) {
             return { success: false, error: "Transaction must be paid, processing, or ready for claiming before release" };
         }
 
+        const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
         const additionalData = transaction.additionalData as any;
-        const calc = calculateCedula({
-            type: additionalData.applicantType || "INDIVIDUAL",
-            income: additionalData.income || 0,
-            propertyValue: additionalData.propertyValue || 0,
-            fulfillmentType: transaction.fulfillmentType,
-            deliveryFee: transaction.type.deliveryFee
-        });
+        
+        let basicTax = 0;
+        let additionalTax = 0;
+        let penalty = 0;
 
-        // Determine target status and email type
+        if (isBusinessPermit) {
+            const cap = Number(additionalData.capitalInvestment || 0);
+            const sales = Number(additionalData.grossSales || 0);
+            const bploCalc = calculateBusinessPermit({
+                type: additionalData.businessType === "NEW" ? "NEW" : "RENEWAL",
+                capitalization: cap,
+                grossSales: sales,
+                fulfillmentType: transaction.fulfillmentType,
+                deliveryFee: transaction.type.deliveryFee
+            });
+            basicTax = bploCalc.baseFee;
+            additionalTax = bploCalc.taxAmount;
+            penalty = 0;
+        } else {
+            const calc = calculateCedula({
+                type: additionalData.applicantType || "INDIVIDUAL",
+                income: additionalData.income || 0,
+                propertyValue: additionalData.propertyValue || 0,
+                fulfillmentType: transaction.fulfillmentType,
+                deliveryFee: transaction.type.deliveryFee
+            });
+            basicTax = calc.basicTax;
+            additionalTax = calc.additionalTax;
+            penalty = calc.penalty;
+        }
+
         // Determine target status: FOR_PICKING for Delivery, FOR_CLAIM for Pickup prepare, else RELEASED
         const isInitialRelease = transaction.status === "FOR_PROCESSING" || transaction.status === "PAID";
         const targetStatus = isInitialRelease
@@ -1112,56 +1174,98 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 console.log(`Logistics alert sent to ${riders.length} riders for transaction ${transaction.id}`);
             } catch (notifyError) {
                 console.error("Failed to notify riders:", notifyError);
-                // We don't fail the whole release if email fails, but we log it
             }
         }
 
-        // Check if CTC Number is already used by another transaction
+        // Check if Serial / CTC Number is already used by another transaction
         if (ctcNumber) {
-            const existingCedula = await prisma.cedula.findUnique({
-                where: { ctcNumber }
-            });
-            if (existingCedula && existingCedula.transactionId !== id) {
-                return { success: false, error: `CTC Number ${ctcNumber} is already used by another request.` };
+            if (isBusinessPermit) {
+                const existingPermit = await prisma.businessPermit.findUnique({
+                    where: { permitNumber: ctcNumber }
+                });
+                if (existingPermit && existingPermit.transactionId !== id) {
+                    return { success: false, error: `Permit Number ${ctcNumber} is already used by another request.` };
+                }
+            } else {
+                const existingCedula = await prisma.cedula.findUnique({
+                    where: { ctcNumber }
+                });
+                if (existingCedula && existingCedula.transactionId !== id) {
+                    return { success: false, error: `CTC Number ${ctcNumber} is already used by another request.` };
+                }
             }
         }
 
-        // Handle Cedula record lifecycle
-        if (!transaction.cedula) {
-            const now = new Date();
-            // Requirement check: Only allow skipping ctcNumber if it's initial Cash Pickup prepare (FOR_PROCESSING)
-            const isPickupCashInitial = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING";
-            
-            if (!ctcNumber && !isPickupCashInitial) {
-                return { success: false, error: "CTC Number is required for this transaction type." };
-            }
+        const now = new Date();
+        const isPickupCashInitial = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING";
 
-            await prisma.cedula.create({
-                data: {
-                    transactionId: id,
-                    ctcNumber: ctcNumber || null,
-                    taxYear: now.getFullYear(),
-                    dateIssued: now,
-                    expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59), // End of Dec 31
-                    basicTax: calc.basicTax,
-                    additionalTax: calc.additionalTax,
-                    penalty: calc.penalty,
-                    totalPaid: transaction.totalAmount,
-                    issuedBy: user.name || "System Administrator",
-                    businessName: (transaction as any).businessName,
-                    documentUrl: eCopyUrl || (transaction as any).eCopyUrl,
-                    verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+        // Handle either BPLO or Cedula lifecycle
+        if (isBusinessPermit) {
+            if (!transaction.businessPermit) {
+                if (!ctcNumber && !isPickupCashInitial) {
+                    return { success: false, error: "Permit Number is required for this transaction type." };
                 }
-            });
-        } else if (ctcNumber || eCopyUrl) {
-            // Update existing cedula if new data is provided during final release (e.g. from FOR_CLAIM to RELEASED)
-            await prisma.cedula.update({
-                where: { id: transaction.cedula.id },
-                data: { 
-                    ...(ctcNumber ? { ctcNumber } : {}),
-                    ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                await prisma.businessPermit.create({
+                    data: {
+                        transactionId: id,
+                        permitNumber: ctcNumber || `PENDING-${id}`,
+                        taxYear: now.getFullYear(),
+                        dateIssued: now,
+                        expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59),
+                        businessName: transaction.businessName || additionalData.businessName || "Unnamed Business",
+                        tradeName: additionalData.tradeName || null,
+                        orgType: additionalData.orgType || "SOLE_PROPRIETORSHIP",
+                        dtiSecNumber: additionalData.dtiSecNumber || null,
+                        lineOfBusiness: additionalData.lineOfBusiness || "General",
+                        capitalInvestment: Number(additionalData.capitalInvestment || 0),
+                        grossSales: Number(additionalData.grossSales || 0),
+                        employeeCount: Number(additionalData.employeeCount || 1),
+                        businessArea: Number(additionalData.businessArea || 0),
+                        documentUrl: eCopyUrl || transaction.eCopyUrl,
+                        issuedBy: user.name || "System Administrator",
+                        verificationId: `VER-BP-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                    }
+                });
+            } else if (ctcNumber || eCopyUrl) {
+                await prisma.businessPermit.update({
+                    where: { id: transaction.businessPermit.id },
+                    data: {
+                        ...(ctcNumber ? { permitNumber: ctcNumber } : {}),
+                        ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                    }
+                });
+            }
+        } else {
+            if (!transaction.cedula) {
+                if (!ctcNumber && !isPickupCashInitial) {
+                    return { success: false, error: "CTC Number is required for this transaction type." };
                 }
-            });
+                await prisma.cedula.create({
+                    data: {
+                        transactionId: id,
+                        ctcNumber: ctcNumber || null,
+                        taxYear: now.getFullYear(),
+                        dateIssued: now,
+                        expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59), // End of Dec 31
+                        basicTax,
+                        additionalTax,
+                        penalty,
+                        totalPaid: transaction.totalAmount,
+                        issuedBy: user.name || "System Administrator",
+                        businessName: transaction.businessName || additionalData.businessName || null,
+                        documentUrl: eCopyUrl || transaction.eCopyUrl,
+                        verificationId: `VER-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                    }
+                });
+            } else if (ctcNumber || eCopyUrl) {
+                await prisma.cedula.update({
+                    where: { id: transaction.cedula.id },
+                    data: { 
+                        ...(ctcNumber ? { ctcNumber } : {}),
+                        ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                    }
+                });
+            }
         }
 
         // Update transaction status and eCopyUrl if provided
@@ -1205,7 +1309,7 @@ export async function getTreasuryTransactions(status?: string) {
         }
 
         const where: any = {
-            type: { category: "Treasurer" }
+            type: { category: { in: ["Treasurer", "BPLO"] } }
         };
 
         if (status && status !== "ALL") {
@@ -1218,9 +1322,6 @@ export async function getTreasuryTransactions(status?: string) {
                 where.status = status;
                 where.isCancelled = false;
             }
-        } else {
-            // Default: Hide cancelled unless explicitly requested?
-            // Actually, for "ALL" we might want to see them.
         }
 
         const transactions = await prisma.transaction.findMany({
@@ -1228,7 +1329,8 @@ export async function getTreasuryTransactions(status?: string) {
             include: {
                 user: true,
                 type: true,
-                cedula: true
+                cedula: true,
+                businessPermit: true
             },
             orderBy: { createdAt: "desc" }
         });
@@ -1247,7 +1349,7 @@ export async function getPendingTreasuryCount() {
     try {
         const count = await prisma.transaction.count({
             where: {
-                type: { category: "Treasurer" },
+                type: { category: { in: ["Treasurer", "BPLO"] } },
                 status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
             }
         });
@@ -1273,7 +1375,7 @@ export async function getTreasuryStatusCounts() {
         const grouped = await prisma.transaction.groupBy({
             by: ["status"],
             where: {
-                type: { category: "Treasurer" },
+                type: { category: { in: ["Treasurer", "BPLO"] } },
                 isCancelled: false
             },
             _count: { _all: true }
@@ -1282,7 +1384,7 @@ export async function getTreasuryStatusCounts() {
         // Count cancelled separately
         const cancelledCount = await prisma.transaction.count({
             where: {
-                type: { category: "Treasurer" },
+                type: { category: { in: ["Treasurer", "BPLO"] } },
                 isCancelled: true
             }
         });
