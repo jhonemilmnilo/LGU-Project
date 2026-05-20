@@ -39,6 +39,7 @@ import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-pe
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import { useDraft } from "@/hooks/useDraft";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -227,7 +228,7 @@ function FilePreview({ file }: { file: File }) {
 
 export default function BusinessPermitWizardPage() {
     const router = useRouter();
-    const draftRestored = useRef(false);
+    const { hydrateDraft, hydrateDraftFiles, persistDraft, persistDraftFile, clearDraft } = useDraft<FormState>("emapandan_bp_draft");
     const contactInputRef = useRef<HTMLInputElement>(null);
 
     const [currentStep, setCurrentStep] = useState<Step>("PATHWAY");
@@ -327,25 +328,27 @@ export default function BusinessPermitWizardPage() {
                 }
 
                 // Hydrate inputs draft from localStorage
-                const savedDraft = localStorage.getItem("emapandan_bp_draft");
-                if (savedDraft && !draftRestored.current) {
-                    draftRestored.current = true;
-                    const parsed = JSON.parse(savedDraft);
+                hydrateDraft(setFormData, (parsed) => {
                     setFormData(prev => ({
                         ...prev,
                         ...parsed,
-                        // Do not persist raw files in JSON draft
-                        ctcFile: null,
-                        dtiSecFile: null,
-                        brgyClearanceFile: null,
-                        ownerIdFile: null,
-                        locationPhotoFile: null,
-                        sanitaryPermitFile: null,
-                        fireSafetyFile: null,
-                        birCorFile: null
                     }));
-                    toast.success("Draft application restored successfully!");
-                }
+                });
+
+                // Hydrate files from IndexedDB
+                hydrateDraftFiles((files) => {
+                    setFormData(prev => ({
+                        ...prev,
+                        ctcFile: files.ctcFile || null,
+                        dtiSecFile: files.dtiSecFile || null,
+                        brgyClearanceFile: files.brgyClearanceFile || null,
+                        ownerIdFile: files.ownerIdFile || null,
+                        locationPhotoFile: files.locationPhotoFile || null,
+                        sanitaryPermitFile: files.sanitaryPermitFile || null,
+                        fireSafetyFile: files.fireSafetyFile || null,
+                        birCorFile: files.birCorFile || null
+                    }));
+                });
             } catch (err) {
                 console.error("Initialization error:", err);
                 toast.error("Failed to initialize permits portal");
@@ -354,7 +357,7 @@ export default function BusinessPermitWizardPage() {
             }
         }
         init();
-    }, []);
+    }, [hydrateDraft, hydrateDraftFiles]);
 
     // --- SYNCHRONIZE TYPEID REACTIVELY ON PATHWAY TOGGLE ---
     useEffect(() => {
@@ -390,7 +393,7 @@ export default function BusinessPermitWizardPage() {
     };
 
     // --- AUTO-SAVE ON FIELD CHANGES ---
-    const persistDraft = (state: FormState) => {
+    const persistDraftLocal = (state: FormState) => {
         const textInputs = {
             businessType: state.businessType,
             businessName: state.businessName,
@@ -410,13 +413,13 @@ export default function BusinessPermitWizardPage() {
             deliveryAddress: state.deliveryAddress,
             deliveryPhone: state.deliveryPhone
         };
-        localStorage.setItem("emapandan_bp_draft", JSON.stringify(textInputs));
+        persistDraft(textInputs);
     };
 
     const handleInputChange = (field: keyof FormState, value: any) => {
         setFormData(prev => {
             const updated = { ...prev, [field]: value };
-            persistDraft(updated);
+            persistDraftLocal(updated);
             return updated;
         });
     };
@@ -547,9 +550,11 @@ export default function BusinessPermitWizardPage() {
     };
 
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormState) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormState) => {
         if (e.target.files && e.target.files[0]) {
-            setFormData(prev => ({ ...prev, [field]: e.target.files![0] }));
+            const file = e.target.files[0];
+            setFormData(prev => ({ ...prev, [field]: file }));
+            await persistDraftFile(field as string, file);
         }
     };
 
@@ -595,7 +600,7 @@ export default function BusinessPermitWizardPage() {
 
             const res = await submitBusinessPermitTransaction(submitData);
             if (res.success) {
-                localStorage.removeItem("emapandan_bp_draft"); // Purge draft upon successful submission
+                clearDraft(); // Purge draft upon successful submission
                 toast.success("Business Permit application submitted successfully!");
                 router.push("/user/services/requests");
             } else {

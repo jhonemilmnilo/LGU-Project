@@ -50,6 +50,7 @@ import { calculateCedula, CedulaResult, isPastCedulaDeadline, getCedulaPenaltyRa
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useDraft } from "@/hooks/useDraft";
 
 // --- TYPES ---
 
@@ -79,9 +80,11 @@ const STEPS: { id: Step; label: string; icon: any }[] = [
 
 export default function CedulaApplicationPage() {
     const router = useRouter();
+    const { hydrateDraft, hydrateDraftFiles, persistDraft, persistDraftFile, clearDraft } = useDraft<FormState>("emapandan_cedula_draft");
     const [currentStep, setCurrentStep] = useState<Step>("STATUS");
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [baseDraft, setBaseDraft] = useState<string | null>(null);
     const [calcResult, setCalcResult] = useState<CedulaResult | null>(null);
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -113,12 +116,14 @@ export default function CedulaApplicationPage() {
                 await ensureCedulaTransactionTypes();
 
                 // Fetch Types
+                let defaultTypeId = "";
                 const typesRes = await getTransactionTypes();
                 if (typesRes.success) {
                     const filtered = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
                     setCedulaTypes(filtered);
                     if (filtered.length > 0) {
                         const individualType = filtered.find((t: any) => t.code === "CEDULA_IND") || filtered[0];
+                        defaultTypeId = individualType.id;
                         setFormData(prev => ({ ...prev, typeId: individualType.id }));
                     }
                 }
@@ -129,10 +134,40 @@ export default function CedulaApplicationPage() {
                 if (residentRes.success && resident) {
                     setInitialResident(resident);
                     if (resident.idFrontUrl) setExistingIdUrl(resident.idFrontUrl);
+                    
+                    // Capture the clean, unmodified baseline
+                    setBaseDraft(JSON.stringify({
+                        typeId: defaultTypeId,
+                        applicantType: "INDIVIDUAL",
+                        residentData: resident,
+                        income: "",
+                        propertyValue: "",
+                        businessName: ""
+                    }));
+
                     setFormData(prev => ({
                         ...prev,
                         residentData: resident,
                     }));
+
+                    // Hydrate draft AFTER setting initial data
+                    hydrateDraft(setFormData, (parsed) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            // Override residentData with draft if present, otherwise use db resident
+                            residentData: parsed.residentData ? { ...resident, ...parsed.residentData } : resident,
+                            ...parsed,
+                        }));
+                    });
+
+                    // Hydrate files from IndexedDB
+                    hydrateDraftFiles((files) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            idFile: files.idFile || null,
+                            proofFile: files.proofFile || null
+                        }));
+                    });
                 }
             } catch (err) {
                 console.error("Init error:", err);
@@ -142,7 +177,7 @@ export default function CedulaApplicationPage() {
             }
         }
         init();
-    }, []);
+    }, [hydrateDraft, hydrateDraftFiles]);
 
     // Remove PSGC fetch if not needed anymore
 
@@ -161,6 +196,39 @@ export default function CedulaApplicationPage() {
     useEffect(() => {
         updateCalc();
     }, [updateCalc]);
+
+    // Auto-save form draft whenever text fields change
+    useEffect(() => {
+        if (loading || !baseDraft) return; // Prevent overwriting draft on initial render before hydration finishes
+        
+        const textInputs = {
+            typeId: formData.typeId,
+            applicantType: formData.applicantType,
+            residentData: formData.residentData,
+            income: formData.income,
+            propertyValue: formData.propertyValue,
+            businessName: formData.businessName
+        };
+
+        const currentDraftStr = JSON.stringify(textInputs);
+        if (currentDraftStr !== baseDraft) {
+            persistDraft(textInputs);
+        } else {
+            // If the user reverts back to the exact initial state, clear the draft
+            clearDraft();
+        }
+    }, [
+        formData.typeId,
+        formData.applicantType,
+        formData.residentData,
+        formData.income,
+        formData.propertyValue,
+        formData.businessName,
+        persistDraft,
+        loading,
+        baseDraft,
+        clearDraft
+    ]);
 
     const isStepValid = (stepId: Step) => {
         switch (stepId) {
@@ -216,9 +284,11 @@ export default function CedulaApplicationPage() {
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: "idFile" | "proofFile") => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: "idFile" | "proofFile") => {
         if (e.target.files && e.target.files[0]) {
-            setFormData(prev => ({ ...prev, [field]: e.target.files![0] }));
+            const file = e.target.files[0];
+            setFormData(prev => ({ ...prev, [field]: file }));
+            await persistDraftFile(field, file);
         }
     };
 
@@ -242,6 +312,7 @@ export default function CedulaApplicationPage() {
 
             const res = await submitTransaction(submitData);
             if (res.success) {
+                clearDraft(); // Purge draft upon successful submission
                 toast.success("Application submitted successfully!");
                 router.push("/user/services/requests"); // Re-routing to tracking page
             } else {
