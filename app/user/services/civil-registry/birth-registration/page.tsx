@@ -517,7 +517,7 @@ export default function BirthRegistrationPage() {
 
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Informant's Relationship to Child <span className="text-red-500">*</span></Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Informant&apos;s Relationship to Child <span className="text-red-500">*</span></Label>
                                         <Select 
                                             value={form.relationship} 
                                             onValueChange={(val) => setForm({...form, relationship: val})}
@@ -825,7 +825,7 @@ export default function BirthRegistrationPage() {
                             >
                                 <div className="space-y-2">
                                     <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Parental Information</h2>
-                                    <p className="text-xs text-slate-500 font-medium italic">Provide the full names of the child's parents</p>
+                                    <p className="text-xs text-slate-500 font-medium italic">Provide the full names of the child&apos;s parents</p>
                                 </div>
 
                                 <div className="space-y-6">
@@ -835,7 +835,7 @@ export default function BirthRegistrationPage() {
                                             <div className="p-1 bg-blue-500/10 rounded-lg">
                                                 <Users className="w-4 h-4 text-blue-500" />
                                             </div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 italic">Father's Name</h3>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 italic">Father&apos;s Name</h3>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -887,7 +887,7 @@ export default function BirthRegistrationPage() {
                                             <div className="p-1 bg-rose-500/10 rounded-lg">
                                                 <Users className="w-4 h-4 text-rose-500" />
                                             </div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 italic">Mother's Maiden Name</h3>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 italic">Mother&apos;s Maiden Name</h3>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1011,13 +1011,13 @@ export default function BirthRegistrationPage() {
                                             <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.placeOfEvent}</p>
                                         </div>
                                         <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father's Name</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
                                             <p className="font-black text-slate-900 dark:text-white italic uppercase">
                                                 {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim()}
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother's Name</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
                                             <p className="font-black text-slate-900 dark:text-white italic uppercase">
                                                 {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim()}
                                             </p>
@@ -1243,7 +1243,7 @@ export default function BirthRegistrationPage() {
                             <Info className="w-5 h-5 text-blue-500 shrink-0" />
                             <div className="space-y-1">
                                 <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">Requirements</h4>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">New registrations require the Draft Certificate of Live Birth from the hospital/clinic, the parents' Marriage Certificate, and informant's valid ID.</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">New registrations require the Draft Certificate of Live Birth from the hospital/clinic, the parents&apos; Marriage Certificate, and informant&apos;s valid ID.</p>
                             </div>
                         </div>
                     </Card>

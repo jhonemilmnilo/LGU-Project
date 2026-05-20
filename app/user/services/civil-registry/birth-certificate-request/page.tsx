@@ -795,7 +795,7 @@ export default function CivilRegistryPage() {
 
                                             {(form.registryType === "MARRIAGE" || form.registryType === "MARRIAGE_LICENSE") && (
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Wife's Full Name (Maiden) <span className="text-red-500">*</span></Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Wife&apos;s Full Name (Maiden) <span className="text-red-500">*</span></Label>
                                                     <Input 
                                                         className={cn(
                                                             "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium",
@@ -917,7 +917,7 @@ export default function CivilRegistryPage() {
                                             <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
                                                 <Users className="w-4 h-4 text-blue-500" />
                                             </div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 italic">Father's Full Name</h3>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 italic">Father&apos;s Full Name</h3>
                                         </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -979,7 +979,7 @@ export default function CivilRegistryPage() {
                                             <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center">
                                                 <Users className="w-4 h-4 text-rose-500" />
                                             </div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 italic">Mother's Maiden Name</h3>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 italic">Mother&apos;s Maiden Name</h3>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1142,13 +1142,13 @@ export default function CivilRegistryPage() {
                                         {form.registryType !== "MARRIAGE" && form.registryType !== "MARRIAGE_LICENSE" && (
                                             <>
                                                 <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father's Name</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
                                                     <p className="font-black text-slate-900 dark:text-white italic uppercase">
                                                         {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim() || form.fatherName || "N/A"}
                                                     </p>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother's Name</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
                                                     <p className="font-black text-slate-900 dark:text-white italic uppercase">
                                                         {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim() || form.motherName || "N/A"}
                                                     </p>
