@@ -418,7 +418,9 @@ export default function RequestHubPage() {
     const residentData = request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
-    const isBusinessPermit = request?.type?.code?.startsWith("BUSINESS_PERMIT");
+    const typeCode = request?.type?.code || "";
+    const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
+    const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
 
     const computation = useMemo(() => {
@@ -427,21 +429,28 @@ export default function RequestHubPage() {
         const addData = request.additionalData || {};
         const selectedBrgy = availableBarangays.find(b => b.name === address.barangay);
         const dFee = localFulfillment === "DELIVERY" ? (selectedBrgy?.deliveryFee ?? request.type?.deliveryFee ?? 0) : 0;
+        
+        // Handle Civil Registry (Usually simple total or evaluated amount)
+        if (isCivilRegistry) {
+            const finalTotal = (Number(request.totalAmount) || 0) + dFee;
+            return { basicTax: 0, additionalTax: 0, penaltyAmount: 0, deliveryFee: dFee, finalTotal, cedulaType: "INDIVIDUAL" };
+        }
+
         const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
 
         if (fiscal) {
             return {
-                basicTax: fiscal.basicTax,
-                additionalTax: fiscal.additionalTax,
-                penaltyAmount: fiscal.penaltyCharge,
+                basicTax: fiscal.basicTax || 0,
+                additionalTax: fiscal.additionalTax || 0,
+                penaltyAmount: fiscal.penaltyCharge || 0,
                 deliveryFee: dFee,
-                finalTotal: fiscal.totalAmount + dFee,
+                finalTotal: (fiscal.totalAmount || 0) + dFee,
                 cedulaType
             };
         }
 
-        const income = addData.income || 0;
-        const propertyValue = addData.propertyValue || 0;
+        const income = Number(addData.income) || 0;
+        const propertyValue = Number(addData.propertyValue) || 0;
         const totalBasis = income + propertyValue;
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
         const additionalTax = cedulaType === "JURIDICAL" ? Math.floor(totalBasis / 5000) * 2.00 : Math.floor(totalBasis / 1000) * 1.00;
@@ -451,7 +460,7 @@ export default function RequestHubPage() {
         const finalTotal = totalWithPenalty + dFee;
 
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
-    }, [request, localFulfillment, address.barangay, availableBarangays]);
+    }, [request, localFulfillment, address.barangay, availableBarangays, isCivilRegistry]);
 
     // Flat list of docs that have a URL — drives both the grid and the lightbox
     const documentList = useMemo(() => {
@@ -908,7 +917,6 @@ export default function RequestHubPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
                                 </Card>
                             </TabsContent>
 

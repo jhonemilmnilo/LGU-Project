@@ -200,6 +200,269 @@ export async function ensureBusinessPermitTransactionTypes() {
     }
 }
 
+export async function ensureCivilRegistryTransactionTypes() {
+    try {
+        const types = [
+            {
+                code: "LCR_BIRTH",
+                name: "Birth Certificate (Certified Copy)",
+                description: "Request for a certified true copy of a birth certificate from the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 150.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Valid ID of Applicant", "Authorization Letter (if not owner)", "Proof of Relationship"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "BIRTH",
+                    fields: ["fullName", "dateOfBirth", "placeOfBirth", "fathersName", "mothersName"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            },
+            {
+                code: "LCR_BIRTH_REG",
+                name: "Birth Registration (New Record)",
+                description: "Register a new birth record with the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 100.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Certificate of Live Birth", "Marriage Certificate of Parents", "Valid ID of Informant"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "BIRTH_REG",
+                    fields: ["fullName", "dateOfBirth", "placeOfBirth", "fathersName", "mothersName"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            },
+            {
+                code: "LCR_MARRIAGE",
+                name: "Marriage Certificate (Certified Copy)",
+                description: "Request for a certified true copy of a marriage certificate from the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 150.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Valid ID of Applicant", "Authorization Letter (if not owner)"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "MARRIAGE",
+                    fields: ["husbandName", "wifeName", "dateOfMarriage", "placeOfMarriage"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            },
+            {
+                code: "LCR_DEATH",
+                name: "Death Certificate (Certified Copy)",
+                description: "Request for a certified true copy of a death certificate from the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 150.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Valid ID of Applicant", "Proof of Relationship"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "DEATH",
+                    fields: ["deceasedName", "dateOfDeath", "placeOfDeath"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            }
+        ];
+
+        for (const t of types) {
+            await prisma.transactionType.upsert({
+                where: { code: t.code },
+                update: {
+                    name: t.name,
+                    description: t.description,
+                    baseFee: t.baseFee,
+                    deliveryFee: t.deliveryFee,
+                    requiredDocs: t.requiredDocs,
+                    formSchema: t.formSchema,
+                    supportsECopy: t.supportsECopy
+                },
+                create: t
+            });
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Ensure civil registry types error:", error);
+        return { success: false, error: "Failed to initialize Civil Registry service types" };
+    }
+}
+
+export async function submitCivilRegistryTransaction(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const typeId = formData.get("typeId") as string;
+        const registryType = formData.get("registryType") as string;
+        const residentSnapshotRaw = formData.get("residentSnapshot");
+        const additionalDataRaw = formData.get("additionalData");
+
+        if (!typeId || !registryType || !residentSnapshotRaw || !additionalDataRaw) {
+            return { success: false, error: "Missing required transaction data" };
+        }
+
+        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
+        const additionalData = JSON.parse(additionalDataRaw as string);
+
+        console.log(`Processing ${registryType} transaction for user ${session.user.id}`);
+
+        const files: Record<string, string | null> = {};
+        
+        // Dynamic file extraction from FormData
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File && value.size > 0) {
+                // Use a standard bucket and specific folder
+                const url = await processFileUpload(value, `lcr/${registryType.toLowerCase()}`);
+                files[key] = url;
+            }
+        }
+
+        const updatedAdditionalData = {
+            ...additionalData,
+            ...files,
+            registryType,
+            submittedAt: new Date().toISOString()
+        };
+
+        const transaction = await prisma.$transaction(async (tx: any) => {
+            const t = await tx.transaction.create({
+                data: {
+                    userId: session.user.id,
+                    typeId,
+                    status: "FOR_REQUESTING",
+                    fulfillmentType: additionalData.fulfillmentType || "PICK_UP",
+                    paymentType: null,
+                    residentSnapshot,
+                    additionalData: updatedAdditionalData,
+                    totalAmount: additionalData.totalAmount || 150,
+                    businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
+                }
+            });
+
+            await tx.resident.update({
+                where: { userId: session.user.id },
+                data: {
+                    firstName: residentSnapshot.firstName,
+                    middleName: residentSnapshot.middleName,
+                    lastName: residentSnapshot.lastName,
+                    suffix: residentSnapshot.suffix,
+                    contactNumber: residentSnapshot.contactNumber,
+                    email: residentSnapshot.email,
+                }
+            });
+
+            return t;
+        });
+
+        revalidatePath("/user/services");
+        revalidatePath("/admin/transactions");
+        return { success: true, data: transaction };
+    } catch (error: any) {
+        console.error("Submit civil registry error:", error);
+        // Include the error message for better debugging
+        return { 
+            success: false, 
+            error: error?.message || "Failed to submit registry request" 
+        };
+    }
+}
+
+export async function submitBirthRegistration(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const typeId = formData.get("typeId") as string;
+        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
+        const additionalData = JSON.parse(formData.get("additionalData") as string);
+
+        // File uploads
+        const files: Record<string, string | null> = {};
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File && value.size > 0) {
+                const url = await processFileUpload(value, "lcr_birth_reg");
+                files[key] = url;
+            }
+        }
+
+        const updatedAdditionalData = {
+            ...additionalData,
+            ...files,
+            registryType: "BIRTH_REG",
+            submittedAt: new Date().toISOString()
+        };
+
+        const transaction = await prisma.$transaction(async (tx: any) => {
+            // Create the transaction record for tracking
+            const t = await tx.transaction.create({
+                data: {
+                    userId: session.user.id,
+                    typeId,
+                    status: "FOR_REQUESTING",
+                    fulfillmentType: additionalData.fulfillmentType || "PICK_UP",
+                    paymentType: null,
+                    residentSnapshot,
+                    additionalData: updatedAdditionalData,
+                    totalAmount: additionalData.totalAmount || 100,
+                    businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
+                }
+            });
+
+            // Update resident contact info
+            await tx.resident.update({
+                where: { userId: session.user.id },
+                data: {
+                    contactNumber: residentSnapshot.contactNumber,
+                    email: residentSnapshot.email,
+                }
+            });
+
+            return t;
+        });
+
+        revalidatePath("/user/services");
+        revalidatePath("/admin/transactions");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Submit birth registration error:", error);
+        return { success: false, error: "Failed to submit birth registration" };
+    }
+}
+
+export async function searchCivilRegistryRecords(type: string, query: string) {
+    try {
+        if (type === "BIRTH") {
+            const records = await prisma.birthCertificateRegistry.findMany({
+                where: {
+                    subjectName: {
+                        contains: query,
+                        mode: 'insensitive'
+                    }
+                },
+                take: 5
+            });
+            return { success: true, data: records };
+        }
+        return { success: true, data: [] };
+    } catch (error) {
+        console.error("Search LCR records error:", error);
+        return { success: false, error: "Failed to search records" };
+    }
+}
+
 export async function submitBusinessPermitTransaction(formData: FormData) {
     try {
         const session = await getSession();
@@ -316,7 +579,7 @@ async function processFileUpload(file: File, folder: string = "transactions"): P
 
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = `${Date.now()}_${file.name.replaceAll(" ", "_")}`;
+        const filename = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
         const storagePath = `services/${folder}/${filename}`;
         
         const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
@@ -359,6 +622,8 @@ export async function getTransactionById(id: string) {
                 type: true,
                 cedula: true,
                 businessPermit: true,
+                birthCertificateRequest: true,
+                birthCertificateRegistry: true,
                 user: {
                     select: {
                         id: true,
