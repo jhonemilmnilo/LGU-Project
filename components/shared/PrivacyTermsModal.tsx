@@ -54,7 +54,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-24 md:pt-28 pb-8 overflow-y-auto">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-24 md:pt-28 pb-8 overflow-y-auto">
                     {/* Backdrop Overlay */}
                     <motion.div
                         initial={{ opacity: 0 }}

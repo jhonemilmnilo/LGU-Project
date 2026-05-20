@@ -14,7 +14,10 @@ import {
     TrendingUp,
     Lock,
     User,
-    Building2
+    Building2,
+    HelpCircle,
+    X,
+    ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +53,8 @@ interface FormState {
     permitNumber: string; // Used for renewals
     lineOfBusiness: string;
     barangay: string; // Barangay location of the business
+    street: string; // Street address of the business
+    building: string; // Building / House number of the business location
     capitalInvestment: string; // Declared Capitalization for new
     grossSales: string; // Declared gross sales for renewals
     employeeCount: string;
@@ -96,6 +101,130 @@ const MAPANDAN_BARANGAYS = [
     "Valenzuela"
 ];
 
+const LINE_OF_BUSINESS_OPTIONS = [
+    "Agriculture & Forestry",
+    "Manufacturing",
+    "Wholesale & Retail",
+    "Food & Beverage Services",
+    "IT & Computer Services",
+    "Construction",
+    "Real Estate",
+    "Transportation & Storage",
+    "Healthcare & Social",
+    "Education"
+];
+
+const STEP_BY_STEP_GUIDES: Record<string, { title: string; steps: string[] }> = {
+    ctcFile: {
+        title: "How to get a Community Tax Certificate (Cedula)",
+        steps: [
+            "Visit your local Barangay Hall or the Municipal Treasury Office.",
+            "Bring a Valid Government-Issued ID.",
+            "Fill out the Community Tax Declaration Form.",
+            "Declare your primary source of income or gross receipts from the preceding year (if applicable).",
+            "Pay the corresponding basic and additional community tax.",
+            "Receive your signed and thumb-marked Community Tax Certificate."
+        ]
+    },
+    dtiSecFile: {
+        title: "How to get a DTI / SEC / CDA Registration",
+        steps: [
+            "For Sole Proprietorships (DTI): Register your business name online via the DTI BNRS (Business Name Registration System) website or visit the nearest DTI Negosyo Center.",
+            "For Corporations/Partnerships (SEC): Register online via the SEC eSPARC (Electronic Simplified Processing of Application for Registration of Company) portal.",
+            "For Cooperatives (CDA): Coordinate with the Cooperative Development Authority (CDA) regional office for registration.",
+            "Pay the corresponding registration fee via their respective online payment portals or authorized payment channels.",
+            "Once approved, download and print your official Certificate of Registration."
+        ]
+    },
+    birCorFile: {
+        title: "How to get a BIR Certificate of Registration (COR)",
+        steps: [
+            "Fill out BIR Form 1901 (for Sole Proprietorships) or Form 1903 (for Corporations/Partnerships).",
+            "Submit the completed form along along with your DTI/SEC Certificate, Barangay Clearance, and Valid IDs to your designated Revenue District Office (RDO).",
+            "Pay the Annual Registration Fee (₱500) and Documentary Stamp Tax (DST) at the BIR office or an Authorized Agent Bank (AAB).",
+            "Attend the required taxpayer's initial briefing or seminar scheduled by the RDO.",
+            "Claim your official BIR Form 2303 (Certificate of Registration) and the 'Ask for Receipt' signage."
+        ]
+    },
+    brgyClearanceFile: {
+        title: "How to get a Barangay Business Clearance",
+        steps: [
+            "Visit the Barangay Hall of the barangay where your business is located.",
+            "Bring your approved DTI / SEC / CDA Registration and a Valid Government-Issued ID.",
+            "Request an application for a Barangay Business Clearance from the receiving desk.",
+            "Pay the corresponding barangay clearance fee to the Barangay Treasurer.",
+            "Wait for the issuance of your officially signed and sealed Barangay Clearance."
+        ]
+    },
+    fireSafetyFile: {
+        title: "How to get a Fire Safety Inspection Certificate",
+        steps: [
+            "Visit the local Bureau of Fire Protection (BFP) office.",
+            "Submit the required documents (e.g., building plan, previous FSIC, or fire insurance).",
+            "Pay the required Fire Code Construction/Regulatory fees.",
+            "Wait for the official fire safety inspection to be conducted by authorized BFP personnel at your business location.",
+            "Claim your Fire Safety Inspection Certificate (FSIC) upon passing the inspection and complying with all safety requirements."
+        ]
+    },
+    sanitaryPermitFile: {
+        title: "How to get a Sanitary Permit",
+        steps: [
+            "Ensure all employees secure valid Health Certificates (requires medical exams at the Municipal Health Office).",
+            "Prepare water potability test results (if your business involves food, beverage, or water services).",
+            "Request a sanitary inspection of your business establishment from the Rural Health Unit (RHU) / Sanitary Inspector.",
+            "Pay the required Sanitary Inspection Fee at the Municipal Treasury Office.",
+            "Claim your approved Sanitary Permit from the Municipal Health Office upon passing the inspection."
+        ]
+    }
+};
+
+function FilePreview({ file }: { file: File }) {
+    const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (!file) return;
+        
+        if (file.type.startsWith("image/")) {
+            const url = URL.createObjectURL(file);
+            setPreviewUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setPreviewUrl(null);
+        }
+    }, [file]);
+
+    if (file.type.startsWith("image/")) {
+        if (!previewUrl) return null;
+        return (
+            <div className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                    src={previewUrl} 
+                    alt="Document Preview" 
+                    className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                    <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3 py-1 rounded-full backdrop-blur-md">
+                        Selected Image Preview
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full py-4 px-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 mt-3 flex items-center gap-2.5 animate-in fade-in duration-200">
+            <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+                PDF
+            </div>
+            <div className="truncate text-left">
+                <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 truncate font-mono">{file.name}</span>
+                <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Document File</span>
+            </div>
+        </div>
+    );
+}
+
 export default function BusinessPermitWizardPage() {
     const router = useRouter();
     const draftRestored = useRef(false);
@@ -109,8 +238,11 @@ export default function BusinessPermitWizardPage() {
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
-    const [dbBarangays, setDbBarangays] = useState<string[]>([]);
     const [bpTypes, setBpTypes] = useState<any[]>([]);
+    const [dbBarangays, setDbBarangays] = useState<string[]>([]);
+    const [isOtherLine, setIsOtherLine] = useState(false);
+    const [isDtiGuideOpen, setIsDtiGuideOpen] = useState(false);
+    const [activeGuideKey, setActiveGuideKey] = useState<string | null>(null);
 
 
 
@@ -124,9 +256,11 @@ export default function BusinessPermitWizardPage() {
         permitNumber: "",
         lineOfBusiness: "",
         barangay: "",
+        street: "",
+        building: "",
         capitalInvestment: "",
         grossSales: "",
-        employeeCount: "1",
+        employeeCount: "0",
         businessArea: "",
         fulfillmentType: "E_COPY",
         deliveryAddress: "",
@@ -235,13 +369,36 @@ export default function BusinessPermitWizardPage() {
         }
     }, [formData.businessType, bpTypes]);
 
+    // Synchronize isOtherLine state with formData.lineOfBusiness on draft hydration
+    useEffect(() => {
+        if (formData.lineOfBusiness && !LINE_OF_BUSINESS_OPTIONS.includes(formData.lineOfBusiness)) {
+            setIsOtherLine(true);
+        }
+    }, [formData.lineOfBusiness]);
+
+    const handleLineOfBusinessSelect = (val: string) => {
+        if (val === "Other") {
+            setIsOtherLine(true);
+            handleInputChange("lineOfBusiness", "");
+            setTimeout(() => {
+                document.getElementById("profile-lineOfBusiness")?.focus();
+            }, 50);
+        } else {
+            setIsOtherLine(false);
+            handleInputChange("lineOfBusiness", val);
+        }
+    };
+
     // --- AUTO-SAVE ON FIELD CHANGES ---
     const persistDraft = (state: FormState) => {
         const textInputs = {
             businessType: state.businessType,
             businessName: state.businessName,
             tradeName: state.tradeName,
+            orgType: state.orgType,
             barangay: state.barangay,
+            street: state.street,
+            building: state.building,
             dtiSecNumber: state.dtiSecNumber,
             permitNumber: state.permitNumber,
             lineOfBusiness: state.lineOfBusiness,
@@ -292,19 +449,19 @@ export default function BusinessPermitWizardPage() {
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
             case "PROFILE":
-                if (!formData.businessName || !formData.lineOfBusiness || !formData.barangay) return false;
+                if (!formData.businessName || !formData.lineOfBusiness || !formData.barangay || !formData.orgType) return false;
                 if (formData.businessType === "NEW") {
-                    return parseFloat(formData.capitalInvestment) > 0 && !!formData.dtiSecNumber;
+                    return parseFloat(formData.capitalInvestment.replace(/,/g, "")) > 0 && !!formData.dtiSecNumber;
                 } else {
-                    return parseFloat(formData.grossSales) > 0 && !!formData.permitNumber;
+                    return parseFloat(formData.grossSales.replace(/,/g, "")) > 0 && !!formData.permitNumber;
                 }
             case "CHECKLIST":
-                // 7 Mandatory File uploads must all be loaded
+                // 7 Mandatory File uploads must all be loaded (or preloaded from resident profile for owner ID)
                 return !!(
                     formData.ctcFile &&
                     formData.dtiSecFile &&
                     formData.brgyClearanceFile &&
-                    formData.ownerIdFile &&
+                    (formData.ownerIdFile || formData.residentData?.idFrontUrl) &&
                     formData.locationPhotoFile &&
                     formData.sanitaryPermitFile &&
                     formData.fireSafetyFile
@@ -334,8 +491,47 @@ export default function BusinessPermitWizardPage() {
         if (!isStepValid(currentStep)) {
             if (currentStep === "USER_IDENTITY") {
                 toast.error("Municipal profile record not loaded. Please contact administration.");
+                const r = formData.residentData;
+                if (!r?.firstName) {
+                    document.getElementById("resident-firstName")?.focus();
+                } else if (!r?.lastName) {
+                    document.getElementById("resident-lastName")?.focus();
+                } else if (!r?.dateOfBirth) {
+                    document.getElementById("resident-dateOfBirth")?.focus();
+                } else if (!r?.occupation) {
+                    document.getElementById("resident-occupation")?.focus();
+                } else if (!r?.contactNumber) {
+                    document.getElementById("resident-contactNumber")?.focus();
+                }
             } else if (currentStep === "PROFILE") {
                 toast.error("Please fill out all required business profile details.");
+                if (!formData.businessName) {
+                    document.getElementById("profile-businessName")?.focus();
+                } else if (!formData.orgType) {
+                    document.getElementById("profile-orgType")?.focus();
+                } else if (!formData.barangay) {
+                    document.getElementById("profile-barangay")?.focus();
+                } else if (!formData.lineOfBusiness) {
+                    if (isOtherLine) {
+                        document.getElementById("profile-lineOfBusiness")?.focus();
+                    } else {
+                        document.getElementById("profile-lineOfBusiness-select")?.focus();
+                    }
+                } else if (formData.businessType === "NEW") {
+                    const capVal = parseFloat(formData.capitalInvestment.replace(/,/g, "")) || 0;
+                    if (capVal <= 0) {
+                        document.getElementById("profile-capitalInvestment")?.focus();
+                    } else if (!formData.dtiSecNumber) {
+                        document.getElementById("profile-dtiSecNumber")?.focus();
+                    }
+                } else {
+                    const salesVal = parseFloat(formData.grossSales.replace(/,/g, "")) || 0;
+                    if (salesVal <= 0) {
+                        document.getElementById("profile-grossSales")?.focus();
+                    } else if (!formData.permitNumber) {
+                        document.getElementById("profile-permitNumber")?.focus();
+                    }
+                }
             } else if (currentStep === "CHECKLIST") {
                 toast.error("All 7 checklist requirements are mandatory. Please upload all missing documents.");
             } else {
@@ -375,13 +571,16 @@ export default function BusinessPermitWizardPage() {
                 permitNumber: formData.permitNumber,
                 lineOfBusiness: formData.lineOfBusiness,
                 barangay: formData.barangay,
+                street: formData.street,
+                building: formData.building,
                 capitalInvestment: parseFloat(formData.capitalInvestment.replace(/,/g, "")) || 0,
                 grossSales: parseFloat(formData.grossSales.replace(/,/g, "")) || 0,
-                employeeCount: parseInt(formData.employeeCount) || 1,
+                employeeCount: isNaN(parseInt(formData.employeeCount)) ? 0 : parseInt(formData.employeeCount),
                 businessArea: parseFloat(formData.businessArea) || 0,
                 fulfillmentType: null,
                 deliveryAddress: null,
-                deliveryPhone: null
+                deliveryPhone: null,
+                ownerIdUrl: formData.residentData?.idFrontUrl || null
             }));
 
             // Append BPLO checklist files
@@ -625,6 +824,7 @@ export default function BusinessPermitWizardPage() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</Label>
                                                 <Input
+                                                    id="resident-firstName"
                                                     value={formData.residentData?.firstName || ""}
                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, firstName: e.target.value } }))}
                                                     readOnly={!!initialResident?.firstName}
@@ -643,6 +843,7 @@ export default function BusinessPermitWizardPage() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</Label>
                                                 <Input
+                                                    id="resident-lastName"
                                                     value={formData.residentData?.lastName || ""}
                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, lastName: e.target.value } }))}
                                                     readOnly={!!initialResident?.lastName}
@@ -668,6 +869,7 @@ export default function BusinessPermitWizardPage() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
                                                 <Input
+                                                    id="resident-dateOfBirth"
                                                     type="date"
                                                     value={formData.residentData?.dateOfBirth ? new Date(formData.residentData.dateOfBirth).toISOString().split('T')[0] : ""}
                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, dateOfBirth: e.target.value } }))}
@@ -716,6 +918,7 @@ export default function BusinessPermitWizardPage() {
                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Occupation</Label>
                                                 <div className="relative">
                                                     <Input
+                                                        id="resident-occupation"
                                                         value={formData.residentData?.occupation || ""}
                                                         onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, occupation: e.target.value } }))}
                                                         readOnly={!!initialResident?.occupation}
@@ -727,6 +930,7 @@ export default function BusinessPermitWizardPage() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
                                                 <Input
+                                                    id="resident-contactNumber"
                                                     ref={contactInputRef}
                                                     value={formData.residentData?.contactNumber || ""}
                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
@@ -737,12 +941,13 @@ export default function BusinessPermitWizardPage() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
-                                        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-                                        <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
-                                            Note: Changes will update your Resident Profile upon submission.
-                                        </p>
-                                    </div>
+
+                                                                                <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
+                                            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                                            <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
+                                                Note: Changes will update your Resident Profile upon submission.
+                                            </p>
+                                        </div>
                                 </div>
                             )}
 
@@ -758,6 +963,7 @@ export default function BusinessPermitWizardPage() {
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Official Business Name (DTI/SEC) <span className="text-rose-500 ml-0.5">*</span></Label>
                                             <Input
+                                                id="profile-businessName"
                                                 type="text"
                                                 value={formData.businessName}
                                                 onChange={e => handleInputChange("businessName", e.target.value)}
@@ -778,28 +984,109 @@ export default function BusinessPermitWizardPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Business Barangay Location <span className="text-rose-500 ml-0.5">*</span></Label>
-                                            <select
-                                                value={formData.barangay}
-                                                onChange={e => handleInputChange("barangay", e.target.value)}
-                                                className="w-full rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold"
-                                            >
-                                                <option value="" disabled className="dark:bg-[#0c0d12] text-slate-400">Select Barangay...</option>
-                                                {(dbBarangays.length > 0 ? dbBarangays : MAPANDAN_BARANGAYS).map((b) => (
-                                                    <option key={b} value={b} className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">{b}</option>
-                                                ))}
-                                            </select>
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Organization Type <span className="text-rose-500 ml-0.5">*</span></Label>
+                                            <div className="relative">
+                                                <select
+                                                    id="profile-orgType"
+                                                    value={formData.orgType}
+                                                    onChange={e => handleInputChange("orgType", e.target.value)}
+                                                    className="w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                                                >
+                                                    <option value="SOLE_PROPRIETORSHIP" className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">Sole Proprietorship</option>
+                                                    <option value="PARTNERSHIP" className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">Partnership</option>
+                                                    <option value="CORPORATION" className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">Corporation</option>
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronDown className="w-4 h-4" />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Line of Business <span className="text-rose-500 ml-0.5">*</span></Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Business Barangay Location <span className="text-rose-500 ml-0.5">*</span></Label>
+                                            <div className="relative">
+                                                <select
+                                                    id="profile-barangay"
+                                                    value={formData.barangay}
+                                                    onChange={e => handleInputChange("barangay", e.target.value)}
+                                                    className="w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                                                >
+                                                    <option value="" disabled className="dark:bg-[#0c0d12] text-slate-400">Select Barangay...</option>
+                                                    {(dbBarangays.length > 0 ? dbBarangays : MAPANDAN_BARANGAYS).map((b) => (
+                                                        <option key={b} value={b} className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">{b}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronDown className="w-4 h-4" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Building / House No. / Unit</Label>
                                             <Input
                                                 type="text"
-                                                value={formData.lineOfBusiness}
-                                                onChange={e => handleInputChange("lineOfBusiness", e.target.value)}
-                                                placeholder="e.g. Food & Beverage / Coffee Shop"
+                                                value={formData.building}
+                                                onChange={e => handleInputChange("building", e.target.value)}
+                                                placeholder="e.g. Bldg 4A, Green Meadows (Optional)"
                                                 className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
                                             />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Street Address</Label>
+                                            <Input
+                                                type="text"
+                                                value={formData.street}
+                                                onChange={e => handleInputChange("street", e.target.value)}
+                                                placeholder="e.g. Rizal Avenue (Optional)"
+                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Line of Business / Classification <span className="text-rose-500 ml-0.5">*</span></Label>
+                                            {!isOtherLine ? (
+                                                <div className="relative">
+                                                    <select
+                                                        id="profile-lineOfBusiness-select"
+                                                        value={formData.lineOfBusiness || ""}
+                                                        onChange={e => handleLineOfBusinessSelect(e.target.value)}
+                                                        className="w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                                                    >
+                                                        <option value="" disabled className="dark:bg-[#0c0d12] text-slate-400">Select Line of Business...</option>
+                                                        {LINE_OF_BUSINESS_OPTIONS.map((opt) => (
+                                                            <option key={opt} value={opt} className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">{opt}</option>
+                                                        ))}
+                                                        <option value="Other" className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">Other...</option>
+                                                    </select>
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                        <ChevronDown className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="relative animate-in fade-in zoom-in-95 duration-200">
+                                                    <Input
+                                                        id="profile-lineOfBusiness"
+                                                        type="text"
+                                                        value={formData.lineOfBusiness}
+                                                        onChange={e => handleInputChange("lineOfBusiness", e.target.value)}
+                                                        placeholder="Enter your custom line of business..."
+                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-10 font-bold"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsOtherLine(false);
+                                                            handleInputChange("lineOfBusiness", "");
+                                                        }}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/10 transition-all select-none"
+                                                        title="Back to dropdown options"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-2">
@@ -808,7 +1095,7 @@ export default function BusinessPermitWizardPage() {
                                                 type="number"
                                                 value={formData.employeeCount}
                                                 onChange={e => handleInputChange("employeeCount", e.target.value)}
-                                                min="1"
+                                                min="0"
                                                 className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
                                             />
                                         </div>
@@ -824,53 +1111,67 @@ export default function BusinessPermitWizardPage() {
                                             />
                                         </div>
 
+                                        {formData.businessType === "NEW" ? (
+                                            <div className="space-y-2 relative animate-in fade-in duration-200">
+                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Initial Capitalization (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                <Input
+                                                     id="profile-capitalInvestment"
+                                                     type="text"
+                                                     value={formData.capitalInvestment}
+                                                     onChange={e => handleInputChange("capitalInvestment", e.target.value)}
+                                                     placeholder="e.g. 250,000"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-12 font-mono font-bold"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2 relative animate-in fade-in duration-200">
+                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Annual Gross Sales (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                <Input
+                                                     id="profile-grossSales"
+                                                     type="text"
+                                                     value={formData.grossSales}
+                                                     onChange={e => handleInputChange("grossSales", e.target.value)}
+                                                     placeholder="e.g. 1,200,000"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-12 font-mono font-bold"
+                                                />
+                                            </div>
+                                        )}
+
                                         {/* Pathway Specific Inputs */}
                                         {formData.businessType === "NEW" ? (
-                                            <>
-                                                <div className="space-y-2">
+                                            <div className="space-y-2 col-span-1 md:col-span-2 animate-in fade-in duration-200">
+                                                <div className="flex items-center gap-1.5">
                                                     <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">DTI / SEC Registration Number <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                    <Input
-                                                        type="text"
-                                                        value={formData.dtiSecNumber}
-                                                        onChange={e => handleInputChange("dtiSecNumber", e.target.value)}
-                                                        placeholder="e.g. DTI-123456789"
-                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
-                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsDtiGuideOpen(true)}
+                                                        className="text-slate-400 hover:text-primary transition-all p-0.5 shrink-0"
+                                                        title="Click for registration guide"
+                                                    >
+                                                        <HelpCircle className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
-                                                <div className="space-y-2 relative">
-                                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Initial Capitalization Investment (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                    <Input
-                                                        type="text"
-                                                        value={formData.capitalInvestment}
-                                                        onChange={e => handleInputChange("capitalInvestment", e.target.value)}
-                                                        placeholder="e.g. 250,000"
-                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-12 font-mono"
-                                                    />
-                                                </div>
-                                            </>
+                                                <Input
+                                                    id="profile-dtiSecNumber"
+                                                    type="text"
+                                                    value={formData.dtiSecNumber}
+                                                    onChange={e => handleInputChange("dtiSecNumber", e.target.value)}
+                                                    placeholder="e.g. DTI-123456789"
+                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 font-bold"
+                                                />
+                                            </div>
                                         ) : (
-                                            <>
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Existing Permit License Number <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                    <Input
-                                                        type="text"
-                                                        value={formData.permitNumber}
-                                                        onChange={e => handleInputChange("permitNumber", e.target.value)}
-                                                        placeholder="e.g. MP-2025-0816"
-                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Previous Year&apos;s Annual Gross Sales (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                    <Input
-                                                        type="text"
-                                                        value={formData.grossSales}
-                                                        onChange={e => handleInputChange("grossSales", e.target.value)}
-                                                        placeholder="e.g. 1,200,000"
-                                                        className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 pr-12 font-mono"
-                                                    />
-                                                </div>
-                                            </>
+                                            <div className="space-y-2 col-span-1 md:col-span-2 animate-in fade-in duration-200">
+                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Existing Permit License Number <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                <Input
+                                                    id="profile-permitNumber"
+                                                    type="text"
+                                                    value={formData.permitNumber}
+                                                    onChange={e => handleInputChange("permitNumber", e.target.value)}
+                                                    placeholder="e.g. MP-2025-0816"
+                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-emerald-500/20 font-bold"
+                                                />
+                                            </div>
                                         )}
                                     </div>
 
@@ -909,52 +1210,94 @@ export default function BusinessPermitWizardPage() {
                                             { label: "2. DTI / SEC / CDA Registration", field: "dtiSecFile" },
                                             { label: "3. Barangay Clearance", field: "brgyClearanceFile" },
                                             { label: "4. Valid ID of Owner", field: "ownerIdFile" },
-                                            { label: "5. Photo of Location Location", field: "locationPhotoFile" },
+                                            { label: "5. Photo of Location", field: "locationPhotoFile" },
                                             { label: "6. Sanitary Permit", field: "sanitaryPermitFile" },
                                             { label: "7. Fire Safety Inspection Certificate", field: "fireSafetyFile" },
                                             { label: "8. BIR Certificate of Registration (Optional)", field: "birCorFile", optional: true }
                                         ].map(item => {
                                             const file = formData[item.field as keyof FormState] as File | null;
                                             return (
-                                                <div key={item.field} className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic flex justify-between">
-                                                        <span>{item.label}</span>
-                                                        {item.optional && <span className="text-slate-400 font-medium tracking-normal lowercase">(optional)</span>}
-                                                    </Label>
+                                                <div key={item.field} className="space-y-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic flex items-center">
+                                                            <span>{item.label}</span>
+                                                            {STEP_BY_STEP_GUIDES[item.field] && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setActiveGuideKey(item.field)}
+                                                                    className="ml-1.5 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-primary transition-all shrink-0"
+                                                                    title="View step-by-step guide"
+                                                                >
+                                                                    <HelpCircle className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </Label>
+                                                        {item.optional && (
+                                                            <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase italic">
+                                                                (optional)
+                                                            </span>
+                                                        )}
+                                                    </div>
+
                                                     <div className={cn(
-                                                        "border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all relative overflow-hidden",
-                                                        file
-                                                            ? "border-emerald-500 bg-emerald-500/[0.02]"
-                                                            : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"
+                                                        "p-4 md:p-5 bg-slate-50/50 dark:bg-white/[0.02] rounded-3xl border border-dashed flex flex-col gap-4 relative overflow-hidden transition-all duration-300 hover:border-primary/40 shadow-sm",
+                                                        (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl))
+                                                            ? "border-emerald-500 dark:border-emerald-500/30 bg-emerald-500/[0.01]" 
+                                                            : "border-slate-200 dark:border-white/10"
                                                     )}>
-                                                        <input
-                                                            type="file"
-                                                            onChange={e => handleFileChange(e, item.field as keyof FormState)}
-                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                        />
-                                                        <div className="flex items-center gap-3 text-left">
+                                                        <div className="flex items-center gap-3.5 w-full text-left">
                                                             <div className={cn(
-                                                                "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                                                                file ? "bg-emerald-500 text-white" : "bg-slate-50 dark:bg-white/5 text-slate-400"
+                                                                "w-11 h-11 bg-white dark:bg-black/20 border rounded-xl flex items-center justify-center shadow-sm shrink-0",
+                                                                (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) ? "border-emerald-200 dark:border-emerald-500/20 text-emerald-500" : "border-slate-100 dark:border-white/5 text-primary"
                                                             )}>
-                                                                <Upload className="w-4 h-4" />
+                                                                <Upload className={cn("w-4 h-4", (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) && "animate-bounce")} />
                                                             </div>
-                                                            <div className="truncate max-w-[250px]">
-                                                                {file ? (
-                                                                    <>
-                                                                        <span className="block text-xs font-black text-slate-900 dark:text-white truncate">{file.name}</span>
-                                                                        <span className="block text-[8px] font-mono text-emerald-500 uppercase tracking-widest">Uploaded ({(file.size / 1024).toFixed(1)} KB)</span>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <span className="block text-xs font-black text-slate-400 italic">Choose or Drop File</span>
-                                                                        <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">PDF / PNG / JPG max 5MB</span>
-                                                                    </>
-                                                                )}
+                                                            <div className="space-y-0.5 min-w-0">
+                                                                <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-white italic truncate pr-2">
+                                                                    {item.label.replace(/^\d+\.\s*/, "")}
+                                                                </h4>
+                                                                <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter truncate">
+                                                                    {file ? `Uploaded (${(file.size / 1024).toFixed(1)} KB)` : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) ? "Preloaded from Resident Profile" : (item.optional ? "PDF / IMAGE (OPTIONAL)" : "PDF / IMAGE (MAX 5MB)")}
+                                                                </p>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
+
+                                                        {/* Live File Preview Card for Images/PDFs or Preloaded Identity Card */}
+                                                        {file ? (
+                                                            <FilePreview file={file} />
+                                                        ) : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) ? (
+                                                            <div className="relative rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 bg-slate-100 dark:bg-black/30 h-28 flex items-center justify-center">
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={formData.residentData.idFrontUrl}
+                                                                    alt="Preloaded ID Front"
+                                                                    className="object-cover w-full h-full"
+                                                                />
+                                                            </div>
+                                                        ) : null}
+
+                                                        <div className="flex items-center justify-between w-full gap-2 mt-1">
+                                                            <input 
+                                                                type="file" 
+                                                                onChange={(e) => handleFileChange(e, item.field as keyof FormState)} 
+                                                                className="hidden" 
+                                                                id={`upload-${item.field}`} 
+                                                            />
+                                                            <Button 
+                                                                asChild 
+                                                                className={cn(
+                                                                    "font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none shadow-md active:scale-[0.98]",
+                                                                    (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl))
+                                                                        ? "bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white" 
+                                                                        : "bg-emerald-600 dark:bg-emerald-600 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-white"
+                                                                )}
+                                                            >
+                                                                <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
+                                                                    {(file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) ? "Change File" : "Upload"}
+                                                                </label>
+                                                            </Button>
+                                                        </div>
+                                                    </div>                                                </div>
                                             );
                                         })}
                                     </div>
@@ -986,8 +1329,16 @@ export default function BusinessPermitWizardPage() {
                                                         </div>
                                                     )}
                                                     <div className="flex justify-between border-b border-slate-200/50 dark:border-white/5 pb-2">
-                                                        <span>Barangay</span>
-                                                        <span className="text-slate-900 dark:text-white font-mono">{formData.barangay}</span>
+                                                        <span>Org Type</span>
+                                                        <span className="text-slate-900 dark:text-white font-mono text-right capitalize">
+                                                            {formData.orgType.toLowerCase().replace(/_/g, " ")}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between border-b border-slate-200/50 dark:border-white/5 pb-2">
+                                                        <span>Location Address</span>
+                                                        <span className="text-slate-900 dark:text-white font-mono text-right truncate max-w-[200px]">
+                                                            {[formData.building, formData.street, formData.barangay].filter(Boolean).join(", ")}
+                                                        </span>
                                                     </div>
                                                     <div className="flex justify-between border-b border-slate-200/50 dark:border-white/5 pb-2">
                                                         <span>Line of Business</span>
@@ -1068,7 +1419,7 @@ export default function BusinessPermitWizardPage() {
                 <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-end items-center">
                     <Button
                         onClick={currentStep === "SUBMIT" ? onSubmit : handleNext}
-                        disabled={submitting || !isStepValid(currentStep)}
+                        disabled={submitting || (currentStep === "SUBMIT" && !isStepValid(currentStep))}
                         className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
                     >
                         {submitting ? (
@@ -1104,6 +1455,170 @@ export default function BusinessPermitWizardPage() {
                 }}
                 themeColor="var(--primary-theme)"
             />
+
+            <AnimatePresence>
+                {isDtiGuideOpen && (
+                    <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center p-4 pt-24 sm:pt-4 overflow-y-auto">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsDtiGuideOpen(false)}
+                            className="absolute inset-0 bg-[#06070a]/80 backdrop-blur-md"
+                        />
+
+                        {/* Modal Container */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-md sm:max-w-lg p-6 sm:p-8 shadow-2xl relative overflow-hidden z-10 space-y-4 sm:space-y-6 max-h-[calc(100vh-120px)] sm:max-h-[85vh] overflow-y-auto"
+                        >
+                            {/* Top Accent line with dynamic theme color */}
+                            <div 
+                                className="absolute top-0 left-0 right-0 h-1.5"
+                                style={{ background: "var(--primary-theme)" }}
+                            />
+
+                            <div className="space-y-2">
+                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary bg-primary/10 mb-4 shrink-0">
+                                    <HelpCircle className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">DTI & SEC Registration Guide</h3>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                                    Learn how to easily register your business entity online under the Philippine regulatory compliance laws.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Sole Proprietorship Card */}
+                                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl space-y-2">
+                                    <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                                        Sole Proprietorship
+                                    </h4>
+                                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold uppercase tracking-wider">
+                                        Register your trade name online using the DTI Business Name Registration System (BNRS) in just 10-15 minutes.
+                                    </p>
+                                    <a 
+                                        href="https://bnrs.dti.gov.ph" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
+                                    >
+                                        Visit DTI BNRS Website <ChevronRight className="w-3 h-3" />
+                                    </a>
+                                </div>
+
+                                {/* Partnership & Corporation Card */}
+                                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl space-y-2">
+                                    <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
+                                        <Building2 className="w-3.5 h-3.5 text-primary" />
+                                        Partnership or Corporation
+                                    </h4>
+                                    <p className="text-[10px] text-slate-500 leading-relaxed font-semibold uppercase tracking-wider">
+                                        Submit your articles of incorporation and secure registration numbers through the SEC Electronic Simplified Processing System (eSPARC / CRS).
+                                    </p>
+                                    <a 
+                                        href="https://crs.sec.gov.ph" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
+                                    >
+                                        Visit SEC eSPARC Portal <ChevronRight className="w-3 h-3" />
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <Button
+                                    onClick={() => setIsDtiGuideOpen(false)}
+                                    className="w-full h-12 rounded-xl text-white font-extrabold uppercase italic tracking-widest transition-all"
+                                    style={{ backgroundColor: "var(--primary-theme)" }}
+                                >
+                                    Got it, thanks!
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Document Step-by-Step Guide Modal */}
+            <AnimatePresence>
+                {activeGuideKey && STEP_BY_STEP_GUIDES[activeGuideKey] && (
+                    <div className="fixed inset-0 z-[9999] flex items-start sm:items-center justify-center p-4 pt-24 sm:pt-4 overflow-y-auto">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setActiveGuideKey(null)}
+                            className="absolute inset-0 bg-[#06070a]/80 backdrop-blur-md"
+                        />
+
+                        {/* Modal Body */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-md sm:max-w-lg p-6 sm:p-8 shadow-2xl relative overflow-hidden z-10 space-y-5 sm:space-y-6 max-h-[90vh] overflow-y-auto"
+                        >
+                            {/* Top Accent Theme Line */}
+                            <div 
+                                className="absolute top-0 left-0 right-0 h-1.5"
+                                style={{ background: "var(--primary-theme)" }}
+                            />
+
+                            {/* Floating Close Button */}
+                            <button
+                                type="button"
+                                onClick={() => setActiveGuideKey(null)}
+                                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all z-20"
+                                title="Close guide"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+
+                            <div className="space-y-2">
+                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary bg-primary/10 mb-2 shrink-0">
+                                    <HelpCircle className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-lg sm:text-xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white pr-8">
+                                    {STEP_BY_STEP_GUIDES[activeGuideKey].title}
+                                </h3>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                                    Follow these official procedural guidelines to successfully acquire this required document.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3.5 pt-1">
+                                {STEP_BY_STEP_GUIDES[activeGuideKey].steps.map((step, idx) => (
+                                    <div key={idx} className="flex gap-3 items-start p-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-xl transition-all duration-200 hover:border-primary/20">
+                                        <span className="w-5 h-5 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-[10px] text-primary dark:text-emerald-400 font-mono font-black shrink-0 mt-0.5">
+                                            {idx + 1}
+                                        </span>
+                                        <p className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
+                                            {step}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-2">
+                                <Button
+                                    onClick={() => setActiveGuideKey(null)}
+                                    className="w-full h-12 rounded-xl text-white font-extrabold uppercase italic tracking-widest transition-all"
+                                    style={{ backgroundColor: "var(--primary-theme)" }}
+                                >
+                                    Got it, thank you!
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
