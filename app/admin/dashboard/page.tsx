@@ -13,8 +13,8 @@ export default async function AdminDashboard(props: { searchParams: Promise<{ ba
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
     
-    // Redirect Treasury Staff to their specific hub immediately
-    if (user?.role === "TREASURY_STAFF") {
+    // Redirect Treasury Staff and Admin Aide to their specific hub immediately
+    if (user?.role === "TREASURY_STAFF" || user?.role === "ADMIN_AIDE") {
         redirect("/admin/treasury");
     }
 
