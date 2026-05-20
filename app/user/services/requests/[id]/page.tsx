@@ -917,6 +917,7 @@ export default function RequestHubPage() {
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
                                 </Card>
                             </TabsContent>
 
