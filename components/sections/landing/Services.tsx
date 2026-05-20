@@ -106,7 +106,9 @@ function ServiceCard({ service, themeColor, isMobile }: { service: Service; them
                     ? "/user/services/cedula" 
                     : service.code.startsWith("BUSINESS_PERMIT")
                         ? "/user/services/business-permit"
-                        : `/user/services/${service.id}`
+                        : service.code === "CIVIL_REGISTRY"
+                            ? "/user/services/civil-registry"
+                            : `/user/services/${service.id}`
             } 
             className="block p-5 md:p-8 h-full"
         >

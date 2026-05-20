@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { format } from "date-fns";
 import {
     FileText,
     Camera,
@@ -518,6 +519,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
 
+    const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+    const isLCR = transaction.type.code.startsWith("LCR_") || transaction.type.code.startsWith("CIVIL_REGISTRY");
+
     return (
         <div
             className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
@@ -626,6 +630,72 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* LCR SPECIFIC DETAILS */}
+                        {isLCR && (
+                            <div className="space-y-8 pt-8 border-t border-dotted border-slate-300 dark:border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-blue-500 rounded-xl text-white shadow-lg shadow-blue-500/20">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">Civil Registry Record Data</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    <div className="space-y-6">
+                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Subject / Document Info</h4>
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-5">
+                                            <div className="space-y-1">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Subject Name</span>
+                                                <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                    {transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A"}
+                                                </p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Date</span>
+                                                    <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
+                                                        {(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent) 
+                                                            ? format(new Date(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent), "MMM d, yyyy") 
+                                                            : "N/A"}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Registry No.</span>
+                                                    <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
+                                                        {transaction.birthCertificateRegistry?.registryNumber || transaction.birthCertificateRequest?.registryNumber || "PENDING"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
+                                        <div className="space-y-6">
+                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Matrix</h4>
+                                            <div className="space-y-4">
+                                                {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
+                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Father</span>
+                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            {transaction.birthCertificateRegistry?.fatherName || additional.fatherName}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {(additional.motherName || transaction.birthCertificateRegistry?.motherName) && (
+                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Mother</span>
+                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            {transaction.birthCertificateRegistry?.motherName || additional.motherName}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* IDENTITY & AUTHENTICATION */}

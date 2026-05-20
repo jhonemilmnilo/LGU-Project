@@ -619,6 +619,8 @@ model Transaction {
   
   cedula            Cedula?           // One-to-one link to the issued document
   businessPermit    BusinessPermit?   // One-to-one link to the issued business permit
+  birthCertificateRequest BirthCertificateRequest? // One-to-one link to the birth certificate request
+  birthCertificateRegistry BirthCertificateRegistry? // One-to-one link for new registrations
   
   isCancelled       Boolean           @default(false)
   createdAt         DateTime          @default(now())
@@ -672,6 +674,57 @@ model BusinessPermit {
   documentUrl        String?     // Link to official generated E-Permit PDF
   issuedBy           String      // BPLO / Treasury Approver Name
   verificationId     String      @unique @default(cuid()) // Secure hash for verification QR Code
+}
+
+model BirthCertificateRequest {
+  id              String      @id @default(cuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  registryNumber  String?     @unique // Book/Page number or Registry ID
+  dateIssued      DateTime    @default(now())
+  
+  // Subject Details (Generic names to cover all types)
+  subjectName     String      // Person on the cert (Child)
+  subjectName2    String?     // Spouse name (if applicable)
+  dateOfEvent     DateTime    // Date of Birth
+  placeOfEvent    String      // Location of the event
+  
+  // Parental details (Commonly requested for verification)
+  fatherName      String?
+  motherName      String?
+  
+  documentUrl     String?     // Link to official generated E-Copy PDF
+  issuedBy        String      // LCR Officer Name
+  verificationId  String      @unique @default(cuid()) // Secure hash for verification QR Code
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model BirthCertificateRegistry {
+  id              String      @id @default(cuid())
+  transactionId   String?     @unique
+  transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  registryNumber  String      @unique // Book/Page number or Registry ID
+  dateIssued      DateTime    @default(now())
+  
+  subjectName     String      // Child's name
+  dateOfEvent     DateTime    // Date of Birth
+  placeOfEvent    String      // Place of Birth
+  
+  fatherName      String?
+  motherName      String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+enum RegistryType {
+  BIRTH
+  MARRIAGE
+  DEATH
 }
 
 enum TransactionStatus {

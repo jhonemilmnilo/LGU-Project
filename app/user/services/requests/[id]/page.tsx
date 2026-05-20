@@ -393,6 +393,9 @@ export default function RequestHubPage() {
     const residentData = request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
+    const typeCode = request?.type?.code || "";
+    const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
+    const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isBusinessPermit = request?.type?.code?.startsWith("BUSINESS_PERMIT");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
 
@@ -402,21 +405,28 @@ export default function RequestHubPage() {
         const addData = request.additionalData || {};
         const selectedBrgy = availableBarangays.find(b => b.name === address.barangay);
         const dFee = localFulfillment === "DELIVERY" ? (selectedBrgy?.deliveryFee ?? request.type?.deliveryFee ?? 0) : 0;
+        
+        // Handle Civil Registry (Usually simple total or evaluated amount)
+        if (isCivilRegistry) {
+            const finalTotal = (Number(request.totalAmount) || 0) + dFee;
+            return { basicTax: 0, additionalTax: 0, penaltyAmount: 0, deliveryFee: dFee, finalTotal, cedulaType: "INDIVIDUAL" };
+        }
+
         const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
 
         if (fiscal) {
             return {
-                basicTax: fiscal.basicTax,
-                additionalTax: fiscal.additionalTax,
-                penaltyAmount: fiscal.penaltyCharge,
+                basicTax: fiscal.basicTax || 0,
+                additionalTax: fiscal.additionalTax || 0,
+                penaltyAmount: fiscal.penaltyCharge || 0,
                 deliveryFee: dFee,
-                finalTotal: fiscal.totalAmount + dFee,
+                finalTotal: (fiscal.totalAmount || 0) + dFee,
                 cedulaType
             };
         }
 
-        const income = addData.income || 0;
-        const propertyValue = addData.propertyValue || 0;
+        const income = Number(addData.income) || 0;
+        const propertyValue = Number(addData.propertyValue) || 0;
         const totalBasis = income + propertyValue;
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
         const additionalTax = cedulaType === "JURIDICAL" ? Math.floor(totalBasis / 5000) * 2.00 : Math.floor(totalBasis / 1000) * 1.00;
@@ -426,7 +436,7 @@ export default function RequestHubPage() {
         const finalTotal = totalWithPenalty + dFee;
 
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
-    }, [request, localFulfillment, address.barangay, availableBarangays]);
+    }, [request, localFulfillment, address.barangay, availableBarangays, isCivilRegistry]);
 
     if (loading) {
         return (
@@ -763,7 +773,7 @@ export default function RequestHubPage() {
 
                         <TabsContent value="records" className="mt-0">
                             <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-xl rounded-2xl md:rounded-3xl space-y-12">
-                                {request.type?.code.startsWith("BUSINESS_PERMIT") && (
+                                {isBusinessPermit && (
                                     <div className="space-y-6 pb-8 border-b border-slate-100 dark:border-white/5">
                                         <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Business Information</h4>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
@@ -781,59 +791,107 @@ export default function RequestHubPage() {
                                         </div>
                                     </div>
                                 )}
+
+                                {isCivilRegistry && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-top-4">
+                                        <div className="space-y-6 pb-8 border-b border-slate-100 dark:border-white/5">
+                                            <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Document Details</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Document Type</p><p className="text-xs md:text-lg font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.documentType}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Number of Copies</p><p className="text-xs md:text-lg font-bold italic text-slate-900 dark:text-white leading-tight">{additionalData.copyCount || 1}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Purpose</p><p className="text-xs md:text-lg font-bold italic text-slate-900 dark:text-white leading-tight">{additionalData.purpose || "N/A"}</p></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                            <div className="space-y-6">
+                                                <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Subject Information</h4>
+                                                <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5 space-y-4">
+                                                    <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">FullName</p><p className="text-sm font-bold italic uppercase">{request.birthCertificateRegistry?.subjectName || `${additionalData.subjectFirstName || ""} ${additionalData.subjectMiddleName || ""} ${additionalData.subjectLastName || ""}`.trim() || additionalData.subjectName || "N/A"}</p></div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">Sex</p><p className="text-sm font-bold italic uppercase">{additionalData.subjectSex || "N/A"}</p></div>
+                                                        <div className="space-y-1"><p className="text-[8px] uppercase font-black text-slate-400">Birth Date</p><p className="text-sm font-bold italic uppercase">{(request.birthCertificateRegistry?.dateOfEvent || additionalData.subjectBirthDate || additionalData.dateOfEvent) ? format(new Date(request.birthCertificateRegistry?.dateOfEvent || additionalData.subjectBirthDate || additionalData.dateOfEvent), "MMM d, yyyy") : "N/A"}</p></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {(additionalData.fatherLastName || additionalData.motherLastName || request.birthCertificateRegistry?.fatherName || request.birthCertificateRegistry?.motherName) && (
+                                                <div className="space-y-6">
+                                                    <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Parental Details</h4>
+                                                    <div className="grid grid-cols-1 gap-4">
+                                                        {(additionalData.fatherLastName || request.birthCertificateRegistry?.fatherName) && (
+                                                            <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5">
+                                                                <p className="text-[8px] uppercase font-black text-primary italic mb-2 tracking-widest">Father</p>
+                                                                <p className="text-sm font-bold italic uppercase">{request.birthCertificateRegistry?.fatherName || `${additionalData.fatherFirstName} ${additionalData.fatherMiddleName} ${additionalData.fatherLastName}`}</p>
+                                                            </div>
+                                                        )}
+                                                        {(additionalData.motherLastName || request.birthCertificateRegistry?.motherName) && (
+                                                            <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/5">
+                                                                <p className="text-[8px] uppercase font-black text-primary italic mb-2 tracking-widest">Mother</p>
+                                                                <p className="text-sm font-bold italic uppercase">{request.birthCertificateRegistry?.motherName || `${additionalData.motherFirstName} ${additionalData.motherMiddleName} ${additionalData.motherLastName}`}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16">
                                     <div className="space-y-10">
                                         <div className="space-y-6">
                                             <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Personal Identity</h4>
                                             <div className="grid grid-cols-2 gap-6 md:gap-8">
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Name</p><p className="text-xs md:text-lg font-bold italic truncate">{residentData.firstName} {residentData.lastName}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Birth Date</p><p className="text-xs md:text-lg font-bold italic">{format(new Date(residentData.dateOfBirth), "MMM d, yyyy")}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Birth Date</p><p className="text-xs md:text-lg font-bold italic">{residentData.dateOfBirth ? format(new Date(residentData.dateOfBirth), "MMM d, yyyy") : "N/A"}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Civil Status</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.civilStatus || "Single"}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Citizenship</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.citizenship || "Filipino"}</p></div>
                                             </div>
                                         </div>
-                                        <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
-                                            <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
-                                            <div className="grid grid-cols-2 gap-6 md:gap-8">
-                                                {request.type?.code.startsWith("BUSINESS_PERMIT") ? (
-                                                    <>
-                                                        <div className="space-y-1">
-                                                            <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">
-                                                                {additionalData.businessType === "NEW" ? "Capital Investment" : "Annual Gross Sales"}
-                                                            </p>
-                                                            <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
-                                                                ₱{(additionalData.capitalInvestment || additionalData.grossSales || 0).toLocaleString()}
-                                                            </p>
-                                                        </div>
-                                                        {request.businessPermit?.expiryDate && (
+                                        {!isCivilRegistry && (
+                                            <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
+                                                <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
+                                                <div className="grid grid-cols-2 gap-6 md:gap-8">
+                                                    {isBusinessPermit ? (
+                                                        <>
                                                             <div className="space-y-1">
-                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
-                                                                <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
-                                                                    Expires {format(new Date(request.businessPermit.expiryDate), "MMM d, yyyy")}
+                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">
+                                                                    {additionalData.businessType === "NEW" ? "Capital Investment" : "Annual Gross Sales"}
+                                                                </p>
+                                                                <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
+                                                                    ₱{(additionalData.capitalInvestment || additionalData.grossSales || 0).toLocaleString()}
                                                                 </p>
                                                             </div>
-                                                        )}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="space-y-1">
-                                                            <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Annual Gross Income</p>
-                                                            <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
-                                                                ₱{(additionalData.income || 0).toLocaleString()}
-                                                            </p>
-                                                        </div>
-                                                        {request.cedula?.expiryDate && (
+                                                            {request.businessPermit?.expiryDate && (
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                    <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                        Expires {format(new Date(request.businessPermit.expiryDate), "MMM d, yyyy")}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
                                                             <div className="space-y-1">
-                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
-                                                                <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
-                                                                    Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
+                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Annual Gross Income</p>
+                                                                <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
+                                                                    ₱{(additionalData.income || 0).toLocaleString()}
                                                                 </p>
                                                             </div>
-                                                        )}
-                                                    </>
-                                                )}
+                                                            {request.cedula?.expiryDate && (
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                    <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                        Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                     <div className="space-y-6">
                                         <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Registered Address</h4>
