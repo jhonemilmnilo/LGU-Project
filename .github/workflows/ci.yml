@@ -37,7 +37,7 @@ jobs:
           DIRECT_DATABASE_URL: "postgresql://mockuser:mockpass@localhost:5432/mockdb"
 
       - name: 🧹 Lint Check
-        run: npm run lint
+        run: npm run lint -- --max-warnings=0
 
       - name: ⌨️ TypeScript Type Check
         run: npx tsc --noEmit

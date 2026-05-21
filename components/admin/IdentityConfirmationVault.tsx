@@ -1,19 +1,19 @@
 "use client"
 
 import React, { useState } from "react"
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
-    DialogTitle, 
-    DialogTrigger 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { 
-    UserRound, 
-    Phone, 
-    Building2, 
-    MapPin, 
+import {
+    UserRound,
+    Phone,
+    Building2,
+    MapPin,
     Hash,
     FileText,
     Camera,
@@ -39,9 +39,9 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
     const [scale, setScale] = useState(1);
     const [rotate, setRotate] = useState(0);
 
-    const isRenewal = transactionTypeCode === "BUSINESS_PERMIT_RENEW" || 
-                      additional?.businessType === "RENEWAL" || 
-                      additional?.businessType?.toLowerCase()?.includes("renew");
+    const isRenewal = transactionTypeCode === "BUSINESS_PERMIT_RENEW" ||
+        additional?.businessType === "RENEWAL" ||
+        additional?.businessType?.toLowerCase()?.includes("renew");
 
     // Dynamic extraction of attachments
     const docs = isBusinessPermit
@@ -54,12 +54,12 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
             { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
             { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
             { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
-          ]
+        ]
         : [
             { url: additional.validIdUrl || additional.ownerIdUrl, label: "Valid ID Evidence" },
             { url: additional.proofOfIncomeUrl, label: "Income Verification" },
             { url: additional.ctcUrl, label: "Cedula (CTC) Copy" }
-          ];
+        ];
 
     // Extra dynamic detection of any other properties ending in 'Url' or 'URL'
     const extraDocs: { url: string; label: string }[] = [];
@@ -91,13 +91,13 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                     <UserRound className="w-5 h-5" />
                 </Button>
             </DialogTrigger>
-            <DialogContent 
-                style={{ 
-                    maxWidth: '1000px', 
+            <DialogContent
+                style={{
+                    maxWidth: '1000px',
                     width: '90vw',
                     backgroundColor: '#030712',
                     "--primary-theme": themeColor || "var(--primary-theme)"
-                } as React.CSSProperties} 
+                } as React.CSSProperties}
                 className="bg-[#030712] border-white/5 text-white p-0 overflow-hidden rounded-[2.5rem] shadow-2xl border"
             >
                 <div className="p-12 space-y-8">
@@ -121,11 +121,10 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                         <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 self-start sm:self-center">
                             <button
                                 onClick={() => setActiveTab("citizen")}
-                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
-                                    activeTab === "citizen"
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${activeTab === "citizen"
                                         ? "bg-primary text-white shadow-lg"
                                         : "text-slate-400 hover:text-white"
-                                }`}
+                                    }`}
                             >
                                 <UserRound className="w-3.5 h-3.5" />
                                 Citizen Profile
@@ -133,11 +132,10 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                             {isBusinessPermit && (
                                 <button
                                     onClick={() => setActiveTab("business")}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
-                                        activeTab === "business"
+                                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${activeTab === "business"
                                             ? "bg-primary text-white shadow-lg"
                                             : "text-slate-400 hover:text-white"
-                                    }`}
+                                        }`}
                                 >
                                     <Building2 className="w-3.5 h-3.5" />
                                     Business Profile
@@ -145,11 +143,10 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                             )}
                             <button
                                 onClick={() => setActiveTab("documents")}
-                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
-                                    activeTab === "documents"
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${activeTab === "documents"
                                         ? "bg-primary text-white shadow-lg"
                                         : "text-slate-400 hover:text-white"
-                                }`}
+                                    }`}
                             >
                                 <FileText className="w-3.5 h-3.5" />
                                 Documents {activeDocs.length > 0 && `(${activeDocs.length})`}
@@ -355,11 +352,10 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                                                     <button
                                                         key={idx}
                                                         onClick={() => selectDoc(idx)}
-                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                                                            isSelected
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isSelected
                                                                 ? "bg-primary/10 border-primary/40 text-white shadow-lg"
                                                                 : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {/* Mini Thumbnail */}
                                                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-900 border border-white/10 relative flex-shrink-0 flex items-center justify-center">
