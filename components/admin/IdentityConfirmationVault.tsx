@@ -9,7 +9,20 @@ import {
     DialogTrigger 
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { UserRound, Phone, Building2, MapPin, Hash } from "lucide-react"
+import { 
+    UserRound, 
+    Phone, 
+    Building2, 
+    MapPin, 
+    Hash,
+    FileText,
+    Camera,
+    ZoomIn,
+    RotateCw,
+    ExternalLink,
+    ZoomOut,
+    CheckCircle2
+} from "lucide-react"
 import { differenceInYears } from "date-fns"
 
 interface IdentityConfirmationVaultProps {
@@ -21,11 +34,55 @@ interface IdentityConfirmationVaultProps {
 }
 
 const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit = false, transactionTypeCode = "", themeColor }: IdentityConfirmationVaultProps) => {
-    const [activeTab, setActiveTab] = useState<"citizen" | "business">("citizen");
+    const [activeTab, setActiveTab] = useState<"citizen" | "business" | "documents">("citizen");
+    const [selectedDocIndex, setSelectedDocIndex] = useState<number>(0);
+    const [scale, setScale] = useState(1);
+    const [rotate, setRotate] = useState(0);
 
     const isRenewal = transactionTypeCode === "BUSINESS_PERMIT_RENEW" || 
                       additional?.businessType === "RENEWAL" || 
                       additional?.businessType?.toLowerCase()?.includes("renew");
+
+    // Dynamic extraction of attachments
+    const docs = isBusinessPermit
+        ? [
+            { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
+            { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
+            { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
+            { url: additional.brgyClearanceUrl, label: "Barangay Clearance" },
+            { url: additional.locationPhotoUrl, label: "Location Photo" },
+            { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
+            { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
+            { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
+          ]
+        : [
+            { url: additional.validIdUrl || additional.ownerIdUrl, label: "Valid ID Evidence" },
+            { url: additional.proofOfIncomeUrl, label: "Income Verification" },
+            { url: additional.ctcUrl, label: "Cedula (CTC) Copy" }
+          ];
+
+    // Extra dynamic detection of any other properties ending in 'Url' or 'URL'
+    const extraDocs: { url: string; label: string }[] = [];
+    Object.entries(additional).forEach(([key, val]) => {
+        if (typeof val === 'string' && (key.toLowerCase().endsWith('url') || key.toLowerCase().endsWith('path')) && val.startsWith('http')) {
+            const exists = docs.some(d => d.url === val) || extraDocs.some(d => d.url === val);
+            if (!exists) {
+                const label = key
+                    .replace(/Url$/i, '')
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/^./, str => str.toUpperCase()) + " Document";
+                extraDocs.push({ url: val, label });
+            }
+        }
+    });
+
+    const activeDocs = [...docs.filter(doc => doc.url), ...extraDocs];
+
+    const selectDoc = (idx: number) => {
+        setSelectedDocIndex(idx);
+        setScale(1);
+        setRotate(0);
+    };
 
     return (
         <Dialog>
@@ -47,31 +104,33 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-white/5 pb-6">
                         <DialogHeader className="space-y-1.5">
                             <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter leading-none text-white">
-                                {isBusinessPermit && activeTab === "business" ? (
+                                {activeTab === "documents" ? (
+                                    <>Compliance <span className="text-primary">Vault</span></>
+                                ) : isBusinessPermit && activeTab === "business" ? (
                                     <>Business <span className="text-primary">Record</span></>
                                 ) : (
                                     <>Resident <span className="text-primary">Identity</span></>
                                 )}
                             </DialogTitle>
                             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.3em] italic opacity-80">
-                                {isBusinessPermit && activeTab === "business" ? "BPLO Registration Dossier" : "Citizen Data Record"}
+                                {activeTab === "documents" ? "Verified Upload Attachments" : isBusinessPermit && activeTab === "business" ? "BPLO Registration Dossier" : "Citizen Data Record"}
                             </p>
                         </DialogHeader>
 
                         {/* Interactive Tab Toggles (Glass-morphic pills) */}
-                        {isBusinessPermit && (
-                            <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 self-start sm:self-center">
-                                <button
-                                    onClick={() => setActiveTab("citizen")}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
-                                        activeTab === "citizen"
-                                            ? "bg-primary text-white shadow-lg"
-                                            : "text-slate-400 hover:text-white"
-                                    }`}
-                                >
-                                    <UserRound className="w-3.5 h-3.5" />
-                                    Citizen Profile
-                                </button>
+                        <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 self-start sm:self-center">
+                            <button
+                                onClick={() => setActiveTab("citizen")}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
+                                    activeTab === "citizen"
+                                        ? "bg-primary text-white shadow-lg"
+                                        : "text-slate-400 hover:text-white"
+                                }`}
+                            >
+                                <UserRound className="w-3.5 h-3.5" />
+                                Citizen Profile
+                            </button>
+                            {isBusinessPermit && (
                                 <button
                                     onClick={() => setActiveTab("business")}
                                     className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
@@ -83,11 +142,23 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                                     <Building2 className="w-3.5 h-3.5" />
                                     Business Profile
                                 </button>
-                            </div>
-                        )}
+                            )}
+                            <button
+                                onClick={() => setActiveTab("documents")}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${
+                                    activeTab === "documents"
+                                        ? "bg-primary text-white shadow-lg"
+                                        : "text-slate-400 hover:text-white"
+                                }`}
+                            >
+                                <FileText className="w-3.5 h-3.5" />
+                                Documents {activeDocs.length > 0 && `(${activeDocs.length})`}
+                            </button>
+                        </div>
                     </div>
 
-                    {activeTab === "citizen" ? (
+                    {/* CITIZEN PROFILE TAB CONTENT */}
+                    {activeTab === "citizen" && (
                         <div className="grid grid-cols-12 gap-x-8 gap-y-8 animate-in fade-in zoom-in-95 duration-200">
                             {/* Row 1: Names */}
                             <div className="col-span-12 md:col-span-3 space-y-3">
@@ -156,7 +227,10 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                                 </div>
                             </div>
                         </div>
-                    ) : (
+                    )}
+
+                    {/* BUSINESS PROFILE TAB CONTENT */}
+                    {isBusinessPermit && activeTab === "business" && (
                         <div className="grid grid-cols-12 gap-x-8 gap-y-8 animate-in fade-in zoom-in-95 duration-200">
                             {/* Business Row 1 - Business Identity */}
                             <div className="col-span-12 md:col-span-4 space-y-3">
@@ -248,6 +322,149 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                                     <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Declared Gross Sales</label>
                                     <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-primary">
                                         {additional?.grossSales ? "₱" + Number(additional.grossSales).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "₱0.00"}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* COMPLIANCE DOCUMENTS TAB CONTENT */}
+                    {activeTab === "documents" && (
+                        <div className="w-full">
+                            {activeDocs.length === 0 ? (
+                                <div className="w-full py-16 flex flex-col items-center justify-center text-center space-y-4 bg-white/5 border border-white/10 rounded-[2rem]">
+                                    <div className="p-5 rounded-2xl bg-white/5 text-slate-500 border border-white/5">
+                                        <Camera className="w-8 h-8" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-lg font-black uppercase tracking-tight text-slate-400 italic">No Uploaded Documents</h4>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest italic max-w-xs px-4">
+                                            Walang nakitang compliance document attachments sa dossier na ito.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-12 gap-8 w-full animate-in fade-in zoom-in-95 duration-200">
+                                    {/* Left Side: Navigation Playlist */}
+                                    <div className="col-span-12 md:col-span-5 space-y-3 max-h-[380px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                                        <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] italic mb-4 ml-1">Document Attachments ({activeDocs.length})</p>
+                                        <div className="flex flex-col gap-2">
+                                            {activeDocs.map((doc, idx) => {
+                                                const isSelected = selectedDocIndex === idx;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => selectDoc(idx)}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                                                            isSelected
+                                                                ? "bg-primary/10 border-primary/40 text-white shadow-lg"
+                                                                : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                                                        }`}
+                                                    >
+                                                        {/* Mini Thumbnail */}
+                                                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-900 border border-white/10 relative flex-shrink-0 flex items-center justify-center">
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img
+                                                                src={doc.url}
+                                                                alt={doc.label}
+                                                                className="object-cover w-full h-full"
+                                                            />
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className={`text-[11px] font-black uppercase tracking-wider italic truncate ${isSelected ? "text-primary" : ""}`}>
+                                                                {doc.label}
+                                                            </p>
+                                                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.1em] italic mt-0.5">
+                                                                Click to inspect record
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side: High-Fidelity Interactive Viewer */}
+                                    <div className="col-span-12 md:col-span-7 flex flex-col bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden p-5 relative h-[380px] justify-between">
+                                        {/* Viewport Frame */}
+                                        <div className="relative flex-1 w-full flex items-center justify-center overflow-hidden bg-slate-950/80 rounded-2xl border border-white/5 p-4">
+                                            <div
+                                                className="relative max-w-full max-h-full transition-transform duration-300 ease-out flex items-center justify-center"
+                                                style={{ transform: `scale(${scale}) rotate(${rotate}deg)` }}
+                                            >
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={activeDocs[selectedDocIndex]?.url}
+                                                    alt={activeDocs[selectedDocIndex]?.label}
+                                                    className="object-contain max-h-[240px] max-w-full select-none rounded"
+                                                    draggable={false}
+                                                />
+                                            </div>
+
+                                            {/* Floating Title Tag */}
+                                            <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 flex items-center gap-2">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                                                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white italic">
+                                                    {activeDocs[selectedDocIndex]?.label}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Interactive Control Deck */}
+                                        <div className="flex items-center justify-between gap-4 mt-3 pt-3 border-t border-white/5">
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="w-9 h-9 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-all animate-none"
+                                                    onClick={() => setScale(s => Math.max(s - 0.2, 0.5))}
+                                                    title="Zoom Out"
+                                                >
+                                                    <ZoomOut className="w-4 h-4" />
+                                                </Button>
+                                                <div className="w-12 text-center text-[10px] font-black text-slate-400 italic">
+                                                    {Math.round(scale * 100)}%
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="w-9 h-9 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-all animate-none"
+                                                    onClick={() => setScale(s => Math.min(s + 0.2, 3))}
+                                                    title="Zoom In"
+                                                >
+                                                    <ZoomIn className="w-4 h-4" />
+                                                </Button>
+                                                <div className="w-px h-4 bg-white/10 mx-1.5" />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="w-9 h-9 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-all animate-none"
+                                                    onClick={() => setRotate(r => (r + 90) % 360)}
+                                                    title="Rotate 90°"
+                                                >
+                                                    <RotateCw className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                {activeDocs[selectedDocIndex]?.url && (
+                                                    <a
+                                                        href={activeDocs[selectedDocIndex].url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-9 px-4 rounded-xl hover:bg-white/10 text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 text-primary"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                            Open Original
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}

@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION";
     to: string;
     name: string;
     remarks?: string | null;
@@ -85,6 +85,30 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Resident Services Portal • Automated Notification</p>
             </div>
         </div>`;
+    } else if (type === "FOR_REVISION") {
+        const primaryAmber = "#f59e0b";
+        subject = `Action Required: Revision Needed - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryAmber}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">⚠️</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Revision Required</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your service request (Ref: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) requires some corrections or additional documents before we can proceed.</p>
+                ${remarks ? `
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #b45309; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Admin Remarks (What to Fix)</p>
+                    <p style="color: #92400e; font-size: 14px; margin: 0; line-height: 1.5;">${remarks}</p>
+                </div>` : ""}
+                <p style="color: #64748b; font-size: 13px;">Please log in to your account, go to "My Requests", and resubmit the required corrections. <strong>This does not count as a rejection strike.</strong></p>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Automated Notification</p>
+            </div>
+        </div>`;
     } else if (type === "FOR_PAYMENT") {
         subject = `Action Required: Assessment Complete - LGU ${municipalityName}`;
         htmlBody = `
@@ -104,6 +128,12 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <p style="color: #1e40af; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -0.04em;">₱${amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
                     <p style="color: #3b82f6; font-size: 11px; margin: 8px 0 0 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">Reference ID: ${transactionId || "N/A"}</p>
                 </div>
+
+                ${remarks ? `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Treasury Officer's Remarks / Assessment Notes</p>
+                    <p style="color: #0f172a; font-size: 14px; margin: 0; line-height: 1.5; font-style: italic;">"${remarks}"</p>
+                </div>` : ""}
 
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 32px;">
                     <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5;">

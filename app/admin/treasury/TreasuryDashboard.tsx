@@ -29,6 +29,7 @@ import Link from "next/link";
 const STATUS_TABS = [
     { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
     { value: "FOR_REQUESTING", label: "Evaluation", color: "text-amber-600", activeColor: "bg-amber-500 text-white" },
+    { value: "FOR_REVISION", label: "For Revision", color: "text-amber-600", activeColor: "bg-amber-600 text-white" },
     { value: "FOR_PROCESSING", label: "Processing", color: "text-sky-600", activeColor: "bg-sky-500 text-white" },
     { value: "FOR_CLAIM", label: "For Claim", color: "text-indigo-600", activeColor: "bg-indigo-500 text-white" },
     { value: "FOR_PICKING", label: "For Picking", color: "text-pink-600", activeColor: "bg-pink-500 text-white" },
@@ -256,6 +257,7 @@ export default function TreasuryDashboard() {
                                                         "text-[10px] font-black uppercase italic tracking-wider",
                                                         tx.isCancelled ? "text-red-600" : ({
                                                             "FOR_REQUESTING": "text-amber-600",
+                                                            "FOR_REVISION": "text-amber-600",
                                                             "EVALUATED": "text-blue-600",
                                                             "FOR_CLAIM": "text-indigo-600",
                                                             "FOR_PICKING": "text-pink-600",
