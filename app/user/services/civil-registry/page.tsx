@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { 
-    Baby, 
-    Skull, 
-    Heart, 
-    FileText, 
+import {
+    Baby,
+    Skull,
+    Heart,
+    FileText,
     ArrowRight,
     Home,
     Sparkles
@@ -24,25 +24,25 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const REGISTRY_TYPES = [
-    { 
-        id: "BIRTH_REQ", 
-        label: "Birth Certificate Request", 
-        icon: FileText, 
-        description: "Request a certified true copy of an existing birth certificate.", 
-        color: "blue",
-        requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)", "Proof of Relationship"],
-        href: "/user/services/civil-registry/birth-certificate-request",
-        available: true
-    },
-    { 
-        id: "BIRTH_REG", 
-        label: "Birth Registration", 
-        icon: Baby, 
-        description: "Register a new birth record (timely or late registration).", 
+    // { 
+    //     id: "BIRTH_REQ", 
+    //     label: "Birth Certificate Request", 
+    //     icon: FileText, 
+    //     description: "Request a certified true copy of an existing birth certificate.", 
+    //     color: "blue",
+    //     requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)", "Proof of Relationship"],
+    //     href: "/user/services/civil-registry/birth-certificate-request",
+    //     available: true
+    // },
+    {
+        id: "BIRTH_REG",
+        label: "Birth Registration",
+        icon: Baby,
+        description: "Register a new birth record (timely or late registration).",
         color: "blue",
         requirements: [
-            "Accomplished Municipal Form 102 (from Midwife/Hospital)", 
-            "Marriage Certificate of Parents (if married)", 
+            "Accomplished Municipal Form 102 (from Midwife/Hospital)",
+            "Marriage Certificate of Parents (if married)",
             "Community Tax Certificate (if unmarried for Acknowledgment)",
             "PSA Negative Certification (for Late Registration)",
             "Affidavit of Delayed Registration (for Late Registration)"
@@ -50,11 +50,11 @@ const REGISTRY_TYPES = [
         href: "/user/services/civil-registry/birth-registration",
         available: true
     },
-    { 
-        id: "DEATH", 
-        label: "Death Registration", 
-        icon: Skull, 
-        description: "Register a Death or Request a Certified Death Certificate.", 
+    {
+        id: "DEATH",
+        label: "Death Registration",
+        icon: Skull,
+        description: "Register a Death or Request a Certified Death Certificate.",
         color: "slate",
         requirements: [
             "Certificate of Death (issued by Hospital/MCR)",
@@ -65,11 +65,11 @@ const REGISTRY_TYPES = [
         href: "/user/services/civil-registry/death-registration",
         available: true
     },
-    { 
-        id: "MARRIAGE", 
-        label: "Marriage Registration", 
-        icon: Heart, 
-        description: "Request a certified copy of a Marriage Certificate.", 
+    {
+        id: "MARRIAGE",
+        label: "Marriage Registration",
+        icon: Heart,
+        description: "Request a certified copy of a Marriage Certificate.",
         color: "rose",
         requirements: [
             "Accomplished Certificate of Marriage",
@@ -77,14 +77,14 @@ const REGISTRY_TYPES = [
             "Affidavit of Delayed Registration (for Late Registration)",
             "Certified Copy of Marriage License"
         ],
-        href: "#",
-        available: false
+        href: "/user/services/civil-registry/marriage-registration",
+        available: true
     },
-    { 
-        id: "MARRIAGE_LICENSE", 
-        label: "Marriage License Application", 
-        icon: FileText, 
-        description: "Apply for a legal license to be married in the Philippines.", 
+    {
+        id: "MARRIAGE_LICENSE",
+        label: "Marriage License Application",
+        icon: FileText,
+        description: "Apply for a legal license to be married in the Philippines.",
         color: "amber",
         requirements: [
             "Municipal Form No. 90",
@@ -95,8 +95,8 @@ const REGISTRY_TYPES = [
             "Certificate of Pre-Marriage Counseling",
             "Certificate of Family Planning"
         ],
-        href: "#",
-        available: false
+        href: "/user/services/civil-registry/marriage-license-application",
+        available: true
     },
 ];
 
@@ -135,7 +135,7 @@ export default function CivilRegistryPage() {
             <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 p-8 md:p-12 text-white shadow-2xl border border-slate-700/50">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-slate-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
-                
+
                 <div className="relative z-10 space-y-4 max-w-2xl">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-black uppercase tracking-widest">
                         <Sparkles className="w-3.5 h-3.5" />
@@ -178,7 +178,7 @@ export default function CivilRegistryPage() {
                                         </span>
                                     )}
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <h3 className="text-xl font-black uppercase tracking-tight italic text-slate-900 dark:text-white">
                                         {type.label}
@@ -203,7 +203,7 @@ export default function CivilRegistryPage() {
                             <div className="pt-6 flex justify-end">
                                 <div className={cn(
                                     "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
-                                    type.available 
+                                    type.available
                                         ? "bg-slate-50 border-slate-100 text-slate-900 group-hover:bg-blue-600 group-hover:border-blue-600 group-hover:text-white dark:bg-white/5 dark:border-transparent dark:text-white"
                                         : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed dark:bg-white/5 dark:border-transparent"
                                 )}>
@@ -222,8 +222,8 @@ export default function CivilRegistryPage() {
                     }
 
                     return (
-                        <div 
-                            key={type.id} 
+                        <div
+                            key={type.id}
                             onClick={() => toast.info(`${type.label} is currently under development.`)}
                             className="block h-full"
                         >

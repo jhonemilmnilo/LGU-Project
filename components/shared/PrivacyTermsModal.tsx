@@ -10,12 +10,13 @@ interface PrivacyTermsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAccept: () => void;
+    onDecline?: () => void;
     themeColor: string;
 }
 
 type TabType = "PRIVACY" | "TERMS";
 
-export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColor }: PrivacyTermsModalProps) {
+export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline, themeColor }: PrivacyTermsModalProps) {
     const [activeTab, setActiveTab] = useState<TabType>("PRIVACY");
     const [hasReadPrivacy, setHasReadPrivacy] = useState(false);
     const [hasReadTerms, setHasReadTerms] = useState(false);
@@ -256,7 +257,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                             <div className="flex items-center gap-3 justify-end">
                                 <Button
                                     variant="outline"
-                                    onClick={onClose}
+                                    onClick={() => { if (onDecline) onDecline(); onClose(); }}
                                     className="h-9 sm:h-10 px-4 sm:px-5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic"
                                 >
                                     Decline

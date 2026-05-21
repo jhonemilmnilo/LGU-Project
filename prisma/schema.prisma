@@ -730,6 +730,7 @@ enum RegistryType {
 enum TransactionStatus {
   DRAFT
   FOR_REQUESTING
+  FOR_REVISION
   FOR_PROCESSING
   EVALUATED
   FOR_CLAIM

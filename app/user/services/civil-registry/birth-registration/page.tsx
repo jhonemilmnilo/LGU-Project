@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
@@ -138,6 +140,18 @@ export default function BirthRegistrationPage() {
         informantCitizenship: "",
         informantOccupation: ""
     });
+
+
+    // Privacy / Terms modal state (shared key across LCR pages)
+    const [policyOpen, setPolicyOpen] = useState(false);
+
+    useEffect(() => {
+        try { const accepted = localStorage.getItem("lcr_privacy_accepted"); setPolicyAccepted(!!accepted); } catch { }
+    }, []);
+
+    const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    const handleAcceptPolicy = () => { localStorage.setItem("lcr_privacy_accepted", "1"); setPolicyOpen(false); setPolicyAccepted(true); };
 
     const isRestoredRef = useRef(false);
 
@@ -305,6 +319,16 @@ export default function BirthRegistrationPage() {
     };
 
     const handleSubmit = async () => {
+        // Require privacy terms acceptance before allowing submit
+        try {
+            const accepted = localStorage.getItem("lcr_privacy_accepted");
+            if (!accepted) {
+                toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
+                return;
+            }
+        } catch {
+            // ignore
+        }
         if (!resident) {
             toast.error("Resident profile not found. Please complete your profile first.");
             return;
@@ -413,7 +437,16 @@ export default function BirthRegistrationPage() {
     }
 
     return (
-        <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+        <>
+            <SecureIdleTimer />
+            <PrivacyTermsModal
+                isOpen={policyOpen}
+                onClose={() => setPolicyOpen(false)}
+                onAccept={handleAcceptPolicy}
+                onDecline={() => { try { localStorage.removeItem("lcr_privacy_accepted"); } catch {} setPolicyAccepted(false); }}
+                themeColor="var(--amber-500)"
+            />
+            <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
@@ -1146,12 +1179,23 @@ export default function BirthRegistrationPage() {
                                 </Card>
 
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-3 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
+                                    {/* Data Privacy Agreement panel */}
+                                    <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
+                                        <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300") }>
+                                            {policyAccepted ? <Check className="w-3 h-3" /> : null}
+                                        </button>
+                                        <div className="flex-1 text-xs">
+                                            <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
+                                            <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                        </div>
+                                        <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600">Review</button>
+                                    </div>
+                                    {/* <div className="flex items-center gap-3 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
                                         <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
                                         <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold italic">
                                             By submitting, I certify that all information provided is true and correct. I am aware of the data privacy policy of Mapandan.
                                         </p>
-                                    </div>
+                                    </div> */}
 
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                         <Button 
@@ -1239,5 +1283,6 @@ export default function BirthRegistrationPage() {
                 </div>
             </div>
         </div>
+    </>
     );
 }
