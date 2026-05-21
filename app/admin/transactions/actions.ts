@@ -1263,7 +1263,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                         lineOfBusiness: additionalData.lineOfBusiness || "General",
                         capitalInvestment: Number(additionalData.capitalInvestment || 0),
                         grossSales: Number(additionalData.grossSales || 0),
-                        employeeCount: Number(additionalData.employeeCount || 1),
+                        employeeCount: Number(additionalData.employeeCount ?? 0),
                         businessArea: Number(additionalData.businessArea || 0),
                         documentUrl: eCopyUrl || transaction.eCopyUrl,
                         issuedBy: user.name || "System Administrator",

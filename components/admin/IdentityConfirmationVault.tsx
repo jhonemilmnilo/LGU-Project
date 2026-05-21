@@ -227,7 +227,7 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                             <div className="col-span-12 md:col-span-4 space-y-3">
                                 <label style={{ whiteSpace: 'nowrap' }} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Employee Count</label>
                                 <div className="h-13 flex items-center px-6 bg-white/5 border border-white/10 rounded-[1.25rem] font-bold text-[14px] text-slate-100">
-                                    {additional?.employeeCount || "1"}
+                                    {additional?.employeeCount ?? "0"}
                                 </div>
                             </div>
                             <div className="col-span-12 md:col-span-4 space-y-3">

@@ -460,7 +460,7 @@ export default function BusinessPermitWizardPage() {
                     return parseFloat(formData.grossSales.replace(/,/g, "")) > 0 && !!formData.permitNumber;
                 }
             case "CHECKLIST":
-                // 7 Mandatory File uploads must all be loaded (or preloaded from resident profile for owner ID)
+                // All 8 File uploads must be loaded (or preloaded from resident profile for owner ID)
                 return !!(
                     formData.ctcFile &&
                     formData.dtiSecFile &&
@@ -496,48 +496,80 @@ export default function BusinessPermitWizardPage() {
             if (currentStep === "USER_IDENTITY") {
                 toast.error("Municipal profile record not loaded. Please contact administration.");
                 const r = formData.residentData;
+                let elementToFocus: HTMLElement | null = null;
                 if (!r?.firstName) {
-                    document.getElementById("resident-firstName")?.focus();
+                    elementToFocus = document.getElementById("resident-firstName");
                 } else if (!r?.lastName) {
-                    document.getElementById("resident-lastName")?.focus();
+                    elementToFocus = document.getElementById("resident-lastName");
                 } else if (!r?.dateOfBirth) {
-                    document.getElementById("resident-dateOfBirth")?.focus();
+                    elementToFocus = document.getElementById("resident-dateOfBirth");
                 } else if (!r?.occupation) {
-                    document.getElementById("resident-occupation")?.focus();
+                    elementToFocus = document.getElementById("resident-occupation");
                 } else if (!r?.contactNumber) {
-                    document.getElementById("resident-contactNumber")?.focus();
+                    elementToFocus = document.getElementById("resident-contactNumber");
+                }
+
+                if (elementToFocus) {
+                    elementToFocus.focus();
+                    elementToFocus.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
             } else if (currentStep === "PROFILE") {
                 toast.error("Please fill out all required business profile details.");
+                let elementToFocus: HTMLElement | null = null;
                 if (!formData.businessName) {
-                    document.getElementById("profile-businessName")?.focus();
+                    elementToFocus = document.getElementById("profile-businessName");
                 } else if (!formData.orgType) {
-                    document.getElementById("profile-orgType")?.focus();
+                    elementToFocus = document.getElementById("profile-orgType");
                 } else if (!formData.barangay) {
-                    document.getElementById("profile-barangay")?.focus();
+                    elementToFocus = document.getElementById("profile-barangay");
                 } else if (!formData.lineOfBusiness) {
                     if (isOtherLine) {
-                        document.getElementById("profile-lineOfBusiness")?.focus();
+                        elementToFocus = document.getElementById("profile-lineOfBusiness");
                     } else {
-                        document.getElementById("profile-lineOfBusiness-select")?.focus();
+                        elementToFocus = document.getElementById("profile-lineOfBusiness-select");
                     }
                 } else if (formData.businessType === "NEW") {
-                    const capVal = parseFloat(formData.capitalInvestment.replace(/,/g, "")) || 0;
+                    const capVal = parseFloat((formData.capitalInvestment || "").replace(/,/g, "")) || 0;
                     if (capVal <= 0) {
-                        document.getElementById("profile-capitalInvestment")?.focus();
+                        elementToFocus = document.getElementById("profile-capitalInvestment");
                     } else if (!formData.dtiSecNumber) {
-                        document.getElementById("profile-dtiSecNumber")?.focus();
+                        elementToFocus = document.getElementById("profile-dtiSecNumber");
                     }
                 } else {
-                    const salesVal = parseFloat(formData.grossSales.replace(/,/g, "")) || 0;
+                    const salesVal = parseFloat((formData.grossSales || "").replace(/,/g, "")) || 0;
                     if (salesVal <= 0) {
-                        document.getElementById("profile-grossSales")?.focus();
+                        elementToFocus = document.getElementById("profile-grossSales");
                     } else if (!formData.permitNumber) {
-                        document.getElementById("profile-permitNumber")?.focus();
+                        elementToFocus = document.getElementById("profile-permitNumber");
                     }
                 }
+
+                if (elementToFocus) {
+                    elementToFocus.focus();
+                    elementToFocus.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
             } else if (currentStep === "CHECKLIST") {
-                toast.error("All 7 checklist requirements are mandatory. Please upload all missing documents.");
+                toast.error("All document uploads are required. Please upload the missing file.");
+                const requiredChecks = [
+                    { field: "ctcFile", check: !!formData.ctcFile },
+                    { field: "dtiSecFile", check: !!formData.dtiSecFile },
+                    { field: "brgyClearanceFile", check: !!formData.brgyClearanceFile },
+                    { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl) },
+                    { field: "locationPhotoFile", check: !!formData.locationPhotoFile },
+                    { field: "sanitaryPermitFile", check: !!formData.sanitaryPermitFile },
+                    { field: "fireSafetyFile", check: !!formData.fireSafetyFile },
+                ];
+                const firstMissing = requiredChecks.find(c => !c.check);
+                if (firstMissing) {
+                    const uploadCard = document.getElementById(`upload-card-${firstMissing.field}`);
+                    if (uploadCard) {
+                        uploadCard.scrollIntoView({ behavior: "smooth", block: "center" });
+                        uploadCard.classList.add("ring-2", "ring-rose-500", "ring-offset-2");
+                        setTimeout(() => {
+                            uploadCard.classList.remove("ring-2", "ring-rose-500", "ring-offset-2");
+                        }, 2500);
+                    }
+                }
             } else {
                 toast.error("Please complete the required items in this step.");
             }
@@ -704,13 +736,7 @@ export default function BusinessPermitWizardPage() {
                                     setCurrentStep(step.id);
                                     window.scrollTo(0, 0);
                                 } else {
-                                    if (currentStep === "PROFILE") {
-                                        toast.error("Please complete your identity details first.");
-                                    } else if (currentStep === "CHECKLIST") {
-                                        toast.error("Please complete the checklist first.");
-                                    } else {
-                                        toast.error("Please complete the current phase first.");
-                                    }
+                                    handleNext();
                                 }
                             }}
                             className={cn(
@@ -1223,7 +1249,7 @@ export default function BusinessPermitWizardPage() {
                                         ].map(item => {
                                             const file = formData[item.field as keyof FormState] as File | null;
                                             return (
-                                                <div key={item.field} className="space-y-3">
+                                                <div key={item.field} id={`upload-card-${item.field}`} className="space-y-3">
                                                     <div className="flex items-center justify-between">
                                                         <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic flex items-center">
                                                             <span>{item.label}</span>
