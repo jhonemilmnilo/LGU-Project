@@ -1,0 +1,811 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    FileText,
+    User,
+    Loader2,
+    Check,
+    Home,
+    Sparkles,
+    Heart,
+    ArrowRight,
+    Search,
+    CheckCircle2,
+    Users,
+    Baby,
+    Upload,
+    Info,
+    AlertCircle
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Card } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+import {
+    getCurrentUserResident,
+    getTransactionTypes,
+    ensureCivilRegistryTransactionTypes,
+    submitCivilRegistryTransaction
+} from "@/app/admin/transactions/actions";
+import { searchResidents, getResidentDataById } from "@/app/admin/actions";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+// --- Resident Search Component ---
+const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSelect: (r: any) => void; placeholder?: string }) => {
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (query.length > 2) {
+            const delayDebounceFn = setTimeout(async () => {
+                const res = await searchResidents(query);
+                if (res.success && res.data) {
+                    setResults(res.data as any[]);
+                } else {
+                    setResults([]);
+                }
+            }, 300);
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            setResults([]);
+        }
+    }, [query]);
+
+    return (
+        <div className="relative w-full">
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input 
+                    placeholder={placeholder}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-12 h-12 bg-slate-50 dark:bg-white/5 border-none font-bold"
+                />
+            </div>
+            
+            {results.length > 0 && (
+                <div className="absolute z-[110] w-full mt-2 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2 space-y-1">
+                    {results.map((r) => (
+                        <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                                onSelect(r);
+                                setQuery("");
+                                setResults([]);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl flex items-center gap-3 transition-colors"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                                <User className="w-4 h-4 text-slate-400" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black uppercase italic">{r.firstName} {r.lastName}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{r.barangay}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+type Step = "IDENTITY" | "DETAILS" | "CONFIRM";
+
+const STEPS: { id: Step; label: string; icon: any }[] = [
+    { id: "IDENTITY", label: "Applicants", icon: User },
+    { id: "DETAILS", label: "Marriage & Documents", icon: Search },
+    { id: "CONFIRM", label: "Submit", icon: CheckCircle2 },
+];
+
+const STORAGE_KEY = "lcr_marriage_registration_draft";
+
+export default function MarriageRegistrationPage() {
+    const router = useRouter();
+    const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [resident, setResident] = useState<any>(null);
+
+    const [form, setForm] = useState({
+        typeId: "",
+        registryType: "MARRIAGE",
+        registrationType: "STANDARD" as "STANDARD" | "LATE",
+        
+        // Applicant 1
+        app1FullName: "",
+        app1BirthDate: "",
+        app1BirthPlace: "",
+        app1Citizenship: "FILIPINO",
+
+        // Applicant 2
+        app2IsResident: false,
+        app2FullName: "",
+        app2BirthDate: "",
+        app2BirthPlace: "",
+        app2Citizenship: "FILIPINO",
+
+        // Marriage Details
+        dateOfMarriage: "",
+        placeOfMarriage: "MAPANDAN, PANGASINAN",
+        
+        email: "",
+        contactNumber: "",
+        relationship: "",
+        files: {} as Record<string, File | null>,
+        previews: {} as Record<string, string | null>,
+    });
+
+    const [hasDraft, setHasDraft] = useState(false);
+
+
+    // Privacy / Terms modal state (shared key across LCR pages)
+    const [policyOpen, setPolicyOpen] = useState(false);
+    const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    useEffect(() => {
+        try {
+            const accepted = localStorage.getItem("lcr_privacy_accepted");
+            setPolicyAccepted(!!accepted);
+        } catch { }
+    }, []);
+
+    const handleAcceptPolicy = () => {
+        localStorage.setItem("lcr_privacy_accepted", "1");
+        setPolicyOpen(false);
+        setPolicyAccepted(true);
+    };
+
+    // Save progress to localStorage
+    useEffect(() => {
+        if (!loading) {
+            const { files, previews, ...savableForm } = form;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                form: savableForm,
+                currentStep
+            }));
+            setHasDraft(true);
+        }
+    }, [form, currentStep, loading]);
+
+    useEffect(() => {
+        async function init() {
+            try {
+                await ensureCivilRegistryTransactionTypes();
+                
+                // Try loading from localStorage first
+                const saved = localStorage.getItem(STORAGE_KEY);
+                const savedData = saved ? JSON.parse(saved) : null;
+                setHasDraft(!!saved);
+
+                const [resResult, typesResult] = await Promise.all([
+                    getCurrentUserResident(),
+                    getTransactionTypes()
+                ]);
+
+                if (resResult.success && resResult.data) {
+                    const r = resResult.data;
+                    setResident(r);
+                    
+                    // If no saved data, or user is new, populate baseline info
+                    if (!savedData) {
+                        setForm(prev => ({
+                            ...prev,
+                            email: r.email || "",
+                            contactNumber: r.contactNumber || "",
+                            app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
+                            app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                            app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
+                            app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
+                        }));
+                    }
+                }
+
+                if (savedData) {
+                    setForm(prev => ({ ...prev, ...savedData.form }));
+                    setCurrentStep(savedData.currentStep);
+                }
+
+                if (typesResult.success && typesResult.data) {
+                    const lcrTypes = typesResult.data.filter((t: any) => t.category === "Civil Registry");
+                    const currentDbType = lcrTypes.find((t: any) => t.code === "LCR_MARRIAGE");
+                    if (currentDbType) {
+                        setForm(prev => ({ ...prev, typeId: currentDbType.id }));
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                toast.error("Initialization Failed");
+            } finally {
+                setLoading(false);
+            }
+        }
+        init();
+    }, []);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+        const file = e.target.files?.[0] || null;
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("File size exceeds 5MB limit.");
+                return;
+            }
+            const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
+            setForm(prev => ({
+                ...prev,
+                files: { ...prev.files, [key]: file },
+                previews: { ...prev.previews, [key]: previewUrl }
+            }));
+        }
+    };
+
+    const handleSubmit = async () => {
+        // Require privacy terms acceptance before allowing submit
+        try {
+            const accepted = localStorage.getItem("lcr_privacy_accepted");
+            if (!accepted) {
+                toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
+                return;
+            }
+        } catch {
+            // ignore
+        }
+        setSubmitting(true);
+        try {
+            const formData = new FormData();
+            formData.append("typeId", form.typeId);
+            formData.append("registryType", "MARRIAGE");
+            formData.append("residentSnapshot", JSON.stringify(resident));
+            
+            const additionalData = {
+                registrationType: form.registrationType,
+                applicant1: {
+                    fullName: form.app1FullName,
+                    birthDate: form.app1BirthDate,
+                    birthPlace: form.app1BirthPlace,
+                    citizenship: form.app1Citizenship
+                },
+                applicant2: {
+                    isResident: form.app2IsResident,
+                    fullName: form.app2FullName,
+                    birthDate: form.app2BirthDate,
+                    birthPlace: form.app2BirthPlace,
+                    citizenship: form.app2Citizenship
+                },
+                dateOfMarriage: form.dateOfMarriage,
+                placeOfMarriage: form.placeOfMarriage,
+                email: form.email,
+                contactNumber: form.contactNumber,
+                relationship: form.relationship,
+                subjectName: `${form.app1FullName} & ${form.app2FullName}`
+            };
+
+            // Debug: log additionalData to browser console to verify dateOfMarriage
+            console.log("[LCR Submit] additionalData:", additionalData);
+            formData.append("additionalData", JSON.stringify(additionalData));
+
+            // Append files based on registration type
+            Object.entries(form.files).forEach(([key, file]) => {
+                if (file) formData.append(key, file);
+            });
+
+            const result = await submitCivilRegistryTransaction(formData);
+            if (result.success) {
+                localStorage.removeItem(STORAGE_KEY);
+                toast.success("Marriage Registration Submitted Successfully");
+                router.push("/user/services/requests");
+            } else {
+                toast.error(result.error || "Submission failed");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Something went wrong");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
+                <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Initializing Registration Form...</p>
+            </div>
+        );
+    }
+
+    const nextStep = () => {
+        if (currentStep === "IDENTITY") {
+            // Validate Applicant 1
+            if (!form.app1FullName || !form.app1BirthDate || !form.app1BirthPlace || !form.app1Citizenship) {
+                toast.error("Please fill in all Applicant 1 details");
+                return;
+            }
+            // Validate Applicant 2
+            if (!form.app2FullName || !form.app2BirthDate || !form.app2BirthPlace || !form.app2Citizenship) {
+                toast.error("Please fill in all Applicant 2 details");
+                return;
+            }
+            setCurrentStep("DETAILS");
+        }
+        else if (currentStep === "DETAILS") {
+            if (!form.dateOfMarriage || !form.placeOfMarriage) {
+                toast.error("Please fill in marriage details");
+                return;
+            }
+            setCurrentStep("CONFIRM");
+        }
+    };
+
+    const prevStep = () => {
+        if (currentStep === "DETAILS") setCurrentStep("IDENTITY");
+        else if (currentStep === "CONFIRM") setCurrentStep("DETAILS");
+    };
+
+    const handleApp2Select = async (res: any) => {
+        const result = await getResidentDataById(res.id);
+        if (result.success && result.data) {
+            const r = result.data;
+            setForm(prev => ({
+                ...prev,
+                app2FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
+                app2BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                app2BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
+                app2Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
+            }));
+            toast.success(`Fetched details for ${r.firstName} ${r.lastName}`);
+        }
+    };
+
+    return (
+        <>
+            <SecureIdleTimer />
+            <PrivacyTermsModal
+                isOpen={policyOpen}
+                onClose={() => setPolicyOpen(false)}
+                onAccept={handleAcceptPolicy}
+                onDecline={() => { try { localStorage.removeItem("lcr_privacy_accepted"); } catch {} setPolicyAccepted(false); }}
+                themeColor="var(--amber-500)"
+            />
+            <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/" className="flex items-center gap-1 font-bold italic text-[11px] uppercase tracking-wider">
+                            <Home className="w-3.5 h-3.5" />
+                            Home
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/user/services" className="font-bold italic text-[11px] uppercase tracking-wider">Services</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink href="/user/services/civil-registry" className="font-bold italic text-[11px] uppercase tracking-wider">Civil Registry</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="font-black italic text-[11px] uppercase tracking-wider text-rose-500">Marriage Registration</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
+
+            <div className="space-y-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-rose-500/10 rounded-xl">
+                                <Heart className="w-6 h-6 text-rose-500" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-500">Local Civil Registry</span>
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                            Marriage <span className="text-rose-500">Registration</span>
+                        </h1>
+                        <p className="text-slate-500 font-medium text-sm italic">File a request for official marriage records or register a new marriage.</p>
+                    </div>
+                    {hasDraft && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                                localStorage.removeItem(STORAGE_KEY);
+                                window.location.reload();
+                            }}
+                            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors"
+                        >
+                            Reset Form
+                        </Button>
+                    )}
+                </div>
+
+                {/* Progress Stepper */}
+                <div className="relative px-2 py-4">
+                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-100 dark:bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
+                        <motion.div 
+                            className="h-full bg-rose-600"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(STEPS.findIndex(s => s.id === currentStep) / (STEPS.length - 1)) * 100}%` }}
+                        />
+                    </div>
+                    
+                    <div className="flex justify-between items-center relative z-10">
+                        {STEPS.map((step, idx) => {
+                            const isActive = currentStep === step.id;
+                            const stepIdx = STEPS.findIndex(s => s.id === currentStep);
+                            const isCompleted = stepIdx > idx;
+                            const Icon = step.icon;
+                            
+                            return (
+                                <div key={idx} className="flex flex-col items-center gap-2">
+                                    <div className={cn(
+                                        "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 bg-white dark:bg-[#08090d]",
+                                        isActive ? "border-rose-600 text-rose-600 shadow-lg shadow-rose-500/20 scale-110" :
+                                            isCompleted ? "bg-rose-600 border-rose-600 text-white" :
+                                                "border-slate-200 dark:border-white/10 text-slate-400"
+                                    )}>
+                                        {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-4 h-4 md:w-5 md:h-5" />}
+                                    </div>
+                                    <span className={cn(
+                                        "text-[8px] md:text-[10px] font-black uppercase tracking-wider italic hidden md:block",
+                                        isActive ? "text-rose-600" : "text-slate-400"
+                                    )}>
+                                        {step.label}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentStep}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="space-y-6"
+                    >
+                        {currentStep === "IDENTITY" && (
+                            <div className="space-y-8">
+                                {/* Applicant 1 */}
+                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                    <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                                        Applicant 1
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                value={form.app1FullName}
+                                                onChange={e => setForm({...form, app1FullName: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                type="date"
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold"
+                                                value={form.app1BirthDate}
+                                                onChange={e => setForm({...form, app1BirthDate: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                value={form.app1BirthPlace}
+                                                onChange={e => setForm({...form, app1BirthPlace: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                value={form.app1Citizenship}
+                                                onChange={e => setForm({...form, app1Citizenship: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                {/* Applicant 2 */}
+                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
+                                            Applicant 2
+                                        </h3>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox 
+                                                id="app2Resident" 
+                                                checked={form.app2IsResident}
+                                                onCheckedChange={(checked) => setForm({...form, app2IsResident: !!checked})}
+                                            />
+                                            <label htmlFor="app2Resident" className="text-xs font-bold italic text-slate-500 cursor-pointer">
+                                                Applicant 2 is a resident of Mapandan
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {form.app2IsResident && (
+                                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-blue-500">Search Mapandan Records</Label>
+                                            <ResidentSearch 
+                                                onSelect={handleApp2Select}
+                                                placeholder="Search by first or last name..."
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                placeholder="ENTER FULL NAME"
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                value={form.app2FullName}
+                                                onChange={e => setForm({...form, app2FullName: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                type="date"
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold"
+                                                value={form.app2BirthDate}
+                                                onChange={e => setForm({...form, app2BirthDate: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                placeholder="ENTER PLACE"
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                value={form.app2BirthPlace}
+                                                onChange={e => setForm({...form, app2BirthPlace: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                value={form.app2Citizenship}
+                                                onChange={e => setForm({...form, app2Citizenship: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                <div className="flex justify-end pt-4">
+                                    <Button 
+                                        onClick={nextStep}
+                                        className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest"
+                                    >
+                                        Next Part <ArrowRight className="ml-2 w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === "DETAILS" && (
+                            <div className="space-y-8">
+                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                    <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
+                                        Marriage Details
+                                    </h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Type</Label>
+                                            <Select 
+                                                value={form.registrationType} 
+                                                onValueChange={(val: any) => setForm({...form, registrationType: val})}
+                                            >
+                                                <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="STANDARD">TIMELY (STANDARD)</SelectItem>
+                                                    <SelectItem value="LATE">LATE REGISTRATION</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Marriage <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                type="date"
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl"
+                                                value={form.dateOfMarriage}
+                                                onChange={e => setForm({...form, dateOfMarriage: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-1 space-y-1.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Marriage <span className="text-rose-500">*</span></Label>
+                                            <Input 
+                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase h-12 rounded-xl"
+                                                value={form.placeOfMarriage}
+                                                onChange={e => setForm({...form, placeOfMarriage: e.target.value.toUpperCase()})}
+                                            />
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
+                                    <div className="space-y-2">
+                                        <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
+                                            Required Documents
+                                        </h3>
+                                        <p className="text-xs text-slate-400 font-bold italic">
+                                            Please upload clear photos or scanned copies of the following requirements for <span className="text-rose-500 uppercase">{form.registrationType}</span> registration.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {form.registrationType === "STANDARD" ? (
+                                            <div className="space-y-4">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accomplished Certificate of Marriage</Label>
+                                                <div 
+                                                    onClick={() => document.getElementById('marriageCert')?.click()}
+                                                    className="aspect-video relative rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all group overflow-hidden"
+                                                >
+                                                    {form.previews.marriageCert ? (
+                                                        <img src={form.previews.marriageCert} className="absolute inset-0 w-full h-full object-cover" />
+                                                    ) : (
+                                                        <>
+                                                            <Upload className="w-8 h-8 text-slate-300 group-hover:text-rose-500 transition-colors" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
+                                                        </>
+                                                    )}
+                                                    <input type="file" id="marriageCert" className="hidden" onChange={e => handleFileChange(e, 'marriageCert')} />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-4">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Negative Certificate from PSA</Label>
+                                                    <div onClick={() => document.getElementById('psaNeg')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
+                                                        {form.previews.psaNeg ? <img src={form.previews.psaNeg} className="absolute inset-0 w-full h-full object-cover" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                                        <input type="file" id="psaNeg" className="hidden" onChange={e => handleFileChange(e, 'psaNeg')} />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affidavit of Delayed Registration</Label>
+                                                    <div onClick={() => document.getElementById('affidavitDelay')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
+                                                        {form.previews.affidavitDelay ? <img src={form.previews.affidavitDelay} className="absolute inset-0 w-full h-full object-cover" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                                        <input type="file" id="affidavitDelay" className="hidden" onChange={e => handleFileChange(e, 'affidavitDelay')} />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4 md:col-span-2">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Certified Copy of Marriage License</Label>
+                                                    <div onClick={() => document.getElementById('marriageLicense')?.click()} className="aspect-video max-w-md mx-auto relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
+                                                        {form.previews.marriageLicense ? <img src={form.previews.marriageLicense} className="absolute inset-0 w-full h-full object-cover" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                                        <input type="file" id="marriageLicense" className="hidden" onChange={e => handleFileChange(e, 'marriageLicense')} />
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </Card>
+
+                                <div className="flex justify-end gap-4 pt-4">
+                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
+                                        Back
+                                    </Button>
+                                    <Button onClick={nextStep} className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest">
+                                        Final Review <ArrowRight className="ml-2 w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === "CONFIRM" && (
+                            <div className="space-y-8">
+                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
+                                    <div className="bg-rose-500/5 p-6 rounded-3xl border border-rose-500/10 flex items-start gap-4">
+                                        <AlertCircle className="w-6 h-6 text-rose-500 mt-1" />
+                                        <div className="space-y-1">
+                                            <h4 className="text-sm font-black uppercase italic text-rose-600">Final Verification</h4>
+                                            <p className="text-xs text-rose-500/80 font-bold italic leading-relaxed">
+                                                Please ensure all information provided is accurate and matches your official documents. 
+                                                False information may lead to rejection of your application.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="space-y-6">
+                                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Contracting Parties</h5>
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="font-bold text-slate-400 italic">Party 1:</span>
+                                                    <span className="font-black uppercase italic">{form.app1FullName}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="font-bold text-slate-400 italic">Party 2:</span>
+                                                    <span className="font-black uppercase italic">{form.app2FullName}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs text-rose-500">
+                                                    <span className="font-bold italic">Type:</span>
+                                                    <span className="font-black uppercase italic">{form.registrationType}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Event Schedule</h5>
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="font-bold text-slate-400 italic">Date:</span>
+                                                    <span className="font-black uppercase italic">{form.dateOfMarriage}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="font-bold text-slate-400 italic">Location:</span>
+                                                    <span className="font-black uppercase italic">{form.placeOfMarriage}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-6 space-y-4">
+                                        {/* Data Privacy Agreement panel */}
+                                        <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
+                                            <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-rose-500 border-rose-500 text-white" : "border-slate-300") }>
+                                                {policyAccepted ? <Check className="w-3 h-3" /> : null}
+                                            </button>
+                                            <div className="flex-1 text-xs">
+                                                <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
+                                                <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                            </div>
+                                            <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-rose-600">Review</button>
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                <div className="flex justify-end gap-4 pt-4">
+                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
+                                        Back
+                                    </Button>
+                                    <Button 
+                                        onClick={handleSubmit} 
+                                        disabled={submitting}
+                                        className="h-14 px-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-rose-500/20"
+                                    >
+                                        {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
+                                        Confirm & Submit
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+        </div>
+    </>
+    );
+}
+
