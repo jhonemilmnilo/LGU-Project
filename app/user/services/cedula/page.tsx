@@ -44,7 +44,9 @@ import {
     getCurrentUserResident,
     getTransactionTypes,
     submitTransaction,
-    ensureCedulaTransactionTypes
+    ensureCedulaTransactionTypes,
+    getTransactionById,
+    resubmitTransaction
 } from "@/app/admin/transactions/actions";
 import { calculateCedula, CedulaResult, isPastCedulaDeadline, getCedulaPenaltyRate } from "@/lib/cedula";
 import { toast } from "sonner";
@@ -89,6 +91,9 @@ export default function CedulaApplicationPage() {
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);
+    const [existingProofUrl, setExistingProofUrl] = useState<string | null>(null);
+    const [revisionId, setRevisionId] = useState<string | null>(null);
+    const [revisionTx, setRevisionTx] = useState<any>(null);
     const [cedulaTypes, setCedulaTypes] = useState<any[]>([]);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const incomeInputRef = useRef<HTMLInputElement>(null);
@@ -118,20 +123,75 @@ export default function CedulaApplicationPage() {
                 // Fetch Types
                 let defaultTypeId = "";
                 const typesRes = await getTransactionTypes();
+                let fetchedTypes: any[] = [];
                 if (typesRes.success) {
-                    const filtered = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
-                    setCedulaTypes(filtered);
-                    if (filtered.length > 0) {
-                        const individualType = filtered.find((t: any) => t.code === "CEDULA_IND") || filtered[0];
+                    fetchedTypes = typesRes.data?.filter((t: any) => t.code.startsWith("CEDULA")) || [];
+                    setCedulaTypes(fetchedTypes);
+                    if (fetchedTypes.length > 0) {
+                        const individualType = fetchedTypes.find((t: any) => t.code === "CEDULA_IND") || fetchedTypes[0];
                         defaultTypeId = individualType.id;
                         setFormData(prev => ({ ...prev, typeId: individualType.id }));
                     }
                 }
 
+                // Check for revisionId query parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const revId = urlParams.get("revisionId");
+
                 // Fetch Resident
                 const residentRes = await getCurrentUserResident();
                 const resident = residentRes.data;
-                if (residentRes.success && resident) {
+
+                if (revId) {
+                    // Fetch existing transaction for revision
+                    const txRes = await getTransactionById(revId);
+                    if (txRes.success && txRes.data) {
+                        const tx = txRes.data;
+                        setRevisionId(revId);
+                        setRevisionTx(tx);
+
+                        const addData = tx.additionalData as any || {};
+                        const resSnapshot = tx.residentSnapshot as any || resident || {};
+
+                        if (addData.validIdUrl) setExistingIdUrl(addData.validIdUrl);
+                        else if (resident?.idFrontUrl) setExistingIdUrl(resident.idFrontUrl);
+
+                        if (addData.proofOfIncomeUrl) setExistingProofUrl(addData.proofOfIncomeUrl);
+
+                        // Match correct typeId based on applicantType
+                        const targetType = fetchedTypes.find((t: any) => t.code === (addData.applicantType === "JURIDICAL" ? "CEDULA_JUR" : "CEDULA_IND")) || fetchedTypes[0];
+
+                        // Convert income to a nicely formatted currency string with commas
+                        let formattedIncome = "";
+                        if (addData.income != null) {
+                            const incomeNum = Number(addData.income);
+                            formattedIncome = isNaN(incomeNum) ? String(addData.income) : incomeNum.toLocaleString("en-US", { maximumFractionDigits: 2 });
+                        }
+
+                        setFormData({
+                            typeId: targetType?.id || tx.typeId || defaultTypeId,
+                            applicantType: addData.applicantType || "INDIVIDUAL",
+                            residentData: resSnapshot,
+                            income: formattedIncome,
+                            propertyValue: addData.propertyValue != null ? String(addData.propertyValue) : "",
+                            idFile: null,
+                            proofFile: null,
+                            businessName: addData.businessName || ""
+                        });
+
+                        // Set the baseline so auto-draft doesn't overwrite it
+                        setBaseDraft(JSON.stringify({
+                            typeId: targetType?.id || tx.typeId || defaultTypeId,
+                            applicantType: addData.applicantType || "INDIVIDUAL",
+                            residentData: resSnapshot,
+                            income: formattedIncome,
+                            propertyValue: addData.propertyValue != null ? String(addData.propertyValue) : "",
+                            businessName: addData.businessName || ""
+                        }));
+                    } else {
+                        toast.error("Failed to fetch revision details");
+                    }
+                } else if (residentRes.success && resident) {
                     setInitialResident(resident);
                     if (resident.idFrontUrl) setExistingIdUrl(resident.idFrontUrl);
                     
@@ -241,8 +301,8 @@ export default function CedulaApplicationPage() {
                 // Require Annual Gross Income to be > 0
                 return (parseFloat(formData.income) > 0);
             case "CONFIRM":
-                // Final submission requires Data Privacy acceptance AND either a new upload or an existing ID
-                return privacyAccepted && (!!formData.idFile || !!existingIdUrl) && !!formData.proofFile;
+                // Final submission requires Data Privacy acceptance (or revisionId) AND either a new upload or an existing ID AND either a new upload or existing proof
+                return (!!revisionId || privacyAccepted) && (!!formData.idFile || !!existingIdUrl) && (!!formData.proofFile || !!existingProofUrl);
             default:
                 return true;
         }
@@ -280,7 +340,9 @@ export default function CedulaApplicationPage() {
         const stepIndex = STEPS.findIndex(s => s.id === currentStep);
         if (stepIndex < STEPS.length - 1) {
             setCurrentStep(STEPS[stepIndex + 1].id);
-            window.scrollTo(0, 0);
+            if (!revisionId) {
+                window.scrollTo(0, 0);
+            }
         }
     };
 
@@ -298,27 +360,32 @@ export default function CedulaApplicationPage() {
             const submitData = new FormData();
             submitData.append("typeId", formData.typeId);
             if (existingIdUrl) submitData.append("existingIdUrl", existingIdUrl);
+            if (existingProofUrl) submitData.append("existingProofUrl", existingProofUrl);
 
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
             submitData.append("additionalData", JSON.stringify({
                 applicantType: formData.applicantType,
-                income: parseFloat(formData.income.replace(/,/g, '')),
-                propertyValue: parseFloat(formData.propertyValue),
+                income: parseFloat(formData.income.replace(/,/g, '')) || 0,
+                propertyValue: parseFloat(formData.propertyValue) || 0,
                 businessName: formData.businessName
             }));
 
             if (formData.idFile) submitData.append("idFile", formData.idFile);
             if (formData.proofFile) submitData.append("proofFile", formData.proofFile);
 
-            const res = await submitTransaction(submitData);
+            const res = revisionId 
+                ? await resubmitTransaction(revisionId, submitData)
+                : await submitTransaction(submitData);
+
             if (res.success) {
                 clearDraft(); // Purge draft upon successful submission
-                toast.success("Application submitted successfully!");
+                toast.success(revisionId ? "Revision resubmitted successfully!" : "Application submitted successfully!");
                 router.push("/user/services/requests"); // Re-routing to tracking page
             } else {
                 toast.error(res.error || "Submission failed");
             }
-        } catch {
+        } catch (err) {
+            console.error("Submission error:", err);
             toast.error("An error occurred during submission");
         } finally {
             setSubmitting(false);
@@ -378,6 +445,20 @@ export default function CedulaApplicationPage() {
             </div>
         </div>
 
+            {/* Revision Remarks Alert Banner */}
+            {revisionTx && (
+                <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-1.5 text-left w-full">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest font-sans">
+                            ⚠️ Attention: Revision Needed
+                        </span>
+                        <div className="text-xs text-amber-800 dark:text-amber-300 font-bold bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
+                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Progress Stepper */}
             <div className="grid grid-cols-4 gap-1.5 md:gap-4 relative px-1 md:px-2">
                 {STEPS.map((step, idx) => {
@@ -390,7 +471,9 @@ export default function CedulaApplicationPage() {
                             onClick={() => {
                                 if (canNavigate(step.id)) {
                                     setCurrentStep(step.id);
-                                    window.scrollTo(0, 0);
+                                    if (!revisionId) {
+                                        window.scrollTo(0, 0);
+                                    }
                                 } else {
                                     if (currentStep === "RESIDENT") {
                                         contactInputRef.current?.focus();
@@ -800,7 +883,7 @@ export default function CedulaApplicationPage() {
                                                     </div>
                                                 </div>
 
-                                                {formData.proofFile && formData.proofFile.type.startsWith("image/") && (
+                                                {formData.proofFile && formData.proofFile.type.startsWith("image/") ? (
                                                     <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg mt-1">
                                                         <Image
                                                             src={URL.createObjectURL(formData.proofFile)}
@@ -810,13 +893,23 @@ export default function CedulaApplicationPage() {
                                                             className="object-cover"
                                                         />
                                                     </div>
-                                                )}
+                                                ) : existingProofUrl ? (
+                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/10 shadow-lg mt-1">
+                                                        <Image
+                                                            src={existingProofUrl}
+                                                            alt="Existing Proof Preview"
+                                                            fill
+                                                            unoptimized
+                                                            className="object-cover opacity-60"
+                                                        />
+                                                    </div>
+                                                ) : null}
 
                                                 <div className="flex items-center justify-between w-full gap-2 md:gap-3 mt-1">
                                                     <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
-                                                    <Button asChild variant={formData.proofFile ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
+                                                    <Button asChild variant={(formData.proofFile || existingProofUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
                                                         <label htmlFor="proof-upload" className="cursor-pointer">
-                                                            {formData.proofFile ? "Change" : "Upload"}
+                                                            {formData.proofFile ? "Change" : existingProofUrl ? "Replace Proof" : "Upload"}
                                                         </label>
                                                     </Button>
                                                 </div>
@@ -824,34 +917,36 @@ export default function CedulaApplicationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
-                                        <div
-                                            onClick={() => {
-                                                if (privacyAccepted) {
-                                                    setPrivacyAccepted(false);
-                                                } else {
-                                                    setIsPrivacyModalOpen(true);
-                                                }
-                                            }}
-                                            className={cn(
-                                                "p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all cursor-pointer flex items-start gap-3 md:gap-4 select-none",
-                                                privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
-                                                privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
-                                            )}>
-                                                {privacyAccepted && <Check className="w-3.5 h-3.5" />}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
-                                                <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
-                                                    I authorize the LGU to process my personal information in accordance with the Data Privacy Act. I confirm all info is true and correct. Click to review agreement.
-                                                </p>
+                                    {!revisionId && (
+                                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
+                                            <div
+                                                onClick={() => {
+                                                    if (privacyAccepted) {
+                                                        setPrivacyAccepted(false);
+                                                    } else {
+                                                        setIsPrivacyModalOpen(true);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all cursor-pointer flex items-start gap-3 md:gap-4 select-none",
+                                                    privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                                                    privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
+                                                )}>
+                                                    {privacyAccepted && <Check className="w-3.5 h-3.5" />}
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-xs md:text-sm font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
+                                                    <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                                                        I authorize the LGU to process my personal information in accordance with the Data Privacy Act. I confirm all info is true and correct. Click to review agreement.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
                         </motion.div>
@@ -869,7 +964,7 @@ export default function CedulaApplicationPage() {
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         ) : (
                             <div className="flex items-center">
-                                {currentStep === "CONFIRM" ? "Finalize Submission" : "Next Phase"}
+                                {currentStep === "CONFIRM" ? (revisionId ? "Resubmit" : "Finalize Submission") : "Next Phase"}
                                 <ChevronRight className={cn("w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform", submitting && "hidden")} />
                             </div>
                         )}

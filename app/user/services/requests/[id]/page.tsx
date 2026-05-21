@@ -448,8 +448,10 @@ export default function RequestHubPage() {
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
     const typeCode = request?.type?.code || "";
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
+    const isCedula = typeCode.startsWith("CEDULA");
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
+    const remainingRevisions = request ? Math.max(0, 3 - (request.revisionCount || 0)) : 3;
 
     const computation = useMemo(() => {
         if (!request) return null;
@@ -614,15 +616,23 @@ export default function RequestHubPage() {
                             </div>
                             <div className="relative z-10 space-y-8">
                                 <div>
-                                    <h3 className="text-sm md:text-lg font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 italic flex items-center gap-2">
-                                        <AlertCircle className="w-5 h-5" /> Revision Required
-                                    </h3>
-                                    <p className="text-xs md:text-sm text-slate-500 mt-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <h3 className="text-sm md:text-lg font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 italic flex items-center gap-2">
+                                            <AlertCircle className="w-5 h-5" /> Revision Required
+                                        </h3>
+                                        <Badge variant="outline" className="w-fit bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[9px] font-black uppercase tracking-widest italic py-1.5 px-4 rounded-full">
+                                            {remainingRevisions} {remainingRevisions === 1 ? "Revision Left" : "Revisions Left"}
+                                        </Badge>
+                                    </div>
+                                    <p className="text-xs md:text-sm text-slate-500 mt-4 leading-relaxed">
                                         Admin remarks: <strong className="text-amber-700 dark:text-amber-400">{request.rejectionRemarks}</strong>
                                     </p>
-                                    {isBusinessPermit ? (
+                                    <p className="text-[9px] md:text-[10px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest mt-3 flex items-center gap-1.5 animate-pulse bg-red-500/10 dark:bg-red-500/5 border border-red-500/20 dark:border-red-500/10 rounded-xl px-4 py-2 w-fit">
+                                        ⚠️ Warning: If your request requires revision {remainingRevisions === 1 ? "one more time" : `${remainingRevisions} more times`}, it will be automatically declined by the system.
+                                    </p>
+                                    {isBusinessPermit || isCedula ? (
                                         <p className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase font-bold italic tracking-wider">
-                                            Please use our interactive wizard to easily fix and submit your permit revision.
+                                            Please use our interactive wizard to easily fix and submit your revision.
                                         </p>
                                     ) : (
                                         <p className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase font-bold italic tracking-wider">
@@ -631,14 +641,14 @@ export default function RequestHubPage() {
                                     )}
                                 </div>
 
-                                {isBusinessPermit ? (
+                                {isBusinessPermit || isCedula ? (
                                     <div className="p-6 md:p-8 bg-amber-500/5 border border-amber-500/10 rounded-2xl md:rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
                                         <div className="space-y-2 text-left">
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest">
-                                                ✨ Premium Permitting Experience
+                                                ✨ Premium Experience
                                             </span>
                                             <h4 className="text-sm md:text-base font-black uppercase tracking-widest text-slate-800 dark:text-white italic">
-                                                Interactive Business Permit Wizard
+                                                Interactive {isBusinessPermit ? "Business Permit" : "Cedula"} Wizard
                                             </h4>
                                             <p className="text-xs text-slate-500 leading-relaxed max-w-2xl font-medium">
                                                 Don&#39;t worry about refilling everything, dear resident! We already pre-filled the entire form with your previous inputs and files. You only need to touch the fields or files that actually need correction. Very convenient, right?
@@ -648,7 +658,7 @@ export default function RequestHubPage() {
                                             asChild
                                             className="h-12 md:h-14 px-6 md:px-8 rounded-xl md:rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase text-[10px] tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2 shrink-0 self-start md:self-center"
                                         >
-                                            <Link href={`/user/services/business-permit?revisionId=${request.id}`}>
+                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : `/user/services/cedula?revisionId=${request.id}`}>
                                                 <ExternalLink className="w-4 h-4" />
                                                 Fix Application
                                             </Link>

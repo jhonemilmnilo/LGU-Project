@@ -1598,14 +1598,34 @@ export async function rejectTransaction(id: string, remarks: string) {
             }
         });
 
-        // 3. Anti-Spam Protocol: Increment rejectionCount for citizen accounts
+        // 3. Anti-Spam Protocol: Increment rejectionCount based on per-category limits for citizen accounts
         if (tx.userId && tx.user?.role === "USER") {
+            // Count all rejected transactions for this user
+            const rejectedTransactions = await prisma.transaction.findMany({
+                where: {
+                    userId: tx.userId,
+                    status: "REJECTED"
+                },
+                include: {
+                    type: true
+                }
+            });
+
+            // Group and find the maximum rejection count in any single category
+            const categoryCounts: Record<string, number> = {};
+            for (const rTx of rejectedTransactions) {
+                const category = rTx.type.category || "General";
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            }
+            
+            const maxCategoryRejections = Math.max(0, ...Object.values(categoryCounts));
+
             const updatedUser = await prisma.user.update({
                 where: { id: tx.userId },
-                data: { rejectionCount: { increment: 1 } } as any
+                data: { rejectionCount: maxCategoryRejections } as any
             }) as any;
 
-            // Check if deactivation threshold reached
+            // Check if deactivation threshold reached (3 rejections in any single category)
             if (updatedUser.rejectionCount >= 3) {
                 // LOCK ACCOUNT: Set isEmailVerified to false
                 await prisma.user.update({
@@ -1662,29 +1682,103 @@ export async function sendForRevision(id: string, remarks: string) {
 
         if (!tx) return { success: false, error: "Transaction inaccessible" };
 
-        const transaction = await prisma.transaction.update({
-            where: { id },
-            data: {
-                status: "FOR_REVISION" as any,
-                rejectionRemarks: remarks,
-                processedBy: user.id
-            }
-        });
+        const nextRevisionCount = (tx.revisionCount || 0) + 1;
 
-        if (tx.userId && tx.user?.role === "USER" && tx.user?.email) {
-            const resident = tx.residentSnapshot as any;
-            await sendEmail({
-                type: "FOR_REVISION" as any,
-                to: tx.user.email,
-                name: resident?.firstName || tx.user.name || "Resident",
-                remarks: remarks,
-                transactionId: tx.id
+        if (nextRevisionCount >= 3) {
+            // 🚨 AUTOMATIC DECLINE / REJECTION!
+            const autoRemarks = `${remarks} (System: Automatically declined due to reaching the maximum limit of 3 revision requests.)`;
+            const transaction = await prisma.transaction.update({
+                where: { id },
+                data: {
+                    status: "REJECTED",
+                    rejectionRemarks: autoRemarks,
+                    processedBy: user.id,
+                    revisionCount: nextRevisionCount
+                }
             });
-        }
 
-        revalidatePath("/admin/treasury");
-        revalidatePath("/user/services");
-        return { success: true, data: transaction };
+            // Anti-Spam Protocol: Increment rejectionCount based on per-category limits for citizen accounts
+            if (tx.userId && tx.user?.role === "USER") {
+                const rejectedTransactions = await prisma.transaction.findMany({
+                    where: {
+                        userId: tx.userId,
+                        status: "REJECTED"
+                    },
+                    include: {
+                        type: true
+                    }
+                });
+
+                const categoryCounts: Record<string, number> = {};
+                for (const rTx of rejectedTransactions) {
+                    const category = rTx.type.category || "General";
+                    categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                }
+
+                const maxCategoryRejections = Math.max(0, ...Object.values(categoryCounts));
+
+                const updatedUser = await prisma.user.update({
+                    where: { id: tx.userId },
+                    data: { rejectionCount: maxCategoryRejections } as any
+                }) as any;
+
+                // Check if deactivation threshold reached (3 rejections in any single category)
+                if (updatedUser.rejectionCount >= 3) {
+                    await prisma.user.update({
+                        where: { id: tx.userId },
+                        data: { isEmailVerified: false }
+                    });
+
+                    if (updatedUser.email) {
+                        await sendEmail({
+                            type: "DEACTIVATED",
+                            to: updatedUser.email,
+                            name: updatedUser.name || "Resident",
+                        });
+                    }
+                } else {
+                    if (updatedUser.email) {
+                        const resident = tx.residentSnapshot as any;
+                        await sendEmail({
+                            type: "REJECTED",
+                            to: updatedUser.email,
+                            name: resident?.firstName || updatedUser.name || "Resident",
+                            remarks: autoRemarks
+                        });
+                    }
+                }
+            }
+
+            revalidatePath("/admin/treasury");
+            revalidatePath("/user/services");
+            return { success: true, data: transaction, isAutoRejected: true };
+        } else {
+            // Standard Revision Request
+            const transaction = await prisma.transaction.update({
+                where: { id },
+                data: {
+                    status: "FOR_REVISION" as any,
+                    rejectionRemarks: remarks,
+                    processedBy: user.id,
+                    revisionCount: nextRevisionCount
+                }
+            });
+
+            if (tx.userId && tx.user?.role === "USER" && tx.user?.email) {
+                const resident = tx.residentSnapshot as any;
+                await sendEmail({
+                    type: "FOR_REVISION" as any,
+                    to: tx.user.email,
+                    name: resident?.firstName || tx.user.name || "Resident",
+                    remarks: remarks,
+                    transactionId: tx.id
+                });
+            }
+
+            revalidatePath("/admin/treasury");
+            revalidatePath("/user/services");
+            return { success: true, data: transaction, isAutoRejected: false };
+        }
     } catch (error) {
         console.error("Send for revision error:", error);
         return { success: false, error: "Failed to request revision" };
@@ -1700,7 +1794,8 @@ export async function resubmitTransaction(id: string, formData: FormData) {
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
         const tx = await prisma.transaction.findUnique({
-            where: { id, userId: session.user.id }
+            where: { id, userId: session.user.id },
+            include: { type: true }
         });
 
         if (!tx || tx.status !== "FOR_REVISION") {
@@ -1708,7 +1803,8 @@ export async function resubmitTransaction(id: string, formData: FormData) {
         }
 
         const additionalData = tx.additionalData as any || {};
-        const isBusinessPermit = tx.typeId?.includes("BUSINESS_PERMIT");
+        const isBusinessPermit = tx.typeId?.includes("BUSINESS_PERMIT") || tx.type?.code?.startsWith("BUSINESS_PERMIT");
+        const isCedula = tx.typeId?.includes("CEDULA") || tx.type?.code?.startsWith("CEDULA");
 
         // Helper to process optional re-uploaded files
         const processReupload = async (key: string, folder: string) => {
@@ -1719,7 +1815,17 @@ export async function resubmitTransaction(id: string, formData: FormData) {
             return additionalData[key]; // keep existing
         };
 
-        // If it's a Business Permit, process its specific files
+        // Parse optional resident snapshot updates if provided (e.g. from the interactive revision wizards)
+        const residentSnapshotStr = formData.get("residentSnapshot") as string;
+        let residentSnapshot = tx.residentSnapshot;
+        if (residentSnapshotStr) {
+            try {
+                residentSnapshot = JSON.parse(residentSnapshotStr);
+            } catch (e) {
+                console.error("Failed to parse resident snapshot during resubmit:", e);
+            }
+        }
+
         if (isBusinessPermit) {
             additionalData.ctcUrl = await processReupload("ctcFile", "bp_ctc") || additionalData.ctcUrl;
             additionalData.dtiSecUrl = await processReupload("dtiSecFile", "bp_dti") || additionalData.dtiSecUrl;
@@ -1738,6 +1844,22 @@ export async function resubmitTransaction(id: string, formData: FormData) {
                     if (val) additionalData[f] = isNaN(Number(val)) ? val : Number(val);
                 }
             }
+        } else if (isCedula) {
+            // Cedula-specific uploads and data updates
+            additionalData.validIdUrl = await processReupload("idFile", "ids") || additionalData.validIdUrl;
+            additionalData.proofOfIncomeUrl = await processReupload("proofFile", "proofs") || additionalData.proofOfIncomeUrl;
+
+            // Update Cedula specific text fields
+            const fields = ["applicantType", "income", "propertyValue", "businessName"];
+            for (const f of fields) {
+                if (formData.has(f)) {
+                    const val = formData.get(f) as string;
+                    if (val) {
+                        const cleanVal = val.replace(/,/g, ""); // Strip out commas from gross income if any
+                        additionalData[f] = isNaN(Number(cleanVal)) ? cleanVal : Number(cleanVal);
+                    }
+                }
+            }
         } else {
             // General basic/civil registry
             additionalData.validIdUrl = await processReupload("idFile", "ids") || additionalData.validIdUrl;
@@ -1748,6 +1870,7 @@ export async function resubmitTransaction(id: string, formData: FormData) {
             where: { id },
             data: {
                 additionalData: additionalData,
+                residentSnapshot: residentSnapshot as any,
                 status: "FOR_REQUESTING",
                 rejectionRemarks: null
             }
