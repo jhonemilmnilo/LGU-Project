@@ -576,7 +576,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
                                     {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
                                 </span>
-                                <div className="flex items-center gap-4 group">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 group w-full">
                                     <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
                                         {transaction.type.requiresBusinessName
                                             ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
@@ -589,6 +589,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         isBusinessPermit={isBusinessPermit}
                                         transactionTypeCode={transaction?.type?.code}
                                         themeColor={themeColor}
+                                        hideDocuments
                                     />
                                 </div>
                             </div>
@@ -727,7 +728,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Identity Evidences</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Re</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 {(isBusinessPermit
