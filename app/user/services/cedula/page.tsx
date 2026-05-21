@@ -96,8 +96,12 @@ export default function CedulaApplicationPage() {
     const [revisionTx, setRevisionTx] = useState<any>(null);
     const [cedulaTypes, setCedulaTypes] = useState<any[]>([]);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+    const [showValidationErrors, setShowValidationErrors] = useState(false);
     const incomeInputRef = useRef<HTMLInputElement>(null);
     const contactInputRef = useRef<HTMLInputElement>(null);
+    const idSectionRef = useRef<HTMLDivElement>(null);
+    const proofSectionRef = useRef<HTMLDivElement>(null);
+    const privacySectionRef = useRef<HTMLDivElement>(null);
 
     const [formData, setFormData] = useState<FormState>({
         typeId: "",
@@ -340,9 +344,6 @@ export default function CedulaApplicationPage() {
         const stepIndex = STEPS.findIndex(s => s.id === currentStep);
         if (stepIndex < STEPS.length - 1) {
             setCurrentStep(STEPS[stepIndex + 1].id);
-            if (!revisionId) {
-                window.scrollTo(0, 0);
-            }
         }
     };
 
@@ -355,6 +356,30 @@ export default function CedulaApplicationPage() {
     };
 
     const onSubmit = async () => {
+        const hasId = !!formData.idFile || !!existingIdUrl;
+        const hasProof = !!formData.proofFile || !!existingProofUrl;
+        const hasPrivacy = !!revisionId || privacyAccepted;
+
+        if (!hasId || !hasProof || !hasPrivacy) {
+            setShowValidationErrors(true);
+            
+            // Premium, helpful TagLish micro-notifications and smooth scroll to first missing element
+            if (!hasId && !hasProof) {
+                toast.error("Wait lang, pare! You need to upload both your Valid ID and Proof of Income to proceed.");
+                idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else if (!hasId) {
+                toast.error("Oops! You forgot to attach your Valid ID, bro.");
+                idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else if (!hasProof) {
+                toast.error("Hold on, you need to upload your Proof of Income first.");
+                proofSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else if (!hasPrivacy) {
+                toast.error("Please accept the Data Privacy and Terms Agreement to submit your application.");
+                privacySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+            return;
+        }
+
         setSubmitting(true);
         try {
             const submitData = new FormData();
@@ -437,8 +462,8 @@ export default function CedulaApplicationPage() {
 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 px-1 md:px-0">
                 <div className="space-y-1 md:space-y-2">
-                    <h1 className="text-4xl md:text-7xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
-                        Online <span className="text-primary underline decoration-[6px] md:decoration-8 decoration-primary/20 underline-offset-[6px] md:underline-offset-[12px]">Cedula</span>
+                    <h1 className="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
+                        Online <span className="text-primary underline decoration-[4px] md:decoration-[6px] decoration-primary/20 underline-offset-[4px] md:underline-offset-[8px]">Cedula</span>
                     </h1>
                     <p className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-1 md:ml-2 italic">LGU Digital Governance Portal</p>
                 </div>
@@ -447,12 +472,12 @@ export default function CedulaApplicationPage() {
 
             {/* Revision Remarks Alert Banner */}
             {revisionTx && (
-                <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-amber-500/5 border border-amber-500/20 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="space-y-1.5 text-left w-full">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest font-sans">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 text-[8px] font-black uppercase tracking-widest font-sans">
                             ⚠️ Attention: Revision Needed
                         </span>
-                        <div className="text-xs text-amber-800 dark:text-amber-300 font-bold bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
+                        <div className="text-xs text-amber-700 dark:text-amber-400 font-bold bg-amber-500/[0.02] border border-amber-500/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
                             &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
                         </div>
                     </div>
@@ -471,9 +496,6 @@ export default function CedulaApplicationPage() {
                             onClick={() => {
                                 if (canNavigate(step.id)) {
                                     setCurrentStep(step.id);
-                                    if (!revisionId) {
-                                        window.scrollTo(0, 0);
-                                    }
                                 } else {
                                     if (currentStep === "RESIDENT") {
                                         contactInputRef.current?.focus();
@@ -826,14 +848,21 @@ export default function CedulaApplicationPage() {
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
-                                        <div className="space-y-4 md:space-y-6">
-                                            <div className="p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-3 md:gap-4 transition-all hover:border-primary">
+                                        <div className="space-y-4 md:space-y-6" ref={idSectionRef}>
+                                            <div className={cn(
+                                                "p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed flex flex-col items-center text-center gap-3 md:gap-4 transition-all hover:border-primary",
+                                                showValidationErrors && !(formData.idFile || existingIdUrl)
+                                                    ? "border-red-500 dark:border-red-500/80 ring-2 ring-red-500/20 bg-red-50/10 animate-pulse"
+                                                    : "border-slate-200 dark:border-white/10"
+                                            )}>
                                                 <div className="flex items-center gap-3 md:gap-4 w-full text-left">
                                                     <div className="w-10 h-10 md:w-12 md:h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
                                                         <Upload className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                                                     </div>
                                                     <div className="space-y-0.5">
-                                                        <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Valid ID</h4>
+                                                        <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic flex items-center gap-1">
+                                                            Valid ID <span className="text-red-500 font-black not-italic">*</span>
+                                                        </h4>
                                                         <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">PDF / Image (Max 5MB)</p>
                                                     </div>
                                                 </div>
@@ -871,14 +900,21 @@ export default function CedulaApplicationPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4 md:space-y-6">
-                                            <div className="p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center text-center gap-3 md:gap-4 transition-all hover:border-primary">
+                                        <div className="space-y-4 md:space-y-6" ref={proofSectionRef}>
+                                            <div className={cn(
+                                                "p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed flex flex-col items-center text-center gap-3 md:gap-4 transition-all hover:border-primary",
+                                                showValidationErrors && !(formData.proofFile || existingProofUrl)
+                                                    ? "border-red-500 dark:border-red-500/80 ring-2 ring-red-500/20 bg-red-50/10 animate-pulse"
+                                                    : "border-slate-200 dark:border-white/10"
+                                            )}>
                                                 <div className="flex items-center gap-3 md:gap-4 w-full text-left">
                                                     <div className="w-10 h-10 md:w-12 md:h-12 bg-white dark:bg-black/20 rounded-xl flex items-center justify-center shadow-sm shrink-0">
                                                         <Upload className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                                                     </div>
                                                     <div className="space-y-0.5">
-                                                        <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic">Proof of Income</h4>
+                                                        <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic flex items-center gap-1">
+                                                            Proof of Income <span className="text-red-500 font-black not-italic">*</span>
+                                                        </h4>
                                                         <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">Payslip / BIR (Max 5MB)</p>
                                                     </div>
                                                 </div>
@@ -918,7 +954,7 @@ export default function CedulaApplicationPage() {
                                     </div>
 
                                     {!revisionId && (
-                                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5">
+                                        <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 dark:border-white/5" ref={privacySectionRef}>
                                             <div
                                                 onClick={() => {
                                                     if (privacyAccepted) {
@@ -929,12 +965,20 @@ export default function CedulaApplicationPage() {
                                                 }}
                                                 className={cn(
                                                     "p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all cursor-pointer flex items-start gap-3 md:gap-4 select-none",
-                                                    privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
+                                                    privacyAccepted 
+                                                        ? "bg-primary/5 border-primary shadow-sm" 
+                                                        : showValidationErrors
+                                                            ? "bg-red-50/10 border-red-500 dark:border-red-500/80 ring-2 ring-red-500/20 animate-pulse"
+                                                            : "bg-slate-50 dark:bg-white/5 border-transparent hover:border-primary/20"
                                                 )}
                                             >
                                                 <div className={cn(
                                                     "w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
-                                                    privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
+                                                    privacyAccepted 
+                                                        ? "bg-primary border-primary text-white" 
+                                                        : showValidationErrors
+                                                            ? "border-red-500"
+                                                            : "border-slate-300 dark:border-white/10"
                                                 )}>
                                                     {privacyAccepted && <Check className="w-3.5 h-3.5" />}
                                                 </div>
@@ -957,7 +1001,7 @@ export default function CedulaApplicationPage() {
                 <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-end">
                     <Button
                         onClick={currentStep === "CONFIRM" ? onSubmit : handleNext}
-                        disabled={submitting || !isStepValid(currentStep)}
+                        disabled={submitting || (currentStep !== "CONFIRM" && !isStepValid(currentStep))}
                         className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
                     >
                         {submitting ? (

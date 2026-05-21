@@ -14,7 +14,8 @@ import {
     UserCheck,
     Truck,
     X,
-    AlertCircle
+    AlertCircle,
+    ArrowUpDown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -36,6 +37,7 @@ export default function UserServiceRequestsPage() {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
     useEffect(() => {
         async function fetchRequests() {
@@ -86,6 +88,12 @@ export default function UserServiceRequestsPage() {
         r.type?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const sortedRequests = [...filteredRequests].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+    });
 
     if (loading) {
         return (
@@ -149,21 +157,32 @@ export default function UserServiceRequestsPage() {
                             </p>
                         </div>
                         
-                        <div className="relative w-full md:w-80 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-                            <Input 
-                                placeholder="Search records..." 
-                                className="h-12 md:h-14 pl-12 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 font-black italic transition-all focus:ring-4 focus:ring-primary/10 text-xs md:text-sm"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                            <div className="relative w-full md:w-80 group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                                <Input 
+                                    placeholder="Search records..." 
+                                    className="h-12 md:h-14 pl-12 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 font-black italic transition-all focus:ring-4 focus:ring-primary/10 text-xs md:text-sm w-full"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setSortDirection(prev => prev === "asc" ? "desc" : "asc")}
+                                className="h-12 md:h-14 px-5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-primary/40 hover:text-primary font-black uppercase tracking-widest text-[9px] md:text-[10px] italic flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0 shadow-sm w-full sm:w-auto select-none"
+                            >
+                                <ArrowUpDown className="w-3.5 h-3.5" />
+                                <span>Date: {sortDirection === "desc" ? "Newest" : "Oldest"}</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Wide Request List */}
                 <div className="space-y-4">
-                    {filteredRequests.length > 0 ? filteredRequests.map((req) => {
+                    {sortedRequests.length > 0 ? sortedRequests.map((req) => {
                         const style = getStatusStyle(req);
                         
                         return (

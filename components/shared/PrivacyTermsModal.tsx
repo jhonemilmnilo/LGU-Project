@@ -24,9 +24,24 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
 
     // Reset scroll when switching tabs so the scrollbar starts at the top
     useEffect(() => {
-        if (containerRef.current) {
-            containerRef.current.scrollTop = 0;
-        }
+        const resetScroll = () => {
+            if (containerRef.current) {
+                containerRef.current.scrollTop = 0;
+            }
+        };
+        
+        resetScroll();
+        
+        // Multi-stage asynchronous resets to counteract DOM repaint lag and browser momentum scrolling
+        const t1 = setTimeout(resetScroll, 0);
+        const t2 = setTimeout(resetScroll, 50);
+        const t3 = setTimeout(resetScroll, 100);
+        
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
+        };
     }, [activeTab]);
 
     // Lock document.body background scrolling when modal is open
@@ -46,8 +61,16 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
         const target = e.currentTarget;
         const reachedBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 40;
         if (reachedBottom) {
-            if (tab === "PRIVACY") setHasReadPrivacy(true);
-            if (tab === "TERMS") setHasReadTerms(true);
+            if (tab === "PRIVACY") {
+                setHasReadPrivacy(true);
+                // Reset scroll position synchronously to prevent carrying over to the next tab
+                target.scrollTop = 0;
+                // Auto switch to TERMS tab for seamless legal onboarding!
+                setActiveTab("TERMS");
+            }
+            if (tab === "TERMS") {
+                setHasReadTerms(true);
+            }
         }
     };
 
@@ -206,7 +229,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                                         3. Three-Strike Account Suspension Rule
                                     </h4>
                                     <p className="font-bold text-red-500 dark:text-red-400">
-                                        IMPORTANT: In order to protect municipal resources, EMapandan LGU enforces a strict Three-Strike Rejection Policy. If your applications are rejected 3 times due to fraudulent data, false values, or intentional document violations, your online portal access will be permanently suspended, requiring you to apply in-person directly at the Mapandan Municipal Hall.
+                                        IMPORTANT: In order to protect municipal resources, EMapandan LGU enforces a strict Three-Strike Rejection Policy. If your applications are rejected 3 times in the same Category of the request due to fraudulent data, false values, or intentional document violations, your online portal access will be permanently suspended, requiring you to apply in-person directly at the Mapandan Municipal Hall.
                                     </p>
                                 </div>
                             )}

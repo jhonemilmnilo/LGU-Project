@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, differenceInYears } from "date-fns";
 import {
     FileText,
     Camera,
@@ -41,7 +41,6 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import IdentityConfirmationVault from "@/components/admin/IdentityConfirmationVault";
 import {
     Dialog,
     DialogContent,
@@ -607,24 +606,26 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         {/* IDENTIFIER */}
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
-                                    {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
-                                </span>
-                                <div className="flex items-center justify-between gap-4 group">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
+                                        {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
+                                    </span>
+                                    {transaction.revisionCount > 0 ? (
+                                        <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                            Revision Count: {transaction.revisionCount}
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                            First Submission
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between gap-4">
                                     <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
                                         {transaction.type.requiresBusinessName
                                             ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
                                             : `${resident.firstName} ${resident.lastName}`}
                                     </h1>
-
-                                    <IdentityConfirmationVault
-                                        resident={resident}
-                                        additional={additional}
-                                        isBusinessPermit={isBusinessPermit}
-                                        transactionTypeCode={transaction?.type?.code}
-                                        themeColor={themeColor}
-                                        hideDocuments
-                                    />
                                 </div>
                             </div>
                         </div>
@@ -751,6 +752,179 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* INLINE IDENTITY DOSSIER */}
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-6">
+                            <div>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                    Resident <span className="text-primary">Identity Profile</span>
+                                </h2>
+                                <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
+                                    Verified Citizen Data Dossier
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Citizen Profile Grid */}
+                        <div className="grid grid-cols-12 gap-x-6 gap-y-6">
+                            {/* Row 1: Names */}
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">First Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.firstName || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Middle Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.middleName || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Last Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.lastName || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Suffix</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.suffix || "--"}
+                                </div>
+                            </div>
+
+                            {/* Row 2: Details */}
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Birth Date</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.dateOfBirth ? format(new Date(resident.dateOfBirth), "MMM d, yyyy") : "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-2 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Age</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.age ?? (resident?.dateOfBirth ? differenceInYears(new Date(), new Date(resident.dateOfBirth)) : "--")}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Civil Status</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase">
+                                    {resident?.civilStatus || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Contact Number</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.contactNumber || "--"}
+                                </div>
+                            </div>
+
+                            {/* Row 3: Address */}
+                            <div className="col-span-12 md:col-span-6 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Occupation</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.occupation || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Barangay & Complete Address</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                    {resident?.houseNumber || ""} {resident?.street || ""} {resident?.barangay ? `${resident.barangay}, Mapandan, Pangasinan` : "--"}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Business Profile */}
+                        {isBusinessPermit && (
+                            <div className="border-t border-slate-100 dark:border-white/5 pt-8 space-y-8 animate-in fade-in duration-300">
+                                <div>
+                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                        Business <span className="text-primary">Record </span>
+                                    </h2>
+                                    <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
+                                        BPLO Registration Details
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-12 gap-x-6 gap-y-6">
+                                    {/* Business Row 1 */}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Official Business Name</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary uppercase truncate">
+                                            {additional?.businessName || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Trade Signage Name</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.tradeName || "Same as Business Name"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Organization Type</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
+                                            {additional?.orgType ? additional.orgType.replace(/_/g, " ") : "--"}
+                                        </div>
+                                    </div>
+
+                                    {/* Business Row 2 */}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Building / Unit</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.building || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Street Address</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.street || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Business Barangay</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
+                                            {additional?.businessBarangay || additional?.barangay || resident?.barangay || "--"}
+                                        </div>
+                                    </div>
+
+                                    {/* Business Row 3 */}
+                                    <div className="col-span-12 md:col-span-6 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Line of Business</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.lineOfBusiness || "General"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-6 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Registration / Permit No.</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-primary truncate">
+                                            {additional?.dtiSecNumber || additional?.existingPermitNumber || additional?.permitNumber || "--"}
+                                        </div>
+                                    </div>
+
+                                    {/* Business Row 4 */}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Employee Count</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            {additional?.employeeCount ?? "0"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Store Area</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Capital / Declared Gross</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary">
+                                            ₱{Number(additional?.grossSales || additional?.capitalInvestment || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}

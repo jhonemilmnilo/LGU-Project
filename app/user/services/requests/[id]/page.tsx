@@ -548,7 +548,7 @@ export default function RequestHubPage() {
                             <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
                                 <BreadcrumbItem>
                                     <BreadcrumbLink asChild>
-                                        <Link href="/" className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
+                                        <Link href="/" className="flex items-center gap-2 text-[9px] md:text-[10px] font-semibold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
                                             <Home className="w-3.5 h-3.5 mb-0.5" />
                                             Home
                                         </Link>
@@ -557,12 +557,12 @@ export default function RequestHubPage() {
                                 <BreadcrumbSeparator />
                                 <BreadcrumbItem>
                                     <BreadcrumbLink asChild>
-                                        <Link href="/user/services/requests" className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Requests</Link>
+                                        <Link href="/user/services/requests" className="text-[9px] md:text-[10px] font-semibold uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">Requests</Link>
                                     </BreadcrumbLink>
                                 </BreadcrumbItem>
                                 <BreadcrumbSeparator />
                                 <BreadcrumbItem>
-                                    <BreadcrumbPage className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[120px] truncate">Tracker</BreadcrumbPage>
+                                    <BreadcrumbPage className="text-[9px] md:text-[10px] font-semibold uppercase tracking-widest text-primary italic max-w-[120px] truncate">Tracker</BreadcrumbPage>
                                 </BreadcrumbItem>
                             </BreadcrumbList>
                         </Breadcrumb>
@@ -572,16 +572,16 @@ export default function RequestHubPage() {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
                         <div className="space-y-2 md:space-y-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 md:w-16 md:h-16 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20 shrink-0 transform -rotate-3">
-                                    <Activity className="w-5 h-5 md:w-8 md:h-8" />
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20 shrink-0 transform -rotate-3">
+                                    <Activity className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
                                 <div className="space-y-0.5 md:space-y-1">
-                                    <h1 className="text-2xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
+                                    <h1 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none">
                                         {request.type?.name || "Request"} <span className="text-primary">Hub</span>
                                     </h1>
                                     <div className="flex items-center gap-2">
                                         <Badge
-                                            className={cn("px-3 py-1 text-[7px] md:text-[9px] font-black uppercase tracking-widest italic rounded-full border")}
+                                            className={cn("px-3 py-1 text-[7px] md:text-[9px] font-semibold uppercase tracking-widest italic rounded-full border")}
                                             style={{
                                                 backgroundColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
                                                 borderColor: statusConfig?.color.includes("bg-primary") ? themeColor : undefined,
@@ -590,108 +590,15 @@ export default function RequestHubPage() {
                                         >
                                             {statusConfig?.label}
                                         </Badge>
-                                        <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">ID: {request.id.slice(-8).toUpperCase()}</span>
+                                        <span className="text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-60">ID: {request.id.slice(-8).toUpperCase()}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {!request.isCancelled && !["FOR_PROCESSING", "EVALUATED", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "UNPAID", "PAID", "RELEASED", "REJECTED", "DISPUTE_REJECTED"].includes(request.status) && (
-                            <Button
-                                onClick={handleCancel}
-                                disabled={isCancelling}
-                                variant="destructive"
-                                className="h-10 md:h-12 px-5 md:px-8 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[10px] italic shadow-lg active:scale-95 transition-all gap-2 bg-red-600 hover:bg-red-700 text-white border-none shadow-red-500/20"
-                            >
-                                {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                                Cancel Request
-                            </Button>
-                        )}
                     </div>
 
-                    {request?.status === "FOR_REVISION" && (
-                        <Card className="p-6 md:p-10 border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 shadow-2xl rounded-2xl md:rounded-[2.5rem] mt-6 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8 opacity-5">
-                                <AlertCircle className="w-32 h-32" />
-                            </div>
-                            <div className="relative z-10 space-y-8">
-                                <div>
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                        <h3 className="text-sm md:text-lg font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 italic flex items-center gap-2">
-                                            <AlertCircle className="w-5 h-5" /> Revision Required
-                                        </h3>
-                                        <Badge variant="outline" className="w-fit bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[9px] font-black uppercase tracking-widest italic py-1.5 px-4 rounded-full">
-                                            {remainingRevisions} {remainingRevisions === 1 ? "Revision Left" : "Revisions Left"}
-                                        </Badge>
-                                    </div>
-                                    <p className="text-xs md:text-sm text-slate-500 mt-4 leading-relaxed">
-                                        Admin remarks: <strong className="text-amber-700 dark:text-amber-400">{request.rejectionRemarks}</strong>
-                                    </p>
-                                    <p className="text-[9px] md:text-[10px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest mt-3 flex items-center gap-1.5 animate-pulse bg-red-500/10 dark:bg-red-500/5 border border-red-500/20 dark:border-red-500/10 rounded-xl px-4 py-2 w-fit">
-                                        ⚠️ Warning: If your request requires revision {remainingRevisions === 1 ? "one more time" : `${remainingRevisions} more times`}, it will be automatically declined by the system.
-                                    </p>
-                                    {isBusinessPermit || isCedula ? (
-                                        <p className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase font-bold italic tracking-wider">
-                                            Please use our interactive wizard to easily fix and submit your revision.
-                                        </p>
-                                    ) : (
-                                        <p className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase font-bold italic tracking-wider">
-                                            Please re-upload the corrected documents below and click Resubmit.
-                                        </p>
-                                    )}
-                                </div>
 
-                                {isBusinessPermit || isCedula ? (
-                                    <div className="p-6 md:p-8 bg-amber-500/5 border border-amber-500/10 rounded-2xl md:rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
-                                        <div className="space-y-2 text-left">
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest">
-                                                ✨ Premium Experience
-                                            </span>
-                                            <h4 className="text-sm md:text-base font-black uppercase tracking-widest text-slate-800 dark:text-white italic">
-                                                Interactive {isBusinessPermit ? "Business Permit" : "Cedula"} Wizard
-                                            </h4>
-                                            <p className="text-xs text-slate-500 leading-relaxed max-w-2xl font-medium">
-                                                Don&#39;t worry about refilling everything, dear resident! We already pre-filled the entire form with your previous inputs and files. You only need to touch the fields or files that actually need correction. Very convenient, right?
-                                            </p>
-                                        </div>
-                                        <Button
-                                            asChild
-                                            className="h-12 md:h-14 px-6 md:px-8 rounded-xl md:rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase text-[10px] tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2 shrink-0 self-start md:self-center"
-                                        >
-                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : `/user/services/cedula?revisionId=${request.id}`}>
-                                                <ExternalLink className="w-4 h-4" />
-                                                Fix Application
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-[9px] font-bold uppercase text-slate-500 tracking-widest">Valid ID</Label>
-                                                <Input type="file" onChange={(e) => handleRevisionFile("idFile", e.target.files?.[0] || null)} className="text-[10px] file:text-[10px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-2 file:py-1 h-auto py-2 rounded-xl border-slate-200 dark:border-white/10 cursor-pointer" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-[9px] font-bold uppercase text-slate-500 tracking-widest">Proof Document</Label>
-                                                <Input type="file" onChange={(e) => handleRevisionFile("proofFile", e.target.files?.[0] || null)} className="text-[10px] file:text-[10px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-2 file:py-1 h-auto py-2 rounded-xl border-slate-200 dark:border-white/10 cursor-pointer" />
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-4 flex justify-end">
-                                            <Button
-                                                onClick={handleResubmit}
-                                                disabled={isResubmitting || Object.values(revisionFiles).every(f => !f)}
-                                                className="h-12 px-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase text-[10px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
-                                            >
-                                                {isResubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                                                Submit Revision
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </Card>
-                    )}
 
                     {isActionable && !request.isCancelled ? (
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10">
@@ -824,7 +731,7 @@ export default function RequestHubPage() {
                                     <div className="space-y-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><CreditCard className="w-5 h-5" /></div>
-                                            <h3 className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Channel Assignment</h3>
+                                            <h3 className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Payment</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                             {(localFulfillment === "PICK_UP" ? [
@@ -917,36 +824,107 @@ export default function RequestHubPage() {
                                         <div className="absolute top-0 right-0 p-8 opacity-5"><FileText className="w-32 h-32" /></div>
                                         <div className="relative z-10 space-y-12">
                                             <div className="flex items-center justify-between">
-                                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3 italic leading-none"><FileText className="w-4 h-4 text-primary" /> Application Matrix</h3>
-                                                <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-primary italic bg-primary/5 px-3 py-1 rounded-lg border border-primary/10"><Clock className="w-3 h-3" /> Updated: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</div>
+                                                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3 italic leading-none"><FileText className="w-4 h-4 text-primary" /> Application Matrix</h3>
+                                                <div className="flex items-center gap-2 text-[8px] font-semibold uppercase tracking-widest text-primary italic bg-primary/5 px-3 py-1 rounded-lg border border-primary/10"><Clock className="w-3 h-3" /> Updated: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</div>
                                             </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-2 gap-y-10 md:gap-y-12">
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Submission Cycle</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{format(new Date(request.createdAt), "MMM d, yyyy")}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-lg md:text-3xl font-black text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 tracking-widest italic opacity-60 leading-none">Payment Channel</p><p className="text-lg md:text-3xl font-black text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 md:gap-x-16 gap-y-10 md:gap-y-12">
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Date Submitted</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{format(new Date(request.createdAt), "MMM d, yyyy")}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Payment</p><p className="text-base md:text-xl font-semibold text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
                                             </div>
                                         </div>
                                     </Card>
 
-                                    <Card className="p-6 md:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-2xl md:rounded-[3rem] relative overflow-hidden flex flex-col justify-between group">
-                                        <div className="absolute top-0 right-0 p-6 md:p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700"><Info className="w-20 h-20 md:w-24 md:h-24" /></div>
-                                        <div className="space-y-6 md:space-y-10 relative z-10">
-                                            <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">Admin Assessment</h3>
-                                            <p className="text-sm md:text-xl font-bold italic opacity-90 leading-relaxed tracking-tight">
-                                                &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
-                                                    ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
-                                                    : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)}&quot;
-                                            </p>
-                                        </div>
-                                        <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
-                                            <Separator className="bg-white/10" />
-                                            <div className="flex items-end justify-between">
-                                                <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-2xl md:text-4xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
-                                                <ShieldCheck className="w-6 h-6 text-primary/40" />
+                                    {request.status === "FOR_REVISION" ? (
+                                        <Card className="p-6 md:p-8 border-primary/20 bg-primary/[0.02] shadow-2xl rounded-2xl md:rounded-[2rem] relative overflow-hidden flex flex-col justify-between" style={{ borderColor: `${themeColor}20`, backgroundColor: `${themeColor}05` }}>
+                                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                                <AlertCircle className="w-20 h-20" />
                                             </div>
-                                        </div>
-                                    </Card>
+                                            <div className="relative z-10 space-y-6">
+                                                <div className="space-y-4">
+                                                    <div className="flex flex-col gap-2">
+                                                        <h3 className="text-sm md:text-base font-black uppercase tracking-widest italic flex items-center gap-2" style={{ color: themeColor }}>
+                                                            <AlertCircle className="w-5 h-5 animate-pulse" /> Admin Assessment
+                                                        </h3>
+                                                        <Badge variant="outline" className="w-fit border-primary/20 text-[9px] font-black uppercase tracking-widest italic py-1 px-3.5 rounded-full" style={{ borderColor: `${themeColor}20`, color: themeColor, backgroundColor: `${themeColor}10` }}>
+                                                            {remainingRevisions} {remainingRevisions === 1 ? "Revision Left" : "Revisions Left"}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 leading-relaxed font-semibold italic">
+                                                        Remarks: <span className="font-bold" style={{ color: themeColor }}>{request.rejectionRemarks}</span>
+                                                    </p>
+                                                    <p className="text-[8px] md:text-[9px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest flex items-center gap-1 bg-red-500/10 dark:bg-red-500/5 border border-red-500/20 dark:border-red-500/10 rounded-lg px-2 py-1 w-fit">
+                                                        ⚠️ Declines in {remainingRevisions} attempts
+                                                    </p>
+                                                </div>
+
+                                                {isBusinessPermit || isCedula ? (
+                                                    <div className="space-y-3 pt-4 border-t" style={{ borderTopColor: `${themeColor}15` }}>
+                                                        <div className="space-y-1">
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
+                                                                ✨Note:
+                                                            </span>
+                                                            <p className="text-[9px] md:text-[10px] text-slate-400 font-bold leading-normal uppercase">
+                                                                Touch only fields needing correction.
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            asChild
+                                                            className="w-full h-11 rounded-xl hover:opacity-90 text-white font-black italic uppercase text-[9px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                            style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
+                                                        >
+                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : `/user/services/cedula?revisionId=${request.id}`}>
+                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                                Fix Application
+                                                            </Link>
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-4 pt-4 border-t" style={{ borderTopColor: `${themeColor}15` }}>
+                                                        <div className="space-y-3">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Valid ID</Label>
+                                                                <Input type="file" onChange={(e) => handleRevisionFile("idFile", e.target.files?.[0] || null)} className="text-[9px] file:text-[9px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-1.5 file:py-0.5 h-auto py-1 rounded-lg border-slate-200 dark:border-white/10 cursor-pointer" />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Proof Document</Label>
+                                                                <Input type="file" onChange={(e) => handleRevisionFile("proofFile", e.target.files?.[0] || null)} className="text-[9px] file:text-[9px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-1.5 file:py-0.5 h-auto py-1 rounded-lg border-slate-200 dark:border-white/10 cursor-pointer" />
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            onClick={handleResubmit}
+                                                            disabled={isResubmitting || Object.values(revisionFiles).every(f => !f)}
+                                                            className="w-full h-11 rounded-xl hover:opacity-90 text-white font-black italic uppercase text-[9px] transition-all active:scale-95 flex items-center justify-center gap-2"
+                                                            style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
+                                                        >
+                                                            {isResubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                                            Submit Revision
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    ) : (
+                                        <Card className="p-6 md:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-2xl md:rounded-[3rem] relative overflow-hidden flex flex-col justify-between group">
+                                            <div className="absolute top-0 right-0 p-6 md:p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700"><Info className="w-20 h-20 md:w-24 md:h-24" /></div>
+                                            <div className="space-y-6 md:space-y-10 relative z-10">
+                                                <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">Admin Assessment</h3>
+                                                <p className="text-sm md:text-xl font-bold italic opacity-90 leading-relaxed tracking-tight">
+                                                    &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
+                                                        ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
+                                                        : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)}&quot;
+                                                </p>
+                                            </div>
+                                            <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
+                                                <Separator className="bg-white/10" />
+                                                <div className="flex items-end justify-between">
+                                                    <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-2xl md:text-4xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                                                    <ShieldCheck className="w-6 h-6 text-primary/40" />
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
                                 </div>
                             </TabsContent>
 
@@ -1044,14 +1022,14 @@ export default function RequestHubPage() {
                             <TabsContent value="logistics" className="mt-0 space-y-6 md:space-y-10">
                                 {request.disputeRemarks && request.status !== 'DELIVERED' && request.status !== 'RELEASED' && (
                                     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}>
-                                        <Card className="p-6 md:p-10 border-none bg-orange-500/10 dark:bg-orange-500/5 shadow-xl rounded-2xl md:rounded-[2.5rem] relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-6 opacity-10"><AlertCircle className="w-12 h-12" /></div>
+                                        <Card className="p-6 md:p-10 border border-primary/20 shadow-xl rounded-2xl md:rounded-[2.5rem] relative overflow-hidden" style={{ borderColor: `${themeColor}20`, backgroundColor: `${themeColor}05` }}>
+                                            <div className="absolute top-0 right-0 p-6 opacity-10" style={{ color: themeColor }}><AlertCircle className="w-12 h-12" /></div>
                                             <div className="relative z-10 space-y-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="p-2.5 bg-orange-500 rounded-xl text-white shadow-lg"><Info className="w-4 h-4" /></div>
-                                                    <h3 className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-500 italic">Dispute Resolution Matrix</h3>
+                                                    <div className="p-2.5 rounded-xl text-white shadow-lg" style={{ backgroundColor: themeColor }}><Info className="w-4 h-4" /></div>
+                                                    <h3 className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] italic" style={{ color: themeColor }}>Dispute Resolution Matrix</h3>
                                                 </div>
-                                                <div className="p-5 bg-white/50 dark:bg-black/20 rounded-xl border border-orange-200/50 italic font-bold text-xs md:text-sm text-slate-700 dark:text-slate-200">{request.disputeRemarks}</div>
+                                                <div className="p-5 bg-white/50 dark:bg-black/20 rounded-xl border italic font-bold text-xs md:text-sm text-slate-700 dark:text-slate-200" style={{ borderColor: `${themeColor}20` }}>{request.disputeRemarks}</div>
                                             </div>
                                         </Card>
                                     </motion.div>
@@ -1079,7 +1057,7 @@ export default function RequestHubPage() {
                                                 </button>
                                             )) : (
                                                 <div className="col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
-                                                                <FileText className="w-8 h-8 mb-2 opacity-30" />
+                                                    <FileText className="w-8 h-8 mb-2 opacity-30" />
                                                     <p className="text-[9px] font-black uppercase tracking-widest italic">No documents uploaded</p>
                                                 </div>
                                             )}
