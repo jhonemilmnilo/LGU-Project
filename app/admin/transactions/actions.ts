@@ -1133,6 +1133,18 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
             return { success: false, error: "Forbidden" };
         }
 
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status === "FOR_PROCESSING") {
+            return { success: false, error: "Forbidden: Only Treasury Staff can process Business Permits in the processing phase." };
+        }
+
         const transactionData: any = {
             status: "PAID",
             updatedAt: new Date()
@@ -1144,13 +1156,13 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
             transactionData.paymentReference = referenceNo;
         }
 
-        const transaction = await prisma.transaction.update({
+        const updatedTransaction = await prisma.transaction.update({
             where: { id },
             data: transactionData
         });
 
         revalidatePath("/admin/treasury");
-        return { success: true, data: transaction };
+        return { success: true, data: updatedTransaction };
     } catch (error) {
         console.error("Confirm payment error:", error);
         return { success: false, error: "Failed to confirm payment" };
@@ -1178,6 +1190,10 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         }
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status === "FOR_PROCESSING") {
+            return { success: false, error: "Forbidden: Only Treasury Staff can process Business Permits in the processing phase." };
+        }
         const additionalData = transaction.additionalData as any;
         
         let basicTax = 0;
@@ -1561,6 +1577,10 @@ export async function rejectTransaction(id: string, remarks: string) {
         if (!tx) return { success: false, error: "Transaction inaccessible" };
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
+
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status === "FOR_PROCESSING") {
+            return { success: false, error: "Forbidden: Only Treasury Staff can process Business Permits in the processing phase." };
+        }
 
         // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
         if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(tx.status)) {

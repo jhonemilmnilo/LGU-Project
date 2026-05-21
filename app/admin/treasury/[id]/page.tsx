@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { format } from "date-fns";
 import {
@@ -155,6 +156,8 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
 export default function TreasuryDetailPage({ params }: PageProps) {
     const { id } = use(params);
     const router = useRouter();
+    const { data: session } = useSession();
+    const userRole = (session?.user as any)?.role;
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -178,6 +181,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
+    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status === "FOR_PROCESSING";
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -576,7 +580,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
                                     {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
                                 </span>
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 group w-full">
+                                <div className="flex items-center justify-between gap-4 group">
                                     <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
                                         {transaction.type.requiresBusinessName
                                             ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
@@ -728,7 +732,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Re</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 {(isBusinessPermit
@@ -953,7 +957,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
                                 <div className="relative">
-                                    {transaction.status !== "RELEASED" && (
+                                    {transaction.status !== "RELEASED" && !isReadOnlyAide && (
                                         <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
                                     )}
 
@@ -985,9 +989,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-primary" /></div>
                                         </a>
                                     ) : (
-                                        <label htmlFor="main-ecopy-upload" className={cn(
-                                            "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all cursor-pointer h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
-                                            eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-100 dark:border-white/5 hover:border-primary/30"
+                                        <label htmlFor={isReadOnlyAide ? undefined : "main-ecopy-upload"} className={cn(
+                                            "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                            isReadOnlyAide ? "border-slate-100 dark:border-white/5 cursor-not-allowed" : (eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner cursor-pointer" : "border-slate-100 dark:border-white/5 hover:border-primary/30 cursor-pointer")
                                         )}>
                                             {(eCopyPreview || transaction.eCopyUrl) ? (
                                                 <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
@@ -1008,12 +1012,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     )}
 
                                                     {/* Hover Overlay */}
-                                                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
-                                                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
-                                                            <Upload className="w-4 h-4" />
+                                                    {!isReadOnlyAide && (
+                                                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
+                                                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                                                <Upload className="w-4 h-4" />
+                                                            </div>
+                                                            <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
                                                         </div>
-                                                        <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
-                                                    </div>
+                                                    )}
 
                                                     {/* Info Bar */}
                                                     <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
@@ -1029,14 +1035,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500 scale-110">
+                                                    <div className={cn(
+                                                        "p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all duration-500 scale-110",
+                                                        !isReadOnlyAide && "group-hover:bg-primary group-hover:text-white"
+                                                    )}>
                                                         <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                                     </div>
                                                     <div className="text-center space-y-1">
                                                         <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
-                                                            Attach E-Copy Registry
+                                                            {isReadOnlyAide ? "Official Digital Record" : "Attach E-Copy Registry"}
                                                         </span>
-                                                        <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">PDF or Image up to 5MB</span>
+                                                        <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">
+                                                            {isReadOnlyAide ? "Pending upload by Treasury Staff" : "PDF or Image up to 5MB"}
+                                                        </span>
                                                     </div>
                                                 </>
                                             )}
@@ -1048,7 +1059,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                     {/* EXECUTIVE ACTIONS */}
                     <div className="space-y-4 pt-4">
-                        {!isRejecting && !isRequestingRevision ? (
+                        {isReadOnlyAide ? (
+                            <div className="bg-white dark:bg-[#151b28] p-8 rounded-[2.5rem] border border-slate-50 dark:border-white/5 text-center space-y-4 animate-in zoom-in-95 shadow-[0_2px_40px_rgba(0,0,0,0.02)]">
+                                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                                    <span className="text-2xl animate-pulse">🔒</span>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase text-primary tracking-widest italic">Read-Only Access Protocol</p>
+                                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight italic">
+                                        Hi Admin Aide! You are in <span className="text-primary font-black">Read-Only Mode</span>. Business Permits in the <span className="text-primary font-black">FOR PROCESSING</span> stage must be processed and released by <span className="text-primary font-black">Treasury Staff</span> only.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : !isRejecting && !isRequestingRevision ? (
                             <>
                                 {transaction.status === "FOR_REQUESTING" && (
                                     <div className="space-y-3">
