@@ -457,7 +457,7 @@ export default function RequestHubPage() {
         const addData = request.additionalData || {};
         const selectedBrgy = availableBarangays.find(b => b.name === address.barangay);
         const dFee = localFulfillment === "DELIVERY" ? (selectedBrgy?.deliveryFee ?? request.type?.deliveryFee ?? 0) : 0;
-        
+
         // Handle Civil Registry (Usually simple total or evaluated amount)
         if (isCivilRegistry) {
             const finalTotal = (Number(request.totalAmount) || 0) + dFee;
@@ -630,7 +630,7 @@ export default function RequestHubPage() {
                                         </p>
                                     )}
                                 </div>
-                                
+
                                 {isBusinessPermit ? (
                                     <div className="p-6 md:p-8 bg-amber-500/5 border border-amber-500/10 rounded-2xl md:rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
                                         <div className="space-y-2 text-left">
@@ -668,9 +668,9 @@ export default function RequestHubPage() {
                                         </div>
 
                                         <div className="pt-4 flex justify-end">
-                                            <Button 
-                                                onClick={handleResubmit} 
-                                                disabled={isResubmitting || Object.values(revisionFiles).every(f => !f)} 
+                                            <Button
+                                                onClick={handleResubmit}
+                                                disabled={isResubmitting || Object.values(revisionFiles).every(f => !f)}
                                                 className="h-12 px-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase text-[10px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
                                             >
                                                 {isResubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
@@ -799,12 +799,12 @@ export default function RequestHubPage() {
                                                 </div>
                                                 <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 relative shadow-inner">
                                                     <div className="h-[250px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 relative shadow-inner">
-  {localLat != null && localLng != null ? (
-    <LocationPicker lat={localLat} lng={localLng} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
-  ) : (
-    <LocationPicker lat={16.026} lng={120.454} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
-  )}
-</div>
+                                                        {localLat != null && localLng != null ? (
+                                                            <LocationPicker lat={localLat} lng={localLng} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
+                                                        ) : (
+                                                            <LocationPicker lat={16.026} lng={120.454} onChange={(lat, lng) => { setLocalLat(lat); setLocalLng(lng); }} />
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -1049,7 +1049,7 @@ export default function RequestHubPage() {
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
                                     <div className="space-y-6">
-                                        <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Digital Clearance Repository</h4>
+                                        <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Requirements</h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                                             {documentList.length > 0 ? documentList.map((doc, i) => (
                                                 <button
@@ -1069,7 +1069,7 @@ export default function RequestHubPage() {
                                                 </button>
                                             )) : (
                                                 <div className="col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
-                                                    <FileText className="w-8 h-8 mb-2 opacity-30" />
+                                                                <FileText className="w-8 h-8 mb-2 opacity-30" />
                                                     <p className="text-[9px] font-black uppercase tracking-widest italic">No documents uploaded</p>
                                                 </div>
                                             )}
@@ -1077,6 +1077,122 @@ export default function RequestHubPage() {
                                     </div>
 
                                     <div className="space-y-6">
+                                        {/* Payment Proof Card for Business Permits - Visible if paymentReference exists */}
+                                        {isBusinessPermit && request.paymentReference && (
+                                            <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><Wallet className="w-24 h-24" /></div>
+                                                <div className="relative z-10 space-y-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><Wallet className="w-5 h-5 text-white" /></div>
+                                                        <div>
+                                                            <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Payment Verification</p>
+                                                            <p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Proof of Payment</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <Button
+                                                            onClick={async () => {
+                                                                if (!request.paymentReference) return;
+                                                                try {
+                                                                    const response = await fetch(request.paymentReference);
+                                                                    const blob = await response.blob();
+                                                                    const url = window.URL.createObjectURL(blob);
+                                                                    const link = document.createElement("a");
+                                                                    link.href = url;
+                                                                    const ext = blob.type.includes("pdf") ? "pdf" : "png";
+                                                                    link.download = `Payment_Proof_${id.slice(-6).toUpperCase()}.${ext}`;
+                                                                    document.body.appendChild(link);
+                                                                    link.click();
+                                                                    document.body.removeChild(link);
+                                                                    window.URL.revokeObjectURL(url);
+                                                                    toast.success("Payment proof downloaded!");
+                                                                } catch {
+                                                                    toast.error("Download failed. Try opening in a new tab.");
+                                                                }
+                                                            }}
+                                                            className="h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2"
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                            Download
+                                                        </Button>
+                                                        <Button
+                                                            asChild
+                                                            variant="outline"
+                                                            className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
+                                                        >
+                                                            <a
+                                                                href={request.paymentReference}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                                New Tab
+                                                            </a>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Official Receipt (OR) Card for Business Permits - Visible in FOR_CLAIM, FOR_PICKING, IN_ROUTE, RELEASED, or DELIVERED */}
+                                        {isBusinessPermit &&
+                                            ["FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "RELEASED", "DELIVERED"].includes(request.status) &&
+                                            request.orUrl && (
+                                                <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
+                                                    <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>
+                                                    <div className="relative z-10 space-y-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><CreditCard className="w-5 h-5 text-white" /></div>
+                                                            <div>
+                                                                <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Financial Record Secured</p>
+                                                                <p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Official Receipt (OR)</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <Button
+                                                                onClick={async () => {
+                                                                    if (!request.orUrl) return;
+                                                                    try {
+                                                                        const response = await fetch(request.orUrl);
+                                                                        const blob = await response.blob();
+                                                                        const url = window.URL.createObjectURL(blob);
+                                                                        const link = document.createElement("a");
+                                                                        link.href = url;
+                                                                        const ext = blob.type.includes("pdf") ? "pdf" : "png";
+                                                                        link.download = `Official_Receipt_${id.slice(-6).toUpperCase()}.${ext}`;
+                                                                        document.body.appendChild(link);
+                                                                        link.click();
+                                                                        document.body.removeChild(link);
+                                                                        window.URL.revokeObjectURL(url);
+                                                                        toast.success("Receipt downloaded!");
+                                                                    } catch {
+                                                                        toast.error("Download failed. Try opening in a new tab.");
+                                                                    }
+                                                                }}
+                                                                className="h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                                Download
+                                                            </Button>
+                                                            <Button
+                                                                asChild
+                                                                variant="outline"
+                                                                className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
+                                                            >
+                                                                <a
+                                                                    href={request.orUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <ExternalLink className="w-4 h-4" />
+                                                                    New Tab
+                                                                </a>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                         {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
                                             <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>

@@ -602,6 +602,7 @@ model Transaction {
   // Specific Context
   businessName      String?           // For Juridical requests
   eCopyUrl          String?           // Link to generated digital file
+  orUrl             String?           // Link to Official Receipt file
   isStudent         Boolean           @default(false)
 
   // Audit & Workflow

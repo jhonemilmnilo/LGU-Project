@@ -1172,7 +1172,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
 /**
  * Release Cedula (Treasury Staff side)
  */
-export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string) {
+export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string, orUrl?: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
@@ -1232,6 +1232,18 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
             : "RELEASED";
 
+        // Strictly enforce E-Copy and OR attachments for Business Permits in initial release phase
+        if (isBusinessPermit && isInitialRelease) {
+            const currentECopy = eCopyUrl || transaction.eCopyUrl;
+            const currentOr = orUrl || transaction.orUrl;
+            if (!currentECopy) {
+                return { success: false, error: "Digital E-Copy is required for Business Permits before releasing." };
+            }
+            if (!currentOr) {
+                return { success: false, error: "Official Receipt (OR) attachment is required for Business Permits before releasing." };
+            }
+        }
+
         // NOTIFY RIDERS: If status is FOR_PICKING, alert all riders via email
         if (targetStatus === "FOR_PICKING") {
             try {
@@ -1257,22 +1269,13 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             }
         }
 
-        // Check if Serial / CTC Number is already used by another transaction
-        if (ctcNumber) {
-            if (isBusinessPermit) {
-                const existingPermit = await prisma.businessPermit.findUnique({
-                    where: { permitNumber: ctcNumber }
-                });
-                if (existingPermit && existingPermit.transactionId !== id) {
-                    return { success: false, error: `Permit Number ${ctcNumber} is already used by another request.` };
-                }
-            } else {
-                const existingCedula = await prisma.cedula.findUnique({
-                    where: { ctcNumber }
-                });
-                if (existingCedula && existingCedula.transactionId !== id) {
-                    return { success: false, error: `CTC Number ${ctcNumber} is already used by another request.` };
-                }
+        // Check if Serial / CTC Number is already used by another transaction (only for Cedula, since Business Permit is auto-generated)
+        if (ctcNumber && !isBusinessPermit) {
+            const existingCedula = await prisma.cedula.findUnique({
+                where: { ctcNumber }
+            });
+            if (existingCedula && existingCedula.transactionId !== id) {
+                return { success: false, error: `CTC Number ${ctcNumber} is already used by another request.` };
             }
         }
 
@@ -1282,13 +1285,11 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         // Handle either BPLO or Cedula lifecycle
         if (isBusinessPermit) {
             if (!transaction.businessPermit) {
-                if (!ctcNumber && !isPickupCashInitial) {
-                    return { success: false, error: "Permit Number is required for this transaction type." };
-                }
+                const generatedPermitNo = `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`;
                 await prisma.businessPermit.create({
                     data: {
                         transactionId: id,
-                        permitNumber: ctcNumber || `PENDING-${id}`,
+                        permitNumber: generatedPermitNo,
                         taxYear: now.getFullYear(),
                         dateIssued: now,
                         expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59),
@@ -1306,11 +1307,10 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                         verificationId: `VER-BP-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                     }
                 });
-            } else if (ctcNumber || eCopyUrl) {
+            } else if (eCopyUrl) {
                 await prisma.businessPermit.update({
                     where: { id: transaction.businessPermit.id },
                     data: {
-                        ...(ctcNumber ? { permitNumber: ctcNumber } : {}),
                         ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
                     }
                 });
@@ -1348,12 +1348,13 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             }
         }
 
-        // Update transaction status and eCopyUrl if provided
+        // Update transaction status, eCopyUrl, and orUrl if provided
         await prisma.transaction.update({
             where: { id },
             data: {
                 status: targetStatus as any,
-                ...(eCopyUrl ? { eCopyUrl } : {})
+                ...(eCopyUrl ? { eCopyUrl } : {}),
+                ...(orUrl ? { orUrl } : {})
             }
         });
 
