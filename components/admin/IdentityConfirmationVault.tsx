@@ -31,9 +31,10 @@ interface IdentityConfirmationVaultProps {
     isBusinessPermit?: boolean;
     transactionTypeCode?: string;
     themeColor?: string;
+    hideDocuments?: boolean;
 }
 
-const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit = false, transactionTypeCode = "", themeColor }: IdentityConfirmationVaultProps) => {
+const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit = false, transactionTypeCode = "", themeColor, hideDocuments = false }: IdentityConfirmationVaultProps) => {
     const [activeTab, setActiveTab] = useState<"citizen" | "business" | "documents">("citizen");
     const [selectedDocIndex, setSelectedDocIndex] = useState<number>(0);
     const [scale, setScale] = useState(1);
@@ -87,9 +88,9 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-12 h-12 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-slate-400 dark:text-slate-500 hover:text-primary shadow-sm border border-slate-100 dark:border-white/5">
-                    <UserRound className="w-5 h-5" />
-                </Button>
+                <button className="text-[10px] font-black uppercase tracking-widest italic text-primary hover:text-primary/80 transition-colors cursor-pointer underline underline-offset-4 decoration-primary/30 hover:decoration-primary/60">
+                    See More Details
+                </button>
             </DialogTrigger>
             <DialogContent
                 style={{
@@ -141,16 +142,18 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                                     Business Profile
                                 </button>
                             )}
-                            <button
-                                onClick={() => setActiveTab("documents")}
-                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${activeTab === "documents"
-                                        ? "bg-primary text-white shadow-lg"
-                                        : "text-slate-400 hover:text-white"
-                                    }`}
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                Documents {activeDocs.length > 0 && `(${activeDocs.length})`}
-                            </button>
+                            {!hideDocuments && (
+                                <button
+                                    onClick={() => setActiveTab("documents")}
+                                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center gap-2 ${activeTab === "documents"
+                                            ? "bg-primary text-white shadow-lg"
+                                            : "text-slate-400 hover:text-white"
+                                        }`}
+                                >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Documents {activeDocs.length > 0 && `(${activeDocs.length})`}
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -326,7 +329,7 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
                     )}
 
                     {/* COMPLIANCE DOCUMENTS TAB CONTENT */}
-                    {activeTab === "documents" && (
+                    {!hideDocuments && activeTab === "documents" && (
                         <div className="w-full">
                             {activeDocs.length === 0 ? (
                                 <div className="w-full py-16 flex flex-col items-center justify-center text-center space-y-4 bg-white/5 border border-white/10 rounded-[2rem]">
