@@ -66,7 +66,8 @@ import {
     getSystemSettingAction,
     getPublicBarangayLogistics,
     cancelTransaction,
-    requestReturnOrRefund
+    requestReturnOrRefund,
+    resubmitTransaction
 } from "@/app/admin/transactions/actions";
 import Link from "next/link";
 
@@ -85,6 +86,8 @@ export default function RequestHubPage() {
     const [isFinalizing, setIsFinalizing] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isDisputing, setIsDisputing] = useState(false);
+    const [isResubmitting, setIsResubmitting] = useState(false);
+    const [revisionFiles, setRevisionFiles] = useState<{ [key: string]: File | null }>({});
 
     // Dispute States
     const [disputeOpen, setDisputeOpen] = useState(false);
@@ -362,13 +365,36 @@ export default function RequestHubPage() {
                 setDisputeOpen(false);
                 window.location.reload();
             } else {
-                toast.error(res.error || "Failed to submit");
+                toast.error(res.error || "Failed to submit dispute");
             }
-        } catch (error) {
-            console.error("Dispute error:", error);
-            toast.error("Network error during submission");
+        } catch (err) {
+            console.error("Dispute error:", err);
+            toast.error("An error occurred");
         } finally {
             setIsDisputing(false);
+        }
+    };
+
+    const handleRevisionFile = (key: string, file: File | null) => {
+        setRevisionFiles(prev => ({ ...prev, [key]: file }));
+    };
+
+    const handleResubmit = async () => {
+        setIsResubmitting(true);
+        try {
+            const formData = new FormData();
+            Object.entries(revisionFiles).forEach(([key, file]) => {
+                if (file) formData.append(key, file);
+            });
+            const res = await resubmitTransaction(id, formData);
+            if (res.success) {
+                toast.success("Transaction resubmitted successfully!");
+                window.location.reload(); // Hard reload to ensure data resets
+            } else {
+                toast.error(res.error || "Failed to resubmit");
+            }
+        } finally {
+            setIsResubmitting(false);
         }
     };
 
@@ -379,6 +405,8 @@ export default function RequestHubPage() {
         switch (status) {
             case "DRAFT":
                 return { label: "DRAFT", color: "bg-slate-100 text-slate-600 border-slate-200", icon: FileText };
+            case "FOR_REVISION":
+                return { label: "NEEDS REVISION", color: "bg-amber-500 text-white border-amber-500", icon: AlertCircle };
             case "FOR_REQUESTING":
                 return { label: "PENDING", color: "bg-primary text-white border-transparent", icon: Clock };
             case "FOR_PROCESSING":
@@ -579,6 +607,82 @@ export default function RequestHubPage() {
                         )}
                     </div>
 
+                    {request?.status === "FOR_REVISION" && (
+                        <Card className="p-6 md:p-10 border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 shadow-2xl rounded-2xl md:rounded-[2.5rem] mt-6 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8 opacity-5">
+                                <AlertCircle className="w-32 h-32" />
+                            </div>
+                            <div className="relative z-10 space-y-8">
+                                <div>
+                                    <h3 className="text-sm md:text-lg font-black uppercase tracking-widest text-amber-600 dark:text-amber-500 italic flex items-center gap-2">
+                                        <AlertCircle className="w-5 h-5" /> Revision Required
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-slate-500 mt-2">
+                                        Admin remarks: <strong className="text-amber-700 dark:text-amber-400">{request.rejectionRemarks}</strong>
+                                    </p>
+                                    {isBusinessPermit ? (
+                                        <p className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase font-bold italic tracking-wider">
+                                            Please use our interactive wizard to easily fix and submit your permit revision.
+                                        </p>
+                                    ) : (
+                                        <p className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase font-bold italic tracking-wider">
+                                            Please re-upload the corrected documents below and click Resubmit.
+                                        </p>
+                                    )}
+                                </div>
+                                
+                                {isBusinessPermit ? (
+                                    <div className="p-6 md:p-8 bg-amber-500/5 border border-amber-500/10 rounded-2xl md:rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                                        <div className="space-y-2 text-left">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest">
+                                                ✨ Premium Permitting Experience
+                                            </span>
+                                            <h4 className="text-sm md:text-base font-black uppercase tracking-widest text-slate-800 dark:text-white italic">
+                                                Interactive Business Permit Wizard
+                                            </h4>
+                                            <p className="text-xs text-slate-500 leading-relaxed max-w-2xl font-medium">
+                                                Don&#39;t worry about refilling everything, dear resident! We already pre-filled the entire form with your previous inputs and files. You only need to touch the fields or files that actually need correction. Very convenient, right?
+                                            </p>
+                                        </div>
+                                        <Button
+                                            asChild
+                                            className="h-12 md:h-14 px-6 md:px-8 rounded-xl md:rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase text-[10px] tracking-widest shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2 shrink-0 self-start md:self-center"
+                                        >
+                                            <Link href={`/user/services/business-permit?revisionId=${request.id}`}>
+                                                <ExternalLink className="w-4 h-4" />
+                                                Fix Application
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-bold uppercase text-slate-500 tracking-widest">Valid ID</Label>
+                                                <Input type="file" onChange={(e) => handleRevisionFile("idFile", e.target.files?.[0] || null)} className="text-[10px] file:text-[10px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-2 file:py-1 h-auto py-2 rounded-xl border-slate-200 dark:border-white/10 cursor-pointer" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-bold uppercase text-slate-500 tracking-widest">Proof Document</Label>
+                                                <Input type="file" onChange={(e) => handleRevisionFile("proofFile", e.target.files?.[0] || null)} className="text-[10px] file:text-[10px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-2 file:py-1 h-auto py-2 rounded-xl border-slate-200 dark:border-white/10 cursor-pointer" />
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 flex justify-end">
+                                            <Button 
+                                                onClick={handleResubmit} 
+                                                disabled={isResubmitting || Object.values(revisionFiles).every(f => !f)} 
+                                                className="h-12 px-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase text-[10px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                                            >
+                                                {isResubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                                                Submit Revision
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </Card>
+                    )}
+
                     {isActionable && !request.isCancelled ? (
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10">
                             {/* Treasury Card */}
@@ -621,7 +725,7 @@ export default function RequestHubPage() {
                                                     <p className="text-[9px] md:text-[11px] font-black uppercase text-emerald-400 tracking-[0.3em] italic leading-none">Grand Total</p>
                                                     <p className="text-[7px] md:text-[9px] font-bold text-white/20 uppercase italic">Payable via Channel</p>
                                                 </div>
-                                                <span className="text-4xl md:text-6xl font-black italic tracking-tighter text-white">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                <span className="text-lg md:text-2xl font-black italic tracking-tighter text-white truncate min-w-0">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -851,7 +955,7 @@ export default function RequestHubPage() {
                                                 )}
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Line of Business</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.lineOfBusiness}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Business Barangay</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.barangay}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Employee Count</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.employeeCount || 1}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Employee Count</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.employeeCount ?? 0}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Store Area (sqm)</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.businessArea ? `${additionalData.businessArea} sqm` : "N/A"}</p></div>
                                             </div>
                                         </div>

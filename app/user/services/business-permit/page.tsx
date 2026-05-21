@@ -36,10 +36,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-permit";
-import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList } from "@/app/admin/transactions/actions";
+import { useDraft } from "@/hooks/useDraft";
+import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
-import { useDraft } from "@/hooks/useDraft";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -245,6 +245,8 @@ export default function BusinessPermitWizardPage() {
     const [isDtiGuideOpen, setIsDtiGuideOpen] = useState(false);
     const [activeGuideKey, setActiveGuideKey] = useState<string | null>(null);
     const [dtiGuideTab, setDtiGuideTab] = useState<"SOLE" | "CORP">("SOLE");
+    const [revisionId, setRevisionId] = useState<string | null>(null);
+    const [revisionTx, setRevisionTx] = useState<any>(null);
 
 
 
@@ -328,28 +330,72 @@ export default function BusinessPermitWizardPage() {
                     setDbBarangays(brgyRes.data);
                 }
 
-                // Hydrate inputs draft from localStorage
-                hydrateDraft(setFormData, (parsed) => {
-                    setFormData(prev => ({
-                        ...prev,
-                        ...parsed,
-                    }));
-                });
+                // Check search parameters for revision ID
+                const searchParams = new URLSearchParams(window.location.search);
+                const revId = searchParams.get("revisionId");
+                let isRevisionMode = false;
 
-                // Hydrate files from IndexedDB
-                hydrateDraftFiles((files) => {
-                    setFormData(prev => ({
-                        ...prev,
-                        ctcFile: files.ctcFile || null,
-                        dtiSecFile: files.dtiSecFile || null,
-                        brgyClearanceFile: files.brgyClearanceFile || null,
-                        ownerIdFile: files.ownerIdFile || null,
-                        locationPhotoFile: files.locationPhotoFile || null,
-                        sanitaryPermitFile: files.sanitaryPermitFile || null,
-                        fireSafetyFile: files.fireSafetyFile || null,
-                        birCorFile: files.birCorFile || null
-                    }));
-                });
+                if (revId) {
+                    const txRes = await getTransactionById(revId);
+                    if (txRes.success && txRes.data) {
+                        const tx = txRes.data;
+                        if (tx.status === "FOR_REVISION") {
+                            setRevisionId(revId);
+                            setRevisionTx(tx);
+                            isRevisionMode = true;
+
+                            // Prepopulate values from existing transaction additionalData
+                            const addData = tx.additionalData as any;
+                            if (addData) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    businessType: addData.businessType || "NEW",
+                                    businessName: addData.businessName || "",
+                                    tradeName: addData.tradeName || "",
+                                    orgType: addData.orgType || "SOLE_PROPRIETORSHIP",
+                                    dtiSecNumber: addData.dtiSecNumber || "",
+                                    permitNumber: addData.permitNumber || "",
+                                    lineOfBusiness: addData.lineOfBusiness || "",
+                                    barangay: addData.barangay || prev.barangay,
+                                    street: addData.street || "",
+                                    building: addData.building || "",
+                                    capitalInvestment: addData.capitalInvestment ? addData.capitalInvestment.toString() : "",
+                                    grossSales: addData.grossSales ? addData.grossSales.toString() : "",
+                                    employeeCount: addData.employeeCount ? addData.employeeCount.toString() : "0",
+                                    businessArea: addData.businessArea ? addData.businessArea.toString() : "",
+                                    fulfillmentType: addData.fulfillmentType || "E_COPY",
+                                    deliveryAddress: addData.deliveryAddress || prev.deliveryAddress,
+                                    deliveryPhone: addData.deliveryPhone || prev.deliveryPhone
+                                }));
+                            }
+                        }
+                    }
+                }
+
+                if (!isRevisionMode) {
+                    // Hydrate inputs draft from localStorage
+                    hydrateDraft(setFormData, (parsed) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            ...parsed,
+                        }));
+                    });
+
+                    // Hydrate files from IndexedDB
+                    hydrateDraftFiles((files) => {
+                        setFormData(prev => ({
+                            ...prev,
+                            ctcFile: files.ctcFile || null,
+                            dtiSecFile: files.dtiSecFile || null,
+                            brgyClearanceFile: files.brgyClearanceFile || null,
+                            ownerIdFile: files.ownerIdFile || null,
+                            locationPhotoFile: files.locationPhotoFile || null,
+                            sanitaryPermitFile: files.sanitaryPermitFile || null,
+                            fireSafetyFile: files.fireSafetyFile || null,
+                            birCorFile: files.birCorFile || null
+                        }));
+                    });
+                }
             } catch (err) {
                 console.error("Initialization error:", err);
                 toast.error("Failed to initialize permits portal");
@@ -460,18 +506,18 @@ export default function BusinessPermitWizardPage() {
                     return parseFloat(formData.grossSales.replace(/,/g, "")) > 0 && !!formData.permitNumber;
                 }
             case "CHECKLIST":
-                // 7 Mandatory File uploads must all be loaded (or preloaded from resident profile for owner ID)
+                // All 8 File uploads must be loaded (or preloaded from resident profile for owner ID) or have existing revision files
                 return !!(
-                    formData.ctcFile &&
-                    formData.dtiSecFile &&
-                    formData.brgyClearanceFile &&
-                    (formData.ownerIdFile || formData.residentData?.idFrontUrl) &&
-                    formData.locationPhotoFile &&
-                    formData.sanitaryPermitFile &&
-                    formData.fireSafetyFile
+                    (formData.ctcFile || revisionTx?.additionalData?.ctcUrl) &&
+                    (formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) &&
+                    (formData.brgyClearanceFile || revisionTx?.additionalData?.brgyClearanceUrl) &&
+                    (formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) &&
+                    (formData.locationPhotoFile || revisionTx?.additionalData?.locationPhotoUrl) &&
+                    (formData.sanitaryPermitFile || revisionTx?.additionalData?.sanitaryPermitUrl) &&
+                    (formData.fireSafetyFile || revisionTx?.additionalData?.fireSafetyUrl)
                 );
             case "SUBMIT":
-                return privacyAccepted;
+                return !!revisionId || privacyAccepted;
             default:
                 return true;
         }
@@ -496,48 +542,80 @@ export default function BusinessPermitWizardPage() {
             if (currentStep === "USER_IDENTITY") {
                 toast.error("Municipal profile record not loaded. Please contact administration.");
                 const r = formData.residentData;
+                let elementToFocus: HTMLElement | null = null;
                 if (!r?.firstName) {
-                    document.getElementById("resident-firstName")?.focus();
+                    elementToFocus = document.getElementById("resident-firstName");
                 } else if (!r?.lastName) {
-                    document.getElementById("resident-lastName")?.focus();
+                    elementToFocus = document.getElementById("resident-lastName");
                 } else if (!r?.dateOfBirth) {
-                    document.getElementById("resident-dateOfBirth")?.focus();
+                    elementToFocus = document.getElementById("resident-dateOfBirth");
                 } else if (!r?.occupation) {
-                    document.getElementById("resident-occupation")?.focus();
+                    elementToFocus = document.getElementById("resident-occupation");
                 } else if (!r?.contactNumber) {
-                    document.getElementById("resident-contactNumber")?.focus();
+                    elementToFocus = document.getElementById("resident-contactNumber");
+                }
+
+                if (elementToFocus) {
+                    elementToFocus.focus();
+                    elementToFocus.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
             } else if (currentStep === "PROFILE") {
                 toast.error("Please fill out all required business profile details.");
+                let elementToFocus: HTMLElement | null = null;
                 if (!formData.businessName) {
-                    document.getElementById("profile-businessName")?.focus();
+                    elementToFocus = document.getElementById("profile-businessName");
                 } else if (!formData.orgType) {
-                    document.getElementById("profile-orgType")?.focus();
+                    elementToFocus = document.getElementById("profile-orgType");
                 } else if (!formData.barangay) {
-                    document.getElementById("profile-barangay")?.focus();
+                    elementToFocus = document.getElementById("profile-barangay");
                 } else if (!formData.lineOfBusiness) {
                     if (isOtherLine) {
-                        document.getElementById("profile-lineOfBusiness")?.focus();
+                        elementToFocus = document.getElementById("profile-lineOfBusiness");
                     } else {
-                        document.getElementById("profile-lineOfBusiness-select")?.focus();
+                        elementToFocus = document.getElementById("profile-lineOfBusiness-select");
                     }
                 } else if (formData.businessType === "NEW") {
-                    const capVal = parseFloat(formData.capitalInvestment.replace(/,/g, "")) || 0;
+                    const capVal = parseFloat((formData.capitalInvestment || "").replace(/,/g, "")) || 0;
                     if (capVal <= 0) {
-                        document.getElementById("profile-capitalInvestment")?.focus();
+                        elementToFocus = document.getElementById("profile-capitalInvestment");
                     } else if (!formData.dtiSecNumber) {
-                        document.getElementById("profile-dtiSecNumber")?.focus();
+                        elementToFocus = document.getElementById("profile-dtiSecNumber");
                     }
                 } else {
-                    const salesVal = parseFloat(formData.grossSales.replace(/,/g, "")) || 0;
+                    const salesVal = parseFloat((formData.grossSales || "").replace(/,/g, "")) || 0;
                     if (salesVal <= 0) {
-                        document.getElementById("profile-grossSales")?.focus();
+                        elementToFocus = document.getElementById("profile-grossSales");
                     } else if (!formData.permitNumber) {
-                        document.getElementById("profile-permitNumber")?.focus();
+                        elementToFocus = document.getElementById("profile-permitNumber");
                     }
                 }
+
+                if (elementToFocus) {
+                    elementToFocus.focus();
+                    elementToFocus.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
             } else if (currentStep === "CHECKLIST") {
-                toast.error("All 7 checklist requirements are mandatory. Please upload all missing documents.");
+                toast.error("All document uploads are required. Please upload the missing file.");
+                const requiredChecks = [
+                    { field: "ctcFile", check: !!formData.ctcFile },
+                    { field: "dtiSecFile", check: !!formData.dtiSecFile },
+                    { field: "brgyClearanceFile", check: !!formData.brgyClearanceFile },
+                    { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl) },
+                    { field: "locationPhotoFile", check: !!formData.locationPhotoFile },
+                    { field: "sanitaryPermitFile", check: !!formData.sanitaryPermitFile },
+                    { field: "fireSafetyFile", check: !!formData.fireSafetyFile },
+                ];
+                const firstMissing = requiredChecks.find(c => !c.check);
+                if (firstMissing) {
+                    const uploadCard = document.getElementById(`upload-card-${firstMissing.field}`);
+                    if (uploadCard) {
+                        uploadCard.scrollIntoView({ behavior: "smooth", block: "center" });
+                        uploadCard.classList.add("ring-2", "ring-rose-500", "ring-offset-2");
+                        setTimeout(() => {
+                            uploadCard.classList.remove("ring-2", "ring-rose-500", "ring-offset-2");
+                        }, 2500);
+                    }
+                }
             } else {
                 toast.error("Please complete the required items in this step.");
             }
@@ -566,6 +644,9 @@ export default function BusinessPermitWizardPage() {
             const submitData = new FormData();
             submitData.append("typeId", formData.typeId);
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
+            if (revisionId) {
+                submitData.append("revisionId", revisionId);
+            }
 
             // Merge textual profiles into additionalData metadata
             submitData.append("additionalData", JSON.stringify({
@@ -690,6 +771,27 @@ export default function BusinessPermitWizardPage() {
                 </div>
             </div>
 
+            {/* Revision Remarks Alert Banner */}
+            {revisionTx && (
+                <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] flex flex-col md:flex-row gap-4 md:items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-1.5 text-left">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest font-sans">
+                            ⚠️ Attention: Revision Needed
+                        </span>
+                        <h4 className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white italic">
+                            Transaction Reference: <span className="font-mono text-primary font-bold">{revisionTx.id.slice(-8).toUpperCase()}</span>
+                        </h4>
+                        <div className="text-xs text-amber-800 dark:text-amber-300 font-bold bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
+                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
+                        </div>
+                    </div>
+                    <div className="shrink-0 text-left md:text-right">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Status</p>
+                        <p className="text-xs font-black text-amber-500 uppercase tracking-widest italic">Action Required</p>
+                    </div>
+                </div>
+            )}
+
             {/* Progress Stepper */}
             <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2">
                 {STEPS.map((step, idx) => {
@@ -704,13 +806,7 @@ export default function BusinessPermitWizardPage() {
                                     setCurrentStep(step.id);
                                     window.scrollTo(0, 0);
                                 } else {
-                                    if (currentStep === "PROFILE") {
-                                        toast.error("Please complete your identity details first.");
-                                    } else if (currentStep === "CHECKLIST") {
-                                        toast.error("Please complete the checklist first.");
-                                    } else {
-                                        toast.error("Please complete the current phase first.");
-                                    }
+                                    handleNext();
                                 }
                             }}
                             className={cn(
@@ -1223,7 +1319,7 @@ export default function BusinessPermitWizardPage() {
                                         ].map(item => {
                                             const file = formData[item.field as keyof FormState] as File | null;
                                             return (
-                                                <div key={item.field} className="space-y-3">
+                                                <div key={item.field} id={`upload-card-${item.field}`} className="space-y-3">
                                                     <div className="flex items-center justify-between">
                                                         <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic flex items-center">
                                                             <span>{item.label}</span>
@@ -1247,23 +1343,29 @@ export default function BusinessPermitWizardPage() {
 
                                                     <div className={cn(
                                                         "p-4 md:p-5 bg-slate-50/50 dark:bg-white/[0.02] rounded-3xl border border-dashed flex flex-col gap-4 relative overflow-hidden transition-all duration-300 hover:border-primary/40 shadow-sm",
-                                                        (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl))
+                                                        (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`])
                                                             ? "border-primary dark:border-primary/30 bg-primary/[0.01]" 
                                                             : "border-slate-200 dark:border-white/10"
                                                     )}>
                                                         <div className="flex items-center gap-3.5 w-full text-left">
                                                             <div className={cn(
                                                                 "w-11 h-11 bg-white dark:bg-black/20 border rounded-xl flex items-center justify-center shadow-sm shrink-0",
-                                                                (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) ? "border-primary/20 dark:border-primary/20 text-primary" : "border-slate-100 dark:border-white/5 text-primary"
+                                                                (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]) ? "border-primary/20 dark:border-primary/20 text-primary" : "border-slate-100 dark:border-white/5 text-primary"
                                                             )}>
-                                                                <Upload className={cn("w-4 h-4", (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) && "animate-bounce")} />
+                                                                <Upload className={cn("w-4 h-4", (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]) && "animate-bounce")} />
                                                             </div>
                                                             <div className="space-y-0.5 min-w-0">
                                                                 <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-white italic truncate pr-2">
                                                                     {item.label.replace(/^\d+\.\s*/, "")}
                                                                 </h4>
                                                                 <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter truncate">
-                                                                    {file ? `Uploaded (${(file.size / 1024).toFixed(1)} KB)` : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) ? "Preloaded from Resident Profile" : (item.optional ? "PDF / IMAGE (OPTIONAL)" : "PDF / IMAGE (MAX 5MB)")}
+                                                                    {file 
+                                                                        ? `Uploaded (${(file.size / 1024).toFixed(1)} KB)` 
+                                                                        : revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]
+                                                                            ? "Verified Revision Draft"
+                                                                            : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) 
+                                                                                ? "Preloaded from Resident Profile" 
+                                                                                : (item.optional ? "PDF / IMAGE (OPTIONAL)" : "PDF / IMAGE (MAX 5MB)")}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -1271,6 +1373,32 @@ export default function BusinessPermitWizardPage() {
                                                         {/* Live File Preview Card for Images/PDFs or Preloaded Identity Card */}
                                                         {file ? (
                                                             <FilePreview file={file} />
+                                                        ) : revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`] ? (
+                                                            String(revisionTx.additionalData[`${item.field.replace("File", "Url")}`]).toLowerCase().includes('.pdf') ? (
+                                                                <div className="w-full py-4 px-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 mt-3 flex items-center gap-2.5 animate-in fade-in duration-200">
+                                                                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+                                                                        PDF
+                                                                    </div>
+                                                                    <div className="truncate text-left">
+                                                                        <a href={revisionTx.additionalData[`${item.field.replace("File", "Url")}`]} target="_blank" rel="noreferrer" className="block text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate font-mono hover:underline">View PDF Document</a>
+                                                                        <span className="block text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Active Revision File</span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img 
+                                                                        src={revisionTx.additionalData[`${item.field.replace("File", "Url")}`]} 
+                                                                        alt="Revision Document Preview" 
+                                                                        className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-300"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                                                                        <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3 py-1 rounded-full backdrop-blur-md">
+                                                                            Saved File Preview
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )
                                                         ) : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) ? (
                                                             <div className="relative rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 bg-slate-100 dark:bg-black/30 h-28 flex items-center justify-center">
                                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1293,13 +1421,13 @@ export default function BusinessPermitWizardPage() {
                                                                 asChild 
                                                                 className={cn(
                                                                     "font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none shadow-md active:scale-[0.98]",
-                                                                    (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl))
+                                                                    (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`])
                                                                         ? "bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white" 
                                                                         : "bg-primary hover:bg-primary/90 text-white"
                                                                 )}
                                                             >
                                                                 <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
-                                                                    {(file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)) ? "Change File" : "Upload"}
+                                                                    {(file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]) ? "Replace File" : "Upload"}
                                                                 </label>
                                                             </Button>
                                                         </div>
@@ -1363,32 +1491,34 @@ export default function BusinessPermitWizardPage() {
                                             </div>
 
                                             {/* Privacy Acceptance checkbox card */}
-                                            <div
-                                                onClick={() => {
-                                                    if (privacyAccepted) {
-                                                        setPrivacyAccepted(false);
-                                                    } else {
-                                                        setIsPrivacyModalOpen(true);
-                                                    }
-                                                }}
-                                                className={cn(
-                                                    "p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 select-none",
-                                                    privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/[0.02] border-transparent hover:border-primary/20"
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
-                                                    privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
-                                                )}>
-                                                    {privacyAccepted && <Check className="w-3.5 h-3.5" />}
+                                            {!revisionId && (
+                                                <div
+                                                    onClick={() => {
+                                                        if (privacyAccepted) {
+                                                            setPrivacyAccepted(false);
+                                                        } else {
+                                                            setIsPrivacyModalOpen(true);
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 select-none",
+                                                        privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/[0.02] border-transparent hover:border-primary/20"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                                                        privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10"
+                                                    )}>
+                                                        {privacyAccepted && <Check className="w-3.5 h-3.5" />}
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
+                                                        <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                                                            I officially accept the EMapandan Data Privacy Agreement & Terms. I declare under penalty of perjury that all submitted details are 100% legal and genuine. Click to review agreement.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-xs font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
-                                                    <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
-                                                        I officially accept the EMapandan Data Privacy Agreement & Terms. I declare under penalty of perjury that all submitted details are 100% legal and genuine. Click to review agreement.
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
 
                                         {/* Column B: Billing Details */}
@@ -1433,7 +1563,7 @@ export default function BusinessPermitWizardPage() {
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                         ) : (
                             <div className="flex items-center">
-                                {currentStep === "SUBMIT" ? "Finalize Submission" : "Next Phase"}
+                                {currentStep === "SUBMIT" ? (revisionId ? "Resubmit" : "Finalize Submission") : "Next Phase"}
                                 <ChevronRight className={cn("w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform", submitting && "hidden")} />
                             </div>
                         )}

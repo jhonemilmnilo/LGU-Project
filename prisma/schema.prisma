@@ -740,6 +740,7 @@ enum TransactionStatus {
   PAID
   RELEASED
   REJECTED
+  FOR_REVISION
   
   // Dispute Lifecycle
   RETURN_REQUESTED

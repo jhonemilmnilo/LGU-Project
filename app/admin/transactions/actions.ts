@@ -489,6 +489,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const typeId = formData.get("typeId") as string;
         const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
         const additionalData = JSON.parse(formData.get("additionalData") as string);
+        const revisionId = formData.get("revisionId") as string | null;
 
         // Strike penalty check
         const user = await prisma.user.findUnique({
@@ -499,24 +500,33 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
             return { success: false, error: "Submission blocked: Account suspended due to 3 rejection strikes. Please apply onsite at the Municipal Hall." };
         }
 
-        // Process BPLO Checklist file uploads
-        const ctcFile = formData.get("ctcFile") as File;
-        const dtiSecFile = formData.get("dtiSecFile") as File;
-        const brgyClearanceFile = formData.get("brgyClearanceFile") as File;
-        const ownerIdFile = formData.get("ownerIdFile") as File;
-        const locationPhotoFile = formData.get("locationPhotoFile") as File;
-        const sanitaryPermitFile = formData.get("sanitaryPermitFile") as File;
-        const fireSafetyFile = formData.get("fireSafetyFile") as File;
+        // Fetch existing transaction if under revision to reuse existing file uploads
+        let existingTx: any = null;
+        if (revisionId) {
+            existingTx = await prisma.transaction.findUnique({
+                where: { id: revisionId }
+            });
+        }
+        const existingAddData = existingTx?.additionalData as any;
+
+        // Process BPLO Checklist file uploads with fallbacks for revision files
+        const ctcFile = formData.get("ctcFile") as File | null;
+        const dtiSecFile = formData.get("dtiSecFile") as File | null;
+        const brgyClearanceFile = formData.get("brgyClearanceFile") as File | null;
+        const ownerIdFile = formData.get("ownerIdFile") as File | null;
+        const locationPhotoFile = formData.get("locationPhotoFile") as File | null;
+        const sanitaryPermitFile = formData.get("sanitaryPermitFile") as File | null;
+        const fireSafetyFile = formData.get("fireSafetyFile") as File | null;
         const birCorFile = formData.get("birCorFile") as File | null;
 
-        const ctcUrl = await processFileUpload(ctcFile, "bp_ctc");
-        const dtiSecUrl = await processFileUpload(dtiSecFile, "bp_dti");
-        const brgyClearanceUrl = await processFileUpload(brgyClearanceFile, "bp_brgy");
-        const ownerIdUrl = await processFileUpload(ownerIdFile, "bp_owner_id");
-        const locationPhotoUrl = await processFileUpload(locationPhotoFile, "bp_location");
-        const sanitaryPermitUrl = await processFileUpload(sanitaryPermitFile, "bp_sanitary");
-        const fireSafetyUrl = await processFileUpload(fireSafetyFile, "bp_fire");
-        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : null;
+        const ctcUrl = ctcFile ? await processFileUpload(ctcFile, "bp_ctc") : existingAddData?.ctcUrl;
+        const dtiSecUrl = dtiSecFile ? await processFileUpload(dtiSecFile, "bp_dti") : existingAddData?.dtiSecUrl;
+        const brgyClearanceUrl = brgyClearanceFile ? await processFileUpload(brgyClearanceFile, "bp_brgy") : existingAddData?.brgyClearanceUrl;
+        const ownerIdUrl = ownerIdFile ? await processFileUpload(ownerIdFile, "bp_owner_id") : (existingAddData?.ownerIdUrl || residentSnapshot?.idFrontUrl);
+        const locationPhotoUrl = locationPhotoFile ? await processFileUpload(locationPhotoFile, "bp_location") : existingAddData?.locationPhotoUrl;
+        const sanitaryPermitUrl = sanitaryPermitFile ? await processFileUpload(sanitaryPermitFile, "bp_sanitary") : existingAddData?.sanitaryPermitUrl;
+        const fireSafetyUrl = fireSafetyFile ? await processFileUpload(fireSafetyFile, "bp_fire") : existingAddData?.fireSafetyUrl;
+        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : existingAddData?.birCorUrl;
 
         // Merge all BPLO file URLs into additionalData
         const updatedAdditionalData = {
@@ -531,21 +541,30 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
             birCorUrl
         };
 
+        const txData = {
+            userId: session.user.id,
+            typeId,
+            status: "FOR_REQUESTING",
+            fulfillmentType: additionalData.fulfillmentType || null,
+            paymentType: null,
+            residentSnapshot,
+            additionalData: updatedAdditionalData,
+            totalAmount: 0,
+            businessName: additionalData.businessName || null,
+            rejectionRemarks: null, // Reset rejection remarks on resubmit!
+            updatedAt: new Date()
+        } as any;
+
         const [transaction] = await prisma.$transaction([
-            // 1. Create BPLO Transaction
-            prisma.transaction.create({
-                data: {
-                    userId: session.user.id,
-                    typeId,
-                    status: "FOR_REQUESTING",
-                    fulfillmentType: additionalData.fulfillmentType || null,
-                    paymentType: null,
-                    residentSnapshot,
-                    additionalData: updatedAdditionalData,
-                    totalAmount: 0,
-                    businessName: additionalData.businessName || null,
-                } as any
-            }),
+            // 1. Create or Update BPLO Transaction
+            revisionId
+                ? prisma.transaction.update({
+                      where: { id: revisionId },
+                      data: txData
+                  })
+                : prisma.transaction.create({
+                      data: txData
+                  }),
             // 2. Update permanent resident snapshot profile
             prisma.resident.update({
                 where: { userId: session.user.id },
@@ -995,9 +1014,10 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             await sendEmail({
                 type: "FOR_PAYMENT",
                 to: updatedTransaction.user.email,
-                name: `${resident.firstName} ${resident.lastName}`,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
                 transactionId: id.slice(-8).toUpperCase(),
-                amount: result.totalAmount
+                amount: result.totalAmount,
+                remarks: adminNotes
             });
         }
 
@@ -1263,7 +1283,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                         lineOfBusiness: additionalData.lineOfBusiness || "General",
                         capitalInvestment: Number(additionalData.capitalInvestment || 0),
                         grossSales: Number(additionalData.grossSales || 0),
-                        employeeCount: Number(additionalData.employeeCount || 1),
+                        employeeCount: Number(additionalData.employeeCount ?? 0),
                         businessArea: Number(additionalData.businessArea || 0),
                         documentUrl: eCopyUrl || transaction.eCopyUrl,
                         issuedBy: user.name || "System Administrator",
@@ -1602,6 +1622,125 @@ export async function rejectTransaction(id: string, remarks: string) {
         return { success: false, error: "Failed to reject transaction" };
     }
 }
+
+/**
+ * Send a transaction back to the resident for revision
+ */
+export async function sendForRevision(id: string, remarks: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const tx = await prisma.transaction.findUnique({
+            where: { id },
+            include: { user: true, type: true }
+        });
+
+        if (!tx) return { success: false, error: "Transaction inaccessible" };
+
+        const transaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "FOR_REVISION" as any,
+                rejectionRemarks: remarks,
+                processedBy: user.id
+            }
+        });
+
+        if (tx.userId && tx.user?.role === "USER" && tx.user?.email) {
+            const resident = tx.residentSnapshot as any;
+            await sendEmail({
+                type: "FOR_REVISION" as any,
+                to: tx.user.email,
+                name: resident?.firstName || tx.user.name || "Resident",
+                remarks: remarks,
+                transactionId: tx.id
+            });
+        }
+
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Send for revision error:", error);
+        return { success: false, error: "Failed to request revision" };
+    }
+}
+
+/**
+ * Resubmit a transaction after revision (Resident side)
+ */
+export async function resubmitTransaction(id: string, formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const tx = await prisma.transaction.findUnique({
+            where: { id, userId: session.user.id }
+        });
+
+        if (!tx || tx.status !== "FOR_REVISION") {
+            return { success: false, error: "Invalid transaction for resubmission" };
+        }
+
+        const additionalData = tx.additionalData as any || {};
+        const isBusinessPermit = tx.typeId?.includes("BUSINESS_PERMIT");
+
+        // Helper to process optional re-uploaded files
+        const processReupload = async (key: string, folder: string) => {
+            const file = formData.get(key) as File;
+            if (file && file.size > 0 && file.name !== "undefined") {
+                return await processFileUpload(file, folder);
+            }
+            return additionalData[key]; // keep existing
+        };
+
+        // If it's a Business Permit, process its specific files
+        if (isBusinessPermit) {
+            additionalData.ctcUrl = await processReupload("ctcFile", "bp_ctc") || additionalData.ctcUrl;
+            additionalData.dtiSecUrl = await processReupload("dtiSecFile", "bp_dti") || additionalData.dtiSecUrl;
+            additionalData.brgyClearanceUrl = await processReupload("brgyClearanceFile", "bp_brgy") || additionalData.brgyClearanceUrl;
+            additionalData.ownerIdUrl = await processReupload("ownerIdFile", "bp_owner_id") || additionalData.ownerIdUrl;
+            additionalData.locationPhotoUrl = await processReupload("locationPhotoFile", "bp_location") || additionalData.locationPhotoUrl;
+            additionalData.sanitaryPermitUrl = await processReupload("sanitaryPermitFile", "bp_sanitary") || additionalData.sanitaryPermitUrl;
+            additionalData.fireSafetyUrl = await processReupload("fireSafetyFile", "bp_fire") || additionalData.fireSafetyUrl;
+            additionalData.birCorUrl = await processReupload("birCorFile", "bp_bir") || additionalData.birCorUrl;
+
+            // Also update text fields if provided
+            const fields = ["businessName", "orgType", "lineOfBusiness", "barangay", "capitalInvestment", "grossSales", "employeeCount", "businessArea"];
+            for (const f of fields) {
+                if (formData.has(f)) {
+                    const val = formData.get(f) as string;
+                    if (val) additionalData[f] = isNaN(Number(val)) ? val : Number(val);
+                }
+            }
+        } else {
+            // General basic/civil registry
+            additionalData.validIdUrl = await processReupload("idFile", "ids") || additionalData.validIdUrl;
+            additionalData.proofOfIncomeUrl = await processReupload("proofFile", "proofs") || additionalData.proofOfIncomeUrl;
+        }
+
+        const transaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: additionalData,
+                status: "FOR_REQUESTING",
+                rejectionRemarks: null
+            }
+        });
+
+        revalidatePath("/user/services");
+        revalidatePath("/user/services/requests");
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error("Resubmit transaction error:", error);
+        return { success: false, error: "Failed to resubmit request" };
+    }
+}
+
 
 /**
  * Fetch all transactions for the currently logged-in resident

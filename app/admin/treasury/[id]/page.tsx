@@ -26,6 +26,7 @@ import {
     confirmTransactionPayment,
     releaseCedula,
     rejectTransaction,
+    sendForRevision,
     uploadECopyAction,
     getSystemSettingAction,
     getDeliveryFeeByBarangay,
@@ -161,6 +162,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const remarksRef = useRef<HTMLTextAreaElement>(null);
     const [ctcNumber, setCtcNumber] = useState("");
     const [isRejecting, setIsRejecting] = useState(false);
+    const [isRequestingRevision, setIsRequestingRevision] = useState(false);
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
     const [eCopyPreview, setECopyPreview] = useState<string | null>(null);
@@ -269,6 +271,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         } finally { setActionLoading(false); }
     };
 
+    const handleRequestRevision = async () => {
+        if (!remarks) { toast.error("Remarks required"); return; }
+        setActionLoading(true);
+        try {
+            const res = await sendForRevision(transaction.id, remarks);
+            if (res.success) {
+                toast.success("Sent back for revision");
+                router.push("/admin/treasury");
+            }
+            else toast.error(res.error || "Failed");
+        } finally { setActionLoading(false); }
+    };
+
     const handleRelease = useCallback(async () => {
 
         // CTC or Permit Number required for all initial processing phases
@@ -331,10 +346,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
     useEffect(() => {
-        if (isRejecting) {
+        if (isRejecting || isRequestingRevision) {
             remarksRef.current?.focus();
         }
-    }, [isRejecting]);
+    }, [isRejecting, isRequestingRevision]);
 
     // Handle QR Scan Landing: Auto-focus or Auto-release
     useEffect(() => {
@@ -467,7 +482,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const status = transaction.status as string;
 
     if (status === "REJECTED") {
-        steps.push({ id: "REJECTED", label: "REJECTED" });
+        steps = [
+            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "REJECTED", label: "REJECTED" }
+        ];
+    } else if (status === "FOR_REVISION") {
+        steps = [
+            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "FOR_REVISION", label: "REVISION REQ." }
+        ];
     } else if (status.includes("RETURN") || status.includes("REFUND") || status === "DISPUTE_REJECTED") {
         const disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");
         steps.push({ id: status, label: disputeLabel });
@@ -1024,19 +1047,27 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                     {/* EXECUTIVE ACTIONS */}
                     <div className="space-y-4 pt-4">
-                        {!isRejecting ? (
+                        {!isRejecting && !isRequestingRevision ? (
                             <>
                                 {transaction.status === "FOR_REQUESTING" && (
                                     <div className="space-y-3">
                                         <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
                                             {actionLoading ? "Processing..." : "Confirm Assessment"}
                                         </Button>
-                                        <Button
-                                            onClick={() => setIsRejecting(true)}
-                                            className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                                        >
-                                            Decline Initial Request
-                                        </Button>
+                                        <div className="flex gap-2 w-full">
+                                            <Button
+                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                                            >
+                                                Request Revision
+                                            </Button>
+                                            <Button
+                                                onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                            >
+                                                Decline
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                                 {/* 1. EVALUATION PHASE: Strictly Read-Only (Resident is choosing fulfillment/paying) */}
@@ -1048,6 +1079,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-500 italic">Financial Protocol Active</p>
                                             <p className="text-[11px] font-bold text-blue-900/60 dark:text-blue-400/60 leading-relaxed uppercase tracking-tight">Read-Only Mode: Waiting for Citizen to finalize fulfillment & upload payment proof.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 1.5 REVISION PHASE: Awaiting Citizen Action */}
+                                {transaction.status === "FOR_REVISION" && (
+                                    <div className="bg-amber-50 dark:bg-amber-500/5 p-8 rounded-[2.5rem] border-2 border-amber-100 dark:border-amber-500/20 text-center space-y-4 animate-in zoom-in-95">
+                                        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                                            <span className="text-2xl animate-pulse">⚠️</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Awaiting Citizen Revision</p>
+                                            <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-400/60 leading-relaxed uppercase tracking-tight">Read-Only Mode: Transaction sent back to citizen for correction.</p>
                                         </div>
                                     </div>
                                 )}
@@ -1243,12 +1287,20 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
                             </>
-                        ) : (
+                        ) : isRejecting ? (
                             <div className="bg-red-50 dark:bg-red-500/5 p-6 rounded-[2.5rem] border-2 border-red-100 dark:border-red-500/20 space-y-4 animate-in slide-in-from-right-4">
                                 <Textarea ref={remarksRef} placeholder="Reason for decline..." value={remarks} onChange={(e) => setRemarks(e.target.value)} className="min-h-[100px] rounded-2xl border-none focus:ring-0 bg-white dark:bg-slate-900 font-bold p-6 text-sm italic dark:text-white" />
                                 <div className="flex gap-2">
                                     <Button onClick={() => handleReject()} disabled={actionLoading} className="flex-1 h-12 bg-red-600 text-white font-black italic uppercase text-[9px] rounded-xl hover:bg-red-700">Decline Request</Button>
                                     <Button variant="outline" onClick={() => setIsRejecting(false)} className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-[9px] dark:border-white/5 dark:text-white">Cancel</Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-amber-50 dark:bg-amber-500/5 p-6 rounded-[2.5rem] border-2 border-amber-100 dark:border-amber-500/20 space-y-4 animate-in slide-in-from-right-4">
+                                <Textarea ref={remarksRef} placeholder="State missing documents or corrections needed..." value={remarks} onChange={(e) => setRemarks(e.target.value)} className="min-h-[100px] rounded-2xl border-none focus:ring-0 bg-white dark:bg-slate-900 font-bold p-6 text-sm italic dark:text-white" />
+                                <div className="flex gap-2">
+                                    <Button onClick={() => handleRequestRevision()} disabled={actionLoading} className="flex-1 h-12 bg-amber-500 text-white font-black italic uppercase text-[9px] rounded-xl hover:bg-amber-600">Send for Revision</Button>
+                                    <Button variant="outline" onClick={() => setIsRequestingRevision(false)} className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-[9px] dark:border-white/5 dark:text-white">Cancel</Button>
                                 </div>
                             </div>
                         )}
