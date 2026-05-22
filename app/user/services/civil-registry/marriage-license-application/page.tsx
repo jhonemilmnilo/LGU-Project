@@ -139,27 +139,30 @@ export default function MarriageLicenseApplicationPage() {
 	 				if (marriageLicense) setTypeId(marriageLicense.id);
 	 			}
 
-				const saved = localStorage.getItem(STORAGE_KEY);
-				const savedData = saved ? JSON.parse(saved) : null;
+	 			const saved = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+	 			const savedData = saved ? JSON.parse(saved) : null;
 	 			setHasDraft(!!saved);
 
 	 			const residentRes = await getCurrentUserResident();
+	 			let activeResident = null;
 	 			if (residentRes.success && residentRes.data) {
-	 				const r = residentRes.data;
-	 				setResident(r);
-	 				if (!savedData) {
-	 					setForm((prev: any) => ({
-	 						...prev,
-	 						app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
-	 						app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
-	 						app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase()
-	 					}));
-	 				}
+	 				activeResident = residentRes.data;
+	 				setResident(activeResident);
 	 			}
 
 	 			if (savedData) {
 	 				setForm((prev: any) => ({ ...prev, ...savedData.form }));
 	 				if (savedData.currentStep) setCurrentStep(savedData.currentStep);
+	 			}
+
+	 			if (activeResident) {
+	 				setForm((prev: any) => ({
+	 					...prev,
+	 					app1FullName: `${activeResident.firstName} ${activeResident.middleName ? activeResident.middleName[0] + '. ' : ''}${activeResident.lastName}`.toUpperCase(),
+	 					app1BirthDate: activeResident.dateOfBirth ? new Date(activeResident.dateOfBirth).toISOString().split('T')[0] : "",
+	 					app1BirthPlace: (activeResident.placeOfBirth || activeResident.municipality || "").toUpperCase(),
+	 					app1Citizenship: (activeResident.citizenship || "FILIPINO").toUpperCase()
+	 				}));
 	 			}
 	 		} catch (err) {
 	 			console.error(err);
@@ -208,6 +211,8 @@ export default function MarriageLicenseApplicationPage() {
 				return { ...p, app2IsForeigner: false, requiredDocs: newRequired, files: newFiles, previews: newPreviews };
 			});
 		};
+
+
 
     
 
@@ -422,23 +427,19 @@ export default function MarriageLicenseApplicationPage() {
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<div className="space-y-1.5">
 									<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</Label>
-									<Input value={form.app1FullName} onChange={e=>{ setForm((p:any)=>({...p, app1FullName: e.target.value.toUpperCase()})); setMissingInputs((m)=>({...m, app1FullName:false})); }} className={cn("bg-slate-50 dark:bg-white/5 font-bold uppercase", missingInputs.app1FullName ? "border-red-500" : "border-none")} />
-									{missingInputs.app1FullName && <div className="text-xs text-red-600 font-bold">Required</div>}
+									<Input disabled value={form.app1FullName} className="bg-slate-100 dark:bg-white/5 font-bold uppercase cursor-not-allowed opacity-75 border-none" />
 								</div>
 								<div className="space-y-1.5">
 									<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth</Label>
-									<Input type="date" value={form.app1BirthDate} onChange={e=>{ setForm((p:any)=>({...p, app1BirthDate: e.target.value})); setMissingInputs((m)=>({...m, app1BirthDate:false})); }} className={cn("bg-slate-50 dark:bg-white/5 font-bold", missingInputs.app1BirthDate ? "border-red-500" : "border-none")} />
-									{missingInputs.app1BirthDate && <div className="text-xs text-red-600 font-bold">Required</div>}
+									<Input disabled type="date" value={form.app1BirthDate} className="bg-slate-100 dark:bg-white/5 font-bold cursor-not-allowed opacity-75 border-none" />
 								</div>
 								<div className="space-y-1.5">
 									<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth</Label>
-									<Input value={form.app1BirthPlace} onChange={e=>{ setForm((p:any)=>({...p, app1BirthPlace: e.target.value.toUpperCase()})); setMissingInputs((m)=>({...m, app1BirthPlace:false})); }} className={cn("bg-slate-50 dark:bg-white/5 font-bold uppercase", missingInputs.app1BirthPlace ? "border-red-500" : "border-none")} />
-									{missingInputs.app1BirthPlace && <div className="text-xs text-red-600 font-bold">Required</div>}
+									<Input disabled value={form.app1BirthPlace} className="bg-slate-100 dark:bg-white/5 font-bold uppercase cursor-not-allowed opacity-75 border-none" />
 								</div>
 								<div className="space-y-1.5">
 									<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship</Label>
-									<Input value={form.app1Citizenship} onChange={e=>{ setForm((p:any)=>({...p, app1Citizenship: e.target.value.toUpperCase()})); setMissingInputs((m)=>({...m, app1Citizenship:false})); }} className={cn("bg-slate-50 dark:bg-white/5 font-bold uppercase", missingInputs.app1Citizenship ? "border-red-500" : "border-none")} />
-									{missingInputs.app1Citizenship && <div className="text-xs text-red-600 font-bold">Required</div>}
+									<Input disabled value={form.app1Citizenship} className="bg-slate-100 dark:bg-white/5 font-bold uppercase cursor-not-allowed opacity-75 border-none" />
 								</div>
 							</div>
 						</Card>
@@ -566,8 +567,18 @@ export default function MarriageLicenseApplicationPage() {
 						<h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">Review & Submit</h3>
 						<div className="space-y-3">
 							<div className="text-sm font-bold">Applicants</div>
-							<div className="text-xs text-slate-600">{form.app1FullName} — {form.app1BirthDate}</div>
-							<div className="text-xs text-slate-600">{form.app2FullName} — {form.app2BirthDate}</div>
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div className="p-4 rounded-2xl border bg-white dark:bg-[#071018]">
+									<div className="text-sm font-black">{form.app1FullName}</div>
+									<div className="text-xs text-slate-600">{form.app1BirthDate} {form.app1BirthPlace ? `• ${form.app1BirthPlace}` : ''}</div>
+									<div className="text-xs text-slate-400">{form.app1Citizenship}</div>
+								</div>
+								<div className="p-4 rounded-2xl border bg-white dark:bg-[#071018]">
+									<div className="text-sm font-black">{form.app2FullName || 'N/A'}</div>
+									<div className="text-xs text-slate-600">{form.app2BirthDate || ''} {form.app2BirthPlace ? `• ${form.app2BirthPlace}` : ''}</div>
+									<div className="text-xs text-slate-400">{form.app2Citizenship || ''}</div>
+								</div>
+							</div>
 							<div className="mt-3 text-sm font-bold">Documents</div>
 							<ul className="text-xs list-disc list-inside space-y-2">
 								{REQUIRED_DOCS.filter(d => form.requiredDocs?.[d]).map(d => (
@@ -599,11 +610,6 @@ export default function MarriageLicenseApplicationPage() {
 								</div>
 								<button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-amber-600">Review</button>
 							</div>
-
-							<label className="flex items-start gap-3 mt-3">
-								<input type="checkbox" id="certify" onChange={(e)=>setForm((p:any)=>({...p, certify: e.target.checked}))} />
-								<span className="text-xs ml-2">I certify that the information and attached documents are true and correct.</span>
-							</label>
 						</div>
 					</Card>
 				)}

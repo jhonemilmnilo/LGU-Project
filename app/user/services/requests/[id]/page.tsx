@@ -54,6 +54,26 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
+
+// Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
+function formatPHDate(date: string | Date): string {
+    return new Intl.DateTimeFormat("en-PH", {
+        timeZone: "Asia/Manila",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    }).format(new Date(date));
+}
+function formatPHDateTime(date: string | Date): string {
+    return new Intl.DateTimeFormat("en-PH", {
+        timeZone: "Asia/Manila",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: false,
+    }).format(new Date(date));
+}
 import {
     Breadcrumb,
     BreadcrumbList,
@@ -152,8 +172,8 @@ export default function RequestHubPage() {
                     const req = res.data;
                     setRequest(req);
 
-                    if (req.residentSnapshot) {
-                        const r = req.residentSnapshot as any;
+                    if (req.user?.residentProfile || req.residentSnapshot) {
+                        const r = (req.user?.residentProfile || req.residentSnapshot) as any;
                         const finalAddr = (typeof req.deliveryAddress === 'string' ? JSON.parse(req.deliveryAddress || '{}') : req.deliveryAddress) || {};
 
                         setAddress({
@@ -469,7 +489,7 @@ export default function RequestHubPage() {
     };
 
     const additionalData = request?.additionalData || {};
-    const residentData = request?.residentSnapshot || {};
+    const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const isActionable = request?.status === "EVALUATED" && !request.paymentType;
     const typeCode = request?.type?.code || "";
@@ -900,11 +920,11 @@ export default function RequestHubPage() {
                                         <div className="relative z-10 space-y-12">
                                             <div className="flex items-center justify-between">
                                                 <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 flex items-center gap-3 italic leading-none"><FileText className="w-4 h-4 text-primary" /> Application Matrix</h3>
-                                                <div className="flex items-center gap-2 text-[8px] font-semibold uppercase tracking-widest text-primary italic bg-primary/5 px-3 py-1 rounded-lg border border-primary/10"><Clock className="w-3 h-3" /> Updated: {format(new Date(request.updatedAt), "MMM d, HH:mm")}</div>
+                                                <div className="flex items-center gap-2 text-[8px] font-semibold uppercase tracking-widest text-primary italic bg-primary/5 px-3 py-1 rounded-lg border border-primary/10"><Clock className="w-3 h-3" /> Updated: {formatPHDateTime(request.updatedAt)}</div>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 md:gap-x-16 gap-y-10 md:gap-y-12">
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Date Submitted</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{format(new Date(request.createdAt), "MMM d, yyyy")}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Date Submitted</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{formatPHDate(request.createdAt)}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Payment</p><p className="text-base md:text-xl font-semibold text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
                                             </div>

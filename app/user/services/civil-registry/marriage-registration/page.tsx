@@ -72,14 +72,14 @@ const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSe
         <div className="relative w-full">
             <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input 
+                <Input
                     placeholder={placeholder}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className="pl-12 h-12 bg-slate-50 dark:bg-white/5 border-none font-bold"
                 />
             </div>
-            
+
             {results.length > 0 && (
                 <div className="absolute z-[110] w-full mt-2 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2 space-y-1">
                     {results.map((r) => (
@@ -124,12 +124,13 @@ export default function MarriageRegistrationPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [resident, setResident] = useState<any>(null);
+    const [showDetailsErrors, setShowDetailsErrors] = useState(false);
 
     const [form, setForm] = useState({
         typeId: "",
-        registryType: "MARRIAGE",
-        registrationType: "STANDARD" as "STANDARD" | "LATE",
-        
+        registryType: "MARRIAGE_REG",
+        registrationType: "" as "STANDARD" | "LATE" | "",
+
         // Applicant 1
         app1FullName: "",
         app1BirthDate: "",
@@ -146,7 +147,7 @@ export default function MarriageRegistrationPage() {
         // Marriage Details
         dateOfMarriage: "",
         placeOfMarriage: "MAPANDAN, PANGASINAN",
-        
+
         email: "",
         contactNumber: "",
         relationship: "",
@@ -179,7 +180,7 @@ export default function MarriageRegistrationPage() {
         async function init() {
             try {
                 await ensureCivilRegistryTransactionTypes();
-                
+
                 // Try loading from localStorage first
                 const saved = localStorage.getItem(STORAGE_KEY);
                 const savedData = saved ? JSON.parse(saved) : null;
@@ -190,22 +191,10 @@ export default function MarriageRegistrationPage() {
                     getTransactionTypes()
                 ]);
 
+                let activeResident = null;
                 if (resResult.success && resResult.data) {
-                    const r = resResult.data;
-                    setResident(r);
-                    
-                    // If no saved data, or user is new, populate baseline info
-                    if (!savedData) {
-                        setForm(prev => ({
-                            ...prev,
-                            email: r.email || "",
-                            contactNumber: r.contactNumber || "",
-                            app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
-                            app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
-                            app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
-                            app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
-                        }));
-                    }
+                    activeResident = resResult.data;
+                    setResident(activeResident);
                 }
 
                 if (savedData) {
@@ -213,9 +202,22 @@ export default function MarriageRegistrationPage() {
                     setCurrentStep(savedData.currentStep);
                 }
 
+                if (activeResident) {
+                    const r = activeResident;
+                    setForm(prev => ({
+                        ...prev,
+                        email: r.email || prev.email || "",
+                        contactNumber: r.contactNumber || prev.contactNumber || "",
+                        app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
+                        app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                        app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
+                        app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
+                    }));
+                }
+
                 if (typesResult.success && typesResult.data) {
                     const lcrTypes = typesResult.data.filter((t: any) => t.category === "Civil Registry");
-                    const currentDbType = lcrTypes.find((t: any) => t.code === "LCR_MARRIAGE");
+                    const currentDbType = lcrTypes.find((t: any) => t.code === "LCR_MARRIAGE_REG");
                     if (currentDbType) {
                         setForm(prev => ({ ...prev, typeId: currentDbType.id }));
                     }
@@ -256,9 +258,9 @@ export default function MarriageRegistrationPage() {
         try {
             const formData = new FormData();
             formData.append("typeId", form.typeId);
-            formData.append("registryType", "MARRIAGE");
+            formData.append("registryType", "MARRIAGE_REG");
             formData.append("residentSnapshot", JSON.stringify(resident));
-            
+
             const additionalData = {
                 registrationType: form.registrationType,
                 applicant1: {
@@ -279,7 +281,8 @@ export default function MarriageRegistrationPage() {
                 email: form.email,
                 contactNumber: form.contactNumber,
                 relationship: form.relationship,
-                subjectName: `${form.app1FullName} & ${form.app2FullName}`
+                subjectName: `${form.app1FullName} & ${form.app2FullName}`,
+                totalAmount: form.registrationType === "LATE" ? 300 : 0
             };
 
             // Debug: log additionalData to browser console to verify dateOfMarriage
@@ -331,10 +334,32 @@ export default function MarriageRegistrationPage() {
             setCurrentStep("DETAILS");
         }
         else if (currentStep === "DETAILS") {
-            if (!form.dateOfMarriage || !form.placeOfMarriage) {
-                toast.error("Please fill in marriage details");
+            const missingFields: string[] = [];
+            if (!form.registrationType) missingFields.push("Registration Type");
+            if (!form.dateOfMarriage) missingFields.push("Date of Marriage");
+            if (!form.placeOfMarriage) missingFields.push("Place of Marriage");
+
+            if (form.registrationType === "STANDARD") {
+                const hasMarriageCert = form.files.marriageCert || form.previews.marriageCert;
+                if (!hasMarriageCert) {
+                    missingFields.push("Accomplished Certificate of Marriage");
+                }
+            } else if (form.registrationType === "LATE") {
+                const hasPsaNeg = form.files.psaNeg || form.previews.psaNeg;
+                const hasAffidavitDelay = form.files.affidavitDelay || form.previews.affidavitDelay;
+                const hasMarriageLicense = form.files.marriageLicense || form.previews.marriageLicense;
+
+                if (!hasPsaNeg) missingFields.push("Negative Certificate from PSA");
+                if (!hasAffidavitDelay) missingFields.push("Affidavit of Delayed Registration");
+                if (!hasMarriageLicense) missingFields.push("Certified Copy of Marriage License");
+            }
+
+            if (missingFields.length > 0) {
+                setShowDetailsErrors(true);
+                toast.error(`Please complete the following fields/documents: ${missingFields.join(", ")}`);
                 return;
             }
+            setShowDetailsErrors(false);
             setCurrentStep("CONFIRM");
         }
     };
@@ -370,439 +395,513 @@ export default function MarriageRegistrationPage() {
                 themeColor="var(--amber-500)"
             />
             <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href="/" className="flex items-center gap-1 font-bold italic text-[11px] uppercase tracking-wider">
-                            <Home className="w-3.5 h-3.5" />
-                            Home
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href="/user/services" className="font-bold italic text-[11px] uppercase tracking-wider">Services</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href="/user/services/civil-registry" className="font-bold italic text-[11px] uppercase tracking-wider">Civil Registry</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="font-black italic text-[11px] uppercase tracking-wider text-rose-500">Marriage Registration</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href="/" className="flex items-center gap-1 font-bold italic text-[11px] uppercase tracking-wider">
+                                <Home className="w-3.5 h-3.5" />
+                                Home
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href="/user/services" className="font-bold italic text-[11px] uppercase tracking-wider">Services</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbLink href="/user/services/civil-registry" className="font-bold italic text-[11px] uppercase tracking-wider">Civil Registry</BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage className="font-black italic text-[11px] uppercase tracking-wider text-rose-500">Marriage Registration</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
 
-            <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-rose-500/10 rounded-xl">
-                                <Heart className="w-6 h-6 text-rose-500" />
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-rose-500/10 rounded-xl">
+                                    <Heart className="w-6 h-6 text-rose-500" />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-500">Local Civil Registry</span>
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-500">Local Civil Registry</span>
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                                Marriage <span className="text-rose-500">Registration</span>
+                            </h1>
+                            <p className="text-slate-500 font-medium text-sm italic">File a request for official marriage records or register a new marriage.</p>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                            Marriage <span className="text-rose-500">Registration</span>
-                        </h1>
-                        <p className="text-slate-500 font-medium text-sm italic">File a request for official marriage records or register a new marriage.</p>
+                        {hasDraft && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    localStorage.removeItem(STORAGE_KEY);
+                                    window.location.reload();
+                                }}
+                                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors"
+                            >
+                                Reset Form
+                            </Button>
+                        )}
                     </div>
-                    {hasDraft && (
-                        <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                                localStorage.removeItem(STORAGE_KEY);
-                                window.location.reload();
-                            }}
-                            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-colors"
+
+                    {/* Progress Stepper */}
+                    <div className="relative px-2 py-4">
+                        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-100 dark:bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-rose-600"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(STEPS.findIndex(s => s.id === currentStep) / (STEPS.length - 1)) * 100}%` }}
+                            />
+                        </div>
+
+                        <div className="flex justify-between items-center relative z-10">
+                            {STEPS.map((step, idx) => {
+                                const isActive = currentStep === step.id;
+                                const stepIdx = STEPS.findIndex(s => s.id === currentStep);
+                                const isCompleted = stepIdx > idx;
+                                const Icon = step.icon;
+
+                                return (
+                                    <div key={idx} className="flex flex-col items-center gap-2">
+                                        <div className={cn(
+                                            "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 bg-white dark:bg-[#08090d]",
+                                            isActive ? "border-rose-600 text-rose-600 shadow-lg shadow-rose-500/20 scale-110" :
+                                                isCompleted ? "bg-rose-600 border-rose-600 text-white" :
+                                                    "border-slate-200 dark:border-white/10 text-slate-400"
+                                        )}>
+                                            {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-4 h-4 md:w-5 md:h-5" />}
+                                        </div>
+                                        <span className={cn(
+                                            "text-[8px] md:text-[10px] font-black uppercase tracking-wider italic hidden md:block",
+                                            isActive ? "text-rose-600" : "text-slate-400"
+                                        )}>
+                                            {step.label}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentStep}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-6"
                         >
-                            Reset Form
-                        </Button>
-                    )}
-                </div>
-
-                {/* Progress Stepper */}
-                <div className="relative px-2 py-4">
-                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-100 dark:bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
-                        <motion.div 
-                            className="h-full bg-rose-600"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(STEPS.findIndex(s => s.id === currentStep) / (STEPS.length - 1)) * 100}%` }}
-                        />
-                    </div>
-                    
-                    <div className="flex justify-between items-center relative z-10">
-                        {STEPS.map((step, idx) => {
-                            const isActive = currentStep === step.id;
-                            const stepIdx = STEPS.findIndex(s => s.id === currentStep);
-                            const isCompleted = stepIdx > idx;
-                            const Icon = step.icon;
-                            
-                            return (
-                                <div key={idx} className="flex flex-col items-center gap-2">
-                                    <div className={cn(
-                                        "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 bg-white dark:bg-[#08090d]",
-                                        isActive ? "border-rose-600 text-rose-600 shadow-lg shadow-rose-500/20 scale-110" :
-                                            isCompleted ? "bg-rose-600 border-rose-600 text-white" :
-                                                "border-slate-200 dark:border-white/10 text-slate-400"
-                                    )}>
-                                        {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-4 h-4 md:w-5 md:h-5" />}
-                                    </div>
-                                    <span className={cn(
-                                        "text-[8px] md:text-[10px] font-black uppercase tracking-wider italic hidden md:block",
-                                        isActive ? "text-rose-600" : "text-slate-400"
-                                    )}>
-                                        {step.label}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="space-y-6"
-                    >
-                        {currentStep === "IDENTITY" && (
-                            <div className="space-y-8">
-                                {/* Applicant 1 */}
-                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
-                                    <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                                        Applicant 1
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
-                                                value={form.app1FullName}
-                                                onChange={e => setForm({...form, app1FullName: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                type="date"
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold"
-                                                value={form.app1BirthDate}
-                                                onChange={e => setForm({...form, app1BirthDate: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
-                                                value={form.app1BirthPlace}
-                                                onChange={e => setForm({...form, app1BirthPlace: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
-                                                value={form.app1Citizenship}
-                                                onChange={e => setForm({...form, app1Citizenship: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                {/* Applicant 2 */}
-                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
-                                            Applicant 2
+                            {currentStep === "IDENTITY" && (
+                                <div className="space-y-8">
+                                    {/* Applicant 1 */}
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                        <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                                            Applicant 1
                                         </h3>
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox 
-                                                id="app2Resident" 
-                                                checked={form.app2IsResident}
-                                                onCheckedChange={(checked) => setForm({...form, app2IsResident: !!checked})}
-                                            />
-                                            <label htmlFor="app2Resident" className="text-xs font-bold italic text-slate-500 cursor-pointer">
-                                                Applicant 2 is a resident of Mapandan
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {form.app2IsResident && (
-                                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-blue-500">Search Mapandan Records</Label>
-                                            <ResidentSearch 
-                                                onSelect={handleApp2Select}
-                                                placeholder="Search by first or last name..."
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                placeholder="ENTER FULL NAME"
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
-                                                value={form.app2FullName}
-                                                onChange={e => setForm({...form, app2FullName: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                type="date"
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold"
-                                                value={form.app2BirthDate}
-                                                onChange={e => setForm({...form, app2BirthDate: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                placeholder="ENTER PLACE"
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
-                                                value={form.app2BirthPlace}
-                                                onChange={e => setForm({...form, app2BirthPlace: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
-                                                value={form.app2Citizenship}
-                                                onChange={e => setForm({...form, app2Citizenship: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <div className="flex justify-end pt-4">
-                                    <Button 
-                                        onClick={nextStep}
-                                        className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest"
-                                    >
-                                        Next Part <ArrowRight className="ml-2 w-5 h-5" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {currentStep === "DETAILS" && (
-                            <div className="space-y-8">
-                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
-                                    <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
-                                        Marriage Details
-                                    </h3>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Type</Label>
-                                            <Select 
-                                                value={form.registrationType} 
-                                                onValueChange={(val: any) => setForm({...form, registrationType: val})}
-                                            >
-                                                <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="STANDARD">TIMELY (STANDARD)</SelectItem>
-                                                    <SelectItem value="LATE">LATE REGISTRATION</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Marriage <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                type="date"
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl"
-                                                value={form.dateOfMarriage}
-                                                onChange={e => setForm({...form, dateOfMarriage: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-1 space-y-1.5">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Marriage <span className="text-rose-500">*</span></Label>
-                                            <Input 
-                                                className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase h-12 rounded-xl"
-                                                value={form.placeOfMarriage}
-                                                onChange={e => setForm({...form, placeOfMarriage: e.target.value.toUpperCase()})}
-                                            />
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
-                                    <div className="space-y-2">
-                                        <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
-                                            Required Documents
-                                        </h3>
-                                        <p className="text-xs text-slate-400 font-bold italic">
-                                            Please upload clear photos or scanned copies of the following requirements for <span className="text-rose-500 uppercase">{form.registrationType}</span> registration.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {form.registrationType === "STANDARD" ? (
-                                            <div className="space-y-4">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accomplished Certificate of Marriage</Label>
-                                                <div 
-                                                    onClick={() => document.getElementById('marriageCert')?.click()}
-                                                    className="aspect-video relative rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all group overflow-hidden"
-                                                >
-                                                    {form.previews.marriageCert ? (
-                                                        <>
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img src={form.previews.marriageCert} alt="Marriage certificate preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Upload className="w-8 h-8 text-slate-300 group-hover:text-rose-500 transition-colors" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
-                                                        </>
-                                                    )}
-                                                    <input type="file" id="marriageCert" className="hidden" onChange={e => handleFileChange(e, 'marriageCert')} />
-                                                </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={form.app1FullName}
+                                                />
                                             </div>
-                                        ) : (
-                                            <>
-                                                <div className="space-y-4">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Negative Certificate from PSA</Label>
-                                                    <div onClick={() => document.getElementById('psaNeg')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
-                                                        {form.previews.psaNeg ? (
-                                                            <>
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img src={form.previews.psaNeg} alt="PSA negative certificate preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                            </>
-                                                        ) : <Upload className="w-6 h-6 text-slate-300" />}
-                                                        <input type="file" id="psaNeg" className="hidden" onChange={e => handleFileChange(e, 'psaNeg')} />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affidavit of Delayed Registration</Label>
-                                                    <div onClick={() => document.getElementById('affidavitDelay')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
-                                                        {form.previews.affidavitDelay ? (
-                                                            <>
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img src={form.previews.affidavitDelay} alt="Affidavit preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                            </>
-                                                        ) : <Upload className="w-6 h-6 text-slate-300" />}
-                                                        <input type="file" id="affidavitDelay" className="hidden" onChange={e => handleFileChange(e, 'affidavitDelay')} />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-4 md:col-span-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Certified Copy of Marriage License</Label>
-                                                    <div onClick={() => document.getElementById('marriageLicense')?.click()} className="aspect-video max-w-md mx-auto relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
-                                                        {form.previews.marriageLicense ? (
-                                                            <>
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img src={form.previews.marriageLicense} alt="Marriage license preview" className="absolute inset-0 w-full h-full object-cover" />
-                                                            </>
-                                                        ) : <Upload className="w-6 h-6 text-slate-300" />}
-                                                        <input type="file" id="marriageLicense" className="hidden" onChange={e => handleFileChange(e, 'marriageLicense')} />
-                                                    </div>
-                                                </div>
-                                            </>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth</Label>
+                                                <Input
+                                                    disabled
+                                                    type="date"
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold cursor-not-allowed opacity-75"
+                                                    value={form.app1BirthDate}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={form.app1BirthPlace}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={form.app1Citizenship}
+                                                />
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    {/* Applicant 2 */}
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
+                                                Applicant 2
+                                            </h3>
+                                            <div className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id="app2Resident"
+                                                    checked={form.app2IsResident}
+                                                    onCheckedChange={(checked) => setForm({ ...form, app2IsResident: !!checked })}
+                                                />
+                                                <label htmlFor="app2Resident" className="text-xs font-bold italic text-slate-500 cursor-pointer">
+                                                    Applicant 2 is a resident of Mapandan
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {form.app2IsResident && (
+                                            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-blue-500">Search Mapandan Records</Label>
+                                                <ResidentSearch
+                                                    onSelect={handleApp2Select}
+                                                    placeholder="Search by first or last name..."
+                                                />
+                                            </div>
                                         )}
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    placeholder="ENTER FULL NAME"
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                    value={form.app2FullName}
+                                                    onChange={e => setForm({ ...form, app2FullName: e.target.value.toUpperCase() })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    type="date"
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold"
+                                                    value={form.app2BirthDate}
+                                                    onChange={e => setForm({ ...form, app2BirthDate: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Birth <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    placeholder="ENTER PLACE"
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                    value={form.app2BirthPlace}
+                                                    onChange={e => setForm({ ...form, app2BirthPlace: e.target.value.toUpperCase() })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase"
+                                                    value={form.app2Citizenship}
+                                                    onChange={e => setForm({ ...form, app2Citizenship: e.target.value.toUpperCase() })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    <div className="flex justify-end pt-4">
+                                        <Button
+                                            onClick={nextStep}
+                                            className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest"
+                                        >
+                                            Next Part <ArrowRight className="ml-2 w-5 h-5" />
+                                        </Button>
                                     </div>
-                                </Card>
-
-                                <div className="flex justify-end gap-4 pt-4">
-                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
-                                        Back
-                                    </Button>
-                                    <Button onClick={nextStep} className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest">
-                                        Final Review <ArrowRight className="ml-2 w-5 h-5" />
-                                    </Button>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {currentStep === "CONFIRM" && (
-                            <div className="space-y-8">
-                                <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
-                                    <div className="bg-rose-500/5 p-6 rounded-3xl border border-rose-500/10 flex items-start gap-4">
-                                        <AlertCircle className="w-6 h-6 text-rose-500 mt-1" />
-                                        <div className="space-y-1">
-                                            <h4 className="text-sm font-black uppercase italic text-rose-600">Final Verification</h4>
-                                            <p className="text-xs text-rose-500/80 font-bold italic leading-relaxed">
-                                                Please ensure all information provided is accurate and matches your official documents. 
-                                                False information may lead to rejection of your application.
+                            {currentStep === "DETAILS" && (
+                                <div className="space-y-8">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-6">
+                                        <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
+                                            Marriage Details
+                                        </h3>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Type <span className="text-rose-500">*</span></Label>
+                                                <Select 
+                                                    value={form.registrationType} 
+                                                    onValueChange={(val: any) => setForm({...form, registrationType: val})}
+                                                >
+                                                    <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl">
+                                                        <SelectValue placeholder="SELECT REGISTRATION TYPE" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="STANDARD">TIMELY (STANDARD)</SelectItem>
+                                                        <SelectItem value="LATE">LATE REGISTRATION</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                {!form.registrationType && showDetailsErrors && (
+                                                    <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                                        <span className="text-[10px] font-black uppercase tracking-wider italic">Registration Type is required</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Marriage <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    type="date"
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold h-12 rounded-xl"
+                                                    value={form.dateOfMarriage}
+                                                    onChange={e => setForm({ ...form, dateOfMarriage: e.target.value })}
+                                                />
+                                                {!form.dateOfMarriage && showDetailsErrors && (
+                                                    <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                                        <span className="text-[10px] font-black uppercase tracking-wider italic">Date of Marriage is required</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="md:col-span-1 space-y-1.5">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Place of Marriage <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    className="bg-slate-50 dark:bg-white/5 border-none font-bold uppercase h-12 rounded-xl"
+                                                    value={form.placeOfMarriage}
+                                                    onChange={e => setForm({ ...form, placeOfMarriage: e.target.value.toUpperCase() })}
+                                                />
+                                                {!form.placeOfMarriage && showDetailsErrors && (
+                                                    <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                                        <span className="text-[10px] font-black uppercase tracking-wider italic">Place of Marriage is required</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
+                                        <div className="space-y-2">
+                                            <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
+                                                Required Documents
+                                            </h3>
+                                            <p className="text-xs text-slate-400 font-bold italic">
+                                                Please upload clear photos or scanned copies of the following requirements for <span className="text-rose-500 uppercase">{form.registrationType}</span> registration.
                                             </p>
                                         </div>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                        <div className="space-y-6">
-                                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Contracting Parties</h5>
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="font-bold text-slate-400 italic">Party 1:</span>
-                                                    <span className="font-black uppercase italic">{form.app1FullName}</span>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {!form.registrationType ? (
+                                                <div className="col-span-1 md:col-span-2 bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 p-8 rounded-2xl flex flex-col items-center justify-center text-center gap-3">
+                                                    <AlertCircle className="w-8 h-8 text-slate-400 animate-pulse" />
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Registration Type First</p>
+                                                        <p className="text-xs font-bold italic text-slate-400/80 leading-normal max-w-sm mx-auto">
+                                                            Please choose standard timely or late registration to see the required document uploads.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="font-bold text-slate-400 italic">Party 2:</span>
-                                                    <span className="font-black uppercase italic">{form.app2FullName}</span>
+                                            ) : form.registrationType === "STANDARD" ? (
+                                                <div className="space-y-4">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accomplished Certificate of Marriage <span className="text-rose-500">*</span></Label>
+                                                    <div
+                                                        onClick={() => document.getElementById('marriageCert')?.click()}
+                                                        className="aspect-video relative rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all group overflow-hidden"
+                                                    >
+                                                        {form.previews.marriageCert ? (
+                                                            <>
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={form.previews.marriageCert} alt="Marriage certificate preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Upload className="w-8 h-8 text-slate-300 group-hover:text-rose-500 transition-colors" />
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Click to Upload</span>
+                                                            </>
+                                                        )}
+                                                        <input type="file" id="marriageCert" className="hidden" onChange={e => handleFileChange(e, 'marriageCert')} />
+                                                    </div>
+                                                    {!(form.files.marriageCert || form.previews.marriageCert) && showDetailsErrors && (
+                                                        <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                            <AlertCircle className="w-4 h-4 shrink-0" />
+                                                            <span className="text-[10px] font-black uppercase tracking-wider italic">Certificate of Marriage is required</span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex justify-between items-center text-xs text-rose-500">
-                                                    <span className="font-bold italic">Type:</span>
-                                                    <span className="font-black uppercase italic">{form.registrationType}</span>
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                <>
+                                                    <div className="space-y-4">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Negative Certificate from PSA <span className="text-rose-500">*</span></Label>
+                                                        <div onClick={() => document.getElementById('psaNeg')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
+                                                            {form.previews.psaNeg ? (
+                                                                <>
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={form.previews.psaNeg} alt="PSA negative certificate preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                                </>
+                                                            ) : <Upload className="w-6 h-6 text-slate-300" />}
+                                                            <input type="file" id="psaNeg" className="hidden" onChange={e => handleFileChange(e, 'psaNeg')} />
+                                                        </div>
+                                                        {!(form.files.psaNeg || form.previews.psaNeg) && showDetailsErrors && (
+                                                            <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                                                <span className="text-[10px] font-black uppercase tracking-wider italic">PSA Negative Certificate is required</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affidavit of Delayed Registration <span className="text-rose-500">*</span></Label>
+                                                        <div onClick={() => document.getElementById('affidavitDelay')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
+                                                            {form.previews.affidavitDelay ? (
+                                                                <>
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={form.previews.affidavitDelay} alt="Affidavit preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                                </>
+                                                            ) : <Upload className="w-6 h-6 text-slate-300" />}
+                                                            <input type="file" id="affidavitDelay" className="hidden" onChange={e => handleFileChange(e, 'affidavitDelay')} />
+                                                        </div>
+                                                        {!(form.files.affidavitDelay || form.previews.affidavitDelay) && showDetailsErrors && (
+                                                            <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                                                <span className="text-[10px] font-black uppercase tracking-wider italic">Affidavit of Delayed Registration is required</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-4 md:col-span-2">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Certified Copy of Marriage License <span className="text-rose-500">*</span></Label>
+                                                        <div onClick={() => document.getElementById('marriageLicense')?.click()} className="aspect-video max-w-md mx-auto relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
+                                                            {form.previews.marriageLicense ? (
+                                                                <>
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={form.previews.marriageLicense} alt="Marriage license preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                                </>
+                                                            ) : <Upload className="w-6 h-6 text-slate-300" />}
+                                                            <input type="file" id="marriageLicense" className="hidden" onChange={e => handleFileChange(e, 'marriageLicense')} />
+                                                        </div>
+                                                        {!(form.files.marriageLicense || form.previews.marriageLicense) && showDetailsErrors && (
+                                                            <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-center gap-2 mt-1.5 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                                                <span className="text-[10px] font-black uppercase tracking-wider italic">Certified Copy of Marriage License is required</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
+                                    </Card>
 
-                                        <div className="space-y-6">
-                                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Event Schedule</h5>
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="font-bold text-slate-400 italic">Date:</span>
-                                                    <span className="font-black uppercase italic">{form.dateOfMarriage}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-xs">
-                                                    <span className="font-bold text-slate-400 italic">Location:</span>
-                                                    <span className="font-black uppercase italic">{form.placeOfMarriage}</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div className="flex justify-end gap-4 pt-4">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
+                                            Back
+                                        </Button>
+                                        <Button onClick={nextStep} className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest">
+                                            Final Review <ArrowRight className="ml-2 w-5 h-5" />
+                                        </Button>
                                     </div>
-
-                                    <div className="pt-6 space-y-4">
-                                        {/* Data Privacy Agreement panel */}
-                                        <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
-                                            <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-rose-500 border-rose-500 text-white" : "border-slate-300") }>
-                                                {policyAccepted ? <Check className="w-3 h-3" /> : null}
-                                            </button>
-                                            <div className="flex-1 text-xs">
-                                                <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
-                                                <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
-                                            </div>
-                                            <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-rose-600">Review</button>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <div className="flex justify-end gap-4 pt-4">
-                                    <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
-                                        Back
-                                    </Button>
-                                    <Button 
-                                        onClick={handleSubmit} 
-                                        disabled={submitting}
-                                        className="h-14 px-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-rose-500/20"
-                                    >
-                                        {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
-                                        Confirm & Submit
-                                    </Button>
                                 </div>
-                            </div>
-                        )}
-                    </motion.div>
-                </AnimatePresence>
+                            )}
+
+                            {currentStep === "CONFIRM" && (
+                                <div className="space-y-8">
+                                    <Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 space-y-8">
+                                        <div className="bg-rose-500/5 p-6 rounded-3xl border border-rose-500/10 flex items-start gap-4">
+                                            <AlertCircle className="w-6 h-6 text-rose-500 mt-1" />
+                                            <div className="space-y-1">
+                                                <h4 className="text-sm font-black uppercase italic text-rose-600">Final Verification</h4>
+                                                <p className="text-xs text-rose-500/80 font-bold italic leading-relaxed">
+                                                    Please ensure all information provided is accurate and matches your official documents.
+                                                    False information may lead to rejection of your application.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                            <div className="space-y-6">
+                                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Contracting Parties</h5>
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">Party 1:</span>
+                                                        <span className="font-black uppercase italic">{form.app1FullName}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">Party 2:</span>
+                                                        <span className="font-black uppercase italic">{form.app2FullName}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs text-rose-500">
+                                                        <span className="font-bold italic">Type:</span>
+                                                        <span className="font-black uppercase italic">{form.registrationType}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Event Schedule</h5>
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">Date:</span>
+                                                        <span className="font-black uppercase italic">{form.dateOfMarriage}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">Location:</span>
+                                                        <span className="font-black uppercase italic">{form.placeOfMarriage}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="col-span-1 md:col-span-2 space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
+                                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b pb-2">Payment / Fee Details</h5>
+                                                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/40 dark:border-white/5 flex items-center justify-between gap-4">
+                                                    <div className="space-y-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration Fee</span>
+                                                        <p className="text-xs font-bold text-slate-500 italic">
+                                                            {form.registrationType === "LATE" 
+                                                                ? "Required processing fee for late filings." 
+                                                                : "Standard timely registration is free of charge."}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className={cn(
+                                                            "text-2xl font-black uppercase italic tracking-tight",
+                                                            form.registrationType === "LATE" ? "text-rose-500" : "text-emerald-500"
+                                                        )}>
+                                                            {form.registrationType === "LATE" ? "₱300.00" : "FREE"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-6 space-y-4">
+                                            {/* Data Privacy Agreement panel */}
+                                            <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
+                                                <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-rose-500 border-rose-500 text-white" : "border-slate-300")}>
+                                                    {policyAccepted ? <Check className="w-3 h-3" /> : null}
+                                                </button>
+                                                <div className="flex-1 text-xs">
+                                                    <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
+                                                    <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                                </div>
+                                                <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-rose-600">Review</button>
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    <div className="flex justify-end gap-4 pt-4">
+                                        <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest">
+                                            Back
+                                        </Button>
+                                        <Button
+                                            onClick={handleSubmit}
+                                            disabled={submitting}
+                                            className="h-14 px-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase italic tracking-widest shadow-xl shadow-rose-500/20"
+                                        >
+                                            {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
+                                            Confirm & Submit
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </div>
-        </div>
-    </>
+        </>
     );
 }
 
