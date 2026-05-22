@@ -1367,6 +1367,10 @@ export async function deleteHousehold(id: string) {
 
 export async function addResident(formData: FormData) {
     try {
+        const session = await getServerSession(authOptions);
+        const activeUserName = session?.user?.name || "System Admin";
+        const activeUserRole = (session?.user as any)?.role || "ADMIN";
+
         const livenessUrl = await processImageUpload(formData, "livenessUrl");
         const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
         const idBackUrl = await processImageUpload(formData, "idBackUrl");
@@ -1511,11 +1515,11 @@ export async function addResident(formData: FormData) {
                 isIndigenous: formData.get("isIndigenous") === "true" || formData.get("isIndigenous") === "on",
                 is4Ps: formData.get("is4Ps") === "true" || formData.get("is4Ps") === "on",
                 otherSector: formData.get("otherSector") as string || null,
-                dataPrivacyConsent: formData.get("dataPrivacyConsent") === "true" || formData.get("dataPrivacyConsent") === "on",
-                consentTimestamp: (formData.get("dataPrivacyConsent") === "true" || formData.get("dataPrivacyConsent") === "on") ? new Date() : null,
-                receivedBy: formData.get("receivedBy") as string || null,
-                officialPosition: formData.get("officialPosition") as string || null,
-                dateReceived: formData.get("dateReceived") ? new Date(formData.get("dateReceived") as string) : null,
+                dataPrivacyConsent: true,
+                consentTimestamp: new Date(),
+                receivedBy: activeUserName,
+                officialPosition: activeUserRole,
+                dateReceived: new Date(),
                 livenessUrl,
                 registrationStatus: "APPROVED",
                 registrationType: "HEAD",
@@ -1602,6 +1606,10 @@ export async function addResident(formData: FormData) {
 
 export async function updateResident(id: string, formData: FormData) {
     try {
+        const session = await getServerSession(authOptions);
+        const activeUserName = session?.user?.name || "System Admin";
+        const activeUserRole = (session?.user as any)?.role || "ADMIN";
+
         const livenessUrl = await processImageUpload(formData, "livenessUrl");
         const idFrontUrl = await processImageUpload(formData, "idFrontUrl");
         const idBackUrl = await processImageUpload(formData, "idBackUrl");
@@ -1681,14 +1689,14 @@ export async function updateResident(id: string, formData: FormData) {
             isIndigenous: formData.get("isIndigenous") === "true" || formData.get("isIndigenous") === "on",
             is4Ps: formData.get("is4Ps") === "true" || formData.get("is4Ps") === "on",
             otherSector: formData.get("otherSector") as string || null,
-            dataPrivacyConsent: formData.get("dataPrivacyConsent") === "true" || formData.get("dataPrivacyConsent") === "on",
-            receivedBy: formData.get("receivedBy") as string || null,
-            officialPosition: formData.get("officialPosition") as string || null,
-            dateReceived: formData.get("dateReceived") ? new Date(formData.get("dateReceived") as string) : null,
+            dataPrivacyConsent: true,
+            receivedBy: activeUserName,
+            officialPosition: activeUserRole,
+            dateReceived: new Date(),
             facialRecognition: formData.get("facialRecognition") 
                 ? JSON.parse(formData.get("facialRecognition") as string) 
                 : undefined,
-            registrationStatus: formData.get("registrationStatus") as string || undefined,
+            registrationStatus: "APPROVED",
             categoryId: categoryIds.length > 0 ? categoryIds[0] : null
         };
 

@@ -5,6 +5,7 @@ import Webcam from "react-webcam";
 import { RotateCcw, Check, X, SwitchCamera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useResident } from "../providers";
 
 interface CameraCaptureProps {
     isOpen: boolean;
@@ -17,6 +18,7 @@ export function CameraCapture({ isOpen, onClose, onCapture, title = "Capture Pho
     const webcamRef = useRef<Webcam>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+    const { themeColor } = useResident();
 
     const capture = useCallback(() => {
         const imageSrc = webcamRef.current?.getScreenshot();
@@ -87,7 +89,8 @@ export function CameraCapture({ isOpen, onClose, onCapture, title = "Capture Pho
                             
                             <button 
                                 onClick={capture}
-                                className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                className="h-16 w-16 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl hover:scale-105 active:scale-95 transition-all"
                             >
                                 <div className="h-12 w-12 rounded-full border-2 border-white/50" />
                             </button>

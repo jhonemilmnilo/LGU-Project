@@ -338,7 +338,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
         console.log(`Processing ${registryType} transaction for user ${session.user.id}`);
 
         const files: Record<string, string | null> = {};
-        
+
         // Dynamic file extraction from FormData
         for (const [key, value] of formData.entries()) {
             if (value instanceof File && value.size > 0) {
@@ -397,9 +397,9 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
     } catch (error: any) {
         console.error("Submit civil registry error:", error);
         // Include the error message for better debugging
-        return { 
-            success: false, 
-            error: error?.message || "Failed to submit registry request" 
+        return {
+            success: false,
+            error: error?.message || "Failed to submit registry request"
         };
     }
 }
@@ -566,6 +566,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const sanitaryPermitFile = formData.get("sanitaryPermitFile") as File | null;
         const fireSafetyFile = formData.get("fireSafetyFile") as File | null;
         const birCorFile = formData.get("birCorFile") as File | null;
+        const previousPermitFile = formData.get("previousPermitFile") as File | null;
 
         const ctcUrl = ctcFile ? await processFileUpload(ctcFile, "bp_ctc") : existingAddData?.ctcUrl;
         const dtiSecUrl = dtiSecFile ? await processFileUpload(dtiSecFile, "bp_dti") : existingAddData?.dtiSecUrl;
@@ -575,6 +576,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const sanitaryPermitUrl = sanitaryPermitFile ? await processFileUpload(sanitaryPermitFile, "bp_sanitary") : existingAddData?.sanitaryPermitUrl;
         const fireSafetyUrl = fireSafetyFile ? await processFileUpload(fireSafetyFile, "bp_fire") : existingAddData?.fireSafetyUrl;
         const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : existingAddData?.birCorUrl;
+        const previousPermitUrl = previousPermitFile ? await processFileUpload(previousPermitFile, "bp_prev_permit") : existingAddData?.previousPermitUrl;
 
         // Merge all BPLO file URLs into additionalData
         const updatedAdditionalData = {
@@ -586,7 +588,8 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
             locationPhotoUrl,
             sanitaryPermitUrl,
             fireSafetyUrl,
-            birCorUrl
+            birCorUrl,
+            previousPermitUrl
         };
 
         const txData = {
@@ -607,12 +610,12 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
             // 1. Create or Update BPLO Transaction
             revisionId
                 ? prisma.transaction.update({
-                      where: { id: revisionId },
-                      data: txData
-                  })
+                    where: { id: revisionId },
+                    data: txData
+                })
                 : prisma.transaction.create({
-                      data: txData
-                  }),
+                    data: txData
+                }),
             // 2. Update permanent resident snapshot profile
             prisma.resident.update({
                 where: { userId: session.user.id },
@@ -666,7 +669,7 @@ async function processFileUpload(file: File, folder: string = "transactions"): P
         const buffer = Buffer.from(await file.arrayBuffer());
         const filename = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
         const storagePath = `services/${folder}/${filename}`;
-        
+
         const publicUrl = await uploadFile(buffer, storagePath, undefined, file.type);
         return publicUrl;
     } catch (error) {
@@ -955,7 +958,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
-        
+
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
         const isLCR = transaction.type.code.startsWith("LCR_");
 
@@ -1222,8 +1225,8 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status === "FOR_PROCESSING") {
-            return { success: false, error: "Forbidden: Only Treasury Staff can process Business Permits in the processing phase." };
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_REQUESTING") {
+            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
         const transactionData: any = {
@@ -1272,11 +1275,11 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status === "FOR_PROCESSING") {
-            return { success: false, error: "Forbidden: Only Treasury Staff can process Business Permits in the processing phase." };
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_REQUESTING") {
+            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
         const additionalData = transaction.additionalData as any;
-        
+
         let basicTax = 0;
         let additionalTax = 0;
         let penalty = 0;
@@ -1332,7 +1335,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                     where: { role: "RIDER" } as any,
                     select: { email: true, name: true }
                 });
-                
+
                 // Batch notify all active riders
                 await Promise.all(riders.map(async (rider) => {
                     if (rider.email) {
@@ -1366,7 +1369,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         // Handle either BPLO or Cedula lifecycle
         if (isBusinessPermit) {
             if (!transaction.businessPermit) {
-                const generatedPermitNo = `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                const generatedPermitNo = ctcNumber?.trim() || `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`;
                 await prisma.businessPermit.create({
                     data: {
                         transactionId: id,
@@ -1388,10 +1391,11 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                         verificationId: `VER-BP-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                     }
                 });
-            } else if (eCopyUrl) {
+            } else if (ctcNumber || eCopyUrl) {
                 await prisma.businessPermit.update({
                     where: { id: transaction.businessPermit.id },
                     data: {
+                        ...(ctcNumber ? { permitNumber: ctcNumber.trim() } : {}),
                         ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
                     }
                 });
@@ -1421,7 +1425,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             } else if (ctcNumber || eCopyUrl) {
                 await prisma.cedula.update({
                     where: { id: transaction.cedula.id },
-                    data: { 
+                    data: {
                         ...(ctcNumber ? { ctcNumber } : {}),
                         ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
                     }
@@ -1517,6 +1521,7 @@ export async function getTreasuryTransactions(status?: string) {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
+            where.status = "FOR_REQUESTING";
         }
 
         if (status && status !== "ALL") {
@@ -1564,9 +1569,9 @@ export async function getTreasuryTransactions(status?: string) {
                     return { ...tx, eventDate };
                 }
                 return tx;
-                } catch {
-                    return tx;
-                }
+            } catch {
+                return tx;
+            }
         });
 
         return { success: true, data: normalized as any[] };
@@ -1594,6 +1599,7 @@ export async function getPendingTreasuryCount() {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
+            where.status = "FOR_REQUESTING";
         }
 
         // TREASURY_STAFF should not count Business Permits in pre-screening status
@@ -1638,6 +1644,7 @@ export async function getTreasuryStatusCounts() {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
+            where.status = "FOR_REQUESTING";
         }
 
         if (user.role === "TREASURY_STAFF") {
@@ -1666,6 +1673,7 @@ export async function getTreasuryStatusCounts() {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
+            cancelledWhere.status = "FOR_REQUESTING";
         }
 
         if (user.role === "TREASURY_STAFF") {
@@ -1715,8 +1723,8 @@ export async function rejectTransaction(id: string, remarks: string) {
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status === "FOR_PROCESSING") {
-            return { success: false, error: "Forbidden: Only Treasury Staff can process Business Permits in the processing phase." };
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_REQUESTING") {
+            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
         // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
@@ -1753,7 +1761,7 @@ export async function rejectTransaction(id: string, remarks: string) {
                 const category = rTx.type.category || "General";
                 categoryCounts[category] = (categoryCounts[category] || 0) + 1;
             }
-            
+
             const maxCategoryRejections = Math.max(0, ...Object.values(categoryCounts));
 
             const updatedUser = await prisma.user.update({
@@ -1817,6 +1825,11 @@ export async function sendForRevision(id: string, remarks: string) {
         });
 
         if (!tx) return { success: false, error: "Transaction inaccessible" };
+
+        const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_REQUESTING") {
+            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
+        }
 
         const nextRevisionCount = (tx.revisionCount || 0) + 1;
 
@@ -2143,18 +2156,18 @@ export async function cancelTransaction(id: string) {
         if (!tx) return { success: false, error: "Transaction not found" };
         if (tx.userId !== session.user.id) return { success: false, error: "Forbidden" };
         if (tx.isCancelled) return { success: false, error: "This request is already cancelled." };
-        
+
         // Only allow cancellation if the request is still in DRAFT or FOR_REQUESTING phase
         const restrictedStatuses = [
-            "FOR_PROCESSING", 
-            "EVALUATED", 
-            "FOR_CLAIM", 
-            "FOR_PICKING", 
-            "IN_ROUTE", 
-            "DELIVERED", 
-            "UNPAID", 
-            "PAID", 
-            "RELEASED", 
+            "FOR_PROCESSING",
+            "EVALUATED",
+            "FOR_CLAIM",
+            "FOR_PICKING",
+            "IN_ROUTE",
+            "DELIVERED",
+            "UNPAID",
+            "PAID",
+            "RELEASED",
             "REJECTED"
         ];
         if (restrictedStatuses.includes(tx.status)) {
@@ -2243,7 +2256,7 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
 
         let newStatus: string;
         if (action === 'APPROVE') {
-            newStatus = (tx.status as any) === "RETURN_REQUESTED" ? "PAID" : "REFUNDED";
+            newStatus = (tx.status as any) === "RETURN_REQUESTED" ? "FOR_PICKING" : "REFUNDED";
         } else {
             newStatus = "DISPUTE_REJECTED";
         }
@@ -2287,10 +2300,81 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
         revalidatePath(`/admin/treasury/${transactionId}`);
         revalidatePath("/user/services/requests");
         revalidatePath(`/user/services/requests/${transactionId}`);
-        
+
         return { success: true, data: updated };
     } catch (error: any) {
         console.error("Dispute resolution error:", error);
         return { success: false, error: error.message };
     }
 }
+
+export async function getLatestSuccessfulBusinessPermit() {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transaction = await prisma.transaction.findFirst({
+            where: {
+                userId: session.user.id,
+                status: {
+                    in: ["DELIVERED", "RELEASED"]
+                },
+                type: {
+                    code: {
+                        in: ["BUSINESS_PERMIT_NEW", "BUSINESS_PERMIT_RENEW"]
+                    }
+                }
+            },
+            include: {
+                type: true
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        if (!transaction) {
+            return { success: true, data: null };
+        }
+
+        return { success: true, data: transaction };
+    } catch (error: any) {
+        console.error("Get latest successful permit error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getAllSuccessfulBusinessPermits() {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                userId: session.user.id,
+                status: {
+                    in: ["DELIVERED", "RELEASED"]
+                },
+                type: {
+                    code: {
+                        in: ["BUSINESS_PERMIT_NEW", "BUSINESS_PERMIT_RENEW"]
+                    }
+                }
+            },
+            include: {
+                type: true,
+                businessPermit: true
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        return { success: true, data: transactions };
+    } catch (error: any) {
+        console.error("Get all successful permits error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+

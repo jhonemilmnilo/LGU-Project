@@ -55,6 +55,7 @@ const IdentityConfirmationVault = ({ resident, additional = {}, isBusinessPermit
             { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
             { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
             { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
+            { url: additional.previousPermitUrl, label: "Previous Business Permit" },
         ]
         : [
             { url: additional.validIdUrl || additional.ownerIdUrl, label: "Valid ID Evidence" },

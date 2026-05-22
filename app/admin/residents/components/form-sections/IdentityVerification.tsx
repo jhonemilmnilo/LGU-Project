@@ -2,12 +2,13 @@ import { Upload, Camera, ShieldCheck } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { CameraCapture } from "../CameraCapture";
 import { FacialVerification } from "../FacialVerification";
-import { Resident } from "../../providers/ResidentProvider";
+import { Resident, useResident } from "../../providers/ResidentProvider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ID_TYPES } from "../../constants";
 
 export function IdentityVerificationSection({ data }: { data?: Partial<Resident> }) {
+  const { themeColor } = useResident();
   const [previews, setPreviews] = useState({
     idFront: data?.idFrontUrl || null,
     idBack: data?.idBackUrl || null,
@@ -108,12 +109,13 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
           <button 
                 type="button"
                 onClick={() => openCamera("livenessUrl")}
-                className="text-[10px] font-bold text-blue-500 flex items-center gap-1 hover:underline"
+                style={{ color: themeColor }}
+                className="text-[10px] font-bold flex items-center gap-1 hover:underline"
             >
                 <Camera className="w-3 h-3" /> CAPTURE PORTRAIT
             </button>
         </label>
-        <div className="relative w-40 h-40 mx-auto rounded-full border-4 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-all group shadow-inner">
+        <div className="relative w-40 h-40 mx-auto rounded-full border-4 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-slate-300 dark:hover:border-slate-700 transition-all group shadow-inner">
             {previews.livenessUrl ? (
                 <div className="w-full h-full relative group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -155,13 +157,15 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
                     placeholder="Specify ID type" 
                     defaultValue={(data?.idType === "Other" ? "" : data?.idType) || ""}
                     required 
-                    className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                    style={{ borderColor: themeColor, backgroundColor: `${themeColor}05` }}
+                    className="h-10 font-bold focus-visible:ring-0"
                     autoFocus
                 />
                 <button 
                   type="button" 
                   onClick={() => setIdTypeVal(ID_TYPES[0])}
-                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                  style={{ color: themeColor }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
                 </button>
@@ -190,12 +194,13 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
             <button 
                 type="button"
                 onClick={() => openCamera("idFront")}
-                className="text-[10px] font-bold text-blue-500 flex items-center gap-1 hover:underline"
+                style={{ color: themeColor }}
+                className="text-[10px] font-bold flex items-center gap-1 hover:underline"
             >
                 <Camera className="w-3 h-3" /> OPEN CAMERA
             </button>
           </div>
-          <div className="relative aspect-video rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-colors group">
+          <div className="relative aspect-video rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-slate-300 dark:hover:border-slate-700 transition-colors group">
             {previews.idFront ? (
                 <div className="w-full h-full relative group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -230,12 +235,13 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
                 <button 
                     type="button"
                     onClick={() => openCamera("idBack")}
-                    className="text-[10px] font-bold text-blue-500 flex items-center gap-1 hover:underline"
+                    style={{ color: themeColor }}
+                    className="text-[10px] font-bold flex items-center gap-1 hover:underline"
                 >
                     <Camera className="w-3 h-3" /> OPEN CAMERA
                 </button>
             </div>
-            <div className="relative aspect-video rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-colors group">
+            <div className="relative aspect-video rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-slate-300 dark:hover:border-slate-700 transition-colors group">
                 {previews.idBack ? (
                     <div className="w-full h-full relative group">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -266,7 +272,7 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
 
       <div className="space-y-3">
         <label className="text-xs font-black uppercase text-slate-500 tracking-tighter">Biometric Face Verification</label>
-        <div className="relative h-64 rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-400 transition-colors group">
+        <div className="relative h-64 rounded-2xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center overflow-hidden hover:border-slate-300 dark:hover:border-slate-700 transition-colors group">
             {faceDescriptor ? (
                 <div className="w-full h-full relative group flex flex-col items-center justify-center bg-green-500/5">
                     <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
@@ -290,8 +296,11 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
                     onClick={() => setFacialVerifyOpen(true)}
                     className="flex flex-col items-center justify-center w-full h-full"
                 >
-                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <Camera className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    <div 
+                        style={{ backgroundColor: `${themeColor}1a` }}
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+                    >
+                        <Camera className="w-8 h-8" style={{ color: themeColor }} />
                     </div>
                     <span className="text-xs text-slate-400 font-black uppercase tracking-widest">Open Camera and verify face</span>
                     <p className="text-[10px] text-slate-400 mt-1">Look directly at the camera and ensure good lighting</p>

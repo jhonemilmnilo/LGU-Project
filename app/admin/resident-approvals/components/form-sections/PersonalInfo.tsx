@@ -60,11 +60,11 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Last Name *</label>
+                    <label className="text-sm font-semibold">Last Name <span className="text-red-500">*</span></label>
                     <Input name="lastName" defaultValue={data?.lastName || ""} placeholder="e.g. DELA CRUZ" required className="uppercase" />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">First Name *</label>
+                    <label className="text-sm font-semibold">First Name <span className="text-red-500">*</span></label>
                     <Input name="firstName" defaultValue={data?.firstName || ""} placeholder="e.g. JUAN" required className="uppercase" />
                 </div>
                 <div className="space-y-2">
@@ -108,7 +108,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Date of Birth *</label>
+                    <label className="text-sm font-semibold">Date of Birth <span className="text-red-500">*</span></label>
                     <Input 
                         name="dateOfBirth" 
                         type="date" 
@@ -154,8 +154,8 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Place of Birth</label>
-                    <Input name="placeOfBirth" defaultValue={data?.placeOfBirth || ""} placeholder="City/Municipality, Province" />
+                    <label className="text-sm font-semibold">Place of Birth <span className="text-red-500">*</span></label>
+                    <Input name="placeOfBirth" defaultValue={data?.placeOfBirth || ""} placeholder="City/Municipality, Province" required />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Citizenship</label>
@@ -184,10 +184,10 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
                 <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Categories</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Categories <span className="text-red-500">*</span></label>
                     <span className="text-[10px] font-bold text-blue-500 uppercase">Select a category</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 p-1 transition-all duration-300 rounded-2xl">
                     {categories.map(cat => {
                         const isSelected = selectedId === cat.id;
                         return (
@@ -205,16 +205,12 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                             >
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                                     isSelected ? 'bg-white border-white' : 'border-slate-300 dark:border-slate-600 group-hover:border-blue-400'
-                                }}`}>
+                                }`}>
                                     {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600 animate-in zoom-in-50 duration-200" />}
                                 </div>
                                 <span className="text-xs font-black uppercase tracking-tight">
                                     {cat.name}
                                 </span>
-                                {/* Hidden input for FormData to capture values */}
-                                {isSelected && (
-                                    <input type="hidden" name="categories" value={cat.id} />
-                                )}
                             </div>
                         );
                     })}
@@ -223,6 +219,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                              Initializing system categories...
                         </div>
                     )}
+                    <input type="hidden" name="categories" value={selectedId || ""} />
                 </div>
             </div>
         </div>

@@ -60,6 +60,9 @@ interface PageProps {
 function LightboxView({ src, alt, label }: { src: string; alt: string; label: string }) {
     const [scale, setScale] = useState(1);
     const [rotate, setRotate] = useState(0);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     const handleWheel = (e: React.WheelEvent) => {
         // Smooth zoom using scroll wheel
@@ -67,9 +70,55 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
         setScale(prev => Math.min(Math.max(prev + delta, 0.5), 5));
     };
 
+    const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length !== 1) return;
+        setIsDragging(true);
+        const touch = e.touches[0];
+        setDragStart({
+            x: touch.clientX - position.x,
+            y: touch.clientY - position.y
+        });
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        setPosition({
+            x: touch.clientX - dragStart.x,
+            y: touch.clientY - dragStart.y
+        });
+    };
+
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+    };
+
     const reset = () => {
         setScale(1);
         setRotate(0);
+        setPosition({ x: 0, y: 0 });
     };
 
     return (
@@ -79,12 +128,22 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
             </DialogHeader>
 
             <div
-                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-move active:cursor-grabbing select-none"
+                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing select-none"
                 onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
                 <div
-                    className="relative w-full h-full transition-transform duration-300 ease-out flex items-center justify-center"
-                    style={{ transform: `scale(${scale}) rotate(${rotate}deg)` }}
+                    className="relative w-full h-full flex items-center justify-center"
+                    style={{ 
+                        transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotate}deg)`,
+                        transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+                    }}
                 >
                     <Image
                         src={src}
@@ -148,7 +207,7 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                 </Button>
             </div>
 
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan coming soon</p>
+            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan Active</p>
         </DialogContent>
     );
 }
@@ -183,7 +242,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
-    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status === "FOR_PROCESSING";
+    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status !== "FOR_REQUESTING";
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -580,6 +639,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     // Build evidence documents list for the Evidence Vault UI
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const evidenceDocs: { url?: string | null; label: string }[] = (() => {
         if (isBusinessPermit) {
             return [
@@ -1020,7 +1080,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                {evidenceDocs.filter(doc => doc.url).map((doc, i) => (
+                                {(isBusinessPermit
+                                    ? [
+                                        { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
+                                        { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
+                                        { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
+                                        { url: additional.brgyClearanceUrl, label: "Barangay Clearance" },
+                                        { url: additional.locationPhotoUrl, label: "Location Photo" },
+                                        { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
+                                        { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
+                                        { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
+                                        { url: additional.previousPermitUrl, label: "Previous Business Permit" },
+                                    ]
+                                    : [
+                                        { url: additional.validIdUrl, label: "Valid ID Evidence" },
+                                        { url: additional.proofOfIncomeUrl, label: "Income Verification" }
+                                    ]
+                                ).filter(doc => doc.url).map((doc, i) => (
                                     <Dialog key={i}>
                                         <DialogTrigger asChild>
                                             <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
@@ -1466,7 +1542,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black uppercase text-primary tracking-widest italic">Read-Only Access Protocol</p>
                                     <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight italic">
-                                        Hi Admin Aide! You are in <span className="text-primary font-black">Read-Only Mode</span>. Business Permits in the <span className="text-primary font-black">FOR PROCESSING</span> stage must be processed and released by <span className="text-primary font-black">Treasury Staff</span> only.
+                                        Hi Admin Aide! You are in <span className="text-primary font-black">Read-Only Mode</span>. Business Permits in the <span className="text-primary font-black">{transaction?.status?.replace(/_/g, " ")}</span> stage must be processed and released by <span className="text-primary font-black">Treasury Staff</span> only.
                                     </p>
                                 </div>
                             </div>
@@ -1581,16 +1657,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     </div>
                                                 )}
 
-                                                {/* Always show CTC Input for these phases (Hidden for Business Permits since permit number is auto-generated) */}
-                                                {!isBusinessPermit && (
+                                                {/* Always show CTC Input for these phases (Hidden for Business Permits unless it is a new business permit) */}
+                                                {(!isBusinessPermit || transaction.type.code === "BUSINESS_PERMIT_NEW") && (
                                                     <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
                                                         <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
-                                                            Registry Serial Entry (CTC No.)
+                                                            {isBusinessPermit ? "License Business Permit No." : "Registry Serial Entry (CTC No.)"}
                                                         </Label>
                                                         <Input
                                                             value={ctcNumber}
                                                             onChange={(e) => setCtcNumber(e.target.value)}
-                                                            placeholder="ENTER CTC NUMBER..."
+                                                            placeholder={isBusinessPermit ? "ENTER BUSINESS PERMIT NO..." : "ENTER CTC NUMBER..."}
                                                             className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
                                                         />
                                                     </div>
@@ -1650,17 +1726,30 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </p>
                                         </div>
 
+                                        {transaction.status === "RETURN_REQUESTED" && (
+                                            <Button
+                                                onClick={handlePrintWaybill}
+                                                variant="outline"
+                                                className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all mb-2"
+                                            >
+                                                Generate & Print Waybill
+                                            </Button>
+                                        )}
+
                                         <div className="grid grid-cols-2 gap-3">
                                             <Dialog open={disputeModalOpen && disputeAction === 'APPROVE'} onOpenChange={(open) => { setDisputeModalOpen(open); setDisputeAction('APPROVE'); setRemarks(''); }}>
                                                 <DialogTrigger asChild>
-                                                    <Button className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-600/20 transition-all active:scale-95">
+                                                    <Button 
+                                                        style={{ backgroundColor: themeColor }}
+                                                        className="h-14 rounded-2xl text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg transition-all active:scale-95 hover:opacity-90"
+                                                    >
                                                         <Check className="w-4 h-4 mr-2" /> Approve Request
                                                     </Button>
                                                 </DialogTrigger>
                                                 <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
                                                     <DialogHeader className="space-y-3">
                                                         <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                            Approve <span className="text-emerald-500">Resolution</span>
+                                                            Approve <span style={{ color: themeColor }}>Resolution</span>
                                                         </DialogTitle>
                                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Official Final Decision Registry</p>
                                                     </DialogHeader>
@@ -1675,7 +1764,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <Button onClick={handleResolveDispute} disabled={isResolvingDispute} className="w-full h-14 bg-emerald-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
+                                                    <Button 
+                                                        onClick={handleResolveDispute} 
+                                                        disabled={isResolvingDispute} 
+                                                        style={{ backgroundColor: themeColor }}
+                                                        className="w-full h-14 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl active:scale-95 transition-all hover:opacity-90"
+                                                    >
                                                         {isResolvingDispute ? "Processing..." : "Confirm & Resolve Dispute"}
                                                     </Button>
                                                 </DialogContent>
@@ -1719,7 +1813,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <BadgeCheck className="w-12 h-12 mx-auto" />
                                         <div>
                                             <p className="text-[10px] font-black uppercase italic opacity-60">Success Registry Locked</p>
-                                            <p className="text-3xl font-black italic font-mono tracking-tighter">{transaction.cedula?.ctcNumber}</p>
+                                            <p className="text-3xl font-black italic font-mono tracking-tighter">
+                                                {isBusinessPermit ? transaction.businessPermit?.permitNumber : transaction.cedula?.ctcNumber}
+                                            </p>
                                         </div>
                                     </div>
                                 )}

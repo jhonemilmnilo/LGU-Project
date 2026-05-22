@@ -43,6 +43,7 @@ export function ResidentTable() {
         selectedCategory,
         setEditingData,
         setIsAddModalOpen,
+        themeColor,
     } = useResident();
 
     const filteredResidents = residents.filter((r) => {
@@ -162,8 +163,11 @@ export function ResidentTable() {
                                             
                                             {/* Family Relationship Subtext */}
                                             {resident.isHead ? (
-                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase italic mt-0.5 flex items-center gap-1">
-                                                    <BadgeCheck className="w-2.5 h-2.5" /> Family Head
+                                                <span 
+                                                    style={{ color: themeColor }}
+                                                    className="text-[10px] font-black uppercase italic mt-0.5 flex items-center gap-1"
+                                                >
+                                                    <BadgeCheck className="w-2.5 h-2.5" style={{ color: themeColor }} /> Family Head
                                                 </span>
                                             ) : resident.headName ? (
                                                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
@@ -195,7 +199,11 @@ export function ResidentTable() {
                                     <TableCell>
                                         <div className="flex flex-wrap gap-1 max-w-[150px]">
                                             {resident.category ? (
-                                                <Badge variant="secondary" className="text-[10px] h-4 px-2 font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-transparent">
+                                                <Badge 
+                                                    variant="secondary" 
+                                                    style={{ backgroundColor: `${themeColor}1a`, color: themeColor }}
+                                                    className="text-[10px] h-4 px-2 font-black uppercase tracking-widest border-transparent"
+                                                >
                                                     {resident.category.name}
                                                 </Badge>
                                             ) : (
@@ -221,7 +229,7 @@ export function ResidentTable() {
                                     <TableCell>
                                         <div className="flex flex-col gap-0.5 items-start">
                                             {resident.contactNumber ? (
-                                                <span className="text-xs font-black flex items-center gap-1"><Phone className="w-3 h-3 text-blue-500" /> {resident.contactNumber}</span>
+                                                <span className="text-xs font-black flex items-center gap-1"><Phone className="w-3 h-3" style={{ color: themeColor }} /> {resident.contactNumber}</span>
                                             ) : (
                                                 <span className="text-xs text-slate-400 italic">No Contact</span>
                                             )}
@@ -242,10 +250,13 @@ export function ResidentTable() {
                                                     <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Management Options</DropdownMenuLabel>
                                                     <DropdownMenuItem 
                                                         onClick={() => handleEdit(resident)}
-                                                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-300 font-bold transition-colors group"
+                                                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl text-slate-700 dark:text-slate-300 font-bold transition-colors group hover:bg-slate-50 dark:hover:bg-white/5"
                                                     >
-                                                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                                            <Edit className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                        <div 
+                                                            style={{ backgroundColor: `${themeColor}1a` }}
+                                                            className="p-1.5 rounded-lg group-hover:scale-110 transition-transform"
+                                                        >
+                                                            <Edit className="w-4 h-4" style={{ color: themeColor }} />
                                                         </div>
                                                         Edit Profile
                                                     </DropdownMenuItem>

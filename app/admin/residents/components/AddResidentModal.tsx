@@ -1,4 +1,4 @@
-
+    
 import { useState, useEffect } from "react";
 import { useResident } from "../providers";
 import { useResidentForm } from "../hooks/useResidentForm";
@@ -29,9 +29,16 @@ const STEPS = [
 ];
 
 export function AddResidentModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, setCurrentFamilyMembers } = useResident();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, setCurrentFamilyMembers, themeColor } = useResident();
     const { handleSubmit, loading } = useResidentForm();
     const [currentStep, setCurrentStep] = useState(0);
+
+    useEffect(() => {
+        const activeElement = document.getElementById(`step-indicator-residents-${currentStep}`);
+        if (activeElement) {
+            activeElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }, [currentStep]);
 
     useEffect(() => {
         if (isAddModalOpen) {
@@ -81,56 +88,132 @@ export function AddResidentModal() {
         if (!form) return true;
 
         const formData = new FormData(form);
+        const invalidFields: { nameOrSelector: string; isSelector: boolean; message: string }[] = [];
+
+        const addError = (nameOrSelector: string, message: string, isSelector = false) => {
+            invalidFields.push({ nameOrSelector, isSelector, message });
+        };
+
+        const focusAndHighlight = (nameOrSelector: string, isSelector = false, shouldFocus = true) => {
+            const input = isSelector 
+                ? form.querySelector(nameOrSelector) as HTMLElement | null
+                : form.querySelector(`[name="${nameOrSelector}"]`) as HTMLElement | null;
+            if (input) {
+                let targetToStyle = input;
+                
+                if (nameOrSelector === "categories") {
+                    const container = input.closest('.flex.flex-wrap.gap-2') as HTMLElement | null;
+                    if (container) {
+                        targetToStyle = container;
+                    }
+                } else {
+                    const isHidden = input.offsetWidth === 0 && input.offsetHeight === 0;
+                    if (isHidden) {
+                        const parent = input.parentElement;
+                        if (parent) {
+                            const trigger = parent.querySelector('button[role="combobox"]') || parent.querySelector('button');
+                            if (trigger) {
+                                targetToStyle = trigger as HTMLElement;
+                            }
+                        }
+                    }
+                }
+
+                if (shouldFocus) {
+                    targetToStyle.focus();
+                    targetToStyle.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+                targetToStyle.classList.add("ring-2", "ring-red-500", "border-red-500", "dark:border-red-500", "ring-offset-2");
+                const cleanUp = () => {
+                    targetToStyle.classList.remove("ring-2", "ring-red-500", "border-red-500", "dark:border-red-500", "ring-offset-2");
+                    input.removeEventListener("input", cleanUp);
+                    input.removeEventListener("change", cleanUp);
+                    targetToStyle.removeEventListener("click", cleanUp);
+                    targetToStyle.removeEventListener("focus", cleanUp);
+                };
+                input.addEventListener("input", cleanUp);
+                input.addEventListener("change", cleanUp);
+                targetToStyle.addEventListener("click", cleanUp);
+                targetToStyle.addEventListener("focus", cleanUp);
+            }
+        };
 
         if (stepIndex === 0) { // Personal
-            if (!formData.get("lastName")) { toast.error("Last Name is required."); return false; }
-            if (!formData.get("firstName")) { toast.error("First Name is required."); return false; }
-            if (!formData.get("gender")) { toast.error("Please select a Gender."); return false; }
-            if (formData.get("gender") === "Other" && !formData.get("otherGender")) {
-                toast.error("Please specify your Gender."); return false;
+            if (!formData.get("lastName")) { 
+                addError("lastName", "Last Name is required."); 
             }
-            if (!formData.get("dateOfBirth")) { toast.error("Date of Birth is required."); return false; }
-            if (!formData.get("civilStatus")) { toast.error("Civil Status is required."); return false; }
+            if (!formData.get("firstName")) { 
+                addError("firstName", "First Name is required."); 
+            }
+            if (!formData.get("placeOfBirth")) { 
+                addError("placeOfBirth", "Place of Birth is required."); 
+            }
+            if (!formData.get("gender")) { 
+                addError("gender", "Please select a Gender."); 
+            }
+            if (formData.get("gender") === "Other" && !formData.get("otherGender")) {
+                addError("otherGender", "Please specify your Gender."); 
+            }
+            if (!formData.get("dateOfBirth")) { 
+                addError("dateOfBirth", "Date of Birth is required."); 
+            }
+            if (!formData.get("civilStatus")) { 
+                addError("civilStatus", "Civil Status is required."); 
+            }
             if (formData.get("civilStatus") === "Other" && !formData.get("otherCivilStatus")) {
-                toast.error("Please specify your Civil Status."); return false;
+                addError("otherCivilStatus", "Please specify your Civil Status."); 
+            }
+            if (!formData.get("categories")) {
+                addError("categories", "Please select a Resident Category.");
             }
         }
 
         if (stepIndex === 1) { // Address
-            if (!formData.get("barangay")) { toast.error("Barangay is mandatory."); return false; }
+            if (!formData.get("barangay")) { 
+                addError("barangay", "Barangay is mandatory."); 
+            }
+            if (formData.get("municipality") === "") { 
+                addError("municipality", "Municipality is required."); 
+            }
+            if (formData.get("province") === "") { 
+                addError("province", "Province is required."); 
+            }
         }
 
         if (stepIndex === 2) { // Socio-Gov
-            if (!formData.get("occupation")) { toast.error("Occupation is required."); return false; }
+            if (!formData.get("occupation")) { 
+                addError("occupation", "Occupation is required."); 
+            }
             if (formData.get("educationalAttainment") === "Other" && !formData.get("otherEducationalAttainment")) {
-                toast.error("Please specify your Educational Attainment."); return false;
+                addError("otherEducationalAttainment", "Please specify your Educational Attainment."); 
             }
             if (formData.get("employmentStatus") === "Other" && !formData.get("otherEmploymentStatus")) {
-                toast.error("Please specify your Employment Status."); return false;
+                addError("otherEmploymentStatus", "Please specify your Employment Status."); 
             }
         }
 
         if (stepIndex === 4) { // Identity Verification
-            // ID fields are now optional to accommodate registrations for kids/babies
             const idType = formData.get("idType") as string;
             if (idType === "Other" && !formData.get("otherIdType")) {
-                toast.error("Please specify your ID Type."); return false;
+                addError("otherIdType", "Please specify your ID Type."); 
             }
         }
 
         if (stepIndex === 5) { // Account
             const email = formData.get("email") as string;
             if (email && !email.includes("@")) { 
-                toast.error("Please enter a valid email."); 
-                return false; 
+                addError("email", "Please enter a valid email."); 
             }
         }
 
-        if (stepIndex === 6) { // Sectors and Consent
-            if (formData.get("dataPrivacyConsent") !== "true") {
-                toast.error("You must agree to the Data Privacy Consent.");
-                return false;
-            }
+        // Removed Data Privacy Consent frontend validation block since it is now auto-consented server-side
+
+        if (invalidFields.length > 0) {
+            toast.error(invalidFields[0].message);
+            invalidFields.forEach((field, index) => {
+                focusAndHighlight(field.nameOrSelector, field.isSelector, index === 0);
+            });
+            return false;
         }
 
         return true;
@@ -146,9 +229,12 @@ export function AddResidentModal() {
                 <div className="flex flex-col lg:flex-row h-[95vh] lg:h-[80vh]">
                     
                     {/* Left Sidebar: Steps Progress */}
-                    <div className="lg:w-80 bg-slate-50 dark:bg-[#151b2b] p-8 border-r border-slate-200 dark:border-[#2a3040] hidden lg:block">
+                    <div className="lg:w-80 bg-slate-50 dark:bg-[#151b2b] p-8 border-r border-slate-200 dark:border-[#2a3040] hidden lg:block overflow-y-auto custom-scrollbar">
                         <div className="flex items-center space-x-3 mb-12">
-                            <div className="p-2.5 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20">
+                            <div 
+                                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                className="p-2.5 rounded-2xl shadow-lg"
+                            >
                                 <User className="w-6 h-6 text-white" />
                             </div>
                             <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">E-Mapandan</h2>
@@ -163,19 +249,27 @@ export function AddResidentModal() {
                                 return (
                                     <div 
                                         key={step.id} 
+                                        id={`step-indicator-residents-${index}`}
+                                        style={isActive ? { boxShadow: `0 20px 25px -5px ${themeColor}1a, 0 8px 10px -6px ${themeColor}1a` } : undefined}
                                         className={cn(
                                             "flex items-center space-x-4 p-4 rounded-2xl transition-all duration-300",
-                                            isActive ? "bg-white dark:bg-[#0f1117] shadow-xl shadow-blue-500/5 ring-1 ring-slate-200 dark:ring-white/10" : "opacity-50"
+                                            isActive ? "bg-white dark:bg-[#0f1117] ring-1 ring-slate-200 dark:ring-white/10" : "opacity-50"
                                         )}
                                     >
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                                            isActive ? "bg-blue-600 text-white" : isCompleted ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
-                                        )}>
+                                        <div 
+                                            style={isActive ? { backgroundColor: themeColor } : undefined}
+                                            className={cn(
+                                                "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                                isActive ? "text-white" : isCompleted ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
+                                            )}
+                                        >
                                             <Icon className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className={cn("text-[10px] uppercase font-black tracking-widest", isActive ? "text-blue-600" : "text-slate-400")}>
+                                            <p 
+                                                style={isActive ? { color: themeColor } : undefined}
+                                                className={cn("text-[10px] uppercase font-black tracking-widest", !isActive && "text-slate-400")}
+                                            >
                                                 Step {index + 1}
                                             </p>
                                             <p className="text-sm font-bold text-slate-800 dark:text-white">{step.title}</p>
@@ -264,7 +358,8 @@ export function AddResidentModal() {
                                         key="next-btn"
                                         type="button" 
                                         onClick={nextStep}
-                                        className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20"
+                                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                        className="h-12 px-10 hover:opacity-90 text-white font-bold rounded-2xl transition-all duration-200"
                                     >
                                         Next Component <ChevronRight className="w-4 h-4 ml-2" />
                                     </Button>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, User } from "lucide-react";
 import { searchResidents } from "../../actions";
+import { useResident } from "../providers/ResidentProvider";
 
 type SearchResult = {
     id: string;
@@ -20,6 +21,8 @@ interface ResidentSearchProps {
 export function ResidentSearch({ onSelect, placeholder = "Search resident...", excludeIds = [] }: ResidentSearchProps) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResult[]>([]);
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const { themeColor } = useResident();
 
     useEffect(() => {
         if (query.length > 2) {
@@ -64,7 +67,12 @@ export function ResidentSearch({ onSelect, placeholder = "Search resident...", e
                                 setQuery("");
                                 setResults([]);
                             }}
-                            className="w-full text-left px-4 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 border-b border-slate-100 dark:border-[#2a3040] last:border-0"
+                            onMouseEnter={() => setHoveredId(r.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            style={{ 
+                                backgroundColor: hoveredId === r.id ? `${themeColor}1a` : undefined 
+                            }}
+                            className="w-full text-left px-4 py-2 flex items-center gap-2 border-b border-slate-100 dark:border-[#2a3040] last:border-0 transition-colors"
                         >
                             <User className="w-4 h-4 text-slate-400" />
                             <div>

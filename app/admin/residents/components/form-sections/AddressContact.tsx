@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, X as XIcon } from "lucide-react";
+import { Users, X as XIcon, Search } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,8 +22,11 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
     const { 
         currentFamilyMembers: familyMembers, 
         setCurrentFamilyMembers: setFamilyMembers,
-        formCategoryName
+        formCategoryName,
+        themeColor
     } = useResident();
+
+    const defaultBrgy = data?.barangay || (isBarangayAdmin ? managedBarangay : "");
 
     const [isHead, setIsHead] = useState(data?.isHead || false);
     const [headInfo, setHeadInfo] = useState({ 
@@ -34,6 +37,16 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
     // Resident Type Logic (linked to Category)
     const [isGuest, setIsGuest] = useState(false);
     const [barangayList, setBarangayList] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedBarangay, setSelectedBarangay] = useState(defaultBrgy);
+
+    useEffect(() => {
+        setSelectedBarangay(defaultBrgy);
+    }, [defaultBrgy]);
+
+    const filteredBarangays = barangayList.filter(b => 
+        b.toLowerCase().includes(searchQuery.toLowerCase()) || b === selectedBarangay
+    );
 
     useEffect(() => {
         const fetchBarangays = async () => {
@@ -59,8 +72,6 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
         }
     }, [formCategoryName, data?.municipality]);
 
-    const defaultBrgy = data?.barangay || (isBarangayAdmin ? managedBarangay : "");
-
     return (
         <div className="space-y-6">
             <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-200 dark:border-white/5">
@@ -68,7 +79,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     <div className="space-y-0.5">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resident Address Context</p>
                         <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                            Category: <span className="text-blue-600 dark:text-blue-400 uppercase">{formCategoryName || "Not Specified"}</span>
+                            Category: <span className="uppercase font-bold" style={{ color: themeColor }}>{formCategoryName || "Not Specified"}</span>
                         </p>
                     </div>
                 </div>
@@ -83,31 +94,31 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">House Number</label>
-                    <Input name="houseNumber" defaultValue={data?.houseNumber || ""} placeholder="e.g. 123" className="uppercase" />
+                    <Input name="houseNumber" defaultValue={data?.houseNumber || ""} placeholder="e.g. 123" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Street</label>
-                    <Input name="street" defaultValue={data?.street || ""} placeholder="e.g. RIZAL ST." className="uppercase" />
+                    <Input name="street" defaultValue={data?.street || ""} placeholder="e.g. RIZAL ST." />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Sitio</label>
-                    <Input name="sitio" defaultValue={data?.sitio || ""} placeholder="e.g. MALIGAYA" className="uppercase" />
+                    <Input name="sitio" defaultValue={data?.sitio || ""} placeholder="e.g. MALIGAYA" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Purok</label>
-                    <Input name="purok" defaultValue={data?.purok || ""} placeholder="e.g. 1" className="uppercase" />
+                    <Input name="purok" defaultValue={data?.purok || ""} placeholder="e.g. 1" />
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-blue-600 dark:text-blue-400">Barangay *</label>
+                    <label className="text-sm font-semibold" style={{ color: themeColor }}>Barangay <span className="text-red-500">*</span></label>
                     {isGuest ? (
                         <Input 
                             name="barangay" 
                             defaultValue={data?.barangay || ""} 
                             placeholder="Enter Village/Barangay" 
-                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 font-black" 
                             required 
                         />
                     ) : (
@@ -116,32 +127,63 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                                 <Input 
                                     value={managedBarangay || ""} 
                                     readOnly 
-                                    className="bg-slate-50 dark:bg-slate-900 font-bold border-blue-100 dark:border-blue-900 cursor-not-allowed"
+                                    className="bg-slate-50 dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 cursor-not-allowed"
                                 />
                                 <input type="hidden" name="barangay" value={managedBarangay || ""} />
                             </>
                         ) : (
-                            <Select name="barangay" defaultValue={defaultBrgy}>
+                            <Select 
+                                name="barangay" 
+                                value={selectedBarangay} 
+                                onValueChange={setSelectedBarangay}
+                                onOpenChange={(open) => {
+                                    if (!open) setSearchQuery("");
+                                }}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select Barangay" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    {barangayList.map(b => (
-                                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                                    ))}
+                                <SelectContent className="max-h-[300px] flex flex-col p-0" position="popper">
+                                    <div className="p-2 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#0f1117] sticky top-0 z-20">
+                                        <div className="relative flex items-center">
+                                            <Search className="absolute left-2.5 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search barangay..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    e.stopPropagation();
+                                                }}
+                                                onPointerDown={(e) => {
+                                                    e.stopPropagation();
+                                                }}
+                                                className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#2a3040] rounded-lg outline-none focus:border-slate-300 dark:focus:border-white/20 font-semibold"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="overflow-y-auto max-h-[220px] p-1">
+                                        {filteredBarangays.length > 0 ? (
+                                            filteredBarangays.map(b => (
+                                                <SelectItem key={b} value={b}>{b}</SelectItem>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-center text-xs text-slate-400">No barangay found</div>
+                                        )}
+                                    </div>
                                 </SelectContent>
                             </Select>
                         )
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Municipality</label>
+                    <label className="text-sm font-semibold">Municipality {isGuest && <span className="text-red-500">*</span>}</label>
                     {isGuest ? (
                         <Input 
                             name="municipality" 
                             defaultValue={data?.municipality || ""} 
                             placeholder="Enter City/Municipality" 
-                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 font-black" 
                             required 
                         />
                     ) : (
@@ -154,13 +196,13 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Province</label>
+                    <label className="text-sm font-semibold">Province {isGuest && <span className="text-red-500">*</span>}</label>
                     {isGuest ? (
                         <Input 
                             name="province" 
                             defaultValue={data?.province || ""} 
                             placeholder="Enter Province" 
-                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 font-black" 
                             required 
                         />
                     ) : (
@@ -181,7 +223,10 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                 </div>
             </div>
 
-            <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl space-y-4 border border-blue-100 dark:border-blue-800">
+            <div 
+                style={{ backgroundColor: `${themeColor}08`, borderColor: `${themeColor}1a` }}
+                className="p-4 rounded-xl space-y-4 border"
+            >
                 <div className="flex items-center space-x-2">
                     <Checkbox 
                         id="isHead" 
@@ -189,7 +234,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                         checked={isHead}
                         onCheckedChange={(checked) => setIsHead(!!checked)}
                     />
-                    <label htmlFor="isHead" className="text-sm font-bold text-blue-900 dark:text-blue-100 italic uppercase">
+                    <label htmlFor="isHead" style={{ color: themeColor }} className="text-sm font-bold italic uppercase">
                         Check if this person is the HEAD OF THE HOUSEHOLD
                     </label>
                 </div>
@@ -198,7 +243,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Relationship to Head</label>
-                            <Input name="relationshipToHead" defaultValue={data?.relationshipToHead || ""} placeholder="e.g. SPOUSE, SON, DAUGHTER" className="uppercase" />
+                            <Input name="relationshipToHead" defaultValue={data?.relationshipToHead || ""} placeholder="e.g. SPOUSE, SON, DAUGHTER" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Search Household Head</label>
@@ -213,7 +258,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-blue-500" />
+                                <Users className="w-4 h-4" style={{ color: themeColor }} />
                                 Link Existing Family Members
                             </label>
                             <ResidentSearch 
@@ -236,7 +281,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                         </div>
 
                         {familyMembers.length > 0 && (
-                            <div className="bg-white dark:bg-black/20 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
+                            <div className="bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/5 overflow-hidden">
                                 <table className="w-full text-left text-xs">
                                     <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-[10px] text-slate-500">
                                         <tr>

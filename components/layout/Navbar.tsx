@@ -210,7 +210,7 @@ export function Navbar({
 
     // Dropdown-specific links (only shown when authenticated)
     const userDropdownLinks = [
-        { name: "My Archive", href: "/user/reports", icon: Archive },
+        { name: "My Reports", href: "/user/reports", icon: Archive },
         { name: "My Requests", href: "/user/services/requests", icon: Activity },
     ];
 
@@ -445,7 +445,7 @@ export function Navbar({
                                                     className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors"
                                                     style={{ color: isLinkActive("/user/reports") ? themeColor : undefined }}
                                                 >
-                                                    My Archive
+                                                    My Reports
                                                 </span>
                                                 {isLinkActive("/user/reports") && (
                                                     <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />

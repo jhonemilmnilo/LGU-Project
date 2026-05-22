@@ -12,7 +12,7 @@ import {
     Upload,
     Sparkles,
     TrendingUp,
-    Lock,
+    ShieldAlert,
     User,
     Building2,
     HelpCircle,
@@ -37,7 +37,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-permit";
 import { useDraft } from "@/hooks/useDraft";
-import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById } from "@/app/admin/transactions/actions";
+import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 
@@ -74,6 +74,7 @@ interface FormState {
     sanitaryPermitFile: File | null;
     fireSafetyFile: File | null;
     birCorFile: File | null;
+    previousPermitFile: File | null;
 }
 
 const STEPS: { id: Step; label: string; icon: any }[] = [
@@ -248,7 +249,10 @@ export default function BusinessPermitWizardPage() {
     const [revisionId, setRevisionId] = useState<string | null>(null);
     const [revisionTx, setRevisionTx] = useState<any>(null);
 
-
+    const [previousPermits, setPreviousPermits] = useState<any[]>([]);
+    const [selectedPermitIndex, setSelectedPermitIndex] = useState<number>(0);
+    const [isAutofilledFromPrevious, setIsAutofilledFromPrevious] = useState(false);
+    const [showRenewalModal, setShowRenewalModal] = useState(false);
 
     const [formData, setFormData] = useState<FormState>({
         typeId: "",
@@ -277,7 +281,8 @@ export default function BusinessPermitWizardPage() {
         locationPhotoFile: null,
         sanitaryPermitFile: null,
         fireSafetyFile: null,
-        birCorFile: null
+        birCorFile: null,
+        previousPermitFile: null
     });
 
 
@@ -328,6 +333,21 @@ export default function BusinessPermitWizardPage() {
                 const brgyRes = await getBarangaysList();
                 if (brgyRes.success && brgyRes.data) {
                     setDbBarangays(brgyRes.data);
+                }
+
+                // Fetch previous successful permit for renewal auto-fill checking
+                const prevPermitsRes = await getAllSuccessfulBusinessPermits();
+                if (prevPermitsRes.success && prevPermitsRes.data) {
+                    // Group by business name (case-insensitive, trimmed) to filter unique businesses
+                    const uniqueBusinessesMap: Record<string, any> = {};
+                    prevPermitsRes.data.forEach((tx: any) => {
+                        const bizName = tx.additionalData?.businessName?.trim().toUpperCase();
+                        if (bizName && !uniqueBusinessesMap[bizName]) {
+                            uniqueBusinessesMap[bizName] = tx;
+                        }
+                    });
+                    const uniqueList = Object.values(uniqueBusinessesMap);
+                    setPreviousPermits(uniqueList);
                 }
 
                 // Check search parameters for revision ID
@@ -392,7 +412,8 @@ export default function BusinessPermitWizardPage() {
                             locationPhotoFile: files.locationPhotoFile || null,
                             sanitaryPermitFile: files.sanitaryPermitFile || null,
                             fireSafetyFile: files.fireSafetyFile || null,
-                            birCorFile: files.birCorFile || null
+                            birCorFile: files.birCorFile || null,
+                            previousPermitFile: files.previousPermitFile || null
                         }));
                     });
                 }
@@ -426,6 +447,19 @@ export default function BusinessPermitWizardPage() {
         }
     }, [formData.lineOfBusiness]);
 
+    // Prevent background body scrolling when the renewal selection modal is open
+    useEffect(() => {
+        if (showRenewalModal && previousPermits.length > 0) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [showRenewalModal, previousPermits.length]);
+
+
     const handleLineOfBusinessSelect = (val: string) => {
         if (val === "Other") {
             setIsOtherLine(true);
@@ -437,6 +471,65 @@ export default function BusinessPermitWizardPage() {
             setIsOtherLine(false);
             handleInputChange("lineOfBusiness", val);
         }
+    };
+
+    const handleSelectPreviousPermit = () => {
+        const targetPermit = previousPermits[selectedPermitIndex];
+        if (!targetPermit) return;
+        const addData = targetPermit.additionalData || {};
+        
+        setFormData(prev => {
+            const updated = {
+                ...prev,
+                businessType: "RENEWAL" as const,
+                businessName: addData.businessName || "",
+                tradeName: addData.tradeName || "",
+                orgType: addData.orgType || "SOLE_PROPRIETORSHIP",
+                dtiSecNumber: addData.dtiSecNumber || "",
+                permitNumber: targetPermit.businessPermit?.permitNumber || addData.permitNumber || targetPermit.id.slice(-8).toUpperCase(),
+                lineOfBusiness: addData.lineOfBusiness || "",
+                barangay: addData.barangay || prev.barangay,
+                street: addData.street || "",
+                building: addData.building || "",
+                employeeCount: addData.employeeCount ? addData.employeeCount.toString() : "0",
+                businessArea: addData.businessArea ? addData.businessArea.toString() : "",
+            };
+            persistDraftLocal(updated);
+            return updated;
+        });
+
+        setIsAutofilledFromPrevious(true);
+        setShowRenewalModal(false);
+        toast.success(`Business details auto-filled for ${addData.businessName || "selected business"}!`);
+        
+        setCurrentStep("USER_IDENTITY");
+    };
+
+    const handleDeclinePreviousPermit = () => {
+        setFormData(prev => {
+            const updated = {
+                ...prev,
+                businessType: "RENEWAL" as const,
+                businessName: "",
+                tradeName: "",
+                orgType: "SOLE_PROPRIETORSHIP",
+                dtiSecNumber: "",
+                permitNumber: "",
+                lineOfBusiness: "",
+                barangay: prev.residentData?.barangay || "",
+                street: "",
+                building: "",
+                capitalInvestment: "",
+                grossSales: "",
+                employeeCount: "0",
+                businessArea: "",
+            };
+            persistDraftLocal(updated);
+            return updated;
+        });
+        setIsAutofilledFromPrevious(false);
+        setShowRenewalModal(false);
+        toast.info("Proceeding with manual renewal entry.");
     };
 
     // --- AUTO-SAVE ON FIELD CHANGES ---
@@ -506,16 +599,26 @@ export default function BusinessPermitWizardPage() {
                     return parseFloat(formData.grossSales.replace(/,/g, "")) > 0 && !!formData.permitNumber;
                 }
             case "CHECKLIST":
-                // All 8 File uploads must be loaded (or preloaded from resident profile for owner ID) or have existing revision files
-                return !!(
-                    (formData.ctcFile || revisionTx?.additionalData?.ctcUrl) &&
-                    (formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) &&
-                    (formData.brgyClearanceFile || revisionTx?.additionalData?.brgyClearanceUrl) &&
-                    (formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) &&
-                    (formData.locationPhotoFile || revisionTx?.additionalData?.locationPhotoUrl) &&
-                    (formData.sanitaryPermitFile || revisionTx?.additionalData?.sanitaryPermitUrl) &&
-                    (formData.fireSafetyFile || revisionTx?.additionalData?.fireSafetyUrl)
-                );
+                if (formData.businessType === "NEW") {
+                    return !!(
+                        (formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) &&
+                        (formData.ctcFile || revisionTx?.additionalData?.ctcUrl) &&
+                        (formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) &&
+                        (formData.birCorFile || revisionTx?.additionalData?.birCorUrl) &&
+                        (formData.brgyClearanceFile || revisionTx?.additionalData?.brgyClearanceUrl) &&
+                        (formData.locationPhotoFile || revisionTx?.additionalData?.locationPhotoUrl) &&
+                        (formData.sanitaryPermitFile || revisionTx?.additionalData?.sanitaryPermitUrl) &&
+                        (formData.fireSafetyFile || revisionTx?.additionalData?.fireSafetyUrl)
+                    );
+                } else {
+                    return !!(
+                        (formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) &&
+                        (formData.ctcFile || revisionTx?.additionalData?.ctcUrl) &&
+                        (formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) &&
+                        (formData.birCorFile || revisionTx?.additionalData?.birCorUrl) &&
+                        (formData.previousPermitFile || revisionTx?.additionalData?.previousPermitUrl)
+                    );
+                }
             case "SUBMIT":
                 return !!revisionId || privacyAccepted;
             default:
@@ -596,15 +699,24 @@ export default function BusinessPermitWizardPage() {
                 }
             } else if (currentStep === "CHECKLIST") {
                 toast.error("All document uploads are required. Please upload the missing file.");
-                const requiredChecks = [
-                    { field: "ctcFile", check: !!formData.ctcFile },
-                    { field: "dtiSecFile", check: !!formData.dtiSecFile },
-                    { field: "brgyClearanceFile", check: !!formData.brgyClearanceFile },
-                    { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl) },
-                    { field: "locationPhotoFile", check: !!formData.locationPhotoFile },
-                    { field: "sanitaryPermitFile", check: !!formData.sanitaryPermitFile },
-                    { field: "fireSafetyFile", check: !!formData.fireSafetyFile },
-                ];
+                const requiredChecks = formData.businessType === "NEW"
+                    ? [
+                        { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) },
+                        { field: "ctcFile", check: !!(formData.ctcFile || revisionTx?.additionalData?.ctcUrl) },
+                        { field: "dtiSecFile", check: !!(formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) },
+                        { field: "birCorFile", check: !!(formData.birCorFile || revisionTx?.additionalData?.birCorUrl) },
+                        { field: "brgyClearanceFile", check: !!(formData.brgyClearanceFile || revisionTx?.additionalData?.brgyClearanceUrl) },
+                        { field: "locationPhotoFile", check: !!(formData.locationPhotoFile || revisionTx?.additionalData?.locationPhotoUrl) },
+                        { field: "sanitaryPermitFile", check: !!(formData.sanitaryPermitFile || revisionTx?.additionalData?.sanitaryPermitUrl) },
+                        { field: "fireSafetyFile", check: !!(formData.fireSafetyFile || revisionTx?.additionalData?.fireSafetyUrl) }
+                    ]
+                    : [
+                        { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) },
+                        { field: "ctcFile", check: !!(formData.ctcFile || revisionTx?.additionalData?.ctcUrl) },
+                        { field: "dtiSecFile", check: !!(formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) },
+                        { field: "birCorFile", check: !!(formData.birCorFile || revisionTx?.additionalData?.birCorUrl) },
+                        { field: "previousPermitFile", check: !!(formData.previousPermitFile || revisionTx?.additionalData?.previousPermitUrl) }
+                    ];
                 const firstMissing = requiredChecks.find(c => !c.check);
                 if (firstMissing) {
                     const uploadCard = document.getElementById(`upload-card-${firstMissing.field}`);
@@ -624,7 +736,6 @@ export default function BusinessPermitWizardPage() {
         const idx = STEPS.findIndex(s => s.id === currentStep);
         if (idx < STEPS.length - 1) {
             setCurrentStep(STEPS[idx + 1].id);
-            window.scrollTo(0, 0);
         }
     };
 
@@ -679,6 +790,7 @@ export default function BusinessPermitWizardPage() {
             if (formData.sanitaryPermitFile) submitData.append("sanitaryPermitFile", formData.sanitaryPermitFile);
             if (formData.fireSafetyFile) submitData.append("fireSafetyFile", formData.fireSafetyFile);
             if (formData.birCorFile) submitData.append("birCorFile", formData.birCorFile);
+            if (formData.previousPermitFile) submitData.append("previousPermitFile", formData.previousPermitFile);
 
             const res = await submitBusinessPermitTransaction(submitData);
             if (res.success) {
@@ -711,7 +823,7 @@ export default function BusinessPermitWizardPage() {
         return (
             <div className="max-w-4xl mx-auto px-6 py-20 text-center space-y-8 pb-32">
                 <div className="w-24 h-24 bg-red-500/10 border-2 border-red-500 rounded-[2rem] flex items-center justify-center mx-auto text-red-500 shadow-xl shadow-red-500/15">
-                    <Lock className="w-10 h-10" />
+                    <ShieldAlert className="w-10 h-10" />
                 </div>
                 <div className="space-y-4">
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Portal Suspended</h1>
@@ -804,7 +916,6 @@ export default function BusinessPermitWizardPage() {
                             onClick={() => {
                                 if (canNavigate(step.id)) {
                                     setCurrentStep(step.id);
-                                    window.scrollTo(0, 0);
                                 } else {
                                     handleNext();
                                 }
@@ -879,7 +990,14 @@ export default function BusinessPermitWizardPage() {
                                             return (
                                                 <button
                                                     key={opt.id}
-                                                    onClick={() => handleInputChange("businessType", opt.id as any)}
+                                                    onClick={() => {
+                                                        if (opt.id === "RENEWAL" && previousPermits.length > 0) {
+                                                            setShowRenewalModal(true);
+                                                        } else {
+                                                            handleInputChange("businessType", opt.id as any);
+                                                            setIsAutofilledFromPrevious(false);
+                                                        }
+                                                    }}
                                                     className={cn(
                                                         "p-6 md:p-10 rounded-2xl md:rounded-[3rem] border-2 md:border-4 transition-all duration-500 text-left relative group select-none overflow-hidden h-[240px] md:h-[300px] flex flex-col justify-between",
                                                         isSelected ? "bg-primary text-white border-primary shadow-2xl scale-[1.02]" : "bg-white/40 dark:bg-white/5 backdrop-blur-md border-slate-100 dark:border-white/10 hover:border-primary/30"
@@ -1056,33 +1174,49 @@ export default function BusinessPermitWizardPage() {
                             {/* STEP 3: PROFILE FORMS */}
                             {currentStep === "PROFILE" && (
                                 <div className="space-y-8">
-                                    <div className="border-b border-slate-100 dark:border-white/5 pb-4">
-                                        <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">Business Details</h2>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Provide legal and financial registration metrics</p>
+                                    <div className="border-b border-slate-100 dark:border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                        <div>
+                                            <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter flex items-center gap-2">
+                                                Business Details
+                                            </h2>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Provide legal and financial registration metrics</p>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Official Business Name (DTI/SEC) <span className="text-rose-500 ml-0.5">*</span></Label>
-                                            <Input
-                                                id="profile-businessName"
-                                                type="text"
-                                                value={formData.businessName}
-                                                onChange={e => handleInputChange("businessName", e.target.value)}
-                                                placeholder="e.g. Mapandan Express Café Inc."
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    id="profile-businessName"
+                                                    type="text"
+                                                    value={formData.businessName}
+                                                    onChange={e => handleInputChange("businessName", e.target.value)}
+                                                    placeholder="e.g. Mapandan Express Café Inc."
+                                                    readOnly={isAutofilledFromPrevious}
+                                                    className={cn(
+                                                        "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 transition-all duration-200",
+                                                        isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                    )}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Trade / Signage Name</Label>
-                                            <Input
-                                                type="text"
-                                                value={formData.tradeName}
-                                                onChange={e => handleInputChange("tradeName", e.target.value)}
-                                                placeholder="e.g. Mapandan Express Café"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    type="text"
+                                                    value={formData.tradeName}
+                                                    onChange={e => handleInputChange("tradeName", e.target.value)}
+                                                    placeholder="e.g. Mapandan Express Café"
+                                                    readOnly={isAutofilledFromPrevious}
+                                                    className={cn(
+                                                        "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 transition-all duration-200",
+                                                        isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                    )}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
@@ -1092,7 +1226,11 @@ export default function BusinessPermitWizardPage() {
                                                     id="profile-orgType"
                                                     value={formData.orgType}
                                                     onChange={e => handleInputChange("orgType", e.target.value)}
-                                                    className="w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                                                    disabled={isAutofilledFromPrevious}
+                                                    className={cn(
+                                                        "w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20",
+                                                        isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus:ring-primary/10 cursor-not-allowed select-none"
+                                                    )}
                                                 >
                                                     <option value="SOLE_PROPRIETORSHIP" className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">Sole Proprietorship</option>
                                                     <option value="PARTNERSHIP" className="dark:bg-[#0c0d12] text-slate-900 dark:text-white font-bold">Partnership</option>
@@ -1111,7 +1249,11 @@ export default function BusinessPermitWizardPage() {
                                                     id="profile-barangay"
                                                     value={formData.barangay}
                                                     onChange={e => handleInputChange("barangay", e.target.value)}
-                                                    className="w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20"
+                                                    disabled={isAutofilledFromPrevious}
+                                                    className={cn(
+                                                        "w-full appearance-none rounded-xl h-12 border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/50 px-4 pr-10 text-xs md:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer shadow-sm hover:border-slate-300 dark:hover:border-white/20",
+                                                        isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus:ring-primary/10 cursor-not-allowed select-none"
+                                                    )}
                                                 >
                                                     <option value="" disabled className="dark:bg-[#0c0d12] text-slate-400">Select Barangay...</option>
                                                     {(dbBarangays.length > 0 ? dbBarangays : MAPANDAN_BARANGAYS).map((b) => (
@@ -1126,29 +1268,50 @@ export default function BusinessPermitWizardPage() {
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Building / House No. / Unit</Label>
-                                            <Input
-                                                type="text"
-                                                value={formData.building}
-                                                onChange={e => handleInputChange("building", e.target.value)}
-                                                placeholder="e.g. Bldg 4A, Green Meadows (Optional)"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    type="text"
+                                                    value={formData.building}
+                                                    onChange={e => handleInputChange("building", e.target.value)}
+                                                    placeholder="e.g. Bldg 4A, Green Meadows (Optional)"
+                                                    readOnly={isAutofilledFromPrevious}
+                                                    className={cn(
+                                                        "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 transition-all duration-200",
+                                                        isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                    )}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Street Address</Label>
-                                            <Input
-                                                type="text"
-                                                value={formData.street}
-                                                onChange={e => handleInputChange("street", e.target.value)}
-                                                placeholder="e.g. Rizal Avenue (Optional)"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    type="text"
+                                                    value={formData.street}
+                                                    onChange={e => handleInputChange("street", e.target.value)}
+                                                    placeholder="e.g. Rizal Avenue (Optional)"
+                                                    readOnly={isAutofilledFromPrevious}
+                                                    className={cn(
+                                                        "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 transition-all duration-200",
+                                                        isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                    )}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Line of Business / Classification <span className="text-rose-500 ml-0.5">*</span></Label>
-                                            {!isOtherLine ? (
+                                            {isAutofilledFromPrevious ? (
+                                                <div className="relative animate-in fade-in duration-200">
+                                                    <Input
+                                                        type="text"
+                                                        value={formData.lineOfBusiness}
+                                                        readOnly
+                                                        className="rounded-xl h-12 border-slate-200 bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none font-bold text-xs md:text-sm"
+                                                    />
+                                                </div>
+                                            ) : !isOtherLine ? (
                                                 <div className="relative">
                                                     <select
                                                         id="profile-lineOfBusiness-select"
@@ -1175,106 +1338,124 @@ export default function BusinessPermitWizardPage() {
                                                         onChange={e => handleInputChange("lineOfBusiness", e.target.value)}
                                                         placeholder="Enter your custom line of business..."
                                                         className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-10 font-bold"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIsOtherLine(false);
-                                                            handleInputChange("lineOfBusiness", "");
-                                                        }}
-                                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/10 transition-all select-none"
-                                                        title="Back to dropdown options"
-                                                    >
-                                                        <X className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
+                                                     />
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => {
+                                                             setIsOtherLine(false);
+                                                             handleInputChange("lineOfBusiness", "");
+                                                         }}
+                                                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/10 transition-all select-none"
+                                                         title="Back to dropdown options"
+                                                     >
+                                                         <X className="w-3.5 h-3.5" />
+                                                     </button>
+                                                 </div>
+                                             )}
+                                         </div>
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Employee Count</Label>
-                                            <Input
-                                                type="number"
-                                                value={formData.employeeCount}
-                                                onChange={e => handleInputChange("employeeCount", e.target.value)}
-                                                min="0"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
-                                            />
-                                        </div>
+                                         <div className="space-y-2">
+                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Employee Count</Label>
+                                             <div className="relative">
+                                                 <Input
+                                                     type="number"
+                                                     value={formData.employeeCount}
+                                                     onChange={e => handleInputChange("employeeCount", e.target.value)}
+                                                     min="0"
+                                                     readOnly={isAutofilledFromPrevious}
+                                                     className={cn(
+                                                         "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 transition-all duration-200",
+                                                         isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                     )}
+                                                 />
+                                             </div>
+                                         </div>
 
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Store Area (in Sqm)</Label>
-                                            <Input
-                                                type="number"
-                                                value={formData.businessArea}
-                                                onChange={e => handleInputChange("businessArea", e.target.value)}
-                                                placeholder="e.g. 120"
-                                                className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20"
-                                            />
-                                        </div>
+                                         <div className="space-y-2">
+                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Store Area (in Sqm)</Label>
+                                             <div className="relative">
+                                                 <Input
+                                                     type="number"
+                                                     value={formData.businessArea}
+                                                     onChange={e => handleInputChange("businessArea", e.target.value)}
+                                                     placeholder="e.g. 120"
+                                                     readOnly={isAutofilledFromPrevious}
+                                                     className={cn(
+                                                         "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 transition-all duration-200",
+                                                         isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                     )}
+                                                 />
+                                             </div>
+                                         </div>
 
-                                        {formData.businessType === "NEW" ? (
-                                            <div className="space-y-2 relative animate-in fade-in duration-200">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Initial Capitalization (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                <Input
-                                                    id="profile-capitalInvestment"
-                                                    type="text"
-                                                    value={formData.capitalInvestment}
-                                                    onChange={e => handleInputChange("capitalInvestment", e.target.value)}
-                                                    placeholder="e.g. 250,000"
-                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-2 relative animate-in fade-in duration-200">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Annual Gross Sales (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                <Input
-                                                    id="profile-grossSales"
-                                                    type="text"
-                                                    value={formData.grossSales}
-                                                    onChange={e => handleInputChange("grossSales", e.target.value)}
-                                                    placeholder="e.g. 1,200,000"
-                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
-                                                />
-                                            </div>
-                                        )}
+                                         {formData.businessType === "NEW" ? (
+                                             <div className="space-y-2 relative animate-in fade-in duration-200">
+                                                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Initial Capitalization (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                 <Input
+                                                     id="profile-capitalInvestment"
+                                                     type="text"
+                                                     value={formData.capitalInvestment}
+                                                     onChange={e => handleInputChange("capitalInvestment", e.target.value)}
+                                                     placeholder="e.g. 250,000"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
+                                                 />
+                                             </div>
+                                         ) : (
+                                             <div className="space-y-2 relative animate-in fade-in duration-200">
+                                                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Annual Gross Sales In The Previous Year (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                 <Input
+                                                     id="profile-grossSales"
+                                                     type="text"
+                                                     value={formData.grossSales}
+                                                     onChange={e => handleInputChange("grossSales", e.target.value)}
+                                                     placeholder="e.g. 1,200,000"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
+                                                 />
+                                             </div>
+                                         )}
 
-                                        {/* Pathway Specific Inputs */}
-                                        {formData.businessType === "NEW" ? (
-                                            <div className="space-y-2 col-span-1 md:col-span-2 animate-in fade-in duration-200">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">DTI / SEC Registration Number <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsDtiGuideOpen(true)}
-                                                        className="text-slate-400 hover:text-primary transition-all p-0.5 shrink-0"
-                                                        title="Click for registration guide"
-                                                    >
-                                                        <HelpCircle className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                                <Input
-                                                    id="profile-dtiSecNumber"
-                                                    type="text"
-                                                    value={formData.dtiSecNumber}
-                                                    onChange={e => handleInputChange("dtiSecNumber", e.target.value)}
-                                                    placeholder="e.g. DTI-123456789"
-                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 font-bold"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-2 col-span-1 md:col-span-2 animate-in fade-in duration-200">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Existing Permit License Number <span className="text-rose-500 ml-0.5">*</span></Label>
-                                                <Input
-                                                    id="profile-permitNumber"
-                                                    type="text"
-                                                    value={formData.permitNumber}
-                                                    onChange={e => handleInputChange("permitNumber", e.target.value)}
-                                                    placeholder="e.g. MP-2025-0816"
-                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 font-bold"
-                                                />
-                                            </div>
-                                        )}
+                                         {/* Pathway Specific Inputs */}
+                                         {formData.businessType === "NEW" ? (
+                                             <div className="space-y-2 col-span-1 md:col-span-2 animate-in fade-in duration-200">
+                                                 <div className="flex items-center gap-1.5">
+                                                     <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">DTI / SEC Registration Number <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => setIsDtiGuideOpen(true)}
+                                                         className="text-slate-400 hover:text-primary transition-all p-0.5 shrink-0"
+                                                         title="Click for registration guide"
+                                                     >
+                                                         <HelpCircle className="w-3.5 h-3.5" />
+                                                     </button>
+                                                 </div>
+                                                 <Input
+                                                     id="profile-dtiSecNumber"
+                                                     type="text"
+                                                     value={formData.dtiSecNumber}
+                                                     onChange={e => handleInputChange("dtiSecNumber", e.target.value)}
+                                                     placeholder="e.g. DTI-123456789"
+                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 font-bold"
+                                                 />
+                                             </div>
+                                         ) : (
+                                             <div className="space-y-2 col-span-1 md:col-span-2 animate-in fade-in duration-200">
+                                                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Existing Permit License Number <span className="text-rose-500 ml-0.5">*</span></Label>
+                                                 <div className="relative">
+                                                     <Input
+                                                         id="profile-permitNumber"
+                                                         type="text"
+                                                         value={formData.permitNumber}
+                                                         onChange={e => handleInputChange("permitNumber", e.target.value)}
+                                                         placeholder="e.g. MP-2025-0816"
+                                                         readOnly={isAutofilledFromPrevious}
+                                                         className={cn(
+                                                             "rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 font-bold transition-all duration-200",
+                                                             isAutofilledFromPrevious && "bg-primary/[0.03] dark:bg-primary/[0.02] border-primary/25 text-slate-500 dark:text-slate-400 focus-visible:ring-primary/10 cursor-not-allowed select-none"
+                                                         )}
+                                                     />
+                                                 </div>
+                                             </div>
+                                         )}
                                     </div>
 
                                     {/* Math Calculator Realtime Preview Panel */}
@@ -1303,20 +1484,29 @@ export default function BusinessPermitWizardPage() {
                                 <div className="space-y-8">
                                     <div className="border-b border-slate-100 dark:border-white/5 pb-4">
                                         <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">Required Document Checklist</h2>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">All 7 uploads are strictly mandatory for compliance evaluation</p>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Provide the required legal registrations and clearances to complete your submission</p>
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        {[
-                                            { label: "1. Unified Form CTC", field: "ctcFile" },
-                                            { label: "2. DTI / SEC / CDA Registration", field: "dtiSecFile" },
-                                            { label: "3. Barangay Clearance", field: "brgyClearanceFile" },
-                                            { label: "4. Valid ID of Owner", field: "ownerIdFile" },
-                                            { label: "5. Photo of Location", field: "locationPhotoFile" },
-                                            { label: "6. Sanitary Permit", field: "sanitaryPermitFile" },
-                                            { label: "7. Fire Safety Inspection Certificate", field: "fireSafetyFile" },
-                                            { label: "8. BIR Certificate of Registration (Optional)", field: "birCorFile", optional: true }
-                                        ].map(item => {
+                                        {((formData.businessType === "NEW"
+                                            ? [
+                                                { label: "1. Owner's Valid ID", field: "ownerIdFile" },
+                                                { label: "2. Community Tax Certificate (CTC/Cedula)", field: "ctcFile" },
+                                                { label: "3. DTI / SEC / CDA Registration", field: "dtiSecFile" },
+                                                { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile" },
+                                                { label: "5. Barangay Business Clearance", field: "brgyClearanceFile" },
+                                                { label: "6. Location Photo of Business", field: "locationPhotoFile" },
+                                                { label: "7. Sanitary Permit", field: "sanitaryPermitFile" },
+                                                { label: "8. Fire Safety Inspection Certificate", field: "fireSafetyFile" }
+                                            ]
+                                            : [
+                                                { label: "1. Owner's Valid ID", field: "ownerIdFile" },
+                                                { label: "2. Community Tax Certificate (CTC/Cedula)", field: "ctcFile" },
+                                                { label: "3. DTI / SEC / CDA Registration", field: "dtiSecFile" },
+                                                { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile" },
+                                                { label: "5. Previous Business Permit", field: "previousPermitFile" }
+                                            ]
+                                        ) as { label: string; field: string; optional?: boolean }[]).map(item => {
                                             const file = formData[item.field as keyof FormState] as File | null;
                                             return (
                                                 <div key={item.field} id={`upload-card-${item.field}`} className="space-y-3">
@@ -1592,6 +1782,161 @@ export default function BusinessPermitWizardPage() {
                 }}
                 themeColor="var(--primary-theme)"
             />
+
+            {/* RENEWAL AUTOFILL CONFIRMATION MODAL */}
+            <AnimatePresence>
+                {showRenewalModal && previousPermits.length > 0 && (
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                        {/* Glass backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowRenewalModal(false)}
+                            className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md"
+                        />
+
+                        {/* Modal card */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-white dark:bg-[#11131a] rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl p-6 md:p-8 max-w-lg w-full relative z-10 space-y-6 overflow-hidden"
+                        >
+                            {/* Decorative background gradient */}
+                            <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-primary/10 rounded-2xl text-primary shrink-0">
+                                    <Building2 className="w-6 h-6 animate-pulse" />
+                                </div>
+                                <div className="space-y-1 text-left">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">Record Detected</span>
+                                    <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-none">
+                                        {previousPermits.length > 1 ? "Renew Which Business?" : "Renew Previous Business?"}
+                                    </h3>
+                                    <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wide italic">
+                                        {previousPermits.length > 1 
+                                            ? "Select which of your registered businesses to renew!"
+                                            : "We found your last successful business permit record!"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Card showing previous business details or list of businesses */}
+                            {previousPermits.length === 1 ? (
+                                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 space-y-4 text-left">
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                                        <div className="col-span-2 space-y-0.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Business Name</span>
+                                            <span className="text-sm font-black text-slate-800 dark:text-white uppercase italic truncate block">
+                                                {previousPermits[0].additionalData?.businessName || "N/A"}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Trade Name</span>
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase italic truncate block">
+                                                {previousPermits[0].additionalData?.tradeName || "N/A"}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Permit License No.</span>
+                                            <span className="text-xs font-mono font-bold text-primary block">
+                                                {previousPermits[0].businessPermit?.permitNumber || previousPermits[0].additionalData?.permitNumber || previousPermits[0].id.slice(-8).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Barangay</span>
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block">
+                                                {previousPermits[0].additionalData?.barangay || "N/A"}
+                                            </span>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Line of Business</span>
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block truncate font-sans">
+                                                {previousPermits[0].additionalData?.lineOfBusiness || "N/A"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-2.5">
+                                        <p className="text-[9px] text-primary font-bold uppercase tracking-wider leading-relaxed">
+                                            Selecting yes autofills details to guarantee municipal compliance.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 text-left">
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block px-1">Choose Business to Renew</span>
+                                    <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2.5 custom-scrollbar">
+                                        {previousPermits.map((permit, idx) => {
+                                            const addData = permit.additionalData || {};
+                                            const isSelected = selectedPermitIndex === idx;
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={permit.id}
+                                                    onClick={() => setSelectedPermitIndex(idx)}
+                                                    className={cn(
+                                                        "w-full p-4 rounded-2xl border-2 text-left transition-all duration-300 relative overflow-hidden group select-none flex flex-col gap-1.5",
+                                                        isSelected 
+                                                            ? "bg-primary/[0.04] dark:bg-primary/[0.02] border-primary shadow-md"
+                                                            : "bg-slate-50 dark:bg-white/[0.01] border-slate-100 dark:border-white/5 hover:border-slate-200 dark:hover:border-white/10"
+                                                    )}
+                                                >
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <span className={cn("text-xs font-black uppercase italic truncate", isSelected ? "text-primary" : "text-slate-800 dark:text-white")}>
+                                                            {addData.businessName || "N/A"}
+                                                        </span>
+                                                        {isSelected && (
+                                                            <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center text-white shrink-0">
+                                                                <Check className="w-2.5 h-2.5 stroke-[4]" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-x-2 text-[9px] font-bold text-slate-400 uppercase tracking-wide">
+                                                        <div>
+                                                            <span className="text-[7px] text-slate-400 block">Trade Name</span>
+                                                            <span className="text-slate-600 dark:text-slate-300 truncate block">{addData.tradeName || "N/A"}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[7px] text-slate-400 block">License Permit No.</span>
+                                                            <span className="text-primary font-mono truncate block">{permit.businessPermit?.permitNumber || addData.permitNumber || permit.id.slice(-8).toUpperCase()}</span>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center gap-2.5">
+                                        <p className="text-[9px] text-primary font-bold uppercase tracking-wider leading-relaxed">
+                                            Selecting yes autofills details to guarantee municipal compliance.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Buttons */}
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <Button
+                                    onClick={handleDeclinePreviousPermit}
+                                    variant="outline"
+                                    className="rounded-full py-6 font-black uppercase tracking-widest text-[10px] border-slate-200 hover:bg-slate-50 transition-all"
+                                >
+                                    No, Register Different
+                                </Button>
+                                <Button
+                                    onClick={handleSelectPreviousPermit}
+                                    className="rounded-full py-6 font-black uppercase tracking-widest text-[10px] text-white bg-primary hover:opacity-90 shadow-lg shadow-primary/20 transition-all"
+                                >
+                                    Yes, Autofill Details
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {isDtiGuideOpen && (
