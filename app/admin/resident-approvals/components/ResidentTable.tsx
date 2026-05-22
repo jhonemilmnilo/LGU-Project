@@ -37,8 +37,34 @@ export function ResidentTable() {
             (r.category && (r.category.id === selectedCategory || r.category.name === selectedCategory));
         const matchesStatus = selectedStatus === "All" || r.registrationStatus === selectedStatus;
             
-        return matchesSearch && matchesBarangay && matchesGender && matchesCategory && matchesStatus;
+        const isMatched = matchesSearch && matchesBarangay && matchesGender && matchesCategory && matchesStatus;
+        
+        console.log(`Resident Debug: ${r.firstName} ${r.lastName}`, {
+            matchesSearch,
+            matchesBarangay,
+            matchesGender,
+            matchesCategory,
+            matchesStatus,
+            isMatched,
+            details: {
+                searchQuery,
+                selectedBarangay,
+                selectedGender,
+                selectedCategory,
+                selectedStatus,
+                residentStatus: r.registrationStatus,
+                residentBarangay: r.barangay,
+                residentGender: r.gender,
+                residentCategory: r.category
+            }
+        });
+
+        return isMatched;
     });
+
+    console.log("=== CLIENT TABLE RENDER ===");
+    console.log("Total Residents in Provider:", residents.length);
+    console.log("Filtered Residents Count:", filteredResidents.length);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);

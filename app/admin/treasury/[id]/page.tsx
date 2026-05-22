@@ -1862,8 +1862,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <div className="w-8 h-8 border-2 border-white rounded-full flex items-center justify-center font-black text-[10px]">A</div>
                             )}
                             <div className="flex flex-col">
-                                <span className="text-[14px] font-black italic tracking-tighter uppercase leading-none">
-                                    {branding.word1} <span className="text-white/70 italic tracking-normal">{branding.word2}</span>
+                                <span className="text-[14px] font-black italic tracking-tighter uppercase leading-none text-white">
+                                    {branding.word1} <span style={{ color: themeColor }} className="italic tracking-normal">{branding.word2}</span>
                                 </span>
                                 <span className="text-[6px] font-bold uppercase tracking-widest opacity-80 italic">Official Municipal Logistics</span>
                             </div>
@@ -1942,7 +1942,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[5px] font-bold uppercase">Service</span>
-                            <span className="text-[7px] font-black uppercase italic tracking-tighter truncate">{transaction.type.name}</span>
+                            <span className="text-[7px] font-black uppercase italic tracking-tighter">{transaction.type.name}</span>
                         </div>
                         <div className="flex flex-col text-right">
                             <span className="text-[5px] font-bold uppercase">Amount Due</span>

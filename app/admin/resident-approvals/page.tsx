@@ -9,9 +9,7 @@ export default async function Page() {
     const role = (session?.user as any)?.role;
     const managedBarangay = (session?.user as any)?.managedBarangay;
 
-    const where: any = {
-        registrationStatus: { not: 'APPROVED' } // Filter for pending/drafts
-    };
+    const where: any = {};
     
     if (role === "BARANGAY_ADMIN" && managedBarangay) {
         where.barangay = managedBarangay;

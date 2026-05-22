@@ -168,6 +168,11 @@ export function ResidentProvider({
     const [viewMode, setViewMode] = useState<ViewMode>("table");
     const [currentFamilyMembers, setCurrentFamilyMembers] = useState<FamilyMember[]>([]);
 
+    // Sync state with server-side prop updates
+    useEffect(() => {
+        setResidents(initialResidents);
+    }, [initialResidents]);
+
     // Form Selection State
     const [formCategoryId, setFormCategoryId] = useState<string | null>(editingData?.categoryId || null);
     const [formCategoryName, setFormCategoryName] = useState<string | null>(editingData?.category?.name || null);
