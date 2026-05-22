@@ -50,6 +50,7 @@ import {
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
 
 // --- TYPES ---
@@ -169,6 +170,9 @@ export default function CivilRegistryPage() {
 
     const isRestoredRef = useRef(false);
     const prevRelationshipRef = useRef<string>("");
+    // Privacy / Terms modal state (shared key across LCR pages)
+    const [policyOpen, setPolicyOpen] = useState(false);
+    const [policyAccepted, setPolicyAccepted] = useState(false);
 
     // Persist progress to session storage
     useEffect(() => {
@@ -295,6 +299,19 @@ export default function CivilRegistryPage() {
         init();
     }, []);
 
+    useEffect(() => {
+        try {
+            const accepted = localStorage.getItem("lcr_privacy_accepted");
+            setPolicyAccepted(!!accepted);
+        } catch {}
+    }, []);
+
+    const handleAcceptPolicy = () => {
+        localStorage.setItem("lcr_privacy_accepted", "1");
+        setPolicyOpen(false);
+        setPolicyAccepted(true);
+    };
+
     const selectedType = REGISTRY_TYPES.find(t => t.id === form.registryType);
     const dbType = availableTypes.find(t => t.code === `LCR_${form.registryType}`);
 
@@ -322,6 +339,17 @@ export default function CivilRegistryPage() {
         if (!form.idTypeOverride && !resident?.idType) {
             toast.error("Please select an ID type.");
             return;
+        }
+
+        // Require privacy terms acceptance before allowing submit
+        try {
+            const accepted = localStorage.getItem("lcr_privacy_accepted");
+            if (!accepted) {
+                toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
+                return;
+            }
+        } catch {
+            // ignore
         }
 
         setSubmitting(true);
@@ -395,6 +423,13 @@ export default function CivilRegistryPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#08090d] pb-20 pt-24 px-6">
+            <PrivacyTermsModal
+                isOpen={policyOpen}
+                onClose={() => setPolicyOpen(false)}
+                onAccept={handleAcceptPolicy}
+                onDecline={() => { try { localStorage.removeItem("lcr_privacy_accepted"); } catch {} setPolicyAccepted(false); }}
+                themeColor="var(--blue-500)"
+            />
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* Header Section */}
                 <div className="space-y-4">
@@ -717,6 +752,17 @@ export default function CivilRegistryPage() {
                                 </div>
 
                                 <div className="space-y-4">
+                                    {/* Data Privacy Agreement panel */}
+                                    <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
+                                        <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300") }>
+                                            {policyAccepted ? <Check className="w-3 h-3" /> : null}
+                                        </button>
+                                        <div className="flex-1 text-xs">
+                                            <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
+                                            <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                        </div>
+                                        <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600">Review</button>
+                                    </div>
                                     <div className="space-y-4 p-8 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5">
                                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 italic mb-4">Primary Subject Information</h3>
                                         

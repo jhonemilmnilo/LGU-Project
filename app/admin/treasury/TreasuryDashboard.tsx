@@ -300,8 +300,17 @@ export default function TreasuryDashboard() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{formatDateTime(tx.updatedAt).date}</span>
-                                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{formatDateTime(tx.updatedAt).time}</span>
+                                                                {/* Show event date for marriage services when available */}
+                                                                {(() => {
+                                                                    const source = tx.eventDate || tx.updatedAt;
+                                                                    const f = formatDateTime(source);
+                                                                    return (
+                                                                        <>
+                                                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{f.date}</span>
+                                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{f.time}</span>
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>

@@ -348,12 +348,17 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
             }
         }
 
+        // Debug: log incoming additionalData and files to help trace missing fields
+        console.log("[submitCivilRegistryTransaction] additionalData:", additionalData);
+        console.log("[submitCivilRegistryTransaction] files:", files);
+
         const updatedAdditionalData = {
             ...additionalData,
             ...files,
             registryType,
             submittedAt: new Date().toISOString()
         };
+        console.log("[submitCivilRegistryTransaction] updatedAdditionalData:", updatedAdditionalData);
 
         const transaction = await prisma.$transaction(async (tx: any) => {
             const t = await tx.transaction.create({
@@ -403,9 +408,23 @@ export async function submitBirthRegistration(formData: FormData) {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
-        const typeId = formData.get("typeId") as string;
-        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
-        const additionalData = JSON.parse(formData.get("additionalData") as string);
+        // Validate required fields before parsing to avoid runtime exceptions
+        const missing: string[] = [];
+        const typeIdRaw = formData.get("typeId");
+        const residentSnapshotRaw = formData.get("residentSnapshot");
+        const additionalDataRaw = formData.get("additionalData");
+
+        if (!typeIdRaw) missing.push("typeId");
+        if (!residentSnapshotRaw) missing.push("residentSnapshot");
+        if (!additionalDataRaw) missing.push("additionalData");
+
+        if (missing.length > 0) {
+            return { success: false, error: "Missing required fields", missingFields: missing };
+        }
+
+        const typeId = typeIdRaw as string;
+        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
+        const additionalData = JSON.parse(additionalDataRaw as string);
 
         // File uploads
         const files: Record<string, string | null> = {};
@@ -486,9 +505,24 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
-        const typeId = formData.get("typeId") as string;
-        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
-        const additionalData = JSON.parse(formData.get("additionalData") as string);
+
+        // Validate required fields before parsing to avoid runtime exceptions and provide helpful feedback
+        const missing: string[] = [];
+        const typeIdRaw = formData.get("typeId");
+        const residentSnapshotRaw = formData.get("residentSnapshot");
+        const additionalDataRaw = formData.get("additionalData");
+
+        if (!typeIdRaw) missing.push("typeId");
+        if (!residentSnapshotRaw) missing.push("residentSnapshot");
+        if (!additionalDataRaw) missing.push("additionalData");
+
+        if (missing.length > 0) {
+            return { success: false, error: "Missing required fields", missingFields: missing };
+        }
+
+        const typeId = typeIdRaw as string;
+        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
+        const additionalData = JSON.parse(additionalDataRaw as string);
         const revisionId = formData.get("revisionId") as string | null;
 
         // Strike penalty check
@@ -909,6 +943,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         if (!transaction) return { success: false, error: "Transaction not found" };
         
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+        const isLCR = transaction.type.code.startsWith("LCR_");
 
         // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
         if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(transaction.status)) {
@@ -916,7 +951,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         }
         const isCedula = transaction.type.code.includes("CEDULA");
 
-        if (!isCedula && !isBusinessPermit) {
+        // Allow Cedula, Business Permit, and Civil Registry (LCR) transactions to be evaluated here.
+        if (!isCedula && !isBusinessPermit && !isLCR) {
             return { success: false, error: "Unsupported transaction type" };
         }
 
@@ -950,6 +986,12 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             penalty: number;
             deliveryFee: number;
             totalAmount: number;
+        } = {
+            basicTax: 0,
+            additionalTax: 0,
+            penalty: 0,
+            deliveryFee: 0,
+            totalAmount: 0
         };
 
         if (isBusinessPermit) {
@@ -969,7 +1011,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 deliveryFee: bploCalc.deliveryFee,
                 totalAmount: bploCalc.totalAmount
             };
-        } else {
+        } else if (isCedula) {
             const cedulaCalc = calculateCedula({
                 type: additionalData.applicantType || "INDIVIDUAL",
                 income: additionalData.income || 0,
@@ -984,6 +1026,20 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 deliveryFee: cedulaCalc.deliveryFee,
                 totalAmount: cedulaCalc.totalAmount
             };
+        } else if (isLCR) {
+            // Civil Registry (LCR) services like marriage/death/birth have fixed base fees.
+            const baseFee = Number(transaction.type?.baseFee || 0);
+            const feeDelivery = Number(transaction.type?.deliveryFee || 0);
+            const deliveryFeeUsed = deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || feeDelivery;
+            // For delivery fulfillment, include delivery fee; otherwise charge base fee only.
+            const total = baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0);
+            result = {
+                basicTax: baseFee,
+                additionalTax: 0,
+                penalty: 0,
+                deliveryFee: deliveryFeeUsed,
+                totalAmount: total
+            };
         }
 
         // Determine New Status
@@ -994,15 +1050,15 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             where: { id },
             data: {
                 status: newStatus,
-                totalAmount: result.totalAmount, // This is the Base Tax + Penalty
+                totalAmount: result!.totalAmount, // This is the Base Tax + Penalty
                 processedBy: user.id,
                 rejectionRemarks: adminNotes,
                 fiscalSnapshot: {
-                    basicTax: result.basicTax,
-                    additionalTax: result.additionalTax,
-                    penaltyCharge: result.penalty,
-                    deliveryFee: result.deliveryFee, // Persist delivery fee here
-                    totalAmount: result.totalAmount
+                    basicTax: result!.basicTax,
+                    additionalTax: result!.additionalTax,
+                    penaltyCharge: result!.penalty,
+                    deliveryFee: result!.deliveryFee, // Persist delivery fee here
+                    totalAmount: result!.totalAmount
                 }
             } as any,
             include: { user: true }
@@ -1016,7 +1072,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 to: updatedTransaction.user.email,
                 name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
                 transactionId: id.slice(-8).toUpperCase(),
-                amount: result.totalAmount,
+                amount: result!.totalAmount,
                 remarks: adminNotes
             });
         }
@@ -1438,7 +1494,24 @@ export async function getTreasuryTransactions(status?: string) {
             orderBy: { createdAt: "desc" }
         });
 
-        return { success: true, data: transactions as any[] };
+        // Normalize transactions: if service is a marriage LCR type, expose an `eventDate` top-level
+        const normalized = (transactions as any[]).map(tx => {
+            try {
+                const additional = tx.additionalData || {};
+                const code = tx.type?.code || "";
+                // Detect marriage services by transaction type code
+                if (code.startsWith("LCR_") && code.includes("MARRIAGE")) {
+                    // Support multiple possible field names coming from different forms
+                    const eventDate = additional.dateOfMarriage || additional.eventDate || (additional.event && additional.event.date) || null;
+                    return { ...tx, eventDate };
+                }
+                return tx;
+                } catch {
+                    return tx;
+                }
+        });
+
+        return { success: true, data: normalized as any[] };
     } catch (error) {
         console.error("Fetch treasury transactions error:", error);
         return { success: false, error: "Failed to fetch transactions" };

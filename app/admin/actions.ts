@@ -229,6 +229,18 @@ export async function searchResidents(query: string) {
     }
 }
 
+export async function getResidentDataById(id: string) {
+    try {
+        const resident = await (prisma as any).resident.findUnique({
+            where: { id }
+        });
+        return { success: true, data: resident };
+    } catch (error) {
+        console.error("Get resident data error:", error);
+        return { success: false, error: "Failed to fetch resident data" };
+    }
+}
+
 export async function getResidentFamilyContext(residentId: string) {
     try {
         const resident = await (prisma as any).resident.findUnique({
