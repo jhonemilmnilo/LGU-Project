@@ -18,6 +18,7 @@ import {
     Camera,
     Upload,
     Check,
+    Copy,
     XCircle,
     Activity,
     DollarSign,
@@ -83,6 +84,7 @@ export default function RequestHubPage() {
     const id = params.id as string;
 
     const [request, setRequest] = useState<any>(null);
+    const [copied, setCopied] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isFinalizing, setIsFinalizing] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -476,6 +478,9 @@ export default function RequestHubPage() {
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
     const remainingRevisions = request ? Math.max(0, 3 - (request.revisionCount || 0)) : 3;
+    const isPermitNewReleasedOrDelivered = request?.type?.code === "BUSINESS_PERMIT_NEW" &&
+        ["RELEASED", "DELIVERED"].includes(request?.status) &&
+        !!request?.businessPermit?.permitNumber;
 
     const isReportAllowed = useMemo(() => {
         if (!request || request.status !== "DELIVERED") return false;
@@ -538,6 +543,7 @@ export default function RequestHubPage() {
                 { label: "Sanitary Permit", url: addData.sanitaryPermitUrl },
                 { label: "Fire Safety Certificate", url: addData.fireSafetyUrl },
                 { label: "BIR Certificate (COR)", url: addData.birCorUrl },
+                { label: "Previous Business Permit", url: addData.previousPermitUrl },
             ]
             : [
                 { label: "Identity Matrix", url: addData.validIdUrl },
@@ -622,7 +628,29 @@ export default function RequestHubPage() {
                                         >
                                             {statusConfig?.label}
                                         </Badge>
-                                        <span className="text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-60">ID: {request.id.slice(-8).toUpperCase()}</span>
+                                        {isPermitNewReleasedOrDelivered ? (
+                                            <div className="flex items-center gap-1.5 text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-80">
+                                                <span>Permit No: {request.businessPermit.permitNumber}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(request.businessPermit.permitNumber);
+                                                        setCopied(true);
+                                                        toast.success("Permit number copied to clipboard!");
+                                                        setTimeout(() => setCopied(false), 2000);
+                                                    }}
+                                                    className="p-0.5 hover:text-primary transition-all duration-200 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-white/5 active:scale-90"
+                                                    title="Copy Permit Number"
+                                                >
+                                                    {copied ? (
+                                                        <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500 animate-in zoom-in duration-200" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3 md:w-3.5 md:h-3.5 transition-transform duration-200" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-60">ID: {request.id.slice(-8).toUpperCase()}</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

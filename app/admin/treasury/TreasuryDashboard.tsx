@@ -33,6 +33,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const STATUS_TABS = [
     { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
@@ -62,7 +63,24 @@ function formatDateTime(date: string | Date): { date: string; time: string } {
 
 export default function TreasuryDashboard() {
     const router = useRouter();
+    const { data: session } = useSession();
+    const userRole = (session?.user as any)?.role;
+
+    const filteredTabs = useMemo(() => {
+        if (userRole === "ADMIN_AIDE") {
+            return STATUS_TABS.filter(tab => tab.value === "FOR_REQUESTING");
+        }
+        return STATUS_TABS;
+    }, [userRole]);
+
     const [status, setStatus] = useState("ALL");
+
+    // Default status tab to FOR_REQUESTING for ADMIN_AIDE
+    useEffect(() => {
+        if (userRole === "ADMIN_AIDE") {
+            setStatus("FOR_REQUESTING");
+        }
+    }, [userRole]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -211,7 +229,7 @@ export default function TreasuryDashboard() {
                         {/* Status Tabs */}
                         <div className="px-4 pt-4 flex items-center gap-2 flex-wrap">
                             <TabsList className="bg-transparent p-0 h-auto flex-wrap justify-start gap-2">
-                                {STATUS_TABS.map(tab => {
+                                {filteredTabs.map(tab => {
                                     const isActive = status === tab.value;
                                     const count = tab.value === "ALL"
                                         ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
