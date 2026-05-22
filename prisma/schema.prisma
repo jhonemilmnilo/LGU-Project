@@ -613,6 +613,8 @@ model Transaction {
   inRouteAt         DateTime?         // Tracking for when the delivery started
   deliveredAt       DateTime?
 
+  payment           Payment?          // One-to-one payment record
+
   // Dispute / Return / Refund
   disputeReason     String?
   disputeRemarks    String?
@@ -711,6 +713,7 @@ model BirthCertificateRegistry {
 
   registryNumber  String      @unique // Book/Page number or Registry ID
   dateIssued      DateTime    @default(now())
+  issuedBy        String?     // Name of the staff member who issued this registry
   
   subjectName     String      // Child's name
   dateOfEvent     DateTime    // Date of Birth
@@ -763,4 +766,24 @@ enum PaymentType {
   CASH_ON_DELIVERY
   E_PAYMENT
   BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  transactionId String        @unique
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  amount        Float         @default(0)
+  method        PaymentType   @default(CASH)
+  status        PaymentStatus @default(PENDING)
+  reference     String?
+  meta          Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }

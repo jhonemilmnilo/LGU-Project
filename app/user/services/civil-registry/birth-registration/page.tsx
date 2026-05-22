@@ -9,7 +9,6 @@ import {
     User,
     Loader2,
     Check,
-    AlertCircle,
     Home,
     Sparkles,
     Baby,
@@ -81,8 +80,10 @@ interface FormState {
     birthType: string;
     registrationType: "STANDARD" | "LATE";
     lateDuration?: "1-10" | "10-20" | "20+" | string;
+    miscFee?: number;
+    parentsMarried?: boolean;
     // Shared
-    paymentType: "E_PAYMENT" | "WALK_IN";
+    paymentType: "WALK_IN";
     files: Record<string, File | null>;
     previews: Record<string, string | null>;
     idTypeOverride?: string;
@@ -107,7 +108,8 @@ export default function BirthRegistrationPage() {
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [showErrors, setShowErrors] = useState(false);
+    const [, setShowErrors] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [resident, setResident] = useState<any>(null);
 
     const [form, setForm] = useState<FormState>({
@@ -124,8 +126,9 @@ export default function BirthRegistrationPage() {
         motherLastName: "",
         birthType: "SINGLE",
         registrationType: "STANDARD",
+            miscFee: 0,
         lateDuration: "",
-        paymentType: "E_PAYMENT",
+        paymentType: "WALK_IN",
         files: {},
         previews: {},
         idTypeOverride: "",
@@ -149,13 +152,24 @@ export default function BirthRegistrationPage() {
 
     const [policyAccepted, setPolicyAccepted] = useState(false);
 
-    const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
+    const handleAcceptPolicy = () => { 
+        setPolicyOpen(false); 
+        setPolicyAccepted(true); 
+        setErrors(prev => {
+            const copy = { ...prev };
+            delete copy.policyAccepted;
+            return copy;
+        });
+    };
 
     const isRestoredRef = useRef(false);
 
-    const estimatedPayment = form.registrationType === "STANDARD" ? 215 : (
+    const baseFee = form.registrationType === "STANDARD" ? 215 : (
         form.lateDuration === "1-10" ? 315 : form.lateDuration === "10-20" ? 515 : form.lateDuration === "20+" ? 1015 : 0
     );
+
+    // Misc fee is display-only and represents the total amount payable
+    const totalAmount = Number(baseFee || 0);
 
     // Persist progress to session storage
     useEffect(() => {
@@ -166,17 +180,63 @@ export default function BirthRegistrationPage() {
         if (savedForm) {
             try {
                 const parsed = JSON.parse(savedForm);
+
+                // Remove saved drafts for required document uploads so users must re-upload after reload
+                const requiredDocKeys = [
+                    'marriageCertificate','municipalForm102','communityTaxCertificate',
+                    'negativePSA','colb','affidavitDelayed','supportingEvidence1','supportingEvidence2'
+                ];
+                if (parsed.previews) {
+                    requiredDocKeys.forEach(k => { if (parsed.previews[k]) delete parsed.previews[k]; });
+                }
+                if (parsed.filesMeta) {
+                    requiredDocKeys.forEach(k => { if (parsed.filesMeta[k]) delete parsed.filesMeta[k]; });
+                }
+
+                // reconstruct files from saved previews + filesMeta when possible
+                const restoredPreviews: Record<string, string> = parsed.previews || {};
+                const filesMeta: Record<string, any> = parsed.filesMeta || {};
+
+                const reconstructedFiles: Record<string, File | null> = {};
+
+                const dataURLtoFile = (dataurl: string, filename: string, mime: string) => {
+                    try {
+                        const arr = dataurl.split(',');
+                        const mimeMatch = arr[0].match(/:(.*?);/);
+                        const bstr = atob(arr[1]);
+                        let n = bstr.length;
+                        const u8arr = new Uint8Array(n);
+                        while (n--) {
+                            u8arr[n] = bstr.charCodeAt(n);
+                        }
+                        return new File([u8arr], filename || 'file', { type: mime || (mimeMatch ? mimeMatch[1] : '') });
+                    } catch (err) {
+                        void err;
+                        return null;
+                    }
+                };
+
+                Object.entries(restoredPreviews).forEach(([key, preview]) => {
+                    const meta = filesMeta[key];
+                    if (preview) {
+                        const f = meta ? dataURLtoFile(preview, meta.name, meta.type) : null;
+                        reconstructedFiles[key] = f;
+                    }
+                });
+
                 setForm(prev => ({
                     ...prev,
                     ...parsed,
-                    files: {} // Ensure files are empty as they can't be stringified
+                    files: { ...prev.files, ...reconstructedFiles },
+                    previews: { ...prev.previews, ...restoredPreviews }
                 }));
+
                 isRestoredRef.current = true;
-                
-                // If there were previously items but files are empty, it might be a reload recovery
-                if (Object.keys(parsed.files || {}).length > 0 || (savedStep && savedStep !== "IDENTITY")) {
-                    toast.info("Progress restored. Please re-upload your documents.", {
-                        description: "Due to security, files must be re-selected after a page reload.",
+
+                // Notify user if progress restored
+                if ((Object.keys(restoredPreviews || {}).length > 0) || (savedStep && savedStep !== "IDENTITY")) {
+                    toast.info("Progress restored. Uploaded document previews recovered.", {
+                        description: "Files are preserved as previews — you can re-upload originals if needed before submitting.",
                         duration: 6000
                     });
                 }
@@ -188,11 +248,29 @@ export default function BirthRegistrationPage() {
 
     useEffect(() => {
         if (!loading) {
-            sessionStorage.setItem("birth-reg-step", currentStep);
-            sessionStorage.setItem("birth-reg-form", JSON.stringify({
-                ...form,
-                files: {} // Don't store File objects
-            }));
+            try {
+                sessionStorage.setItem("birth-reg-step", currentStep);
+
+                // Build a serializable snapshot: omit File objects, but include metadata and previews
+                const filesMeta: Record<string, any> = {};
+                Object.entries(form.files).forEach(([k, f]) => {
+                    if (f) filesMeta[k] = { name: f.name, type: f.type, size: f.size };
+                });
+
+                const serializable = {
+                    ...form,
+                    files: {},
+                    filesMeta,
+                    previews: form.previews || {}
+                };
+
+                sessionStorage.setItem("birth-reg-form", JSON.stringify(serializable));
+            } catch (err) {
+                console.warn("Failed to persist form to sessionStorage (possibly quota exceeded):", err);
+                try {
+                    toast.warning("Local preview storage failed — files may not persist after reload.");
+                } catch (e) { void e; }
+            }
         }
     }, [currentStep, form, loading]);
 
@@ -272,6 +350,8 @@ export default function BirthRegistrationPage() {
         init();
     }, []);
 
+    // Do not force a default for parentsMarried; let user choose explicitly
+
     const handleBirthTypeChange = (val: string) => {
         let count = 1;
         if (val === "TWIN") count = 2;
@@ -309,20 +389,65 @@ export default function BirthRegistrationPage() {
                 return;
             }
 
-            // Create preview URL
-            const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
-
-            setForm(prev => ({
-                ...prev,
-                files: { ...prev.files, [key]: file },
-                previews: { ...prev.previews, [key]: previewUrl }
-            }));
+            const reader = new FileReader();
+            reader.onload = () => {
+                const dataUrl = reader.result as string | null;
+                setForm(prev => ({
+                    ...prev,
+                    files: { ...prev.files, [key]: file },
+                    previews: { ...prev.previews, [key]: dataUrl }
+                }));
+                // Clear documents error when user uploads files
+                setErrors(prev => {
+                    if (!prev.documents) return prev;
+                    const copy = { ...prev };
+                    delete copy.documents;
+                    return copy;
+                });
+            };
+            reader.readAsDataURL(file);
         }
+    };
+
+    const validateStep = (step: Step) => {
+        const errs: Record<string, string> = {};
+
+        if (step === "IDENTITY") {
+            if (!form.relationship) errs.relationship = "Please select relationship.";
+            if (!form.contactNumber) errs.contactNumber = "Please enter a contact number.";
+        }
+
+        if (step === "DETAILS") {
+            form.children.forEach((c, i) => {
+                if (!c.firstName) errs[`children.${i}.firstName`] = "Please enter first name.";
+                if (!c.lastName) errs[`children.${i}.lastName`] = "Please enter last name.";
+            });
+            if (!form.dateOfEvent) errs.dateOfEvent = "Please select date of birth.";
+            if (!form.placeOfEvent) errs.placeOfEvent = "Please enter place of birth.";
+        }
+
+        if (step === "PARENTS") {
+            if (!form.fatherFirstName) errs.fatherFirstName = "Please enter father's first name.";
+            if (!form.fatherLastName) errs.fatherLastName = "Please enter father's last name.";
+            if (!form.motherFirstName) errs.motherFirstName = "Please enter mother's first name.";
+            if (!form.motherLastName) errs.motherLastName = "Please enter mother's last name.";
+            if (typeof form.parentsMarried === 'undefined') errs.parentsMarried = "Please indicate parents' marital status.";
+        }
+
+        setErrors(errs);
+        const valid = Object.keys(errs).length === 0;
+        setShowErrors(!valid);
+        if (!valid) {
+            toast.error("Please complete highlighted required fields.", { className: "font-black uppercase tracking-widest text-[10px] italic" });
+        }
+        return valid;
     };
 
     const handleSubmit = async () => {
         // Require privacy terms acceptance before allowing submit
         if (!policyAccepted) {
+            setErrors(prev => ({ ...prev, policyAccepted: "You must agree to the Data Privacy & Terms before submitting." }));
+            setShowErrors(true);
             toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
             return;
         }
@@ -352,7 +477,45 @@ export default function BirthRegistrationPage() {
         }
 
         if (form.registrationType === "LATE" && !form.lateDuration) {
+            setErrors(prev => ({ ...prev, lateDuration: "Please select late registration period to compute the fee." }));
+            setShowErrors(true);
             toast.error("Please select late registration period to compute the fee.");
+            // Scroll to late-duration section
+            try { document.getElementById('late-duration-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { void e; }
+            return;
+        }
+
+        // Validate required documents before starting submission so inline alerts show immediately
+        const missingDocsQuick: string[] = [];
+        if (form.registrationType === "STANDARD") {
+            if (form.parentsMarried) {
+                if (!(form.files['marriageCertificate'] || form.previews['marriageCertificate'])) missingDocsQuick.push('Marriage Certificate of Parents');
+                if (!(form.files['municipalForm102'] || form.previews['municipalForm102'])) missingDocsQuick.push('Municipal Form 102');
+            } else {
+                if (!(form.files['communityTaxCertificate'] || form.previews['communityTaxCertificate'])) missingDocsQuick.push('Community Tax Certificate');
+            }
+        } else if (form.registrationType === "LATE") {
+            const lateReqs = ['negativePSA','colb','affidavitDelayed','supportingEvidence1','supportingEvidence2'];
+            lateReqs.forEach(k => {
+                if (!(form.files[k] || form.previews[k])) {
+                    const map: any = {
+                        negativePSA: 'Negative Certification from PSA',
+                        colb: 'COLB',
+                        affidavitDelayed: 'Affidavit of Delayed Registration',
+                        supportingEvidence1: 'Supporting Evidence 1',
+                        supportingEvidence2: 'Supporting Evidence 2'
+                    };
+                    missingDocsQuick.push(map[k] || k);
+                }
+            });
+        }
+
+        if (missingDocsQuick.length > 0) {
+            setErrors(prev => ({ ...prev, documents: `Please upload required documents: ${missingDocsQuick.join(', ')}` }));
+            setShowErrors(true);
+            toast.error('Please upload required documents before submitting.');
+            // Scroll to documents section
+            try { document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { void e; }
             return;
         }
 
@@ -397,10 +560,13 @@ export default function BirthRegistrationPage() {
                 idType: form.idTypeOverride || resident?.idType,
                 idFrontUrl: resident?.idFrontUrl,
                 idBackUrl: resident?.idBackUrl,
-                paymentType: form.paymentType,
                 lateDuration: form.lateDuration || null,
-                estimatedPayment: estimatedPayment,
+                parentsMarried: form.parentsMarried,
+                miscFee: totalAmount,
+                totalAmount: totalAmount,
             };
+
+            
 
             formData.append("additionalData", JSON.stringify(baseAdditionalData));
 
@@ -510,7 +676,15 @@ export default function BirthRegistrationPage() {
                             return (
                                 <div
                                     key={idx}
-                                    className="flex flex-col items-center gap-2 transition-all duration-300"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => {
+                                        const currentIdx = STEPS.findIndex(s => s.id === currentStep);
+                                        if (idx <= currentIdx) setCurrentStep(step.id);
+                                        else toast.error('Complete earlier steps before navigating.');
+                                    }}
+                                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && idx <= STEPS.findIndex(s => s.id === currentStep)) setCurrentStep(step.id); }}
+                                    className="flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer"
                                 >
                                     <div className={cn(
                                         "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 bg-white dark:bg-[#08090d]",
@@ -568,8 +742,8 @@ export default function BirthRegistrationPage() {
                                                 <SelectItem value="HOSPITAL_REPRESENTATIVE">Hospital Representative</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        {(showErrors && !form.relationship) && (
-                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                        {errors.relationship && (
+                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.relationship}</p>
                                         )}
                                     </div>
 
@@ -626,30 +800,64 @@ export default function BirthRegistrationPage() {
                                             <Input 
                                                 className={cn(
                                                     "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-bold italic",
-                                                    (showErrors && !form.contactNumber) && "border-red-500/50 bg-red-50/10"
+                                                    (errors.contactNumber) && "border-red-500/50 bg-red-50/10"
                                                 )}
                                                 placeholder="e.g. 0917XXXXXXX"
                                                 value={form.contactNumber}
                                                 onChange={(e) => setForm({...form, contactNumber: e.target.value})}
                                             />
-                                            {(showErrors && !form.contactNumber) && (
-                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                            {errors.contactNumber && (
+                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.contactNumber}</p>
                                             )}
                                         </div>
                                     </div>
                                 </div>
 
+                                {/* Parents' Marital Status */}
+                                <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Parents&apos; Marital Status <span className="text-red-500">*</span></Label>
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm(p => ({ ...p, parentsMarried: true }))}
+                                            className={cn(
+                                                "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                                                form.parentsMarried === true ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200",
+                                                (errors.parentsMarried && typeof form.parentsMarried === 'undefined') ? "ring-2 ring-red-400/60 border-red-500" : ""
+                                            )}
+                                            aria-pressed={form.parentsMarried === true}
+                                        >
+                                            Married
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm(p => ({ ...p, parentsMarried: false }))}
+                                            className={cn(
+                                                "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                                                form.parentsMarried === false ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200",
+                                                (errors.parentsMarried && typeof form.parentsMarried === 'undefined') ? "ring-2 ring-red-400/60 border-red-500" : ""
+                                            )}
+                                            aria-pressed={form.parentsMarried === false}
+                                        >
+                                            Not Married
+                                        </button>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 italic mt-2">If not married, the required documents will change accordingly.</p>
+                                    {errors.parentsMarried && (
+                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-2">{errors.parentsMarried}</p>
+                                    )}
+                                </div>
+
                                 <div className="flex justify-end pt-6">
                                     <Button 
                                         onClick={() => {
-                                            if (!form.relationship || !form.contactNumber) {
+                                            if (!validateStep("IDENTITY")) return;
+                                            if (typeof form.parentsMarried === 'undefined') {
+                                                setErrors(prev => ({ ...prev, parentsMarried: "Please indicate parents' marital status before proceeding." }));
                                                 setShowErrors(true);
-                                                toast.error("Please fill in all informant details.", {
-                                                    className: "font-black uppercase tracking-widest text-[10px] italic",
-                                                });
+                                                toast.error("Please indicate parents' marital status before proceeding.");
                                                 return;
                                             }
-                                            setShowErrors(false);
                                             setCurrentStep("DETAILS");
                                         }}
                                         className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
@@ -713,14 +921,14 @@ export default function BirthRegistrationPage() {
                                                         <Input 
                                                             className={cn(
                                                                 "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
-                                                                (showErrors && !child.firstName) && "border-red-500/50 bg-red-50/10"
+                                                                (errors[`children.${index}.firstName`]) && "border-red-500/50 bg-red-50/10"
                                                             )}
                                                             placeholder="First name"
                                                             value={child.firstName}
                                                             onChange={(e) => handleChildNameChange(index, 'firstName', e.target.value)}
                                                         />
-                                                        {(showErrors && !child.firstName) && (
-                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                        {(errors[`children.${index}.firstName`] ) && (
+                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors[`children.${index}.firstName`]}</p>
                                                         )}
                                                     </div>
                                                     <div className="space-y-2">
@@ -737,14 +945,14 @@ export default function BirthRegistrationPage() {
                                                         <Input 
                                                             className={cn(
                                                                 "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
-                                                                (showErrors && !child.lastName) && "border-red-500/50 bg-red-50/10"
+                                                                (errors[`children.${index}.lastName`]) && "border-red-500/50 bg-red-50/10"
                                                             )}
                                                             placeholder="Last name"
                                                             value={child.lastName}
                                                             onChange={(e) => handleChildNameChange(index, 'lastName', e.target.value)}
                                                         />
-                                                        {(showErrors && !child.lastName) && (
-                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                        {(errors[`children.${index}.lastName`] ) && (
+                                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors[`children.${index}.lastName`]}</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -772,13 +980,13 @@ export default function BirthRegistrationPage() {
                                                 type="date"
                                                 className={cn(
                                                     "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-medium",
-                                                    (showErrors && !form.dateOfEvent) && "border-red-500/50 bg-red-50/10"
+                                                    (errors.dateOfEvent) && "border-red-500/50 bg-red-50/10"
                                                 )}
                                                 value={form.dateOfEvent}
                                                 onChange={(e) => setForm({...form, dateOfEvent: e.target.value})}
                                             />
-                                            {(showErrors && !form.dateOfEvent) && (
-                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                            {errors.dateOfEvent && (
+                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.dateOfEvent}</p>
                                             )}
                                         </div>
                                         <div className="space-y-2">
@@ -786,14 +994,14 @@ export default function BirthRegistrationPage() {
                                             <Input 
                                                 className={cn(
                                                     "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium",
-                                                    (showErrors && !form.placeOfEvent) && "border-red-500/50 bg-red-50/10"
+                                                    (errors.placeOfEvent) && "border-red-500/50 bg-red-50/10"
                                                 )}
                                                 placeholder="Hospital/Municipality, Province"
                                                 value={form.placeOfEvent}
                                                 onChange={(e) => setForm({...form, placeOfEvent: e.target.value.toUpperCase()})}
                                             />
-                                            {(showErrors && !form.placeOfEvent) && (
-                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                            {errors.placeOfEvent && (
+                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.placeOfEvent}</p>
                                             )}
                                         </div>
                                     </div>
@@ -810,15 +1018,7 @@ export default function BirthRegistrationPage() {
                                     </Button>
                                     <Button 
                                         onClick={() => {
-                                            const hasIncompleteChild = form.children.some(c => !c.firstName || !c.lastName);
-                                            if (hasIncompleteChild || !form.dateOfEvent || !form.placeOfEvent) {
-                                                setShowErrors(true);
-                                                toast.error("Please fill in all required child details.", {
-                                                    className: "font-black uppercase tracking-widest text-[10px] italic",
-                                                });
-                                                return;
-                                            }
-                                            setShowErrors(false);
+                                            if (!validateStep("DETAILS")) return;
                                             setCurrentStep("PARENTS");
                                         }}
                                         className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
@@ -859,14 +1059,14 @@ export default function BirthRegistrationPage() {
                                                 <Input 
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.fatherFirstName) && "border-red-500/50 bg-red-50/10"
+                                                        (errors.fatherFirstName) && "border-red-500/50 bg-red-50/10"
                                                     )}
                                                     placeholder="First name"
                                                     value={form.fatherFirstName}
                                                     onChange={(e) => setForm({...form, fatherFirstName: e.target.value.toUpperCase()})}
                                                 />
-                                                {(showErrors && !form.fatherFirstName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                {errors.fatherFirstName && (
+                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.fatherFirstName}</p>
                                                 )}
                                             </div>
                                             <div className="space-y-2">
@@ -883,14 +1083,14 @@ export default function BirthRegistrationPage() {
                                                 <Input 
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.fatherLastName) && "border-red-500/50 bg-red-50/10"
+                                                        (errors.fatherLastName) && "border-red-500/50 bg-red-50/10"
                                                     )}
                                                     placeholder="Last name"
                                                     value={form.fatherLastName}
                                                     onChange={(e) => setForm({...form, fatherLastName: e.target.value.toUpperCase()})}
                                                 />
-                                                {(showErrors && !form.fatherLastName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                {errors.fatherLastName && (
+                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.fatherLastName}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -911,14 +1111,14 @@ export default function BirthRegistrationPage() {
                                                 <Input 
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.motherFirstName) && "border-red-500/50 bg-red-50/10"
+                                                        (errors.motherFirstName) && "border-red-500/50 bg-red-50/10"
                                                     )}
                                                     placeholder="First name"
                                                     value={form.motherFirstName}
                                                     onChange={(e) => setForm({...form, motherFirstName: e.target.value.toUpperCase()})}
                                                 />
-                                                {(showErrors && !form.motherFirstName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                {errors.motherFirstName && (
+                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.motherFirstName}</p>
                                                 )}
                                             </div>
                                             <div className="space-y-2">
@@ -935,14 +1135,14 @@ export default function BirthRegistrationPage() {
                                                 <Input 
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.motherLastName) && "border-red-500/50 bg-red-50/10"
+                                                        (errors.motherLastName) && "border-red-500/50 bg-red-50/10"
                                                     )}
                                                     placeholder="Last name"
                                                     value={form.motherLastName}
                                                     onChange={(e) => setForm({...form, motherLastName: e.target.value.toUpperCase()})}
                                                 />
-                                                {(showErrors && !form.motherLastName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
+                                                {errors.motherLastName && (
+                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.motherLastName}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -960,14 +1160,7 @@ export default function BirthRegistrationPage() {
                                     </Button>
                                     <Button 
                                         onClick={() => {
-                                            if (!form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName) {
-                                                setShowErrors(true);
-                                                toast.error("Please fill in all parent details.", {
-                                                    className: "font-black uppercase tracking-widest text-[10px] italic",
-                                                });
-                                                return;
-                                            }
-                                            setShowErrors(false);
+                                            if (!validateStep("PARENTS")) return;
                                             setCurrentStep("CONFIRM");
                                         }}
                                         className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
@@ -998,7 +1191,7 @@ export default function BirthRegistrationPage() {
                                     <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-1">
                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Certificate Type</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic">Birth Registration (New Record)</p>
+                                            <p className="font-black text-slate-900 dark:text-white italic">Birth Registration</p>
                                         </div>
                                         <div className="space-y-1">
                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Type of Birth</span>
@@ -1017,33 +1210,8 @@ export default function BirthRegistrationPage() {
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Date of Birth</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic">{form.dateOfEvent}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Place of Birth</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{form.placeOfEvent}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Father&apos;s Name</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">
-                                                {`${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.trim()}
-                                            </p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Mother&apos;s Name</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">
-                                                {`${form.motherFirstName} ${form.motherMiddleName} ${form.motherLastName}`.trim()}
-                                            </p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Informant</span>
-                                            <p className="font-black text-slate-900 dark:text-white italic uppercase">{resident?.firstName} {resident?.lastName} ({form.relationship})</p>
-                                        </div>
                                     </div>
 
-                                    {/* Registration Type Toggle */}
                                     <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
                                         <div className="flex items-center gap-4">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Registration Type:</span>
@@ -1073,7 +1241,72 @@ export default function BirthRegistrationPage() {
                                             </div>
                                         </div>
 
-                                                                    <div className="space-y-4">
+                                        {form.registrationType === "LATE" && (
+                                            <div id="late-duration-section" className="mt-4">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Late Registration Period <span className="text-red-500">*</span></Label>
+                                                <div className="mt-2 flex flex-col md:flex-row gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setForm(prev => ({ ...prev, lateDuration: "1-10", miscFee: 315 }));
+                                                            setErrors(prev => {
+                                                                if (!prev.lateDuration) return prev;
+                                                                const copy = { ...prev };
+                                                                delete copy.lateDuration;
+                                                                return copy;
+                                                            });
+                                                        }}
+                                                        className={cn(
+                                                            "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                            form.lateDuration === "1-10" ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200"
+                                                        )}
+                                                    >
+                                                        1 month - 10 years (P315)
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setForm(prev => ({ ...prev, lateDuration: "10-20", miscFee: 515 }));
+                                                            setErrors(prev => {
+                                                                if (!prev.lateDuration) return prev;
+                                                                const copy = { ...prev };
+                                                                delete copy.lateDuration;
+                                                                return copy;
+                                                            });
+                                                        }}
+                                                        className={cn(
+                                                            "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                            form.lateDuration === "10-20" ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200"
+                                                        )}
+                                                    >
+                                                        10 - 20 years (P515)
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setForm(prev => ({ ...prev, lateDuration: "20+", miscFee: 1015 }));
+                                                            setErrors(prev => {
+                                                                if (!prev.lateDuration) return prev;
+                                                                const copy = { ...prev };
+                                                                delete copy.lateDuration;
+                                                                return copy;
+                                                            });
+                                                        }}
+                                                        className={cn(
+                                                            "px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                            form.lateDuration === "20+" ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200"
+                                                        )}
+                                                    >
+                                                        20 years and above (P1015)
+                                                    </button>
+                                                </div>
+                                                {errors.lateDuration && (
+                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-2">{errors.lateDuration}</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-4">
                                             <div className="flex items-center gap-2">
                                                 <div className="p-1.5 bg-blue-500/10 rounded-lg">
                                                     <Upload className="w-3.5 h-3.5 text-blue-500" />
@@ -1081,129 +1314,112 @@ export default function BirthRegistrationPage() {
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Required Documents</span>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
-                                                {form.registrationType === "STANDARD" ? (
-                                                    <>
-                                                        {[
-                                                            { key: "marriageCertificate", label: "Marriage Certificate of Parents" },
-                                                            { key: "municipalForm102", label: "Municipal Form 102" },
-                                                            { key: "communityTaxCertificate", label: "Community Tax Certificate" }
-                                                        ].map((doc) => (
-                                                            <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
-                                                                <div className="flex items-center gap-3">
-                                                                    {form.previews[doc.key] ? (
-                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
-                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
-                                                                            <FileText className="w-5 h-5 text-slate-300" />
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
-                                                                        <span className={cn(
-                                                                            "text-[8px] font-black uppercase tracking-[0.2em] italic",
-                                                                            form.files[doc.key] ? "text-green-500" : "text-blue-500/50"
-                                                                        )}>
-                                                                            {form.files[doc.key] ? "Uploaded" : "Pending"}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="relative">
-                                                                    <input 
-                                                                        type="file" 
-                                                                        onChange={(e) => handleFileChange(e, doc.key)}
-                                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                                        accept="image/*,.pdf"
-                                                                    />
-                                                                    <div className={cn(
-                                                                        "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                        form.files[doc.key] ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
-                                                                    )}>
-                                                                        {form.files[doc.key] ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        {[
-                                                            { key: "negativePSA", label: "Negative Certification from PSA" },
-                                                            { key: "colb", label: "COLB" },
-                                                            { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" },
-                                                            { key: "supportingEvidence1", label: "Supporting Evidence 1" },
-                                                            { key: "supportingEvidence2", label: "Supporting Evidence 2" }
-                                                        ].map((doc) => (
-                                                            <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
-                                                                <div className="flex items-center gap-3">
-                                                                    {form.previews[doc.key] ? (
-                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
-                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
-                                                                            <FileText className="w-5 h-5 text-slate-300" />
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex flex-col gap-0.5">
-                                                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
-                                                                        <span className={cn(
-                                                                            "text-[8px] font-black uppercase tracking-[0.2em] italic",
-                                                                            form.files[doc.key] ? "text-green-500" : "text-blue-500/50"
-                                                                        )}>
-                                                                            {form.files[doc.key] ? "Uploaded" : "Pending"}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="relative">
-                                                                    <input 
-                                                                        type="file" 
-                                                                        onChange={(e) => handleFileChange(e, doc.key)}
-                                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                                        accept="image/*,.pdf"
-                                                                    />
-                                                                    <div className={cn(
-                                                                        "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                        form.files[doc.key] ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
-                                                                    )}>
-                                                                        {form.files[doc.key] ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </>
-                                                )}
+                                            <div className="mt-2">
+                                                <p className="text-[10px] text-slate-500 italic">Select parents&apos; marital status — required documents adjust automatically.</p>
                                             </div>
 
-                                            {form.registrationType === "LATE" && (
-                                                <div className="pt-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Late Registration Period</span>
-                                                    <div className="mt-2 flex flex-col md:flex-row gap-2">
-                                                        <label className="inline-flex items-center gap-2 p-2 rounded-lg border cursor-pointer">
-                                                            <input type="radio" name="lateDuration" checked={form.lateDuration === "1-10"} onChange={() => setForm(p => ({ ...p, lateDuration: "1-10" }))} />
-                                                            <span className="text-[11px] font-bold">1 month – 10 years</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center gap-2 p-2 rounded-lg border cursor-pointer">
-                                                            <input type="radio" name="lateDuration" checked={form.lateDuration === "10-20"} onChange={() => setForm(p => ({ ...p, lateDuration: "10-20" }))} />
-                                                            <span className="text-[11px] font-bold">10 – 20 years</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center gap-2 p-2 rounded-lg border cursor-pointer">
-                                                            <input type="radio" name="lateDuration" checked={form.lateDuration === "20+"} onChange={() => setForm(p => ({ ...p, lateDuration: "20+" }))} />
-                                                            <span className="text-[11px] font-bold">20 years and above</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
+                                            <div id="documents-section" className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
+                                                {form.registrationType === "STANDARD" ? (
+                                                    (form.parentsMarried ? [
+                                                        { key: "marriageCertificate", label: "Marriage Certificate of Parents" },
+                                                        { key: "municipalForm102", label: "Municipal Form 102" }
+                                                    ] : [
+                                                        { key: "communityTaxCertificate", label: "Community Tax Certificate" }
+                                                    ]).map((doc) => (
+                                                        <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
+                                                            <div className="flex items-center gap-3">
+                                                                {form.previews[doc.key] && form.previews[doc.key]!.startsWith('data:image/') ? (
+                                                                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                        <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                                        <FileText className="w-5 h-5 text-slate-300" />
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
+                                                                    <span className={cn(
+                                                                        "text-[8px] font-black uppercase tracking-[0.2em] italic",
+                                                                        (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
+                                                                    )}>
+                                                                        {(form.files[doc.key] || form.previews[doc.key]) ? "Uploaded" : "Pending"}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <input 
+                                                                    type="file" 
+                                                                    onChange={(e) => handleFileChange(e, doc.key)}
+                                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                    accept="image/*,.pdf"
+                                                                />
+                                                                <div className={cn(
+                                                                    "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                    (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
+                                                                )}>
+                                                                    {(form.files[doc.key] || form.previews[doc.key]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    [
+                                                        { key: "negativePSA", label: "Negative Certification from PSA" },
+                                                        { key: "colb", label: "COLB" },
+                                                        { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" },
+                                                        { key: "supportingEvidence1", label: "Supporting Evidence 1" },
+                                                        { key: "supportingEvidence2", label: "Supporting Evidence 2" }
+                                                    ].map((doc) => (
+                                                        <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
+                                                            <div className="flex items-center gap-3">
+                                                                {form.previews[doc.key] && form.previews[doc.key]!.startsWith('data:image/') ? (
+                                                                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                        <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                                        <FileText className="w-5 h-5 text-slate-300" />
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
+                                                                    <span className={cn(
+                                                                        "text-[8px] font-black uppercase tracking-[0.2em] italic",
+                                                                        (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
+                                                                    )}>
+                                                                        {(form.files[doc.key] || form.previews[doc.key]) ? "Uploaded" : "Pending"}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <input 
+                                                                    type="file" 
+                                                                    onChange={(e) => handleFileChange(e, doc.key)}
+                                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                    accept="image/*,.pdf"
+                                                                />
+                                                                <div className={cn(
+                                                                    "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                    (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
+                                                                )}>
+                                                                    {(form.files[doc.key] || form.previews[doc.key]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                            {errors.documents && (
+                                                <p className="text-[10px] font-black text-red-500 uppercase italic tracking-widest mt-2">{errors.documents}</p>
                                             )}
                                         </div>
                                     </div>
                                 </Card>
 
                                 <div className="space-y-4">
-                                    {/* Data Privacy Agreement panel */}
                                     <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
                                         <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300") }>
                                             {policyAccepted ? <Check className="w-3 h-3" /> : null}
@@ -1211,14 +1427,17 @@ export default function BirthRegistrationPage() {
                                         <div className="flex-1 text-xs">
                                             <div className="font-black uppercase text-[11px] tracking-wider">DATA PRIVACY AND TERMS AGREEMENT</div>
                                             <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
+                                            {errors.policyAccepted && (
+                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.policyAccepted}</p>
+                                            )}
                                         </div>
                                         <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600">Review</button>
                                     </div>
 
-                                    <div className="p-3 rounded-2xl border border-slate-200/20 bg-white/30 dark:bg-white/5 flex items-center justify-between">
-                                        <div>
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Estimated Payment</div>
-                                            <div className="text-lg font-extrabold">P{estimatedPayment > 0 ? estimatedPayment.toString() : "—"}</div>
+                                    <div className="p-3 rounded-2xl border border-slate-200/20 bg-white/30 dark:bg-white/5 flex items-center justify-between gap-4">
+                                        <div className="flex-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Misc. Fee</div>
+                                            <div className="text-lg font-extrabold mt-2">P{totalAmount > 0 ? totalAmount.toString() : "—"}</div>
                                         </div>
                                         <div className="text-xs text-slate-400 italic">{form.registrationType === "STANDARD" ? "Standard registration fee" : (form.lateDuration ? "Late registration fee" : "Select late period to compute fee")}</div>
                                     </div>
@@ -1232,46 +1451,16 @@ export default function BirthRegistrationPage() {
                                             <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
                                             Modify Details
                                         </Button>
-                                        <Button 
+                                        <Button
                                             onClick={handleSubmit}
-                                            disabled={
-                                                submitting || 
-                                                (form.registrationType === "STANDARD" ? (
-                                                    !form.files["marriageCertificate"] ||
-                                                    !form.files["municipalForm102"] ||
-                                                    !form.files["communityTaxCertificate"]
-                                                ) : (
-                                                    !form.files["negativePSA"] ||
-                                                    !form.files["colb"] ||
-                                                    !form.files["affidavitDelayed"] ||
-                                                    !form.files["supportingEvidence1"] ||
-                                                    !form.files["supportingEvidence2"]
-                                                ))
-                                            }
+                                            disabled={submitting}
                                             className={cn(
                                                 "md:col-span-3 h-14 rounded-full font-black uppercase tracking-widest italic text-[11px] transition-all duration-300",
-                                                (form.registrationType === "STANDARD" ? (
-                                                    !form.files["marriageCertificate"] ||
-                                                    !form.files["municipalForm102"] ||
-                                                    !form.files["communityTaxCertificate"]
-                                                ) : (
-                                                    !form.files["negativePSA"] ||
-                                                    !form.files["colb"] ||
-                                                    !form.files["affidavitDelayed"] ||
-                                                    !form.files["supportingEvidence1"] ||
-                                                    !form.files["supportingEvidence2"]
-                                                ))
-                                                    ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
-                                                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20"
+                                                submitting ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-500/20"
                                             )}
                                         >
                                             {submitting ? (
                                                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                                            ) : (form.registrationType === "STANDARD" ? (!form.files["marriageCertificate"] || !form.files["municipalForm102"] || !form.files["communityTaxCertificate"]) : (!form.files["negativePSA"] || !form.files["colb"] || !form.files["affidavitDelayed"] || !form.files["supportingEvidence1"] || !form.files["supportingEvidence2"])) ? (
-                                                <>
-                                                    Upload All Required Documents to Submit
-                                                    <AlertCircle className="w-5 h-5 ml-2" />
-                                                </>
                                             ) : (
                                                 <>
                                                     Submit Birth Registration Application
