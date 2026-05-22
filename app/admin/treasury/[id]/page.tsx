@@ -60,6 +60,9 @@ interface PageProps {
 function LightboxView({ src, alt, label }: { src: string; alt: string; label: string }) {
     const [scale, setScale] = useState(1);
     const [rotate, setRotate] = useState(0);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     const handleWheel = (e: React.WheelEvent) => {
         // Smooth zoom using scroll wheel
@@ -67,9 +70,55 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
         setScale(prev => Math.min(Math.max(prev + delta, 0.5), 5));
     };
 
+    const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length !== 1) return;
+        setIsDragging(true);
+        const touch = e.touches[0];
+        setDragStart({
+            x: touch.clientX - position.x,
+            y: touch.clientY - position.y
+        });
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        setPosition({
+            x: touch.clientX - dragStart.x,
+            y: touch.clientY - dragStart.y
+        });
+    };
+
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+    };
+
     const reset = () => {
         setScale(1);
         setRotate(0);
+        setPosition({ x: 0, y: 0 });
     };
 
     return (
@@ -79,12 +128,22 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
             </DialogHeader>
 
             <div
-                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-move active:cursor-grabbing select-none"
+                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing select-none"
                 onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
                 <div
-                    className="relative w-full h-full transition-transform duration-300 ease-out flex items-center justify-center"
-                    style={{ transform: `scale(${scale}) rotate(${rotate}deg)` }}
+                    className="relative w-full h-full flex items-center justify-center"
+                    style={{ 
+                        transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotate}deg)`,
+                        transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+                    }}
                 >
                     <Image
                         src={src}
@@ -148,7 +207,7 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                 </Button>
             </div>
 
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan coming soon</p>
+            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan Active</p>
         </DialogContent>
     );
 }
