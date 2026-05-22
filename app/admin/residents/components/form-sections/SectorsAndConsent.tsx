@@ -2,9 +2,11 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { useResident } from "../../providers";
 
  
 export function SectorsAndConsentSection({ data }: { data?: any }) {
+    const { themeColor } = useResident();
     const [sectors, setSectors] = useState({
         isSenior: data?.isSenior || false,
         isPWD: data?.isPWD || false,
@@ -66,7 +68,7 @@ export function SectorsAndConsentSection({ data }: { data?: any }) {
                             <Input name="officialPosition" defaultValue={data?.officialPosition} placeholder="e.g. Barangay Secretary" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold italic text-blue-600 uppercase tracking-tighter">Registration Status</label>
+                            <label className="text-sm font-semibold italic uppercase tracking-tighter" style={{ color: themeColor }}>Registration Status</label>
                             <select 
                                 name="registrationStatus" 
                                 defaultValue={data?.registrationStatus || "PENDING"}
@@ -85,20 +87,23 @@ export function SectorsAndConsentSection({ data }: { data?: any }) {
                 </div>
             </div>
 
-            <div className="p-6 bg-blue-600 rounded-2xl text-white space-y-4 shadow-xl shadow-blue-500/20">
+            <div 
+                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                className="p-6 rounded-2xl text-white space-y-4"
+            >
                 <div className="flex items-start space-x-3">
                     <Checkbox 
                         id="dataPrivacyConsent" 
                         checked={consent}
                         onCheckedChange={(v) => setConsent(!!v)}
-                        className="bg-white"
+                        className="bg-white text-slate-900 border-transparent focus-visible:ring-0"
                     />
                     <input type="hidden" name="dataPrivacyConsent" value={consent ? "true" : "false"} />
                     <div className="space-y-1">
                         <label htmlFor="dataPrivacyConsent" className="text-sm font-black uppercase italic leading-none cursor-pointer">
                             Data Privacy Consent
                         </label>
-                        <p className="text-xs text-blue-100 font-medium leading-tight">
+                        <p className="text-xs text-white/80 font-medium leading-tight">
                             I hereby give my consent to the LGU of Mapandan to collect and process my personal data for census and official government use in accordance with the Data Privacy Act of 2012.
                         </p>
                         {/* Hidden native input for HTML5 validation */}

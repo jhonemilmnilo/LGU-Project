@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EDUCATIONAL_ATTAINMENT, EMPLOYMENT_STATUS, INCOME_RANGES } from "../../constants";
+import { useResident } from "../../providers/ResidentProvider";
 
  
 export function GovSocioEconomicSection({ data }: { data?: any }) {
+  const { themeColor } = useResident();
   const [eduVal, setEduVal] = useState(() => {
     if (!data?.educationalAttainment) return "";
     return EDUCATIONAL_ATTAINMENT.includes(data.educationalAttainment) ? data.educationalAttainment : "Other";
@@ -52,13 +54,15 @@ export function GovSocioEconomicSection({ data }: { data?: any }) {
                  placeholder="Specify attainment" 
                  defaultValue={(data?.educationalAttainment === "Other" ? "" : data?.educationalAttainment) || ""}
                  required 
-                 className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                 style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+                 className="h-10 uppercase font-bold focus-visible:ring-1"
                  autoFocus
                />
                <button 
                   type="button" 
                   onClick={() => setEduVal(EDUCATIONAL_ATTAINMENT[0])}
-                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                  style={{ color: themeColor }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
                 </button>
@@ -87,13 +91,15 @@ export function GovSocioEconomicSection({ data }: { data?: any }) {
                   placeholder="Specify status" 
                   defaultValue={(data?.employmentStatus === "Other" ? "" : data?.employmentStatus) || ""}
                   required 
-                  className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                  style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+                  className="h-10 uppercase font-bold focus-visible:ring-1"
                   autoFocus
                 />
                 <button 
                   type="button" 
                   onClick={() => setEmpVal(EMPLOYMENT_STATUS[0])}
-                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                  style={{ color: themeColor }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
                 </button>

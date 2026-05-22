@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { getSystemSettingAction } from "@/app/admin/transactions/actions";
 
 export type ResidentStatus = "PENDING" | "APPROVED" | "DRAFT" | "REJECTED";
 
@@ -146,6 +147,7 @@ type ResidentContextType = {
     setFormCategoryId: (id: string | null) => void;
     formCategoryName: string | null;
     setFormCategoryName: (name: string | null) => void;
+    themeColor: string;
 };
 
 const ResidentContext = createContext<ResidentContextType | undefined>(undefined);
@@ -171,6 +173,7 @@ export function ResidentProvider({
     // Form Selection State
     const [formCategoryId, setFormCategoryId] = useState<string | null>(editingData?.categoryId || null);
     const [formCategoryName, setFormCategoryName] = useState<string | null>(editingData?.category?.name || null);
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     // Sync formCategoryId with editingData when it changes
     useEffect(() => {
@@ -182,6 +185,14 @@ export function ResidentProvider({
             setFormCategoryName(null);
         }
     }, [editingData]);
+
+    useEffect(() => {
+        getSystemSettingAction("theme_color", "#2563eb").then(res => {
+            if (res.success && res.data) {
+                setThemeColor(res.data);
+            }
+        });
+    }, []);
 
     return (
         <ResidentContext.Provider value={{
@@ -208,7 +219,8 @@ export function ResidentProvider({
             formCategoryId,
             setFormCategoryId,
             formCategoryName,
-            setFormCategoryName
+            setFormCategoryName,
+            themeColor
         }}>
             {children}
         </ResidentContext.Provider>

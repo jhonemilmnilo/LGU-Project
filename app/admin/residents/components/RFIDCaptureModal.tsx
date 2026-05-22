@@ -28,7 +28,7 @@ export function RFIDCaptureModal({ isOpen, onClose, residentId, residentName }: 
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState<"waiting" | "captured" | "error">("waiting");
     const inputRef = useRef<HTMLInputElement>(null);
-    const { setResidents } = useResident();
+    const { setResidents, themeColor } = useResident();
 
     useEffect(() => {
         if (isOpen) {
@@ -74,14 +74,20 @@ export function RFIDCaptureModal({ isOpen, onClose, residentId, residentName }: 
             <DialogContent className="sm:max-w-md bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-3xl p-0 overflow-hidden">
                 <div className="p-8 text-center">
                     <DialogHeader className="mb-6">
-                        <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
-                            <Radio className={`w-8 h-8 ${status === 'waiting' ? 'text-blue-600 animate-pulse' : 'text-blue-400'}`} />
+                        <div 
+                            style={{ backgroundColor: `${themeColor}1a` }}
+                            className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                        >
+                            <Radio 
+                                style={{ color: themeColor }}
+                                className={`w-8 h-8 ${status === 'waiting' ? 'animate-pulse' : 'opacity-70'}`} 
+                            />
                         </div>
                         <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">
                             Capture RFID Tag
                         </DialogTitle>
                         <DialogDescription className="text-slate-500 font-medium tracking-tight mt-2">
-                            Please scan the RFID card for <span className="text-blue-600 dark:text-blue-400 font-bold">{residentName}</span>
+                            Please scan the RFID card for <span className="font-bold" style={{ color: themeColor }}>{residentName}</span>
                         </DialogDescription>
                     </DialogHeader>
 
@@ -93,7 +99,10 @@ export function RFIDCaptureModal({ isOpen, onClose, residentId, residentName }: 
                                 onChange={(e) => setRfid(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleRFIDSubmit()}
                                 placeholder="Scan now..."
-                                className="h-16 text-center text-2xl font-mono font-black tracking-[0.3em] bg-slate-50 dark:bg-[#1a1f2e] border-2 border-slate-200 dark:border-[#2a3040] focus:border-blue-500 rounded-2xl shadow-inner transition-all group-hover:border-blue-400"
+                                style={{
+                                    borderColor: status === 'waiting' ? undefined : undefined
+                                }}
+                                className="h-16 text-center text-2xl font-mono font-black tracking-[0.3em] bg-slate-50 dark:bg-[#1a1f2e] border-2 border-slate-200 dark:border-[#2a3040] focus-visible:ring-0 rounded-2xl shadow-inner transition-all focus:border-slate-300 dark:focus:border-slate-700"
                                 autoComplete="off"
                             />
                             {status === 'waiting' && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Waiting for reader input...</p>}
@@ -129,7 +138,8 @@ export function RFIDCaptureModal({ isOpen, onClose, residentId, residentName }: 
                     <Button
                         onClick={() => handleRFIDSubmit()}
                         disabled={!rfid || loading}
-                        className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20 gap-2 transition-all hover:scale-105 active:scale-95"
+                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                        className="flex-1 h-12 text-white hover:opacity-90 active:scale-95 rounded-xl font-black uppercase tracking-widest text-xs gap-2 transition-all duration-200"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4" /> Assign Tag</>}
                     </Button>

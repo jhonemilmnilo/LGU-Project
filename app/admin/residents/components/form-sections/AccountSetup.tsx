@@ -4,17 +4,20 @@ import { Mail, UserCheck, ShieldCheck, Info } from "lucide-react";
 import { Resident } from "../../providers/ResidentProvider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useResident } from "../../providers/ResidentProvider";
 
 interface AccountSetupSectionProps {
     data?: Resident;
 }
 
 export function AccountSetupSection({ data }: AccountSetupSectionProps) {
+    const { themeColor } = useResident();
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
-                    <UserCheck className="w-8 h-8 text-blue-600" />
+                    <UserCheck className="w-8 h-8" style={{ color: themeColor }} />
                     Account Setup
                 </h3>
                 <p className="text-slate-500 font-medium">Configure the login credentials for this resident.</p>
@@ -29,21 +32,27 @@ export function AccountSetupSection({ data }: AccountSetupSectionProps) {
                             name="email" 
                             type="email"
                             defaultValue={data?.email || ""}
-                            className="h-12 pl-12 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                            className="h-12 pl-12 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold focus-visible:ring-2 focus-visible:ring-slate-300 transition-all" 
                             placeholder="resident@example.com (Optional for minors)"
                         />
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium italic mt-1">This will also serve as the login username.</p>
                 </div>
 
-                <div className="bg-blue-600/5 border border-blue-600/10 p-5 rounded-2xl flex items-start gap-4">
-                    <div className="p-2 bg-blue-600/10 rounded-xl">
-                        <Info className="w-5 h-5 text-blue-600" />
+                <div 
+                    style={{ backgroundColor: `${themeColor}0d`, borderColor: `${themeColor}1a` }}
+                    className="border p-5 rounded-2xl flex items-start gap-4"
+                >
+                    <div 
+                        style={{ backgroundColor: `${themeColor}1a` }}
+                        className="p-2 rounded-xl"
+                    >
+                        <Info className="w-5 h-5" style={{ color: themeColor }} />
                     </div>
                     <div>
-                        <h4 className="text-xs font-black text-blue-700 uppercase tracking-tight">Temporary Password</h4>
-                        <p className="text-[11px] text-blue-600/80 font-medium leading-relaxed mt-1">
-                            By default, the resident&apos;s <span className="font-bold underline text-blue-800">email address</span> will be used as their temporary password. 
+                        <h4 className="text-xs font-black uppercase tracking-tight" style={{ color: themeColor }}>Temporary Password</h4>
+                        <p className="text-[11px] font-medium leading-relaxed mt-1" style={{ color: `${themeColor}b3` }}>
+                            By default, the resident&apos;s <span className="font-bold underline" style={{ color: themeColor }}>email address</span> will be used as their temporary password. 
                             The system will require them to set a new password upon their first login.
                         </p>
                     </div>

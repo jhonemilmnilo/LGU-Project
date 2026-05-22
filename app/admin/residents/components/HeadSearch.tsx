@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, UserCheck } from "lucide-react";
+import { useResident } from "../providers/ResidentProvider";
 
 // I'll create a search action in app/admin/actions.ts later
 import { searchHeads } from "../../actions";
@@ -16,6 +17,8 @@ export function HeadSearch({ onSelect, defaultValue }: { onSelect: (id: string, 
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResult[]>([]);
     const [selectedName, setSelectedName] = useState(defaultValue || "");
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const { themeColor } = useResident();
 
     const [prevDefault, setPrevDefault] = useState(defaultValue);
     if (defaultValue !== prevDefault) {
@@ -66,9 +69,14 @@ export function HeadSearch({ onSelect, defaultValue }: { onSelect: (id: string, 
                                 setQuery("");
                                 setResults([]);
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 border-b border-slate-100 dark:border-[#2a3040] last:border-0"
+                            onMouseEnter={() => setHoveredId(r.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            style={{ 
+                                backgroundColor: hoveredId === r.id ? `${themeColor}1a` : undefined 
+                            }}
+                            className="w-full text-left px-4 py-3 flex items-center gap-2 border-b border-slate-100 dark:border-[#2a3040] last:border-0 transition-colors"
                         >
-                            <UserCheck className="w-4 h-4 text-blue-500" />
+                            <UserCheck className="w-4 h-4" style={{ color: themeColor }} />
                             <div>
                                 <p className="text-sm font-bold">{r.firstName} {r.lastName}</p>
                                 <p className="text-[10px] text-slate-500 uppercase">{r.barangay}</p>

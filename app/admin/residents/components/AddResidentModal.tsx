@@ -1,4 +1,4 @@
-
+    
 import { useState, useEffect } from "react";
 import { useResident } from "../providers";
 import { useResidentForm } from "../hooks/useResidentForm";
@@ -29,7 +29,7 @@ const STEPS = [
 ];
 
 export function AddResidentModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, setCurrentFamilyMembers } = useResident();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, setCurrentFamilyMembers, themeColor } = useResident();
     const { handleSubmit, loading } = useResidentForm();
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -148,7 +148,10 @@ export function AddResidentModal() {
                     {/* Left Sidebar: Steps Progress */}
                     <div className="lg:w-80 bg-slate-50 dark:bg-[#151b2b] p-8 border-r border-slate-200 dark:border-[#2a3040] hidden lg:block">
                         <div className="flex items-center space-x-3 mb-12">
-                            <div className="p-2.5 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20">
+                            <div 
+                                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                className="p-2.5 rounded-2xl shadow-lg"
+                            >
                                 <User className="w-6 h-6 text-white" />
                             </div>
                             <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">E-Mapandan</h2>
@@ -163,19 +166,26 @@ export function AddResidentModal() {
                                 return (
                                     <div 
                                         key={step.id} 
+                                        style={isActive ? { boxShadow: `0 20px 25px -5px ${themeColor}1a, 0 8px 10px -6px ${themeColor}1a` } : undefined}
                                         className={cn(
                                             "flex items-center space-x-4 p-4 rounded-2xl transition-all duration-300",
-                                            isActive ? "bg-white dark:bg-[#0f1117] shadow-xl shadow-blue-500/5 ring-1 ring-slate-200 dark:ring-white/10" : "opacity-50"
+                                            isActive ? "bg-white dark:bg-[#0f1117] ring-1 ring-slate-200 dark:ring-white/10" : "opacity-50"
                                         )}
                                     >
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                                            isActive ? "bg-blue-600 text-white" : isCompleted ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
-                                        )}>
+                                        <div 
+                                            style={isActive ? { backgroundColor: themeColor } : undefined}
+                                            className={cn(
+                                                "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                                isActive ? "text-white" : isCompleted ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-400"
+                                            )}
+                                        >
                                             <Icon className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className={cn("text-[10px] uppercase font-black tracking-widest", isActive ? "text-blue-600" : "text-slate-400")}>
+                                            <p 
+                                                style={isActive ? { color: themeColor } : undefined}
+                                                className={cn("text-[10px] uppercase font-black tracking-widest", !isActive && "text-slate-400")}
+                                            >
                                                 Step {index + 1}
                                             </p>
                                             <p className="text-sm font-bold text-slate-800 dark:text-white">{step.title}</p>
@@ -264,7 +274,8 @@ export function AddResidentModal() {
                                         key="next-btn"
                                         type="button" 
                                         onClick={nextStep}
-                                        className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20"
+                                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                        className="h-12 px-10 hover:opacity-90 text-white font-bold rounded-2xl transition-all duration-200"
                                     >
                                         Next Component <ChevronRight className="w-4 h-4 ml-2" />
                                     </Button>

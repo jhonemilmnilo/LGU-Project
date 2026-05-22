@@ -20,7 +20,8 @@ export function ResidentFilters() {
         setIsAddModalOpen,
         selectedBarangay, setSelectedBarangay,
         selectedGender, setSelectedGender,
-        selectedCategory, setSelectedCategory
+        selectedCategory, setSelectedCategory,
+        themeColor
     } = useResident();
 
     const [mounted, setMounted] = useState(false);
@@ -68,7 +69,7 @@ export function ResidentFilters() {
                             placeholder="Search resident name..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-xl"
+                            className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-0 rounded-xl transition-all"
                         />
                     </div>
 
@@ -89,7 +90,7 @@ export function ResidentFilters() {
                             </Select>
                         ) : (
                             <div className="h-11 px-4 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center gap-2 border border-slate-200 dark:border-slate-700">
-                                <Filter className="w-3 h-3 text-blue-500" />
+                                <Filter className="w-3 h-3" style={{ color: themeColor }} />
                                 <span className="text-xs font-black uppercase text-slate-600 dark:text-slate-400">{managedBarangay}</span>
                             </div>
                         )}
@@ -122,7 +123,8 @@ export function ResidentFilters() {
                 <div className="flex items-center gap-2 w-full lg:w-auto">
                     <Button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 px-6 rounded-xl w-full sm:w-auto"
+                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                        className="h-11 hover:opacity-90 active:scale-95 text-white px-6 rounded-xl w-full sm:w-auto transition-all duration-200"
                     >
                         <Plus className="w-4 h-4 mr-2" /> Register Resident
                     </Button>

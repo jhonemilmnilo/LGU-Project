@@ -16,7 +16,8 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
     const { 
         formCategoryId: selectedId, 
         setFormCategoryId: setSelectedId,
-        setFormCategoryName
+        setFormCategoryName,
+        themeColor
     } = useResident();
 
     const [genderVal, setGenderVal] = useState(() => {
@@ -96,13 +97,15 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 placeholder="Specify gender" 
                                 defaultValue={(data?.gender === "Other" ? "" : data?.gender) || ""}
                                 required 
-                                className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                                style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+                                className="h-10 uppercase font-bold focus-visible:ring-1"
                                 autoFocus
                             />
                             <button 
                                 type="button" 
                                 onClick={() => setGenderVal(GENDERS[0])}
-                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                style={{ color: themeColor }}
                                 title="Back to list"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
@@ -135,7 +138,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Age</label>
-                    <Input name="age" type="number" value={age} readOnly className="bg-slate-50 cursor-not-allowed font-bold text-blue-600" />
+                    <Input name="age" type="number" value={age} readOnly style={{ color: themeColor }} className="bg-slate-50 cursor-not-allowed font-bold" />
                 </div>
             </div>
 
@@ -151,13 +154,15 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 placeholder="Specify status" 
                                 defaultValue={(data?.civilStatus === "Other" ? "" : data?.civilStatus) || ""}
                                 required 
-                                className="h-10 border-blue-400 focus:border-blue-500 bg-blue-50/30 uppercase font-bold"
+                                style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+                                className="h-10 uppercase font-bold focus-visible:ring-1"
                                 autoFocus
                             />
                             <button 
                                 type="button" 
                                 onClick={() => setCivilStatusVal(CIVIL_STATUSES[0])}
-                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-colors"
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                style={{ color: themeColor }}
                                 title="Back to list"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
@@ -210,7 +215,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
             <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
                 <div className="flex items-center justify-between">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Categories</label>
-                    <span className="text-[10px] font-bold text-blue-500 uppercase">Select a category</span>
+                    <span style={{ color: themeColor }} className="text-[10px] font-bold uppercase">Select a category</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {categories.map(cat => {
@@ -222,16 +227,17 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                     e.preventDefault();
                                     selectCategory(cat.id, cat.name);
                                 }}
+                                style={isSelected ? { backgroundColor: themeColor, borderColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` } : undefined}
                                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all cursor-pointer select-none group ${
                                     isSelected
-                                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-blue-400 dark:bg-[#1a1f2e] dark:border-[#2a3040] dark:text-slate-400 opacity-80 hover:opacity-100'
+                                    ? 'text-white scale-105'
+                                    : 'bg-white border-slate-200 text-slate-600 dark:bg-[#1a1f2e] dark:border-[#2a3040] dark:text-slate-400 opacity-80 hover:opacity-100'
                                 }`}
                             >
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                    isSelected ? 'bg-white border-white' : 'border-slate-300 dark:border-slate-600 group-hover:border-blue-400'
-                                }}`}>
-                                    {isSelected && <div className="w-2 h-2 rounded-full bg-blue-600 animate-in zoom-in-50 duration-200" />}
+                                    isSelected ? 'bg-white border-white' : 'border-slate-300 dark:border-slate-600'
+                                }`}>
+                                    {isSelected && <div style={{ backgroundColor: themeColor }} className="w-2 h-2 rounded-full animate-in zoom-in-50 duration-200" />}
                                 </div>
                                 <span className="text-xs font-black uppercase tracking-tight">
                                     {cat.name}

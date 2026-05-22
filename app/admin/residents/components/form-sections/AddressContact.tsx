@@ -22,7 +22,8 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
     const { 
         currentFamilyMembers: familyMembers, 
         setCurrentFamilyMembers: setFamilyMembers,
-        formCategoryName
+        formCategoryName,
+        themeColor
     } = useResident();
 
     const [isHead, setIsHead] = useState(data?.isHead || false);
@@ -68,7 +69,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     <div className="space-y-0.5">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resident Address Context</p>
                         <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                            Category: <span className="text-blue-600 dark:text-blue-400 uppercase">{formCategoryName || "Not Specified"}</span>
+                            Category: <span className="uppercase font-bold" style={{ color: themeColor }}>{formCategoryName || "Not Specified"}</span>
                         </p>
                     </div>
                 </div>
@@ -101,7 +102,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-blue-600 dark:text-blue-400">Barangay *</label>
+                    <label className="text-sm font-semibold" style={{ color: themeColor }}>Barangay *</label>
                     {isGuest ? (
                         <Input 
                             name="barangay" 
@@ -116,7 +117,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                                 <Input 
                                     value={managedBarangay || ""} 
                                     readOnly 
-                                    className="bg-slate-50 dark:bg-slate-900 font-bold border-blue-100 dark:border-blue-900 cursor-not-allowed"
+                                    className="bg-slate-50 dark:bg-slate-900 font-bold border-slate-200 dark:border-slate-800 cursor-not-allowed"
                                 />
                                 <input type="hidden" name="barangay" value={managedBarangay || ""} />
                             </>
@@ -181,7 +182,10 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                 </div>
             </div>
 
-            <div className="bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl space-y-4 border border-blue-100 dark:border-blue-800">
+            <div 
+                style={{ backgroundColor: `${themeColor}08`, borderColor: `${themeColor}1a` }}
+                className="p-4 rounded-xl space-y-4 border"
+            >
                 <div className="flex items-center space-x-2">
                     <Checkbox 
                         id="isHead" 
@@ -189,7 +193,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                         checked={isHead}
                         onCheckedChange={(checked) => setIsHead(!!checked)}
                     />
-                    <label htmlFor="isHead" className="text-sm font-bold text-blue-900 dark:text-blue-100 italic uppercase">
+                    <label htmlFor="isHead" style={{ color: themeColor }} className="text-sm font-bold italic uppercase">
                         Check if this person is the HEAD OF THE HOUSEHOLD
                     </label>
                 </div>
@@ -213,7 +217,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                                <Users className="w-4 h-4 text-blue-500" />
+                                <Users className="w-4 h-4" style={{ color: themeColor }} />
                                 Link Existing Family Members
                             </label>
                             <ResidentSearch 
@@ -236,7 +240,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                         </div>
 
                         {familyMembers.length > 0 && (
-                            <div className="bg-white dark:bg-black/20 rounded-xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
+                            <div className="bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/5 overflow-hidden">
                                 <table className="w-full text-left text-xs">
                                     <thead className="bg-slate-50 dark:bg-slate-900 font-bold uppercase tracking-wider text-[10px] text-slate-500">
                                         <tr>

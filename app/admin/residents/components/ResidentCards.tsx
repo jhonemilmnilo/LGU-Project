@@ -4,7 +4,7 @@ import { useResident } from "../providers/ResidentProvider";
 import { Users, UserCheck, Briefcase, MapPin } from "lucide-react";
 
 export function ResidentCards() {
-    const { residents } = useResident();
+    const { residents, themeColor } = useResident();
 
     const totalResidents = residents.length;
     
@@ -20,8 +20,9 @@ export function ResidentCards() {
         {
             title: "Total Residents",
             value: totalResidents.toString(),
-            icon: <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
-            bgColor: "bg-blue-100 dark:bg-blue-500/20"
+            icon: <Users className="w-6 h-6" style={{ color: themeColor }} />,
+            bgColor: "",
+            style: { backgroundColor: `${themeColor}1a` }
         },
         {
             title: "Citizens",
@@ -47,7 +48,10 @@ export function ResidentCards() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {cards.map((card, index) => (
                 <div key={index} className="bg-white dark:bg-[#151b2b] p-6 rounded-2xl border border-slate-200 dark:border-[#2a3040] shadow-sm flex items-center gap-4 transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-none ring-1 ring-slate-200/50 dark:ring-white/5">
-                    <div className={`p-4 rounded-xl ${card.bgColor}`}>
+                    <div 
+                        style={card.style}
+                        className={`p-4 rounded-xl ${card.bgColor}`}
+                    >
                         {card.icon}
                     </div>
                     <div>
