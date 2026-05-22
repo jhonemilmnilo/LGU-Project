@@ -97,11 +97,7 @@ export default function DeathRegistrationPage() {
     const [policyOpen, setPolicyOpen] = useState(false);
     const [policyAccepted, setPolicyAccepted] = useState(false);
 
-    useEffect(() => {
-        try { const accepted = localStorage.getItem("lcr_privacy_accepted"); setPolicyAccepted(!!accepted); } catch { }
-    }, []);
-
-    const handleAcceptPolicy = () => { localStorage.setItem("lcr_privacy_accepted", "1"); setPolicyOpen(false); setPolicyAccepted(true); };
+    const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
 
     const isRestoredRef = useRef(false);
 
@@ -200,14 +196,9 @@ export default function DeathRegistrationPage() {
 
     const handleSubmit = async () => {
         // Require privacy terms acceptance before allowing submit
-        try {
-            const accepted = localStorage.getItem("lcr_privacy_accepted");
-            if (!accepted) {
-                toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
-                return;
-            }
-        } catch {
-            // ignore
+        if (!policyAccepted) {
+            toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
+            return;
         }
         if (!typeId) {
             toast.error("Service type not initialized. Please try again later.");
@@ -296,7 +287,7 @@ export default function DeathRegistrationPage() {
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
-                onDecline={() => { try { localStorage.removeItem("lcr_privacy_accepted"); } catch {} setPolicyAccepted(false); }}
+                onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--emerald-600)"
             />
             <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">

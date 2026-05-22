@@ -80,6 +80,7 @@ interface FormState {
     motherLastName: string;
     birthType: string;
     registrationType: "STANDARD" | "LATE";
+    lateDuration?: "1-10" | "10-20" | "20+" | string;
     // Shared
     paymentType: "E_PAYMENT" | "WALK_IN";
     files: Record<string, File | null>;
@@ -123,6 +124,7 @@ export default function BirthRegistrationPage() {
         motherLastName: "",
         birthType: "SINGLE",
         registrationType: "STANDARD",
+        lateDuration: "",
         paymentType: "E_PAYMENT",
         files: {},
         previews: {},
@@ -145,15 +147,15 @@ export default function BirthRegistrationPage() {
     // Privacy / Terms modal state (shared key across LCR pages)
     const [policyOpen, setPolicyOpen] = useState(false);
 
-    useEffect(() => {
-        try { const accepted = localStorage.getItem("lcr_privacy_accepted"); setPolicyAccepted(!!accepted); } catch { }
-    }, []);
-
     const [policyAccepted, setPolicyAccepted] = useState(false);
 
-    const handleAcceptPolicy = () => { localStorage.setItem("lcr_privacy_accepted", "1"); setPolicyOpen(false); setPolicyAccepted(true); };
+    const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
 
     const isRestoredRef = useRef(false);
+
+    const estimatedPayment = form.registrationType === "STANDARD" ? 215 : (
+        form.lateDuration === "1-10" ? 315 : form.lateDuration === "10-20" ? 515 : form.lateDuration === "20+" ? 1015 : 0
+    );
 
     // Persist progress to session storage
     useEffect(() => {
@@ -320,14 +322,9 @@ export default function BirthRegistrationPage() {
 
     const handleSubmit = async () => {
         // Require privacy terms acceptance before allowing submit
-        try {
-            const accepted = localStorage.getItem("lcr_privacy_accepted");
-            if (!accepted) {
-                toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
-                return;
-            }
-        } catch {
-            // ignore
+        if (!policyAccepted) {
+            toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
+            return;
         }
         if (!resident) {
             toast.error("Resident profile not found. Please complete your profile first.");
@@ -351,6 +348,11 @@ export default function BirthRegistrationPage() {
 
         if (!form.idTypeOverride && !resident?.idType) {
             toast.error("Please select an ID type.");
+            return;
+        }
+
+        if (form.registrationType === "LATE" && !form.lateDuration) {
+            toast.error("Please select late registration period to compute the fee.");
             return;
         }
 
@@ -396,6 +398,8 @@ export default function BirthRegistrationPage() {
                 idFrontUrl: resident?.idFrontUrl,
                 idBackUrl: resident?.idBackUrl,
                 paymentType: form.paymentType,
+                lateDuration: form.lateDuration || null,
+                estimatedPayment: estimatedPayment,
             };
 
             formData.append("additionalData", JSON.stringify(baseAdditionalData));
@@ -443,7 +447,7 @@ export default function BirthRegistrationPage() {
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
-                onDecline={() => { try { localStorage.removeItem("lcr_privacy_accepted"); } catch {} setPolicyAccepted(false); }}
+                onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--amber-500)"
             />
             <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
@@ -1069,7 +1073,7 @@ export default function BirthRegistrationPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4">
+                                                                    <div className="space-y-4">
                                             <div className="flex items-center gap-2">
                                                 <div className="p-1.5 bg-blue-500/10 rounded-lg">
                                                     <Upload className="w-3.5 h-3.5 text-blue-500" />
@@ -1174,6 +1178,26 @@ export default function BirthRegistrationPage() {
                                                     </>
                                                 )}
                                             </div>
+
+                                            {form.registrationType === "LATE" && (
+                                                <div className="pt-2">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Late Registration Period</span>
+                                                    <div className="mt-2 flex flex-col md:flex-row gap-2">
+                                                        <label className="inline-flex items-center gap-2 p-2 rounded-lg border cursor-pointer">
+                                                            <input type="radio" name="lateDuration" checked={form.lateDuration === "1-10"} onChange={() => setForm(p => ({ ...p, lateDuration: "1-10" }))} />
+                                                            <span className="text-[11px] font-bold">1 month – 10 years</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center gap-2 p-2 rounded-lg border cursor-pointer">
+                                                            <input type="radio" name="lateDuration" checked={form.lateDuration === "10-20"} onChange={() => setForm(p => ({ ...p, lateDuration: "10-20" }))} />
+                                                            <span className="text-[11px] font-bold">10 – 20 years</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center gap-2 p-2 rounded-lg border cursor-pointer">
+                                                            <input type="radio" name="lateDuration" checked={form.lateDuration === "20+"} onChange={() => setForm(p => ({ ...p, lateDuration: "20+" }))} />
+                                                            <span className="text-[11px] font-bold">20 years and above</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </Card>
@@ -1190,12 +1214,14 @@ export default function BirthRegistrationPage() {
                                         </div>
                                         <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600">Review</button>
                                     </div>
-                                    {/* <div className="flex items-center gap-3 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
-                                        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-                                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold italic">
-                                            By submitting, I certify that all information provided is true and correct. I am aware of the data privacy policy of Mapandan.
-                                        </p>
-                                    </div> */}
+
+                                    <div className="p-3 rounded-2xl border border-slate-200/20 bg-white/30 dark:bg-white/5 flex items-center justify-between">
+                                        <div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Estimated Payment</div>
+                                            <div className="text-lg font-extrabold">P{estimatedPayment > 0 ? estimatedPayment.toString() : "—"}</div>
+                                        </div>
+                                        <div className="text-xs text-slate-400 italic">{form.registrationType === "STANDARD" ? "Standard registration fee" : (form.lateDuration ? "Late registration fee" : "Select late period to compute fee")}</div>
+                                    </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                         <Button 
