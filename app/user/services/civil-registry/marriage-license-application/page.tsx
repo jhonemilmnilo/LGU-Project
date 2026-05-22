@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from "react";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, AlertCircle, FileText } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -81,7 +81,7 @@ export default function MarriageLicenseApplicationPage() {
 	const [typeId, setTypeId] = useState("");
 
 	const [resident, setResident] = useState<any>(null);
-	const [hasDraft, setHasDraft] = useState(false);
+	const [, setHasDraft] = useState(false);
 
 	type Step = "IDENTITY" | "DETAILS" | "CONFIRM";
 	const STEPS: { id: Step; label: string; icon: any }[] = [
@@ -123,7 +123,7 @@ export default function MarriageLicenseApplicationPage() {
 
 	useEffect(() => {
 		if (!loading) {
-			const { files, previews, ...savable } = form;
+			const savable = (() => { const copy: any = { ...form }; delete copy.files; delete copy.previews; return copy; })();
 			localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: savable, currentStep }));
 			setHasDraft(true);
 		}
@@ -209,11 +209,7 @@ export default function MarriageLicenseApplicationPage() {
 			});
 		};
 
-	const toggleDoc = (d: string) => {
-		setForm((p: any) => ({ ...p, requiredDocs: { ...(p.requiredDocs || {}), [d]: !(p.requiredDocs || {})[d] } }));
-		// if doc is being unselected, clear any missing alert for it
-		setMissingFiles((m) => ({ ...m, [d]: false }));
-	};
+    
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
 		const file = e.target.files?.[0] || null;
@@ -539,7 +535,10 @@ export default function MarriageLicenseApplicationPage() {
 											form.files?.[d] ? "border-amber-500" : missingFiles[d] ? "border-red-500 bg-red-50 dark:bg-red-900/10" : "border-slate-200 dark:border-white/10"
 										)}>
 											{form.previews?.[d] ? (
-												<img src={form.previews[d] || ""} className="absolute inset-0 w-full h-full object-cover" />
+												<>
+													{/* eslint-disable-next-line @next/next/no-img-element */}
+													<img src={form.previews[d] || ""} alt="Document preview" className="absolute inset-0 w-full h-full object-cover" />
+												</>
 											) : (
 												<>
 													<Upload className="w-8 h-8 text-slate-300 group-hover:text-amber-500 transition-colors" />
@@ -577,7 +576,10 @@ export default function MarriageLicenseApplicationPage() {
 											{d} {form.files?.[d] ? ` — ${form.files[d]?.name}` : ''}
 										</div>
 										{form.previews?.[d] ? (
-											<img src={form.previews[d] || ""} className="w-16 h-12 object-cover rounded-md border" />
+											<>
+												{/* eslint-disable-next-line @next/next/no-img-element */}
+												<img src={form.previews[d] || ""} alt="Document thumbnail" className="w-16 h-12 object-cover rounded-md border" />
+											</>
 										) : form.files?.[d] ? (
 											<div className="text-[10px] text-slate-400 italic">{form.files[d]?.type === 'application/pdf' ? 'PDF' : ''}</div>
 										) : null}

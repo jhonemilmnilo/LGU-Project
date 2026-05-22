@@ -87,7 +87,7 @@ interface FormState {
     spouseName: string; // For marriage
     // Shared
     deliveryType: "PICK_UP" | "DELIVERY" | "E_COPY";
-    paymentType: "E_PAYMENT" | "WALK_IN";
+    paymentType: "WALK_IN";
     files: Record<string, File | null>;
     idTypeOverride?: string;
     email: string;
@@ -160,7 +160,7 @@ export default function CivilRegistryPage() {
         certSuffix: "",
         certDocType: "Birth Certificate",
         deliveryType: "PICK_UP",
-        paymentType: "E_PAYMENT",
+        paymentType: "WALK_IN",
         files: {},
         idTypeOverride: "",
         email: "",
@@ -363,7 +363,6 @@ export default function CivilRegistryPage() {
                 spouseName: form.spouseName,
                 relationship: form.relationship,
                 fulfillmentType: form.deliveryType,
-                paymentType: form.paymentType,
                 email: form.email,
                 contactNumber: form.contactNumber,
                 idType: form.idTypeOverride || resident?.idType,
