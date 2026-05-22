@@ -1586,6 +1586,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </p>
                                         </div>
 
+                                        {transaction.status === "RETURN_REQUESTED" && (
+                                            <Button
+                                                onClick={handlePrintWaybill}
+                                                variant="outline"
+                                                className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all mb-2"
+                                            >
+                                                Generate & Print Waybill
+                                            </Button>
+                                        )}
+
                                         <div className="grid grid-cols-2 gap-3">
                                             <Dialog open={disputeModalOpen && disputeAction === 'APPROVE'} onOpenChange={(open) => { setDisputeModalOpen(open); setDisputeAction('APPROVE'); setRemarks(''); }}>
                                                 <DialogTrigger asChild>

@@ -2198,7 +2198,7 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
 
         let newStatus: string;
         if (action === 'APPROVE') {
-            newStatus = (tx.status as any) === "RETURN_REQUESTED" ? "PAID" : "REFUNDED";
+            newStatus = (tx.status as any) === "RETURN_REQUESTED" ? "FOR_PICKING" : "REFUNDED";
         } else {
             newStatus = "DISPUTE_REJECTED";
         }
