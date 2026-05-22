@@ -299,18 +299,7 @@ export default function CivilRegistryPage() {
         init();
     }, []);
 
-    useEffect(() => {
-        try {
-            const accepted = localStorage.getItem("lcr_privacy_accepted");
-            setPolicyAccepted(!!accepted);
-        } catch {}
-    }, []);
-
-    const handleAcceptPolicy = () => {
-        localStorage.setItem("lcr_privacy_accepted", "1");
-        setPolicyOpen(false);
-        setPolicyAccepted(true);
-    };
+    const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
 
     const selectedType = REGISTRY_TYPES.find(t => t.id === form.registryType);
     const dbType = availableTypes.find(t => t.code === `LCR_${form.registryType}`);
@@ -342,14 +331,9 @@ export default function CivilRegistryPage() {
         }
 
         // Require privacy terms acceptance before allowing submit
-        try {
-            const accepted = localStorage.getItem("lcr_privacy_accepted");
-            if (!accepted) {
-                toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
-                return;
-            }
-        } catch {
-            // ignore
+        if (!policyAccepted) {
+            toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
+            return;
         }
 
         setSubmitting(true);
@@ -427,7 +411,7 @@ export default function CivilRegistryPage() {
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
-                onDecline={() => { try { localStorage.removeItem("lcr_privacy_accepted"); } catch {} setPolicyAccepted(false); }}
+                onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--blue-500)"
             />
             <div className="max-w-4xl mx-auto space-y-8">
