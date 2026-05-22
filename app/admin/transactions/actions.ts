@@ -1042,6 +1042,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         const transactionId = formData.get("transactionId") as string;
         const fulfillmentType = formData.get("fulfillmentType") as "PICK_UP" | "DELIVERY" | "E_COPY";
         const paymentType = formData.get("paymentType") as string;
+        const gcashReferenceNo = formData.get("gcashReferenceNo") as string;
 
         // Delivery Details
         const deliveryAddress = formData.get("deliveryAddress") ? JSON.parse(formData.get("deliveryAddress") as string) : null;
@@ -1104,6 +1105,10 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
                 paymentReference: paymentProofUrl || transaction.paymentReference, // Store the image URL here
                 totalAmount: finalAmount,
                 status: newStatus as any,
+                additionalData: {
+                    ...(transaction.additionalData as any || {}),
+                    gcashReferenceNo: gcashReferenceNo || null
+                },
                 fiscalSnapshot: {
                     ...(transaction.fiscalSnapshot as any || {}),
                     deliveryFee: (fulfillmentType === "DELIVERY" ? (finalAmount - Number(transaction.totalAmount)) : 0),

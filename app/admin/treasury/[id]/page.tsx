@@ -18,7 +18,8 @@ import {
     ZoomOut,
     ExternalLink,
     AlertCircle,
-    Ban
+    Ban,
+    Hash
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -931,7 +932,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     </div>
 
                     {/* IDENTITY & AUTHENTICATION */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <div className="flex items-center gap-3">
@@ -1025,6 +1026,31 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
                                                 )}
                                             </Dialog>
+
+                                            {/* GCash Reference Number Section - Premium Copyable Badge */}
+                                            {((transaction.additionalData as any)?.gcashReferenceNo) && (
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <Hash className="w-3.5 h-3.5 text-primary" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Reference Number</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-xs md:text-sm font-black tracking-tight text-slate-800 dark:text-white select-all font-mono">
+                                                            {(transaction.additionalData as any).gcashReferenceNo}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText((transaction.additionalData as any).gcashReferenceNo);
+                                                                toast.success("Reference Number Copied!");
+                                                            }}
+                                                            className="text-[8px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-all flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/10 hover:scale-105 active:scale-95 shrink-0"
+                                                        >
+                                                            Copy
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

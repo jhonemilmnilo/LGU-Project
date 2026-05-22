@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, QrCode, ShieldAlert, Save, RefreshCcw } from "lucide-react";
+import { CreditCard, QrCode, ShieldAlert, Save, RefreshCcw, Building2 } from "lucide-react";
 import { updateTreasurySettings } from "@/app/admin/settings/actions";
 
 interface PaymentSettingsClientProps {
@@ -22,6 +22,11 @@ export default function PaymentSettingsClient({ initialSettings, role }: Payment
     const [gcashQrUrl, setGcashQrUrl] = useState(initialSettings.gcash_qr_url || "");
     const [gcashAccountName, setGcashAccountName] = useState(initialSettings.gcash_account_name || "");
     const [gcashAccountNumber, setGcashAccountNumber] = useState(initialSettings.gcash_account_number || "");
+    
+    const [bankName, setBankName] = useState(initialSettings.bank_name || "");
+    const [bankAccountName, setBankAccountName] = useState(initialSettings.bank_account_name || "");
+    const [bankAccountNumber, setBankAccountNumber] = useState(initialSettings.bank_account_number || "");
+
     const [gcashFile, setGcashFile] = useState<File | null>(null);
     const [gcashPreview, setGcashPreview] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -48,6 +53,9 @@ export default function PaymentSettingsClient({ initialSettings, role }: Payment
             formData.append("imageUrl", gcashQrUrl);
             formData.append("gcashAccountName", gcashAccountName);
             formData.append("gcashAccountNumber", gcashAccountNumber);
+            formData.append("bankName", bankName);
+            formData.append("bankAccountName", bankAccountName);
+            formData.append("bankAccountNumber", bankAccountNumber);
 
             const result = await updateTreasurySettings(formData);
             if (result.success) {
@@ -182,6 +190,50 @@ export default function PaymentSettingsClient({ initialSettings, role }: Payment
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Separator className="bg-slate-100 dark:bg-white/10" />
+
+                    <div className="space-y-8 animate-in fade-in duration-500">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                                <Building2 className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="space-y-0.5">
+                                <h3 className="text-xl font-black italic uppercase tracking-tighter">Bank Transfer Configuration</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 italic">Configure the official Electronic Bank Transfer credentials for citizens.</p>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Official Bank Name</Label>
+                                <Input 
+                                    value={bankName} 
+                                    onChange={(e) => setBankName(e.target.value)} 
+                                    placeholder="e.g. LANDBANK OF THE PHILIPPINES"
+                                    className="h-14 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 font-bold italic text-sm shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Account Holder Name</Label>
+                                <Input 
+                                    value={bankAccountName} 
+                                    onChange={(e) => setBankAccountName(e.target.value)} 
+                                    placeholder="e.g. MUNICIPALITY OF MAPANDAN"
+                                    className="h-14 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 font-bold italic text-sm shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Account Number</Label>
+                                <Input 
+                                    value={bankAccountNumber} 
+                                    onChange={(e) => setBankAccountNumber(e.target.value)} 
+                                    placeholder="e.g. 0541-2345-67"
+                                    className="h-14 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 font-mono font-bold text-sm shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                />
                             </div>
                         </div>
                     </div>

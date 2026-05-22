@@ -93,7 +93,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, themeColo
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 15 }}
                         transition={{ type: "spring", duration: 0.5 }}
-                        className="relative w-full max-w-2xl bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-3xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col z-10 max-h-[80vh] sm:max-h-[85vh]"
+                        className="relative w-full max-w-lg bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10 max-h-[75vh]"
                     >
                         {/* Ambient Glow behind header */}
                         <div 

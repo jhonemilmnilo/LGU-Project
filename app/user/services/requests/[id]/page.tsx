@@ -28,7 +28,8 @@ import {
     QrCode,
     Search,
     Package,
-    ShieldCheck
+    ShieldCheck,
+    Hash
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -84,6 +85,7 @@ export default function RequestHubPage() {
     const [request, setRequest] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isFinalizing, setIsFinalizing] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isCancelling, setIsCancelling] = useState(false);
     const [isDisputing, setIsDisputing] = useState(false);
     const [isResubmitting, setIsResubmitting] = useState(false);
@@ -91,6 +93,7 @@ export default function RequestHubPage() {
 
     // Dispute States
     const [disputeOpen, setDisputeOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [disputeType, setDisputeType] = useState<"RETURN" | "REFUND">("RETURN");
     const [disputeReason, setDisputeReason] = useState("");
     const [disputeFile, setDisputeFile] = useState<File | null>(null);
@@ -103,6 +106,7 @@ export default function RequestHubPage() {
     const [localLng, setLocalLng] = useState<number | null>(null);
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
     const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+    const [gcashReferenceNo, setGcashReferenceNo] = useState("");
 
     // Delivery Address States
     const [address, setAddress] = useState({
@@ -122,6 +126,12 @@ export default function RequestHubPage() {
         qr: "",
         name: "OFFICIAL TREASURY ACCOUNT",
         number: "SCAN TO VIEW"
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [bankDetails, setBankDetails] = useState({
+        bankName: "LANDBANK OF THE PHILIPPINES",
+        accountName: "MUNICIPALITY OF MAPANDAN",
+        accountNumber: "0541-2345-67"
     });
     const [themeColor, setThemeColor] = useState("");
     const [availableBarangays, setAvailableBarangays] = useState<any[]>([]);
@@ -186,12 +196,20 @@ export default function RequestHubPage() {
                 const qrRes = await getSystemSettingAction("gcash_qr_url", "");
                 const nameRes = await getSystemSettingAction("gcash_account_name", "ADMIN ACCOUNT");
                 const numRes = await getSystemSettingAction("gcash_account_number", "0000 000 0000");
+                const bNameRes = await getSystemSettingAction("bank_name", "LANDBANK OF THE PHILIPPINES");
+                const bAccNameRes = await getSystemSettingAction("bank_account_name", "MUNICIPALITY OF MAPANDAN");
+                const bAccNumRes = await getSystemSettingAction("bank_account_number", "0541-2345-67");
                 const themeRes = await getSystemSettingAction("theme_color", "#2563eb");
 
                 setGcashDetails({
                     qr: qrRes.data,
                     name: nameRes.data,
                     number: numRes.data
+                });
+                setBankDetails({
+                    bankName: bNameRes.data,
+                    accountName: bAccNameRes.data,
+                    accountNumber: bAccNumRes.data
                 });
                 setThemeColor(themeRes.data);
             } catch (err) {
@@ -284,6 +302,10 @@ export default function RequestHubPage() {
             toast.error("Please upload proof of payment.");
             return;
         }
+        if ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !gcashReferenceNo.trim()) {
+            toast.error("Please enter the GCash/Transfer Reference Number.");
+            return;
+        }
 
         setIsFinalizing(true);
         try {
@@ -295,6 +317,7 @@ export default function RequestHubPage() {
             formData.append("deliveryLat", String(localLat || ""));
             formData.append("deliveryLng", String(localLng || ""));
             formData.append("deliveryLandmark", address.landmark);
+            formData.append("gcashReferenceNo", gcashReferenceNo.trim());
 
             if (paymentProofFile) {
                 formData.append("paymentFile", paymentProofFile);
@@ -315,6 +338,7 @@ export default function RequestHubPage() {
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleCancel = async () => {
         if (!window.confirm("Are you sure you want to cancel this request?")) return;
 
@@ -452,6 +476,14 @@ export default function RequestHubPage() {
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
     const remainingRevisions = request ? Math.max(0, 3 - (request.revisionCount || 0)) : 3;
+
+    const isReportAllowed = useMemo(() => {
+        if (!request || request.status !== "DELIVERED") return false;
+        const deliveredTime = request.deliveredAt ? new Date(request.deliveredAt) : new Date(request.updatedAt);
+        const timeDiff = Date.now() - deliveredTime.getTime();
+        const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+        return timeDiff <= twoDaysInMs;
+    }, [request]);
 
     const computation = useMemo(() => {
         if (!request) return null;
@@ -736,7 +768,8 @@ export default function RequestHubPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                             {(localFulfillment === "PICK_UP" ? [
                                                 { id: "CASH", label: "Over-the-Counter Cash", icon: Wallet },
-                                                { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard }
+                                                { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
+                                                { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
                                             ] : [
                                                 { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
                                                 { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
@@ -776,6 +809,20 @@ export default function RequestHubPage() {
                                                         </div>
                                                     </div>
                                                 )}
+
+                                                <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/[0.02] rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <Hash className="w-3.5 h-3.5 text-primary" />
+                                                        <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Transaction Reference Number</Label>
+                                                    </div>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="e.g. 5012 3456 78901 (GCash / Bank Transfer Ref No.)"
+                                                        value={gcashReferenceNo}
+                                                        onChange={(e) => setGcashReferenceNo(e.target.value)}
+                                                        className="h-10 md:h-12 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl font-bold italic text-[10px] md:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus-visible:ring-primary focus-visible:border-primary transition-all"
+                                                    />
+                                                </div>
 
                                                 <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/[0.02] rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
                                                     <div className="flex items-center gap-3"><Camera className="w-3.5 h-3.5 text-primary" /><Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Proof of Transaction Evidence</Label></div>
@@ -819,8 +866,8 @@ export default function RequestHubPage() {
                             </TabsList>
 
                             <TabsContent value="overview" className="mt-0 space-y-8 md:space-y-12">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10">
-                                    <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-xl rounded-2xl md:rounded-3xl lg:col-span-2 relative overflow-hidden">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10 items-start">
+                                    <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-xl rounded-2xl md:rounded-3xl lg:col-span-2 relative overflow-hidden h-fit">
                                         <div className="absolute top-0 right-0 p-8 opacity-5"><FileText className="w-32 h-32" /></div>
                                         <div className="relative z-10 space-y-12">
                                             <div className="flex items-center justify-between">
@@ -910,7 +957,7 @@ export default function RequestHubPage() {
                                             <div className="absolute top-0 right-0 p-6 md:p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700"><Info className="w-20 h-20 md:w-24 md:h-24" /></div>
                                             <div className="space-y-6 md:space-y-10 relative z-10">
                                                 <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">Admin Assessment</h3>
-                                                <p className="text-sm md:text-xl font-bold italic opacity-90 leading-relaxed tracking-tight">
+                                                <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
                                                     &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
                                                         ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
                                                         : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)}&quot;
@@ -919,7 +966,7 @@ export default function RequestHubPage() {
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
                                                 <Separator className="bg-white/10" />
                                                 <div className="flex items-end justify-between">
-                                                    <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-2xl md:text-4xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                                                    <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
                                                     <ShieldCheck className="w-6 h-6 text-primary/40" />
                                                 </div>
                                             </div>
@@ -1065,8 +1112,8 @@ export default function RequestHubPage() {
                                     </div>
 
                                     <div className="space-y-6">
-                                        {/* Payment Proof Card for Business Permits - Visible if paymentReference exists */}
-                                        {isBusinessPermit && request.paymentReference && (
+                                        {/* Payment Proof Card - Visible if paymentReference exists */}
+                                        {request.paymentReference && (
                                             <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><Wallet className="w-24 h-24" /></div>
                                                 <div className="relative z-10 space-y-6">
@@ -1122,9 +1169,8 @@ export default function RequestHubPage() {
                                             </div>
                                         )}
 
-                                        {/* Official Receipt (OR) Card for Business Permits - Visible in FOR_CLAIM, FOR_PICKING, IN_ROUTE, RELEASED, or DELIVERED */}
-                                        {isBusinessPermit &&
-                                            ["FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "RELEASED", "DELIVERED"].includes(request.status) &&
+                                        {/* Official Receipt (OR) Card - Visible in FOR_CLAIM, FOR_PICKING, IN_ROUTE, RELEASED, or DELIVERED */}
+                                        {["FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "RELEASED", "DELIVERED"].includes(request.status) &&
                                             request.orUrl && (
                                                 <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                     <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>
@@ -1223,18 +1269,23 @@ export default function RequestHubPage() {
                                                         <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20"><Camera className="w-5 h-5" /></div>
                                                         <div><p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic leading-none opacity-70">POD Protocol</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1 text-slate-900 dark:text-white">Fulfillment Snapshot</p></div>
                                                     </div>
-                                                    <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
-                                                        <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Report Issue</Button></DialogTrigger>
-                                                        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2rem] shadow-2xl p-8">
-                                                            <DialogHeader className="space-y-2"><DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Resolution <span style={{ color: themeColor }}>Center</span></DialogTitle><DialogDescription className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Submit formal dispute for validation</DialogDescription></DialogHeader>
-                                                            <div className="space-y-8 py-6">
-                                                                <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Resolution Protocol</Label><div className="grid grid-cols-2 gap-3">{["RETURN", "REFUND"].map((type) => (<button key={type} onClick={() => setDisputeType(type as any)} className="h-10 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all border-2" style={{ backgroundColor: disputeType === type ? themeColor : undefined, color: disputeType === type ? "white" : undefined, borderColor: disputeType === type ? themeColor : "transparent", boxShadow: disputeType === type ? `0 10px 20px -5px ${themeColor}40` : undefined }}>{type}</button>))}</div></div>
-                                                                <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Core Reason</Label><Textarea placeholder="Describe the issue..." className="min-h-[100px] bg-slate-50 dark:bg-white/5 border-none rounded-xl font-bold italic text-sm p-4 focus:ring-1" style={{ "--tw-ring-color": `${themeColor}40` } as any} value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} /></div>
-                                                                <div className="space-y-2"><Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Evidence Evidence (JPG/PNG)</Label><div className="w-full aspect-[16/9] bg-slate-50 dark:bg-white/5 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center relative overflow-hidden group">{disputePreview ? (<><Image src={disputePreview} alt="Proof" fill className="object-cover" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Button variant="secondary" size="sm" className="h-8 px-4 font-black italic uppercase text-[9px] tracking-widest rounded-lg relative overflow-hidden">Change<input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></Button></div></>) : (<div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors"><Upload className="w-5 h-5 text-slate-300 mb-1" /><p className="text-[8px] font-black uppercase text-slate-400 italic">Upload Evidence</p><input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}</div></div>
-                                                            </div>
-                                                            <DialogFooter><Button onClick={handleDispute} disabled={isDisputing || !disputeReason} className="w-full h-14 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 20px 40px -10px ${themeColor}40` }}>{isDisputing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Secure Dispute Submission</Button></DialogFooter>
-                                                        </DialogContent>
-                                                    </Dialog>
+                                                    {isReportAllowed && (
+                                                             <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
+                                                                 <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Report Issue</Button></DialogTrigger>
+                                                                 <DialogContent className="max-w-[330px] w-full bg-white dark:bg-slate-950 border-none rounded-[1.25rem] shadow-2xl p-4 z-[150]">
+                                                                     <DialogHeader className="space-y-0.5"><DialogTitle className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Resolution <span style={{ color: themeColor }}>Center</span></DialogTitle><DialogDescription className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Submit formal dispute for validation</DialogDescription></DialogHeader>
+                                                                     <div className="space-y-3 py-1.5">
+                                                                         <div className="flex items-center justify-between py-1 bg-slate-50 dark:bg-white/5 px-2.5 rounded-lg border border-slate-100 dark:border-white/5">
+                                                                             <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic">Protocol</span>
+                                                                             <span className="text-[7px] font-black uppercase tracking-widest text-primary italic bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20" style={{ color: themeColor, borderColor: `${themeColor}20`, backgroundColor: `${themeColor}10` }}>RETURN ONLY</span>
+                                                                         </div>
+                                                                         <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Core Reason</Label><Textarea placeholder="Describe the issue..." className="min-h-[50px] bg-slate-50 dark:bg-white/5 border-none rounded-xl font-bold italic text-[10px] p-2 focus:ring-1 focus-visible:ring-1 focus-visible:ring-offset-0 focus:outline-none placeholder:text-slate-400 text-slate-800 dark:text-white" style={{ "--tw-ring-color": `${themeColor}40` } as any} value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} /></div>
+                                                                         <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Evidence JPG/PNG</Label><div className="w-full aspect-[21/6] bg-slate-50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">{disputePreview ? (<><Image src={disputePreview} alt="Proof" fill className="object-cover" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Button variant="secondary" size="sm" className="h-6 px-2 font-black italic uppercase text-[7px] tracking-widest rounded-lg relative overflow-hidden">Change<input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></Button></div></>) : (<div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"><Upload className="w-3.5 h-3.5 text-slate-300 mb-0.5" /><p className="text-[6px] font-black uppercase text-slate-400 italic">Upload Evidence</p><input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}</div></div>
+                                                                     </div>
+                                                                     <DialogFooter><Button onClick={handleDispute} disabled={isDisputing || !disputeReason} className="w-full h-8 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}>{isDisputing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Submit</Button></DialogFooter>
+                                                                 </DialogContent>
+                                                             </Dialog>
+                                                         )}
                                                 </div>
                                                 <Button asChild variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10">
                                                     <a href={request.podUrl} target="_blank" rel="noopener noreferrer">View Deployment Snapshot <ExternalLink className="w-3 h-3 ml-2" /></a>
