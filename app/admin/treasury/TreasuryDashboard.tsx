@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
     getTreasuryTransactions, 
     getPendingTreasuryCount,
@@ -20,8 +20,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
     Search, RefreshCcw, 
-    Archive, Clock
+    Archive, Clock, ChevronDown
 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -61,7 +69,20 @@ export default function TreasuryDashboard() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+    const [sortBy, setSortBy] = useState<"date" | "service">("date");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+    const [serviceFilter, setServiceFilter] = useState<string | null>(null);
+
+    // Compute unique services present in the current transactions list for dynamic cycling
+    const uniqueServices = useMemo(() => {
+        const services = new Set<string>();
+        transactions.forEach(tx => {
+            if (tx.type?.name) {
+                services.add(tx.type.name);
+            }
+        });
+        return Array.from(services).sort();
+    }, [transactions]);
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -112,6 +133,11 @@ export default function TreasuryDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading]);
 
+    // Reset serviceFilter and page when status changes to prevent lingering filter states across empty pages
+    useEffect(() => {
+        setServiceFilter(null);
+    }, [status]);
+
     // Reset to page 1 when filters change
     useEffect(() => {
         if (currentPage !== 1) {
@@ -124,15 +150,28 @@ export default function TreasuryDashboard() {
         const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
         const refId = tx.id.slice(-8).toUpperCase();
         const searchUpper = search.toUpperCase();
-        return name.includes(search.toLowerCase()) || 
-               tx.id.toLowerCase().includes(search.toLowerCase()) ||
-               refId.includes(searchUpper);
+        
+        const matchesSearch = name.includes(search.toLowerCase()) || 
+                             tx.id.toLowerCase().includes(search.toLowerCase()) ||
+                             refId.includes(searchUpper);
+                             
+        const matchesService = !serviceFilter || tx.type?.name === serviceFilter;
+        
+        return matchesSearch && matchesService;
     });
 
     const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-        const dateA = new Date(a.updatedAt).getTime();
-        const dateB = new Date(b.updatedAt).getTime();
-        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+        if (sortBy === "service") {
+            const serviceA = (a.type?.name || "").toLowerCase();
+            const serviceB = (b.type?.name || "").toLowerCase();
+            return sortDirection === "asc" 
+                ? serviceA.localeCompare(serviceB)
+                : serviceB.localeCompare(serviceA);
+        } else {
+            const dateA = new Date(a.updatedAt).getTime();
+            const dateB = new Date(b.updatedAt).getTime();
+            return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+        }
     });
 
     const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
@@ -140,6 +179,27 @@ export default function TreasuryDashboard() {
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
+
+    // Toggles sorting direction for the service column
+    const handleServiceSortToggle = () => {
+        if (sortBy === "service") {
+            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+        } else {
+            setSortBy("service");
+            setSortDirection("asc");
+        }
+    };
+
+    // Resets any dynamic service filtering when explicit date sorting is toggled
+    const handleDateHeaderClick = () => {
+        setServiceFilter(null);
+        if (sortBy === "date") {
+            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+        } else {
+            setSortBy("date");
+            setSortDirection("desc");
+        }
+    };
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -211,18 +271,96 @@ export default function TreasuryDashboard() {
                                     <TableRow className="hover:bg-transparent">
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Service</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">
+                                            <div className="flex items-center gap-2">
+                                                {/* Sort Trigger */}
+                                                <button
+                                                    onClick={handleServiceSortToggle}
+                                                    className="flex items-center gap-1.5 hover:text-primary transition-colors focus:outline-none font-bold"
+                                                >
+                                                    <span>Service</span>
+                                                    <span className={cn(
+                                                        "transition-colors duration-200 font-black text-[10px]",
+                                                        sortBy === "service" 
+                                                            ? "text-blue-600 dark:text-blue-400 font-bold" 
+                                                            : "text-slate-300 dark:text-slate-600"
+                                                    )}>
+                                                        {sortBy === "service" 
+                                                            ? (sortDirection === "asc" ? "▲" : "▼") 
+                                                            : "⇅"
+                                                        }
+                                                    </span>
+                                                </button>
+
+                                                {/* Dropdown Filter Trigger */}
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button className={cn(
+                                                            "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide border transition-all duration-200 focus:outline-none cursor-pointer",
+                                                            serviceFilter
+                                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-900/60"
+                                                                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/50"
+                                                        )}>
+                                                            <span>{serviceFilter ? `Category: ${serviceFilter}` : "Filter"}</span>
+                                                            <ChevronDown className="w-3 h-3 text-slate-500" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="w-64 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-[#2a3040] shadow-xl rounded-xl p-1.5 z-50">
+                                                        <DropdownMenuLabel className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 py-1.5 uppercase tracking-wider">
+                                                            Select Category
+                                                        </DropdownMenuLabel>
+                                                        <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                                                        <DropdownMenuItem
+                                                            onClick={() => setServiceFilter(null)}
+                                                            className={cn(
+                                                                "rounded-lg px-2.5 py-2 text-xs font-bold cursor-pointer transition-colors leading-none",
+                                                                !serviceFilter 
+                                                                    ? "bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400" 
+                                                                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                            )}
+                                                        >
+                                                            All Categories
+                                                        </DropdownMenuItem>
+                                                        {uniqueServices.map(srv => (
+                                                            <DropdownMenuItem
+                                                                key={srv}
+                                                                onClick={() => {
+                                                                    setSortBy("service");
+                                                                    setServiceFilter(srv);
+                                                                }}
+                                                                className={cn(
+                                                                    "rounded-lg px-2.5 py-2 text-xs font-bold cursor-pointer transition-colors leading-none mt-0.5",
+                                                                    serviceFilter === srv 
+                                                                        ? "bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400" 
+                                                                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                                )}
+                                                            >
+                                                                {srv}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
                                         <TableHead 
-                                            className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
-                                            onClick={() => setSortDirection(prev => prev === "asc" ? "desc" : "asc")}
+                                            className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors py-5"
+                                            onClick={handleDateHeaderClick}
                                         >
-                                            <div className="flex items-center gap-1.5">
-                                                Date
-                                                <span className="text-slate-400 dark:text-slate-500 font-black text-[10px]">
-                                                    {sortDirection === "asc" ? "▲" : "▼"}
+                                            <div className="flex items-center gap-1.5 group">
+                                                <span>Date</span>
+                                                <span className={cn(
+                                                    "transition-colors duration-200 font-black text-[10px]",
+                                                    sortBy === "date" 
+                                                        ? "text-blue-600 dark:text-blue-400 font-bold" 
+                                                        : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400"
+                                                )}>
+                                                    {sortBy === "date" 
+                                                        ? (sortDirection === "asc" ? "▲" : "▼") 
+                                                        : "⇅"
+                                                    }
                                                 </span>
                                             </div>
                                         </TableHead>
