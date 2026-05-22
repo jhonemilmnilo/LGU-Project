@@ -5,20 +5,15 @@ import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    FileText,
     User,
     Loader2,
     Check,
     Home,
-    Sparkles,
     Heart,
     ArrowRight,
     Search,
     CheckCircle2,
-    Users,
-    Baby,
     Upload,
-    Info,
     AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -171,7 +166,7 @@ export default function MarriageRegistrationPage() {
     // Save progress to localStorage
     useEffect(() => {
         if (!loading) {
-            const { files, previews, ...savableForm } = form;
+            const savableForm = (() => { const copy: any = { ...form }; delete copy.files; delete copy.previews; return copy; })();
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
                 form: savableForm,
                 currentStep
@@ -658,7 +653,10 @@ export default function MarriageRegistrationPage() {
                                                     className="aspect-video relative rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all group overflow-hidden"
                                                 >
                                                     {form.previews.marriageCert ? (
-                                                        <img src={form.previews.marriageCert} className="absolute inset-0 w-full h-full object-cover" />
+                                                        <>
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img src={form.previews.marriageCert} alt="Marriage certificate preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <Upload className="w-8 h-8 text-slate-300 group-hover:text-rose-500 transition-colors" />
@@ -673,21 +671,36 @@ export default function MarriageRegistrationPage() {
                                                 <div className="space-y-4">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Negative Certificate from PSA</Label>
                                                     <div onClick={() => document.getElementById('psaNeg')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
-                                                        {form.previews.psaNeg ? <img src={form.previews.psaNeg} className="absolute inset-0 w-full h-full object-cover" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                                        {form.previews.psaNeg ? (
+                                                            <>
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={form.previews.psaNeg} alt="PSA negative certificate preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                            </>
+                                                        ) : <Upload className="w-6 h-6 text-slate-300" />}
                                                         <input type="file" id="psaNeg" className="hidden" onChange={e => handleFileChange(e, 'psaNeg')} />
                                                     </div>
                                                 </div>
                                                 <div className="space-y-4">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affidavit of Delayed Registration</Label>
                                                     <div onClick={() => document.getElementById('affidavitDelay')?.click()} className="aspect-video relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
-                                                        {form.previews.affidavitDelay ? <img src={form.previews.affidavitDelay} className="absolute inset-0 w-full h-full object-cover" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                                        {form.previews.affidavitDelay ? (
+                                                            <>
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={form.previews.affidavitDelay} alt="Affidavit preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                            </>
+                                                        ) : <Upload className="w-6 h-6 text-slate-300" />}
                                                         <input type="file" id="affidavitDelay" className="hidden" onChange={e => handleFileChange(e, 'affidavitDelay')} />
                                                     </div>
                                                 </div>
                                                 <div className="space-y-4 md:col-span-2">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Certified Copy of Marriage License</Label>
                                                     <div onClick={() => document.getElementById('marriageLicense')?.click()} className="aspect-video max-w-md mx-auto relative rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all overflow-hidden">
-                                                        {form.previews.marriageLicense ? <img src={form.previews.marriageLicense} className="absolute inset-0 w-full h-full object-cover" /> : <Upload className="w-6 h-6 text-slate-300" />}
+                                                        {form.previews.marriageLicense ? (
+                                                            <>
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={form.previews.marriageLicense} alt="Marriage license preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                            </>
+                                                        ) : <Upload className="w-6 h-6 text-slate-300" />}
                                                         <input type="file" id="marriageLicense" className="hidden" onChange={e => handleFileChange(e, 'marriageLicense')} />
                                                     </div>
                                                 </div>

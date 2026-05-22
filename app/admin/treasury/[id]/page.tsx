@@ -454,39 +454,67 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ? (typeof transaction.deliveryAddress === 'string' ? JSON.parse(transaction.deliveryAddress) : transaction.deliveryAddress)
         : null;
 
-    const calcResult = fiscal ? {
-        basicTax: fiscal.basicTax,
-        additionalTax: fiscal.additionalTax,
-        penalty: fiscal.penaltyCharge,
-        deliveryFee: fiscal.deliveryFee || 0,
-        totalAmount: fiscal.totalAmount
-    } : isBusinessPermit ? (() => {
-        const cap = Number(additional.capitalInvestment || 0);
-        const sales = Number(additional.grossSales || 0);
-        const res = calculateBusinessPermit({
-            type: additional.businessType === "NEW" ? "NEW" : "RENEWAL",
-            capitalization: cap,
-            grossSales: sales,
+    const calcResult = (() => {
+        if (fiscal) {
+            return {
+                basicTax: fiscal.basicTax,
+                additionalTax: fiscal.additionalTax,
+                penalty: fiscal.penaltyCharge,
+                deliveryFee: fiscal.deliveryFee || 0,
+                totalAmount: fiscal.totalAmount
+            };
+        }
+
+        if (isBusinessPermit) {
+            const cap = Number(additional.capitalInvestment || 0);
+            const sales = Number(additional.grossSales || 0);
+            const res = calculateBusinessPermit({
+                type: additional.businessType === "NEW" ? "NEW" : "RENEWAL",
+                capitalization: cap,
+                grossSales: sales,
+                fulfillmentType: transaction.fulfillmentType,
+                deliveryFee
+            });
+            return {
+                basicTax: res.baseFee,
+                additionalTax: res.taxAmount,
+                penalty: 0,
+                deliveryFee: res.deliveryFee,
+                totalAmount: res.totalAmount
+            };
+        }
+
+        if (isLCR) {
+            // For Civil Registry (LCR) services, prefer persisted transaction.totalAmount
+            // (set at submission time) or fall back to type baseFee + delivery fee.
+            const baseFee = Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
+            const typeDelivery = Number(transaction.type?.deliveryFee || 0);
+            const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
+                ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
+                : 0;
+            const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0)
+                ? Number(transaction.totalAmount)
+                : baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0);
+            return {
+                basicTax: baseFee,
+                additionalTax: 0,
+                penalty: 0,
+                deliveryFee: deliveryFeeUsed,
+                totalAmount: total
+            };
+        }
+
+        return calculateCedula({
+            type: additional.applicantType || "INDIVIDUAL",
+            income,
+            propertyValue,
             fulfillmentType: transaction.fulfillmentType,
             deliveryFee
         });
-        return {
-            basicTax: res.baseFee,
-            additionalTax: res.taxAmount,
-            penalty: 0,
-            deliveryFee: res.deliveryFee,
-            totalAmount: res.totalAmount
-        };
-    })() : calculateCedula({
-        type: additional.applicantType || "INDIVIDUAL",
-        income,
-        propertyValue,
-        fulfillmentType: transaction.fulfillmentType,
-        deliveryFee
-    });
+    })();
 
-    // Ensure total amount always includes delivery fee in display if calculated on the fly
-    const displayTotal = fiscal ? calcResult.totalAmount : (calcResult.totalAmount + (transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0));
+    // Prefer persisted `transaction.totalAmount` when available; otherwise use calculated result
+    const displayTotal = Number(transaction.totalAmount ?? calcResult.totalAmount ?? 0);
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
@@ -550,6 +578,46 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return s;
     };
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
+
+    // Build evidence documents list for the Evidence Vault UI
+    const evidenceDocs: { url?: string | null; label: string }[] = (() => {
+        if (isBusinessPermit) {
+            return [
+                { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
+                { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
+                { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
+                { url: additional.brgyClearanceUrl, label: "Barangay Clearance" },
+                { url: additional.locationPhotoUrl, label: "Location Photo" },
+                { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
+                { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
+                { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
+            ];
+        }
+
+        if (isLCR) {
+            // Support LCR birth registration documents
+            const regType = (additional.registrationType || "").toUpperCase();
+            const standard = [
+                { url: additional.marriageCertificate, label: "Marriage Certificate of Parents" },
+                { url: additional.municipalForm102, label: "Municipal Form 102" },
+                { url: additional.communityTaxCertificate, label: "Community Tax Certificate" }
+            ];
+            const late = [
+                { url: additional.negativePSA, label: "Negative Certification from PSA" },
+                { url: additional.colb, label: "Certificate of Live Birth (COLB)" },
+                { url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" },
+                { url: additional.supportingEvidence1, label: "Supporting Evidence 1" },
+                { url: additional.supportingEvidence2, label: "Supporting Evidence 2" }
+            ];
+            return regType === "LATE" ? late : standard;
+        }
+
+        // Default: generic user documents
+        return [
+            { url: additional.validIdUrl, label: "Valid ID Evidence" },
+            { url: additional.proofOfIncomeUrl, label: "Income Verification" }
+        ];
+    })();
 
     const handleEvaluate = async () => {
         setActionLoading(true);
@@ -656,14 +724,18 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         <div className="space-y-6 pt-6">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Tax Computation Breakdown</h3>
                             <div className="space-y-4">
-                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                    <span>{isBusinessPermit ? "Base Mayor's Permit Fee" : "Basic Community Tax"}</span>
-                                    <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                    <span>{isBusinessPermit ? "Assessed Tax Bill (1% of Basis)" : "Additional Tax (₱1.00 per ₱1,000 gross)"}</span>
-                                    <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
-                                </div>
+                                {!isLCR && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                            <span>{isBusinessPermit ? "Base Mayor's Permit Fee" : "Basic Community Tax"}</span>
+                                            <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                            <span>{isBusinessPermit ? "Assessed Tax Bill (1% of Basis)" : "Additional Tax (₱1.00 per ₱1,000 gross)"}</span>
+                                            <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
+                                        </div>
+                                    </>
+                                )}
                                 {calcResult.penalty > 0 && (
                                     <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
                                         <span>Penalty Charge</span>
@@ -727,6 +799,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     </p>
                                                 </div>
                                             </div>
+                                            {(transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy) && (
+                                                <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-4">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Issued By</span>
+                                                    <p className="text-md font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                        {transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -940,22 +1020,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                {(isBusinessPermit
-                                    ? [
-                                        { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
-                                        { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
-                                        { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
-                                        { url: additional.brgyClearanceUrl, label: "Barangay Clearance" },
-                                        { url: additional.locationPhotoUrl, label: "Location Photo" },
-                                        { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
-                                        { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
-                                        { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
-                                    ]
-                                    : [
-                                        { url: additional.validIdUrl, label: "Valid ID Evidence" },
-                                        { url: additional.proofOfIncomeUrl, label: "Income Verification" }
-                                    ]
-                                ).filter(doc => doc.url).map((doc, i) => (
+                                {evidenceDocs.filter(doc => doc.url).map((doc, i) => (
                                     <Dialog key={i}>
                                         <DialogTrigger asChild>
                                             <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">

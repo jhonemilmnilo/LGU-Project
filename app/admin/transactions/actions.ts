@@ -223,7 +223,7 @@ export async function ensureCivilRegistryTransactionTypes() {
             },
             {
                 code: "LCR_BIRTH_REG",
-                name: "Birth Registration (New Record)",
+                name: "Birth Registration",
                 description: "Register a new birth record with the Local Civil Registry.",
                 level: 1,
                 category: "Civil Registry",
@@ -277,7 +277,7 @@ export async function ensureCivilRegistryTransactionTypes() {
             },
             {
                 code: "LCR_DEATH_REG",
-                name: "Death Registration (New Record)",
+                name: "Death Registration",
                 description: "Register a new death record with the Local Civil Registry.",
                 level: 1,
                 category: "Civil Registry",
@@ -370,7 +370,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                     paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
-                    totalAmount: additionalData.totalAmount || 0,
+                    totalAmount: additionalData.miscFee ?? additionalData.totalAmount ?? 0,
                     businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
                 }
             });
@@ -389,6 +389,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
 
             return t;
         });
+            // No payment record created at submission time for civil registry.
 
         revalidatePath("/user/services");
         revalidatePath("/admin/transactions");
@@ -442,6 +443,17 @@ export async function submitBirthRegistration(formData: FormData) {
             submittedAt: new Date().toISOString()
         };
 
+        // Server-side validation: ensure required documents are present
+        const regType = additionalData.registrationType || "STANDARD";
+        const parentsMarried = typeof additionalData.parentsMarried !== 'undefined' ? !!additionalData.parentsMarried : true;
+        const requiredDocsStandard = parentsMarried ? ["marriageCertificate", "municipalForm102"] : ["communityTaxCertificate"];
+        const requiredDocsLate = ["negativePSA", "colb", "affidavitDelayed", "supportingEvidence1", "supportingEvidence2"];
+        const requiredKeys = regType === "STANDARD" ? requiredDocsStandard : requiredDocsLate;
+        const missingDocs = requiredKeys.filter(k => !updatedAdditionalData[k]);
+        if (missingDocs.length > 0) {
+            return { success: false, error: "Missing required documents", missingDocuments: missingDocs };
+        }
+
         const transaction = await prisma.$transaction(async (tx: any) => {
             // Create the transaction record for tracking
             const t = await tx.transaction.create({
@@ -453,7 +465,7 @@ export async function submitBirthRegistration(formData: FormData) {
                     paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
-                    totalAmount: additionalData.totalAmount || 0,
+                    totalAmount: additionalData.miscFee ?? additionalData.totalAmount ?? 0,
                     businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
                 }
             });
@@ -469,6 +481,8 @@ export async function submitBirthRegistration(formData: FormData) {
 
             return t;
         });
+
+        // No payment record created at submission time for birth registration.
 
         revalidatePath("/user/services");
         revalidatePath("/admin/transactions");
@@ -1027,14 +1041,20 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 totalAmount: cedulaCalc.totalAmount
             };
         } else if (isLCR) {
-            // Civil Registry (LCR) services like marriage/death/birth have fixed base fees.
+            // Civil Registry (LCR) services like marriage/death/birth should use the
+            // persisted transaction total when available (e.g., provided by registry
+            // at submission). If not present, fall back to type base fee + delivery.
             const baseFee = Number(transaction.type?.baseFee || 0);
             const feeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || feeDelivery;
-            // For delivery fulfillment, include delivery fee; otherwise charge base fee only.
-            const total = baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0);
+
+            const persistedTotal = Number(transaction.totalAmount || 0);
+            const total = persistedTotal > 0
+                ? persistedTotal
+                : baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0);
+
             result = {
-                basicTax: baseFee,
+                basicTax: 0,
                 additionalTax: 0,
                 penalty: 0,
                 deliveryFee: deliveryFeeUsed,
@@ -1408,6 +1428,44 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 });
             }
         }
+
+            // If this is a Local Civil Registry (LCR) service, ensure a BirthCertificateRegistry
+            // entry is created when releasing the document so it appears in official registry tables.
+            const isLCR = transaction.type.code.startsWith("LCR_");
+            if (isLCR) {
+                // Prefer existing birthCertificateRequest details, otherwise fall back to additionalData
+                const brExisting = (transaction as any).birthCertificateRegistry;
+                if (!brExisting) {
+                    const bcr = (transaction as any).birthCertificateRequest;
+                    const src: any = bcr || additionalData || {};
+
+                    // Only create registry if we have at least a subject name and event date/place
+                    const subjectName = src.subjectName || src.fullName || src.primaryChildName || null;
+                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : (src.dateOfBirth ? new Date(src.dateOfBirth) : null);
+                    const placeOfEvent = src.placeOfEvent || src.placeOfBirth || null;
+
+                    if (subjectName && dateOfEvent && placeOfEvent) {
+                        const generatedRegistryNumber = src.registryNumber || `BIRTH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                        try {
+                            await prisma.birthCertificateRegistry.create({
+                                data: {
+                                    transactionId: id,
+                                    registryNumber: generatedRegistryNumber,
+                                    issuedBy: user.name || "System Administrator",
+                                    subjectName: subjectName,
+                                    dateOfEvent: dateOfEvent,
+                                    placeOfEvent: placeOfEvent,
+                                    fatherName: src.fatherName || src.father || null,
+                                    motherName: src.motherName || src.mother || null
+                                }
+                            });
+                        } catch (createErr) {
+                            // If creation fails (e.g., unique constraint on registryNumber), log and continue
+                            console.error("Failed to create BirthCertificateRegistry:", createErr);
+                        }
+                    }
+                }
+            }
 
         // Update transaction status, eCopyUrl, and orUrl if provided
         await prisma.transaction.update({
