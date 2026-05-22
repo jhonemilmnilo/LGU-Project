@@ -101,7 +101,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-blue-600 dark:text-blue-400">Barangay *</label>
+                    <label className="text-sm font-semibold text-blue-600 dark:text-blue-400">Barangay <span className="text-red-500">*</span></label>
                     {isGuest ? (
                         <Input 
                             name="barangay" 
@@ -135,7 +135,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Municipality</label>
+                    <label className="text-sm font-semibold">Municipality {isGuest && <span className="text-red-500">*</span>}</label>
                     {isGuest ? (
                         <Input 
                             name="municipality" 
@@ -154,7 +154,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Province</label>
+                    <label className="text-sm font-semibold">Province {isGuest && <span className="text-red-500">*</span>}</label>
                     {isGuest ? (
                         <Input 
                             name="province" 

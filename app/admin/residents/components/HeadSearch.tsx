@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, UserCheck } from "lucide-react";
-import { useResident } from "../providers/ResidentProvider";
+import { ResidentContext } from "../providers/ResidentProvider";
 
 // I'll create a search action in app/admin/actions.ts later
 import { searchHeads } from "../../actions";
@@ -18,7 +18,24 @@ export function HeadSearch({ onSelect, defaultValue }: { onSelect: (id: string, 
     const [results, setResults] = useState<SearchResult[]>([]);
     const [selectedName, setSelectedName] = useState(defaultValue || "");
     const [hoveredId, setHoveredId] = useState<string | null>(null);
-    const { themeColor } = useResident();
+
+    const context = useContext(ResidentContext);
+    const [themeColor, setThemeColor] = useState(context?.themeColor || "#2563eb");
+
+    useEffect(() => {
+        if (context?.themeColor) {
+            setThemeColor(context.themeColor);
+        } else {
+            // Fetch dynamically when used outside the ResidentProvider
+            import("@/app/admin/transactions/actions").then(({ getSystemSettingAction }) => {
+                getSystemSettingAction("theme_color", "#2563eb").then(res => {
+                    if (res?.success && res?.data) {
+                        setThemeColor(res.data);
+                    }
+                });
+            });
+        }
+    }, [context?.themeColor]);
 
     const [prevDefault, setPrevDefault] = useState(defaultValue);
     if (defaultValue !== prevDefault) {

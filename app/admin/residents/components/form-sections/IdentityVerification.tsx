@@ -158,7 +158,7 @@ export function IdentityVerificationSection({ data }: { data?: Partial<Resident>
                     defaultValue={(data?.idType === "Other" ? "" : data?.idType) || ""}
                     required 
                     style={{ borderColor: themeColor, backgroundColor: `${themeColor}05` }}
-                    className="h-10 uppercase font-bold focus-visible:ring-0"
+                    className="h-10 font-bold focus-visible:ring-0"
                     autoFocus
                 />
                 <button 

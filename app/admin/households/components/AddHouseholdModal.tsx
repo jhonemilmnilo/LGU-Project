@@ -136,7 +136,7 @@ export function AddHouseholdModal() {
                                 <div className="space-y-2 md:col-span-2">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1">
                                         <UserCheck className="w-4 h-4 text-blue-500" />
-                                        Head of the Family / Primary Contact *
+                                        Head of the Family / Primary Contact <span className="text-red-500">*</span>
                                     </Label>
                                     <HeadSearch 
                                         onSelect={handleHeadSelect}
@@ -148,7 +148,7 @@ export function AddHouseholdModal() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Barangay</Label>
+                                    <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Barangay <span className="text-red-500">*</span></Label>
                                     <Select 
                                         name="barangay" 
                                         value={selectedBarangay} 
@@ -163,10 +163,10 @@ export function AddHouseholdModal() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-
+ 
                                 <div className="space-y-2">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest flex items-center">
-                                        <Users className="w-4 h-4 mr-1 text-slate-500" /> Household Size
+                                        <Users className="w-4 h-4 mr-1 text-slate-500" /> Household Size <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
                                         type="number"
@@ -178,7 +178,7 @@ export function AddHouseholdModal() {
                                         className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
                                     />
                                 </div>
-
+ 
                                 {/* Coordinates Section */}
                                 <div className="space-y-4 md:col-span-2 p-6 bg-slate-100/50 dark:bg-[#1a1f2e] rounded-3xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] transition-all duration-500">
                                     <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#2a3040]">
@@ -212,7 +212,7 @@ export function AddHouseholdModal() {
                                             </Button>
                                         </div>
                                     </div>
-
+ 
                                     {isPickingLocation ? (
                                         <div className="pt-2 animate-in zoom-in-95 duration-300">
                                             <LocationPicker 
@@ -229,7 +229,7 @@ export function AddHouseholdModal() {
                                     ) : (
                                         <div className="grid grid-cols-2 gap-4 pt-2">
                                             <div className="space-y-1">
-                                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Latitude</Label>
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Latitude <span className="text-red-500">*</span></Label>
                                                 <Input
                                                     type="number"
                                                     step="any"
@@ -240,7 +240,7 @@ export function AddHouseholdModal() {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Longitude</Label>
+                                                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Longitude <span className="text-red-500">*</span></Label>
                                                 <Input
                                                     type="number"
                                                     step="any"

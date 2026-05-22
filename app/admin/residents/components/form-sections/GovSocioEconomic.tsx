@@ -55,7 +55,7 @@ export function GovSocioEconomicSection({ data }: { data?: any }) {
                  defaultValue={(data?.educationalAttainment === "Other" ? "" : data?.educationalAttainment) || ""}
                  required 
                  style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
-                 className="h-10 uppercase font-bold focus-visible:ring-1"
+                 className="h-10 font-bold focus-visible:ring-1"
                  autoFocus
                />
                <button 
@@ -92,7 +92,7 @@ export function GovSocioEconomicSection({ data }: { data?: any }) {
                   defaultValue={(data?.employmentStatus === "Other" ? "" : data?.employmentStatus) || ""}
                   required 
                   style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
-                  className="h-10 uppercase font-bold focus-visible:ring-1"
+                  className="h-10 font-bold focus-visible:ring-1"
                   autoFocus
                 />
                 <button 

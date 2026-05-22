@@ -68,20 +68,20 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Last Name *</label>
-                    <Input name="lastName" defaultValue={data?.lastName || ""} placeholder="e.g. DELA CRUZ" required className="uppercase" />
+                    <label className="text-sm font-semibold">Last Name <span className="text-red-500">*</span></label>
+                    <Input name="lastName" defaultValue={data?.lastName || ""} placeholder="e.g. DELA CRUZ" required />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">First Name *</label>
-                    <Input name="firstName" defaultValue={data?.firstName || ""} placeholder="e.g. JUAN" required className="uppercase" />
+                    <label className="text-sm font-semibold">First Name <span className="text-red-500">*</span></label>
+                    <Input name="firstName" defaultValue={data?.firstName || ""} placeholder="e.g. JUAN" required />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Middle Name</label>
-                    <Input name="middleName" defaultValue={data?.middleName || ""} placeholder="e.g. RAMOS" className="uppercase" />
+                    <Input name="middleName" defaultValue={data?.middleName || ""} placeholder="e.g. RAMOS" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Suffix</label>
-                    <Input name="suffix" defaultValue={data?.suffix || ""} placeholder="e.g. JR, III" className="uppercase" />
+                    <Input name="suffix" defaultValue={data?.suffix || ""} placeholder="e.g. JR, III" />
                 </div>
             </div>
 
@@ -98,7 +98,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 defaultValue={(data?.gender === "Other" ? "" : data?.gender) || ""}
                                 required 
                                 style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
-                                className="h-10 uppercase font-bold focus-visible:ring-1"
+                                className="h-10 font-bold focus-visible:ring-1"
                                 autoFocus
                             />
                             <button 
@@ -127,7 +127,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Date of Birth *</label>
+                    <label className="text-sm font-semibold">Date of Birth <span className="text-red-500">*</span></label>
                     <Input 
                         name="dateOfBirth" 
                         type="date" 
@@ -155,7 +155,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 defaultValue={(data?.civilStatus === "Other" ? "" : data?.civilStatus) || ""}
                                 required 
                                 style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
-                                className="h-10 uppercase font-bold focus-visible:ring-1"
+                                className="h-10 font-bold focus-visible:ring-1"
                                 autoFocus
                             />
                             <button 
@@ -214,10 +214,10 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
 
             <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
                 <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Categories</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Categories <span className="text-red-500">*</span></label>
                     <span style={{ color: themeColor }} className="text-[10px] font-bold uppercase">Select a category</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 p-1 transition-all duration-300 rounded-2xl">
                     {categories.map(cat => {
                         const isSelected = selectedId === cat.id;
                         return (
@@ -236,16 +236,12 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                             >
                                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                                     isSelected ? 'bg-white border-white' : 'border-slate-300 dark:border-slate-600'
-                                }`}>
+                                }}`}>
                                     {isSelected && <div style={{ backgroundColor: themeColor }} className="w-2 h-2 rounded-full animate-in zoom-in-50 duration-200" />}
                                 </div>
                                 <span className="text-xs font-black uppercase tracking-tight">
                                     {cat.name}
                                 </span>
-                                {/* Hidden input for FormData to capture values */}
-                                {isSelected && (
-                                    <input type="hidden" name="categories" value={cat.id} />
-                                )}
                             </div>
                         );
                     })}
@@ -254,6 +250,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                              Initializing system categories...
                         </div>
                     )}
+                    <input type="hidden" name="categories" value={selectedId || ""} />
                 </div>
             </div>
         </div>

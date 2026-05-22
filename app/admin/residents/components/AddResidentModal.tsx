@@ -81,56 +81,135 @@ export function AddResidentModal() {
         if (!form) return true;
 
         const formData = new FormData(form);
+        const invalidFields: { nameOrSelector: string; isSelector: boolean; message: string }[] = [];
+
+        const addError = (nameOrSelector: string, message: string, isSelector = false) => {
+            invalidFields.push({ nameOrSelector, isSelector, message });
+        };
+
+        const focusAndHighlight = (nameOrSelector: string, isSelector = false, shouldFocus = true) => {
+            const input = isSelector 
+                ? form.querySelector(nameOrSelector) as HTMLElement | null
+                : form.querySelector(`[name="${nameOrSelector}"]`) as HTMLElement | null;
+            if (input) {
+                let targetToStyle = input;
+                
+                if (nameOrSelector === "categories") {
+                    const container = input.closest('.flex.flex-wrap.gap-2') as HTMLElement | null;
+                    if (container) {
+                        targetToStyle = container;
+                    }
+                } else {
+                    const isHidden = input.offsetWidth === 0 && input.offsetHeight === 0;
+                    if (isHidden) {
+                        const parent = input.parentElement;
+                        if (parent) {
+                            const trigger = parent.querySelector('button[role="combobox"]') || parent.querySelector('button');
+                            if (trigger) {
+                                targetToStyle = trigger as HTMLElement;
+                            }
+                        }
+                    }
+                }
+
+                if (shouldFocus) {
+                    targetToStyle.focus();
+                }
+                targetToStyle.classList.add("ring-2", "ring-red-500", "border-red-500", "dark:border-red-500", "ring-offset-2");
+                const cleanUp = () => {
+                    targetToStyle.classList.remove("ring-2", "ring-red-500", "border-red-500", "dark:border-red-500", "ring-offset-2");
+                    input.removeEventListener("input", cleanUp);
+                    input.removeEventListener("change", cleanUp);
+                    targetToStyle.removeEventListener("click", cleanUp);
+                    targetToStyle.removeEventListener("focus", cleanUp);
+                };
+                input.addEventListener("input", cleanUp);
+                input.addEventListener("change", cleanUp);
+                targetToStyle.addEventListener("click", cleanUp);
+                targetToStyle.addEventListener("focus", cleanUp);
+            }
+        };
 
         if (stepIndex === 0) { // Personal
-            if (!formData.get("lastName")) { toast.error("Last Name is required."); return false; }
-            if (!formData.get("firstName")) { toast.error("First Name is required."); return false; }
-            if (!formData.get("gender")) { toast.error("Please select a Gender."); return false; }
-            if (formData.get("gender") === "Other" && !formData.get("otherGender")) {
-                toast.error("Please specify your Gender."); return false;
+            if (!formData.get("lastName")) { 
+                addError("lastName", "Last Name is required."); 
             }
-            if (!formData.get("dateOfBirth")) { toast.error("Date of Birth is required."); return false; }
-            if (!formData.get("civilStatus")) { toast.error("Civil Status is required."); return false; }
+            if (!formData.get("firstName")) { 
+                addError("firstName", "First Name is required."); 
+            }
+            if (!formData.get("gender")) { 
+                addError("gender", "Please select a Gender."); 
+            }
+            if (formData.get("gender") === "Other" && !formData.get("otherGender")) {
+                addError("otherGender", "Please specify your Gender."); 
+            }
+            if (!formData.get("dateOfBirth")) { 
+                addError("dateOfBirth", "Date of Birth is required."); 
+            }
+            if (!formData.get("civilStatus")) { 
+                addError("civilStatus", "Civil Status is required."); 
+            }
             if (formData.get("civilStatus") === "Other" && !formData.get("otherCivilStatus")) {
-                toast.error("Please specify your Civil Status."); return false;
+                addError("otherCivilStatus", "Please specify your Civil Status."); 
+            }
+            if (!formData.get("categories")) {
+                addError("categories", "Please select a Resident Category.");
             }
         }
 
         if (stepIndex === 1) { // Address
-            if (!formData.get("barangay")) { toast.error("Barangay is mandatory."); return false; }
+            if (!formData.get("barangay")) { 
+                addError("barangay", "Barangay is mandatory."); 
+            }
+            if (formData.get("municipality") === "") { 
+                addError("municipality", "Municipality is required."); 
+            }
+            if (formData.get("province") === "") { 
+                addError("province", "Province is required."); 
+            }
         }
 
         if (stepIndex === 2) { // Socio-Gov
-            if (!formData.get("occupation")) { toast.error("Occupation is required."); return false; }
+            if (!formData.get("occupation")) { 
+                addError("occupation", "Occupation is required."); 
+            }
             if (formData.get("educationalAttainment") === "Other" && !formData.get("otherEducationalAttainment")) {
-                toast.error("Please specify your Educational Attainment."); return false;
+                addError("otherEducationalAttainment", "Please specify your Educational Attainment."); 
             }
             if (formData.get("employmentStatus") === "Other" && !formData.get("otherEmploymentStatus")) {
-                toast.error("Please specify your Employment Status."); return false;
+                addError("otherEmploymentStatus", "Please specify your Employment Status."); 
             }
         }
 
         if (stepIndex === 4) { // Identity Verification
-            // ID fields are now optional to accommodate registrations for kids/babies
             const idType = formData.get("idType") as string;
             if (idType === "Other" && !formData.get("otherIdType")) {
-                toast.error("Please specify your ID Type."); return false;
+                addError("otherIdType", "Please specify your ID Type."); 
             }
         }
 
         if (stepIndex === 5) { // Account
             const email = formData.get("email") as string;
             if (email && !email.includes("@")) { 
-                toast.error("Please enter a valid email."); 
-                return false; 
+                addError("email", "Please enter a valid email."); 
             }
         }
 
         if (stepIndex === 6) { // Sectors and Consent
             if (formData.get("dataPrivacyConsent") !== "true") {
                 toast.error("You must agree to the Data Privacy Consent.");
+                const consentBox = document.getElementById("dataPrivacyConsent");
+                consentBox?.focus();
                 return false;
             }
+        }
+
+        if (invalidFields.length > 0) {
+            toast.error(invalidFields[0].message);
+            invalidFields.forEach((field, index) => {
+                focusAndHighlight(field.nameOrSelector, field.isSelector, index === 0);
+            });
+            return false;
         }
 
         return true;

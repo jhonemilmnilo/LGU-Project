@@ -84,31 +84,31 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">House Number</label>
-                    <Input name="houseNumber" defaultValue={data?.houseNumber || ""} placeholder="e.g. 123" className="uppercase" />
+                    <Input name="houseNumber" defaultValue={data?.houseNumber || ""} placeholder="e.g. 123" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Street</label>
-                    <Input name="street" defaultValue={data?.street || ""} placeholder="e.g. RIZAL ST." className="uppercase" />
+                    <Input name="street" defaultValue={data?.street || ""} placeholder="e.g. RIZAL ST." />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Sitio</label>
-                    <Input name="sitio" defaultValue={data?.sitio || ""} placeholder="e.g. MALIGAYA" className="uppercase" />
+                    <Input name="sitio" defaultValue={data?.sitio || ""} placeholder="e.g. MALIGAYA" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Purok</label>
-                    <Input name="purok" defaultValue={data?.purok || ""} placeholder="e.g. 1" className="uppercase" />
+                    <Input name="purok" defaultValue={data?.purok || ""} placeholder="e.g. 1" />
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold" style={{ color: themeColor }}>Barangay *</label>
+                    <label className="text-sm font-semibold" style={{ color: themeColor }}>Barangay <span className="text-red-500">*</span></label>
                     {isGuest ? (
                         <Input 
                             name="barangay" 
                             defaultValue={data?.barangay || ""} 
                             placeholder="Enter Village/Barangay" 
-                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 font-black" 
                             required 
                         />
                     ) : (
@@ -136,13 +136,13 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Municipality</label>
+                    <label className="text-sm font-semibold">Municipality {isGuest && <span className="text-red-500">*</span>}</label>
                     {isGuest ? (
                         <Input 
                             name="municipality" 
                             defaultValue={data?.municipality || ""} 
                             placeholder="Enter City/Municipality" 
-                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 font-black" 
                             required 
                         />
                     ) : (
@@ -155,13 +155,13 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Province</label>
+                    <label className="text-sm font-semibold">Province {isGuest && <span className="text-red-500">*</span>}</label>
                     {isGuest ? (
                         <Input 
                             name="province" 
                             defaultValue={data?.province || ""} 
                             placeholder="Enter Province" 
-                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 uppercase font-black" 
+                            className="bg-orange-50/20 border-orange-200 focus:border-orange-500 font-black" 
                             required 
                         />
                     ) : (
@@ -202,7 +202,7 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Relationship to Head</label>
-                            <Input name="relationshipToHead" defaultValue={data?.relationshipToHead || ""} placeholder="e.g. SPOUSE, SON, DAUGHTER" className="uppercase" />
+                            <Input name="relationshipToHead" defaultValue={data?.relationshipToHead || ""} placeholder="e.g. SPOUSE, SON, DAUGHTER" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-600">Search Household Head</label>

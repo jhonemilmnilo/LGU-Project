@@ -150,7 +150,7 @@ type ResidentContextType = {
     themeColor: string;
 };
 
-const ResidentContext = createContext<ResidentContextType | undefined>(undefined);
+export const ResidentContext = createContext<ResidentContextType | undefined>(undefined);
 
 export function ResidentProvider({
     children,
