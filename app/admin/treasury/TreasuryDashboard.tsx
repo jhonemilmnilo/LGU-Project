@@ -20,11 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
     Search, RefreshCcw, 
-    Archive, ExternalLink, Clock
+    Archive, Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const STATUS_TABS = [
     { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
@@ -53,6 +53,7 @@ function formatDateTime(date: string | Date): { date: string; time: string } {
 }
 
 export default function TreasuryDashboard() {
+    const router = useRouter();
     const [status, setStatus] = useState("ALL");
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function TreasuryDashboard() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -127,8 +129,14 @@ export default function TreasuryDashboard() {
                refId.includes(searchUpper);
     });
 
+    const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+        const dateA = new Date(a.updatedAt).getTime();
+        const dateB = new Date(b.updatedAt).getTime();
+        return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+    });
+
     const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-    const paginatedTransactions = filteredTransactions.slice(
+    const paginatedTransactions = sortedTransactions.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
@@ -207,20 +215,33 @@ export default function TreasuryDashboard() {
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Date</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-right">Actions</TableHead>
+                                        <TableHead 
+                                            className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
+                                            onClick={() => setSortDirection(prev => prev === "asc" ? "desc" : "asc")}
+                                        >
+                                            <div className="flex items-center gap-1.5">
+                                                Date
+                                                <span className="text-slate-400 dark:text-slate-500 font-black text-[10px]">
+                                                    {sortDirection === "asc" ? "▲" : "▼"}
+                                                </span>
+                                            </div>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {loading ? (
                                         Array(5).fill(0).map((_, i) => (
                                             <TableRow key={i} className="animate-pulse">
-                                                <TableCell colSpan={8} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
+                                                <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
                                             </TableRow>
                                         ))
                                     ) : paginatedTransactions.length > 0 ? (
                                         paginatedTransactions.map((tx, index) => (
-                                            <TableRow key={tx.id} className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer">
+                                            <TableRow 
+                                                key={tx.id} 
+                                                onClick={() => router.push(`/admin/treasury/${tx.id}`)}
+                                                className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
+                                            >
                                                 <TableCell className="py-4">
                                                     <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
                                                 </TableCell>
@@ -292,21 +313,11 @@ export default function TreasuryDashboard() {
                                                                 })()}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Link href={`/admin/treasury/${tx.id}`}>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            className="h-10 w-10 rounded-xl p-0 bg-primary/10 text-primary transition-all active:scale-95"
-                                                        >
-                                                            <ExternalLink className="w-4 h-4" />
-                                                        </Button>
-                                                    </Link>
-                                                </TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-[400px] text-center">
+                                            <TableCell colSpan={7} className="h-[400px] text-center">
                                                 <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
                                                     <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
                                                     <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>

@@ -602,6 +602,7 @@ model Transaction {
   // Specific Context
   businessName      String?           // For Juridical requests
   eCopyUrl          String?           // Link to generated digital file
+  orUrl             String?           // Link to Official Receipt file
   isStudent         Boolean           @default(false)
 
   // Audit & Workflow
@@ -623,6 +624,7 @@ model Transaction {
   birthCertificateRegistry BirthCertificateRegistry? // One-to-one link for new registrations
   
   isCancelled       Boolean           @default(false)
+  revisionCount     Int               @default(0)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }

@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
     title: "Payment Settings | Mapandan Portal",
-    description: "Official administrative configuration for municipal payment channels and merchant details.",
+    description: "Official administrative configuration for municipal Payments and merchant details.",
 };
 
 export default async function PaymentSettingsPage() {
@@ -24,7 +24,14 @@ export default async function PaymentSettingsPage() {
     const settingsList = await prisma.systemSetting.findMany({
         where: {
             key: {
-                in: ["gcash_qr_url", "gcash_account_name", "gcash_account_number"]
+                in: [
+                    "gcash_qr_url", 
+                    "gcash_account_name", 
+                    "gcash_account_number",
+                    "bank_name",
+                    "bank_account_name",
+                    "bank_account_number"
+                ]
             }
         }
     });

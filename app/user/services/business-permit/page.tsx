@@ -133,7 +133,7 @@ const STEP_BY_STEP_GUIDES: Record<string, { title: string; steps: string[] }> = 
             "For Sole Proprietorships (DTI): Register your business name online via the DTI BNRS (Business Name Registration System) website or visit the nearest DTI Negosyo Center.",
             "For Corporations/Partnerships (SEC): Register online via the SEC eSPARC (Electronic Simplified Processing of Application for Registration of Company) portal.",
             "For Cooperatives (CDA): Coordinate with the Cooperative Development Authority (CDA) regional office for registration.",
-            "Pay the corresponding registration fee via their respective online payment portals or authorized payment channels.",
+            "Pay the corresponding registration fee via their respective online payment portals or authorized Payments.",
             "Once approved, download and print your official Certificate of Registration."
         ]
     },
@@ -184,7 +184,7 @@ function FilePreview({ file }: { file: File }) {
 
     React.useEffect(() => {
         if (!file) return;
-        
+
         if (file.type.startsWith("image/")) {
             const url = URL.createObjectURL(file);
             setPreviewUrl(url);
@@ -199,9 +199,9 @@ function FilePreview({ file }: { file: File }) {
         return (
             <div className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                    src={previewUrl} 
-                    alt="Document Preview" 
+                <img
+                    src={previewUrl}
+                    alt="Document Preview"
                     className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
@@ -773,21 +773,21 @@ export default function BusinessPermitWizardPage() {
 
             {/* Revision Remarks Alert Banner */}
             {revisionTx && (
-                <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] flex flex-col md:flex-row gap-4 md:items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-primary/5 border border-primary/20 p-6 rounded-[2rem] flex flex-col md:flex-row gap-4 md:items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="space-y-1.5 text-left">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-widest font-sans">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest font-sans">
                             ⚠️ Attention: Revision Needed
                         </span>
                         <h4 className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white italic">
                             Transaction Reference: <span className="font-mono text-primary font-bold">{revisionTx.id.slice(-8).toUpperCase()}</span>
                         </h4>
-                        <div className="text-xs text-amber-800 dark:text-amber-300 font-bold bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
+                        <div className="text-xs text-primary dark:text-primary/90 font-bold bg-primary/[0.02] border border-primary/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
                             &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
                         </div>
                     </div>
                     <div className="shrink-0 text-left md:text-right">
                         <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                        <p className="text-xs font-black text-amber-500 uppercase tracking-widest italic">Action Required</p>
+                        <p className="text-xs font-black text-primary uppercase tracking-widest italic">Action Required</p>
                     </div>
                 </div>
             )}
@@ -870,8 +870,8 @@ export default function BusinessPermitWizardPage() {
                                         ].map(opt => {
                                             const matchedType = bpTypes.find((t: any) => t.code === opt.code);
                                             const label = matchedType?.name || (opt.id === "NEW" ? "New Business Permit" : "Permit Renewal");
-                                            const desc = matchedType?.description || (opt.id === "NEW" 
-                                                ? "For newly registered businesses in Mapandan. Based on initial declared capitalization investment." 
+                                            const desc = matchedType?.description || (opt.id === "NEW"
+                                                ? "For newly registered businesses in Mapandan. Based on initial declared capitalization investment."
                                                 : "For existing businesses renewing for the current year. Calculated on previous annual gross receipts/sales.");
 
                                             const Icon = opt.icon;
@@ -1044,12 +1044,12 @@ export default function BusinessPermitWizardPage() {
                                     </div>
 
 
-                                                                                <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
-                                            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-                                            <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
-                                                Note: Changes will update your Resident Profile upon submission.
-                                            </p>
-                                        </div>
+                                    <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
+                                        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                                        <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
+                                            Note: Changes will update your Resident Profile upon submission.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
 
@@ -1217,24 +1217,24 @@ export default function BusinessPermitWizardPage() {
                                             <div className="space-y-2 relative animate-in fade-in duration-200">
                                                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Initial Capitalization (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
                                                 <Input
-                                                     id="profile-capitalInvestment"
-                                                     type="text"
-                                                     value={formData.capitalInvestment}
-                                                     onChange={e => handleInputChange("capitalInvestment", e.target.value)}
-                                                     placeholder="e.g. 250,000"
-                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
+                                                    id="profile-capitalInvestment"
+                                                    type="text"
+                                                    value={formData.capitalInvestment}
+                                                    onChange={e => handleInputChange("capitalInvestment", e.target.value)}
+                                                    placeholder="e.g. 250,000"
+                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
                                                 />
                                             </div>
                                         ) : (
                                             <div className="space-y-2 relative animate-in fade-in duration-200">
                                                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic">Annual Gross Sales (₱) <span className="text-rose-500 ml-0.5">*</span></Label>
                                                 <Input
-                                                     id="profile-grossSales"
-                                                     type="text"
-                                                     value={formData.grossSales}
-                                                     onChange={e => handleInputChange("grossSales", e.target.value)}
-                                                     placeholder="e.g. 1,200,000"
-                                                     className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
+                                                    id="profile-grossSales"
+                                                    type="text"
+                                                    value={formData.grossSales}
+                                                    onChange={e => handleInputChange("grossSales", e.target.value)}
+                                                    placeholder="e.g. 1,200,000"
+                                                    className="rounded-xl h-12 border-slate-200 focus-visible:ring-primary/20 pr-12 font-mono font-bold"
                                                 />
                                             </div>
                                         )}
@@ -1344,7 +1344,7 @@ export default function BusinessPermitWizardPage() {
                                                     <div className={cn(
                                                         "p-4 md:p-5 bg-slate-50/50 dark:bg-white/[0.02] rounded-3xl border border-dashed flex flex-col gap-4 relative overflow-hidden transition-all duration-300 hover:border-primary/40 shadow-sm",
                                                         (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`])
-                                                            ? "border-primary dark:border-primary/30 bg-primary/[0.01]" 
+                                                            ? "border-primary dark:border-primary/30 bg-primary/[0.01]"
                                                             : "border-slate-200 dark:border-white/10"
                                                     )}>
                                                         <div className="flex items-center gap-3.5 w-full text-left">
@@ -1359,12 +1359,12 @@ export default function BusinessPermitWizardPage() {
                                                                     {item.label.replace(/^\d+\.\s*/, "")}
                                                                 </h4>
                                                                 <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter truncate">
-                                                                    {file 
-                                                                        ? `Uploaded (${(file.size / 1024).toFixed(1)} KB)` 
+                                                                    {file
+                                                                        ? `Uploaded (${(file.size / 1024).toFixed(1)} KB)`
                                                                         : revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]
                                                                             ? "Verified Revision Draft"
-                                                                            : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) 
-                                                                                ? "Preloaded from Resident Profile" 
+                                                                            : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl)
+                                                                                ? "Preloaded from Resident Profile"
                                                                                 : (item.optional ? "PDF / IMAGE (OPTIONAL)" : "PDF / IMAGE (MAX 5MB)")}
                                                                 </p>
                                                             </div>
@@ -1387,9 +1387,9 @@ export default function BusinessPermitWizardPage() {
                                                             ) : (
                                                                 <div className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200">
                                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                    <img 
-                                                                        src={revisionTx.additionalData[`${item.field.replace("File", "Url")}`]} 
-                                                                        alt="Revision Document Preview" 
+                                                                    <img
+                                                                        src={revisionTx.additionalData[`${item.field.replace("File", "Url")}`]}
+                                                                        alt="Revision Document Preview"
                                                                         className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-300"
                                                                     />
                                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
@@ -1411,18 +1411,18 @@ export default function BusinessPermitWizardPage() {
                                                         ) : null}
 
                                                         <div className="flex items-center justify-between w-full gap-2 mt-1">
-                                                            <input 
-                                                                type="file" 
-                                                                onChange={(e) => handleFileChange(e, item.field as keyof FormState)} 
-                                                                className="hidden" 
-                                                                id={`upload-${item.field}`} 
+                                                            <input
+                                                                type="file"
+                                                                onChange={(e) => handleFileChange(e, item.field as keyof FormState)}
+                                                                className="hidden"
+                                                                id={`upload-${item.field}`}
                                                             />
-                                                            <Button 
-                                                                asChild 
+                                                            <Button
+                                                                asChild
                                                                 className={cn(
                                                                     "font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none shadow-md active:scale-[0.98]",
                                                                     (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`])
-                                                                        ? "bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white" 
+                                                                        ? "bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white"
                                                                         : "bg-primary hover:bg-primary/90 text-white"
                                                                 )}
                                                             >
@@ -1613,7 +1613,7 @@ export default function BusinessPermitWizardPage() {
                             className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2.5rem] w-full max-w-md sm:max-w-lg shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[80vh]"
                         >
                             {/* Top Accent line with dynamic theme color */}
-                            <div 
+                            <div
                                 className="absolute top-0 left-0 right-0 h-1.5"
                                 style={{ background: "var(--primary-theme)" }}
                             />
@@ -1693,10 +1693,10 @@ export default function BusinessPermitWizardPage() {
                                                     Register your trade name online using the DTI Business Name Registration System (BNRS) in just 10-15 minutes.
                                                 </p>
                                                 <div className="pt-1">
-                                                    <a 
-                                                        href="https://bnrs.dti.gov.ph" 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer" 
+                                                    <a
+                                                        href="https://bnrs.dti.gov.ph"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
                                                         className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
                                                     >
                                                         Visit DTI BNRS Website <ChevronRight className="w-3.5 h-3.5" />
@@ -1723,10 +1723,10 @@ export default function BusinessPermitWizardPage() {
                                                     Submit your articles of incorporation and secure registration numbers through the SEC Electronic Simplified Processing System (eSPARC / CRS).
                                                 </p>
                                                 <div className="pt-1">
-                                                    <a 
-                                                        href="https://crs.sec.gov.ph" 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer" 
+                                                    <a
+                                                        href="https://crs.sec.gov.ph"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
                                                         className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-extrabold"
                                                     >
                                                         Visit SEC eSPARC Portal <ChevronRight className="w-3.5 h-3.5" />
@@ -1774,7 +1774,7 @@ export default function BusinessPermitWizardPage() {
                             className="bg-white dark:bg-[#0c0d12] border border-slate-100 dark:border-white/10 rounded-[2.5rem] w-full max-w-md sm:max-w-lg shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[85vh] sm:max-h-[80vh]"
                         >
                             {/* Top Accent Theme Line */}
-                            <div 
+                            <div
                                 className="absolute top-0 left-0 right-0 h-1.5"
                                 style={{ background: "var(--primary-theme)" }}
                             />
@@ -1805,7 +1805,7 @@ export default function BusinessPermitWizardPage() {
                             {/* Body Section (Custom Scrollable list of steps) */}
                             <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-2 space-y-3.5">
                                 {STEP_BY_STEP_GUIDES[activeGuideKey].steps.map((step, idx) => (
-                                    <motion.div 
+                                    <motion.div
                                         key={idx}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}

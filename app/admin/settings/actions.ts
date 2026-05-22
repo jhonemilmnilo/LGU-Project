@@ -256,10 +256,17 @@ export async function updateTreasurySettings(formData: FormData) {
         const accountName = formData.get("gcashAccountName") as string;
         const accountNumber = formData.get("gcashAccountNumber") as string;
 
+        const bankName = formData.get("bankName") as string;
+        const bankAccountName = formData.get("bankAccountName") as string;
+        const bankAccountNumber = formData.get("bankAccountNumber") as string;
+
         console.log("--- Treasury Settings Update ---");
         console.log("QR URL:", qrUrl);
-        console.log("Account Name:", accountName);
-        console.log("Account Number:", accountNumber);
+        console.log("GCash Account Name:", accountName);
+        console.log("GCash Account Number:", accountNumber);
+        console.log("Bank Name:", bankName);
+        console.log("Bank Account Name:", bankAccountName);
+        console.log("Bank Account Number:", bankAccountNumber);
 
         if (qrUrl !== null && qrUrl !== undefined) {
             await prisma.systemSetting.upsert({
@@ -282,6 +289,30 @@ export async function updateTreasurySettings(formData: FormData) {
                 where: { key: "gcash_account_number" },
                 update: { value: accountNumber },
                 create: { key: "gcash_account_number", value: accountNumber }
+            });
+        }
+
+        if (bankName !== null && bankName !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: "bank_name" },
+                update: { value: bankName },
+                create: { key: "bank_name", value: bankName }
+            });
+        }
+
+        if (bankAccountName !== null && bankAccountName !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: "bank_account_name" },
+                update: { value: bankAccountName },
+                create: { key: "bank_account_name", value: bankAccountName }
+            });
+        }
+
+        if (bankAccountNumber !== null && bankAccountNumber !== undefined) {
+            await prisma.systemSetting.upsert({
+                where: { key: "bank_account_number" },
+                update: { value: bankAccountNumber },
+                create: { key: "bank_account_number", value: bankAccountNumber }
             });
         }
 

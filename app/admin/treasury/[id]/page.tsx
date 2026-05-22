@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, differenceInYears } from "date-fns";
 import {
     FileText,
     Camera,
@@ -18,7 +18,8 @@ import {
     ZoomOut,
     ExternalLink,
     AlertCircle,
-    Ban
+    Ban,
+    Hash
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -41,7 +42,6 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import IdentityConfirmationVault from "@/components/admin/IdentityConfirmationVault";
 import {
     Dialog,
     DialogContent,
@@ -169,6 +169,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [deliveryFee, setDeliveryFee] = useState(0);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
     const [eCopyPreview, setECopyPreview] = useState<string | null>(null);
+    const [orFile, setOrFile] = useState<File | null>(null);
+    const [orPreview, setOrPreview] = useState<string | null>(null);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
     const [branding, setBranding] = useState({
         word1: "Mapandan",
@@ -262,6 +264,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return () => URL.revokeObjectURL(url);
     }, [eCopyFile]);
 
+    useEffect(() => {
+        if (!orFile) {
+            setOrPreview(null);
+            return;
+        }
+        const url = URL.createObjectURL(orFile);
+        setOrPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [orFile]);
+
     const handleReject = async () => {
         if (!remarks) { toast.error("Remarks required"); return; }
         setActionLoading(true);
@@ -290,10 +302,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const handleRelease = useCallback(async () => {
 
-        // CTC or Permit Number required for all initial processing phases
-        const ctcRequired = !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
-        if (!ctcNumber && ctcRequired && !transaction?.cedula?.ctcNumber && !transaction?.businessPermit?.permitNumber) {
-            toast.error(isBusinessPermit ? "Permit Number Required" : "CTC Number Required");
+        // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits)
+        const ctcRequired = !isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
+            toast.error("CTC Number Required");
             return;
         }
         setActionLoading(true);
@@ -308,15 +320,32 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 return;
             }
 
+            // Strict Validation for Business Permit: OR attachment is also required!
+            if (isBusinessPermit && eCopyRequired && !orFile && !transaction.orUrl) {
+                toast.error("Official Receipt (OR) copy is required for Business Permits before proceeding.");
+                setActionLoading(false);
+                return;
+            }
+
             let eCopyUrl = "";
             if (eCopyFile) {
                 const formData = new FormData();
                 formData.append("file", eCopyFile);
                 const uploadRes = await uploadECopyAction(formData);
                 if (uploadRes.success) eCopyUrl = uploadRes.data as string;
-                else { toast.error("Upload failed"); setActionLoading(false); return; }
+                else { toast.error("E-Copy upload failed"); setActionLoading(false); return; }
             }
-            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl);
+
+            let orUrl = "";
+            if (orFile) {
+                const formData = new FormData();
+                formData.append("file", orFile);
+                const uploadRes = await uploadECopyAction(formData);
+                if (uploadRes.success) orUrl = uploadRes.data as string;
+                else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
+            }
+
+            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -326,11 +355,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         : "Document Released";
                 toast.success(message);
                 setECopyFile(null);
+                setOrFile(null);
                 router.push("/admin/treasury");
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, router, isBusinessPermit]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -577,24 +607,26 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         {/* IDENTIFIER */}
                         <div className="space-y-4">
                             <div className="space-y-1">
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
-                                    {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
-                                </span>
-                                <div className="flex items-center justify-between gap-4 group">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
+                                        {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
+                                    </span>
+                                    {transaction.revisionCount > 0 ? (
+                                        <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                            Revision Count: {transaction.revisionCount}
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                            First Submission
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between gap-4">
                                     <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
                                         {transaction.type.requiresBusinessName
                                             ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
                                             : `${resident.firstName} ${resident.lastName}`}
                                     </h1>
-
-                                    <IdentityConfirmationVault
-                                        resident={resident}
-                                        additional={additional}
-                                        isBusinessPermit={isBusinessPermit}
-                                        transactionTypeCode={transaction?.type?.code}
-                                        themeColor={themeColor}
-                                        hideDocuments
-                                    />
                                 </div>
                             </div>
                         </div>
@@ -726,8 +758,181 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         )}
                     </div>
 
+                    {/* INLINE IDENTITY DOSSIER */}
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-6">
+                            <div>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                    Resident <span className="text-primary">Identity Profile</span>
+                                </h2>
+                                <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
+                                    Verified Citizen Data Dossier
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Citizen Profile Grid */}
+                        <div className="grid grid-cols-12 gap-x-6 gap-y-6">
+                            {/* Row 1: Names */}
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">First Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.firstName || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Middle Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.middleName || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Last Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.lastName || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Suffix</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.suffix || "--"}
+                                </div>
+                            </div>
+
+                            {/* Row 2: Details */}
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Birth Date</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.dateOfBirth ? format(new Date(resident.dateOfBirth), "MMM d, yyyy") : "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-2 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Age</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.age ?? (resident?.dateOfBirth ? differenceInYears(new Date(), new Date(resident.dateOfBirth)) : "--")}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-3 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Civil Status</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase">
+                                    {resident?.civilStatus || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Contact Number</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.contactNumber || "--"}
+                                </div>
+                            </div>
+
+                            {/* Row 3: Address */}
+                            <div className="col-span-12 md:col-span-6 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Occupation</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                    {resident?.occupation || "--"}
+                                </div>
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Barangay & Complete Address</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                    {resident?.houseNumber || ""} {resident?.street || ""} {resident?.barangay ? `${resident.barangay}, Mapandan, Pangasinan` : "--"}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Business Profile */}
+                        {isBusinessPermit && (
+                            <div className="border-t border-slate-100 dark:border-white/5 pt-8 space-y-8 animate-in fade-in duration-300">
+                                <div>
+                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                        Business <span className="text-primary">Record </span>
+                                    </h2>
+                                    <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
+                                        BPLO Registration Details
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-12 gap-x-6 gap-y-6">
+                                    {/* Business Row 1 */}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Official Business Name</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary uppercase truncate">
+                                            {additional?.businessName || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Trade Signage Name</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.tradeName || "Same as Business Name"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Organization Type</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
+                                            {additional?.orgType ? additional.orgType.replace(/_/g, " ") : "--"}
+                                        </div>
+                                    </div>
+
+                                    {/* Business Row 2 */}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Building / Unit</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.building || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Street Address</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.street || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Business Barangay</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
+                                            {additional?.businessBarangay || additional?.barangay || resident?.barangay || "--"}
+                                        </div>
+                                    </div>
+
+                                    {/* Business Row 3 */}
+                                    <div className="col-span-12 md:col-span-6 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Line of Business</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.lineOfBusiness || "General"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-6 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Registration / Permit No.</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-primary truncate">
+                                            {additional?.dtiSecNumber || additional?.existingPermitNumber || additional?.permitNumber || "--"}
+                                        </div>
+                                    </div>
+
+                                    {/* Business Row 4 */}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Employee Count</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            {additional?.employeeCount ?? "0"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Store Area</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Capital / Declared Gross</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary">
+                                            ₱{Number(additional?.grossSales || additional?.capitalInvestment || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* IDENTITY & AUTHENTICATION */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <div className="flex items-center gap-3">
@@ -821,6 +1026,31 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     <LightboxView src={transaction.paymentReference} alt="Payment Proof" label="Payment Verification Proof" />
                                                 )}
                                             </Dialog>
+
+                                            {/* GCash Reference Number Section - Premium Copyable Badge */}
+                                            {((transaction.additionalData as any)?.gcashReferenceNo) && (
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <Hash className="w-3.5 h-3.5 text-primary" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Reference Number</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-xs md:text-sm font-black tracking-tight text-slate-800 dark:text-white select-all font-mono">
+                                                            {(transaction.additionalData as any).gcashReferenceNo}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText((transaction.additionalData as any).gcashReferenceNo);
+                                                                toast.success("Reference Number Copied!");
+                                                            }}
+                                                            className="text-[8px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-all flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/10 hover:scale-105 active:scale-95 shrink-0"
+                                                        >
+                                                            Copy
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -955,103 +1185,207 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         ))
                     ) && (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">Digital Record Protocol</span>
-                                <div className="relative">
-                                    {transaction.status !== "RELEASED" && !isReadOnlyAide && (
-                                        <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
-                                    )}
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">
+                                    {isBusinessPermit ? "Registry & Official Receipt Protocol" : "Digital Record Protocol"}
+                                </span>
+                                
+                                <div className={cn("grid gap-6", isBusinessPermit ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
+                                    {/* E-Copy Upload Block */}
+                                    <div className="relative flex flex-col gap-2">
+                                        {isBusinessPermit && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">1. Digital E-Copy Permit</span>}
+                                        {transaction.status !== "RELEASED" && !isReadOnlyAide && (
+                                            <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
+                                        )}
 
-                                    {transaction.status === "RELEASED" ? (
-                                        <a
-                                            href={transaction.eCopyUrl || "#"}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex flex-col items-center justify-center rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-48 border-solid overflow-hidden group relative"
-                                        >
-                                            {transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg") || transaction.eCopyUrl.includes("image")) ? (
-                                                <Image
-                                                    src={transaction.eCopyUrl}
-                                                    fill
-                                                    className="object-cover opacity-80 hover:opacity-100 transition-opacity"
-                                                    alt="Official Registry"
-                                                    unoptimized
-                                                />
-                                            ) : (
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <div className="p-4 rounded-2xl bg-primary text-white shadow-lg">
-                                                        <FileText className="w-6 h-6" />
+                                        {transaction.status === "RELEASED" ? (
+                                            <a
+                                                href={transaction.eCopyUrl || "#"}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex flex-col items-center justify-center rounded-3xl border-2 border-primary/30 bg-primary/5 transition-all h-48 border-solid overflow-hidden group relative"
+                                            >
+                                                {transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg") || transaction.eCopyUrl.includes("image")) ? (
+                                                    <Image
+                                                        src={transaction.eCopyUrl}
+                                                        fill
+                                                        className="object-cover opacity-80 hover:opacity-100 transition-opacity"
+                                                        alt="Official Registry"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="p-4 rounded-2xl bg-primary text-white shadow-lg">
+                                                            <FileText className="w-6 h-6" />
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest italic text-primary text-center">
+                                                            View Registry (PDF)
+                                                        </span>
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest italic text-primary text-center">
-                                                        View Registry (PDF)
-                                                    </span>
-                                                </div>
+                                                )}
+                                                <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-primary" /></div>
+                                            </a>
+                                        ) : (
+                                            <label htmlFor={isReadOnlyAide ? undefined : "main-ecopy-upload"} className={cn(
+                                                "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                                isReadOnlyAide ? "border-slate-100 dark:border-white/5 cursor-not-allowed" : (eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner cursor-pointer" : "border-slate-100 dark:border-white/5 hover:border-primary/30 cursor-pointer")
+                                            )}>
+                                                {(eCopyPreview || transaction.eCopyUrl) ? (
+                                                    <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                                                        {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg")))) ? (
+                                                            <Image
+                                                                src={eCopyPreview || transaction.eCopyUrl}
+                                                                fill
+                                                                className="object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                                alt="Registry Preview"
+                                                                unoptimized
+                                                            />
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
+                                                                <FileText className="w-12 h-12" />
+                                                                <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">PDF Document Ready</span>
+                                                            </div>
+                                                        )}
+
+                                                        {!isReadOnlyAide && (
+                                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
+                                                                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                                                    <Upload className="w-4 h-4" />
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                                    <Check className="w-3.5 h-3.5 text-primary" />
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate">
+                                                                    {eCopyFile?.name || "Registry-Record-ID-" + transaction.id.slice(-6).toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className={cn(
+                                                            "p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all duration-500 scale-110",
+                                                            !isReadOnlyAide && "group-hover:bg-primary group-hover:text-white"
+                                                        )}>
+                                                            <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                        </div>
+                                                        <div className="text-center space-y-1">
+                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
+                                                                {isReadOnlyAide ? "Official Digital Record" : "Attach E-Copy Registry"}
+                                                            </span>
+                                                            <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">
+                                                                {isReadOnlyAide ? "Pending upload by Treasury Staff" : "PDF or Image up to 5MB"}
+                                                            </span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    {/* OR / Official Receipt Upload Block (Only for Business Permits) */}
+                                    {isBusinessPermit && (
+                                        <div className="relative flex flex-col gap-2 animate-in fade-in-50 duration-500">
+                                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">2. Official Receipt (OR)</span>
+                                            {transaction.status !== "RELEASED" && !isReadOnlyAide && (
+                                                <input type="file" accept=".pdf,image/*" onChange={(e) => setOrFile(e.target.files?.[0] || null)} className="hidden" id="main-or-upload" />
                                             )}
-                                            <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-primary" /></div>
-                                        </a>
-                                    ) : (
-                                        <label htmlFor={isReadOnlyAide ? undefined : "main-ecopy-upload"} className={cn(
-                                            "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
-                                            isReadOnlyAide ? "border-slate-100 dark:border-white/5 cursor-not-allowed" : (eCopyFile || transaction.eCopyUrl ? "border-primary/30 bg-primary/5 shadow-inner cursor-pointer" : "border-slate-100 dark:border-white/5 hover:border-primary/30 cursor-pointer")
-                                        )}>
-                                            {(eCopyPreview || transaction.eCopyUrl) ? (
-                                                <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
-                                                    {/* Image Preview */}
-                                                    {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg")))) ? (
+
+                                            {transaction.status === "RELEASED" || transaction.orUrl ? (
+                                                <a
+                                                    href={transaction.orUrl || "#"}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex flex-col items-center justify-center rounded-3xl border-2 border-emerald-500/30 bg-emerald-500/5 transition-all h-48 border-solid overflow-hidden group relative"
+                                                >
+                                                    {transaction.orUrl && (transaction.orUrl.toLowerCase().endsWith(".jpg") || transaction.orUrl.toLowerCase().endsWith(".png") || transaction.orUrl.toLowerCase().endsWith(".jpeg") || transaction.orUrl.includes("image")) ? (
                                                         <Image
-                                                            src={eCopyPreview || transaction.eCopyUrl}
+                                                            src={transaction.orUrl}
                                                             fill
-                                                            className="object-cover opacity-60 group-hover:opacity-100 transition-opacity"
-                                                            alt="Registry Preview"
+                                                            className="object-cover opacity-80 hover:opacity-100 transition-opacity"
+                                                            alt="Official Receipt"
                                                             unoptimized
                                                         />
                                                     ) : (
-                                                        <div className="flex flex-col items-center justify-center text-primary/40 group-hover:text-primary transition-colors">
-                                                            <FileText className="w-12 h-12" />
-                                                            <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">PDF Document Ready</span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Hover Overlay */}
-                                                    {!isReadOnlyAide && (
-                                                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
-                                                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
-                                                                <Upload className="w-4 h-4" />
+                                                        <div className="flex flex-col items-center gap-3">
+                                                            <div className="p-4 rounded-2xl bg-emerald-500 text-white shadow-lg">
+                                                                <FileText className="w-6 h-6" />
                                                             </div>
-                                                            <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Attachment</span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Info Bar */}
-                                                    <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                                                        <div className="flex items-center gap-3 overflow-hidden">
-                                                            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                                <Check className="w-3.5 h-3.5 text-primary" />
-                                                            </div>
-                                                            <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate">
-                                                                {eCopyFile?.name || "Registry-Record-ID-" + transaction.id.slice(-6).toUpperCase()}
+                                                            <span className="text-[10px] font-black uppercase tracking-widest italic text-emerald-600 text-center">
+                                                                View Official Receipt (OR)
                                                             </span>
                                                         </div>
-                                                    </div>
-                                                </div>
+                                                    )}
+                                                    <div className="absolute top-4 right-4"><ExternalLink className="w-4 h-4 text-emerald-500" /></div>
+                                                </a>
                                             ) : (
-                                                <>
-                                                    <div className={cn(
-                                                        "p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all duration-500 scale-110",
-                                                        !isReadOnlyAide && "group-hover:bg-primary group-hover:text-white"
-                                                    )}>
-                                                        <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                                    </div>
-                                                    <div className="text-center space-y-1">
-                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
-                                                            {isReadOnlyAide ? "Official Digital Record" : "Attach E-Copy Registry"}
-                                                        </span>
-                                                        <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">
-                                                            {isReadOnlyAide ? "Pending upload by Treasury Staff" : "PDF or Image up to 5MB"}
-                                                        </span>
-                                                    </div>
-                                                </>
+                                                <label htmlFor={isReadOnlyAide ? undefined : "main-or-upload"} className={cn(
+                                                    "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                                    isReadOnlyAide ? "border-slate-100 dark:border-white/5 cursor-not-allowed" : (orFile || transaction.orUrl ? "border-emerald-500/30 bg-emerald-500/5 shadow-inner cursor-pointer" : "border-slate-100 dark:border-white/5 hover:border-emerald-500/30 cursor-pointer")
+                                                )}>
+                                                    {(orPreview || transaction.orUrl) ? (
+                                                        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                                                            {((orFile && orFile.type.startsWith("image/")) || (!orFile && transaction.orUrl && (transaction.orUrl.toLowerCase().endsWith(".jpg") || transaction.orUrl.toLowerCase().endsWith(".png") || transaction.orUrl.toLowerCase().endsWith(".jpeg")))) ? (
+                                                                <Image
+                                                                    src={orPreview || transaction.orUrl}
+                                                                    fill
+                                                                    className="object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                                                                    alt="OR Preview"
+                                                                    unoptimized
+                                                                />
+                                                            ) : (
+                                                                <div className="flex flex-col items-center justify-center text-emerald-500/40 group-hover:text-emerald-500 transition-colors">
+                                                                    <FileText className="w-12 h-12" />
+                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">OR Document Ready</span>
+                                                                </div>
+                                                            )}
+
+                                                            {!isReadOnlyAide && (
+                                                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
+                                                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                                                        <Upload className="w-4 h-4" />
+                                                                    </div>
+                                                                    <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update Receipt</span>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                                    <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                                                                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                                                    </div>
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate">
+                                                                        {orFile?.name || "Official-Receipt-" + transaction.id.slice(-6).toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className={cn(
+                                                                "p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all duration-500 scale-110",
+                                                                !isReadOnlyAide && "group-hover:bg-emerald-500 group-hover:text-white"
+                                                            )}>
+                                                                <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                            </div>
+                                                            <div className="text-center space-y-1">
+                                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
+                                                                    {isReadOnlyAide ? "Official Receipt (OR)" : "Attach Official Receipt"}
+                                                                </span>
+                                                                <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">
+                                                                    {isReadOnlyAide ? "Pending upload by Treasury Staff" : "PDF or Image up to 5MB"}
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </label>
                                             )}
-                                        </label>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1162,28 +1496,40 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         transaction.fulfillmentType === "E_COPY" ||
                                                         (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
                                                     ))
-                                                ) && !eCopyFile && !transaction.eCopyUrl && (
-                                                        <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
-                                                            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
-                                                                <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
-                                                            </div>
-                                                            <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Digital Copy Required</p>
-                                                            <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">Please attach the Digital Record to enable document processing.</p>
+                                                ) && (
+                                                    isBusinessPermit
+                                                        ? ((!eCopyFile && !transaction.eCopyUrl) || (!orFile && !transaction.orUrl))
+                                                        : (!eCopyFile && !transaction.eCopyUrl)
+                                                ) && (
+                                                    <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
+                                                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                            <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
                                                         </div>
-                                                    )}
+                                                        <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">
+                                                            {isBusinessPermit ? "E-Copy & OR Required" : "Digital Copy Required"}
+                                                        </p>
+                                                        <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">
+                                                            {isBusinessPermit 
+                                                                ? "Please attach both the Digital Permit and the Official Receipt (OR) to enable document processing." 
+                                                                : "Please attach the Digital Record to enable document processing."}
+                                                        </p>
+                                                    </div>
+                                                )}
 
-                                                {/* Always show CTC Input for these phases */}
-                                                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
-                                                    <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
-                                                        {isBusinessPermit ? "Registry Serial Entry (Permit No.)" : "Registry Serial Entry (CTC No.)"}
-                                                    </Label>
-                                                    <Input
-                                                        value={ctcNumber}
-                                                        onChange={(e) => setCtcNumber(e.target.value)}
-                                                        placeholder={isBusinessPermit ? "ENTER PERMIT NUMBER..." : "ENTER CTC NUMBER..."}
-                                                        className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
-                                                    />
-                                                </div>
+                                                {/* Always show CTC Input for these phases (Hidden for Business Permits since permit number is auto-generated) */}
+                                                {!isBusinessPermit && (
+                                                    <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
+                                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
+                                                            Registry Serial Entry (CTC No.)
+                                                        </Label>
+                                                        <Input
+                                                            value={ctcNumber}
+                                                            onChange={(e) => setCtcNumber(e.target.value)}
+                                                            placeholder="ENTER CTC NUMBER..."
+                                                            className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -1205,10 +1551,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         onClick={handleRelease}
                                                         disabled={
                                                             actionLoading ||
-                                                            // Requirement: CTC needed for initial processing
-                                                            (!["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
+                                                            // Requirement: CTC needed for initial processing (only for non-Business Permits)
+                                                            (!isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
                                                             // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows
-                                                            ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl)
+                                                            ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
+                                                            // Requirement: OR copy also needed for Business Permits in initial processing phases
+                                                            (isBusinessPermit && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !orFile && !transaction.orUrl)
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
