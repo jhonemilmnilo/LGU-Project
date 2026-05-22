@@ -345,7 +345,7 @@ async function main() {
     },
     {
       name: "Logistics Rider",
-      email: "rider@mapandan.gov.ph",
+      email: "jhma.nilo.up@phinmaed.com",
       password: commonHashedPassword,
       role: "RIDER" as const,
       isEmailVerified: true,
