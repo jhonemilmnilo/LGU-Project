@@ -154,8 +154,8 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                     )}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Place of Birth</label>
-                    <Input name="placeOfBirth" defaultValue={data?.placeOfBirth || ""} placeholder="City/Municipality, Province" />
+                    <label className="text-sm font-semibold">Place of Birth <span className="text-red-500">*</span></label>
+                    <Input name="placeOfBirth" defaultValue={data?.placeOfBirth || ""} placeholder="City/Municipality, Province" required />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Citizenship</label>

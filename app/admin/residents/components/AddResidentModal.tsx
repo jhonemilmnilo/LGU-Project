@@ -34,6 +34,13 @@ export function AddResidentModal() {
     const [currentStep, setCurrentStep] = useState(0);
 
     useEffect(() => {
+        const activeElement = document.getElementById(`step-indicator-residents-${currentStep}`);
+        if (activeElement) {
+            activeElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }, [currentStep]);
+
+    useEffect(() => {
         if (isAddModalOpen) {
             setTimeout(() => {
                 // Reset to Step 1 whenever modal is opened
@@ -114,6 +121,7 @@ export function AddResidentModal() {
 
                 if (shouldFocus) {
                     targetToStyle.focus();
+                    targetToStyle.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
                 targetToStyle.classList.add("ring-2", "ring-red-500", "border-red-500", "dark:border-red-500", "ring-offset-2");
                 const cleanUp = () => {
@@ -136,6 +144,9 @@ export function AddResidentModal() {
             }
             if (!formData.get("firstName")) { 
                 addError("firstName", "First Name is required."); 
+            }
+            if (!formData.get("placeOfBirth")) { 
+                addError("placeOfBirth", "Place of Birth is required."); 
             }
             if (!formData.get("gender")) { 
                 addError("gender", "Please select a Gender."); 
@@ -195,14 +206,7 @@ export function AddResidentModal() {
             }
         }
 
-        if (stepIndex === 6) { // Sectors and Consent
-            if (formData.get("dataPrivacyConsent") !== "true") {
-                toast.error("You must agree to the Data Privacy Consent.");
-                const consentBox = document.getElementById("dataPrivacyConsent");
-                consentBox?.focus();
-                return false;
-            }
-        }
+        // Removed Data Privacy Consent frontend validation block since it is now auto-consented server-side
 
         if (invalidFields.length > 0) {
             toast.error(invalidFields[0].message);
@@ -225,7 +229,7 @@ export function AddResidentModal() {
                 <div className="flex flex-col lg:flex-row h-[95vh] lg:h-[80vh]">
                     
                     {/* Left Sidebar: Steps Progress */}
-                    <div className="lg:w-80 bg-slate-50 dark:bg-[#151b2b] p-8 border-r border-slate-200 dark:border-[#2a3040] hidden lg:block">
+                    <div className="lg:w-80 bg-slate-50 dark:bg-[#151b2b] p-8 border-r border-slate-200 dark:border-[#2a3040] hidden lg:block overflow-y-auto custom-scrollbar">
                         <div className="flex items-center space-x-3 mb-12">
                             <div 
                                 style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
@@ -245,6 +249,7 @@ export function AddResidentModal() {
                                 return (
                                     <div 
                                         key={step.id} 
+                                        id={`step-indicator-residents-${index}`}
                                         style={isActive ? { boxShadow: `0 20px 25px -5px ${themeColor}1a, 0 8px 10px -6px ${themeColor}1a` } : undefined}
                                         className={cn(
                                             "flex items-center space-x-4 p-4 rounded-2xl transition-all duration-300",

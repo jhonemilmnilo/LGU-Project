@@ -639,6 +639,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     // Build evidence documents list for the Evidence Vault UI
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const evidenceDocs: { url?: string | null; label: string }[] = (() => {
         if (isBusinessPermit) {
             return [

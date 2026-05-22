@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, X as XIcon } from "lucide-react";
+import { Users, X as XIcon, Search } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +25,8 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
         formCategoryName
     } = useResident();
 
+    const defaultBrgy = data?.barangay || (isBarangayAdmin ? managedBarangay : "");
+
     const [isHead, setIsHead] = useState(data?.isHead || false);
     const [headInfo, setHeadInfo] = useState({ 
         id: data?.headId || "", 
@@ -34,6 +36,16 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
     // Resident Type Logic (linked to Category)
     const [isGuest, setIsGuest] = useState(false);
     const [barangayList, setBarangayList] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedBarangay, setSelectedBarangay] = useState(defaultBrgy);
+
+    useEffect(() => {
+        setSelectedBarangay(defaultBrgy);
+    }, [defaultBrgy]);
+
+    const filteredBarangays = barangayList.filter(b => 
+        b.toLowerCase().includes(searchQuery.toLowerCase()) || b === selectedBarangay
+    );
 
     useEffect(() => {
         const fetchBarangays = async () => {
@@ -58,8 +70,6 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
             }
         }
     }, [formCategoryName, data?.municipality]);
-
-    const defaultBrgy = data?.barangay || (isBarangayAdmin ? managedBarangay : "");
 
     return (
         <div className="space-y-6">
@@ -121,16 +131,47 @@ export function AddressContactSection({ data }: { data?: Partial<Resident> }) {
                                 <input type="hidden" name="barangay" value={managedBarangay || ""} />
                             </>
                         ) : (
-                            <Select name="barangay" defaultValue={defaultBrgy}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Barangay" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {barangayList.map(b => (
-                                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                             <Select 
+                                 name="barangay" 
+                                 value={selectedBarangay} 
+                                 onValueChange={setSelectedBarangay}
+                                 onOpenChange={(open) => {
+                                     if (!open) setSearchQuery("");
+                                 }}
+                             >
+                                 <SelectTrigger>
+                                     <SelectValue placeholder="Select Barangay" />
+                                 </SelectTrigger>
+                                 <SelectContent className="max-h-[300px] flex flex-col p-0" position="popper">
+                                     <div className="p-2 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#0f1117] sticky top-0 z-20">
+                                         <div className="relative flex items-center">
+                                             <Search className="absolute left-2.5 w-4 h-4 text-slate-400" />
+                                             <input
+                                                 type="text"
+                                                 placeholder="Search barangay..."
+                                                 value={searchQuery}
+                                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                                 onKeyDown={(e) => {
+                                                     e.stopPropagation();
+                                                 }}
+                                                 onPointerDown={(e) => {
+                                                     e.stopPropagation();
+                                                 }}
+                                                 className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#2a3040] rounded-lg outline-none focus:border-slate-300 dark:focus:border-white/20 font-semibold"
+                                             />
+                                         </div>
+                                     </div>
+                                     <div className="overflow-y-auto max-h-[220px] p-1">
+                                         {filteredBarangays.length > 0 ? (
+                                             filteredBarangays.map(b => (
+                                                 <SelectItem key={b} value={b}>{b}</SelectItem>
+                                             ))
+                                         ) : (
+                                             <div className="p-4 text-center text-xs text-slate-400">No barangay found</div>
+                                         )}
+                                     </div>
+                                 </SelectContent>
+                             </Select>
                         )
                     )}
                 </div>
