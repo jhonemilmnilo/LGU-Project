@@ -5,7 +5,7 @@ import { Resident } from "../providers/ResidentProvider";
 import { deleteResident } from "../../actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, Phone, BadgeCheck, MoreVertical, Skull, Radio } from "lucide-react";
+import { Edit, Trash2, Search, Phone, BadgeCheck, MoreVertical, Skull, Radio, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
     DropdownMenu,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toggleResidentDeathStatus } from "../../actions";
 import { RFIDCaptureModal } from "./RFIDCaptureModal";
+import { ResidentReviewModal } from "./ResidentReviewModal";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -63,6 +64,8 @@ export function ResidentTable() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isRFIDModalOpen, setIsRFIDModalOpen] = useState(false);
     const [selectedResident, setSelectedResident] = useState<{id: string, name: string} | null>(null);
+    const [reviewResident, setReviewResident] = useState<Resident | null>(null);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     useEffect(() => {
         if (currentPage !== 1) {
@@ -113,6 +116,22 @@ export function ResidentTable() {
         setIsRFIDModalOpen(true);
     };
 
+    const openReviewModal = (resident: Resident, e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("button") || target.closest("[role='menuitem']") || target.closest("[data-state]")) {
+            return;
+        }
+        setReviewResident(resident);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleStatusChange = (id: string, newStatus: "APPROVED" | "REJECTED", remarks?: string) => {
+        setResidents(prev => prev.map(r => r.id === id
+            ? { ...r, registrationStatus: newStatus, rejectionRemarks: remarks || r.rejectionRemarks }
+            : r
+        ));
+    };
+
     return (
         <div className="bg-white dark:bg-[#151b2b] rounded-2xl border border-slate-200 dark:border-[#2a3040] shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -142,7 +161,8 @@ export function ResidentTable() {
                         ) : (
                             paginatedResidents.map((resident) => (
                                                     <TableRow key={resident.id}
-                                    className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors"
+                                    className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer"
+                                    onClick={(e) => openReviewModal(resident, e)}
                                 >
                                     <TableCell className="py-4">
                                         <div className="relative w-12 h-12 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
@@ -248,6 +268,15 @@ export function ResidentTable() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
                                                     <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Management Options</DropdownMenuLabel>
+                                                    <DropdownMenuItem 
+                                                         onClick={() => { setReviewResident(resident); setIsReviewModalOpen(true); }}
+                                                         className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-bold transition-colors group"
+                                                     >
+                                                         <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:scale-110 transition-transform">
+                                                             <Eye className="w-4 h-4 text-slate-500" />
+                                                         </div>
+                                                         View Details
+                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem 
                                                         onClick={() => handleEdit(resident)}
                                                         className="flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-xl text-slate-700 dark:text-slate-300 font-bold transition-colors group hover:bg-slate-50 dark:hover:bg-white/5"
@@ -374,6 +403,12 @@ export function ResidentTable() {
                 onClose={() => setIsRFIDModalOpen(false)}
                 residentId={selectedResident?.id || ""}
                 residentName={selectedResident?.name || ""}
+            />
+            <ResidentReviewModal
+                resident={reviewResident}
+                isOpen={isReviewModalOpen}
+                onClose={() => { setIsReviewModalOpen(false); setReviewResident(null); }}
+                onStatusChange={handleStatusChange}
             />
         </div>
     );

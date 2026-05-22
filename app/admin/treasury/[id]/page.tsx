@@ -264,7 +264,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         // 2. If new evaluation, look up the Barangay-specific fee
                         const addr = (typeof tx.deliveryAddress === 'string'
                             ? JSON.parse(tx.deliveryAddress || '{}')
-                            : tx.deliveryAddress) || tx.residentSnapshot;
+                            : tx.deliveryAddress) || tx.user?.residentProfile || tx.residentSnapshot;
 
                         if (addr?.barangay) {
                             getDeliveryFeeByBarangay(addr.barangay).then(brgyRes => {
@@ -504,7 +504,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }
 
     const additional = transaction.additionalData || {};
-    const resident = transaction.residentSnapshot || {};
+    const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const income = Number(additional.income || 0);
     const propertyValue = Number(additional.propertyValue || 0);
 
@@ -551,14 +551,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
                 : 0;
+            // Miscellaneous fee: Late registration = ₱300, Standard = ₱0
+            const miscFee = (additional.registrationType || "").toUpperCase() === "LATE" ? 300 : 0;
             const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0)
                 ? Number(transaction.totalAmount)
-                : baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0);
+                : baseFee + deliveryFeeUsed + miscFee;
             return {
                 basicTax: baseFee,
                 additionalTax: 0,
                 penalty: 0,
                 deliveryFee: deliveryFeeUsed,
+                miscFee,
                 totalAmount: total
             };
         }
@@ -655,21 +658,78 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         }
 
         if (isLCR) {
-            // Support LCR birth registration documents
             const regType = (additional.registrationType || "").toUpperCase();
-            const standard = [
+            const typeCode = (transaction?.type?.code || "").toUpperCase();
+
+            // --- Birth Registration ---
+            if (typeCode === "LCR_BIRTH_REG") {
+                if (regType === "LATE") {
+                    return [
+                        { url: additional.negativePSA, label: "Negative Certification from PSA" },
+                        { url: additional.colb, label: "Certificate of Live Birth (COLB)" },
+                        { url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" },
+                        { url: additional.supportingEvidence1, label: "Supporting Evidence 1" },
+                        { url: additional.supportingEvidence2, label: "Supporting Evidence 2" }
+                    ];
+                }
+                // Standard — parents' marital status determines which docs are required
+                const parentsMarried = additional.parentsMarried === true || additional.parentsMarried === "true";
+                if (parentsMarried) {
+                    return [
+                        { url: additional.marriageCertificate, label: "Marriage Certificate of Parents" },
+                        { url: additional.municipalForm102, label: "Municipal Form 102" }
+                    ];
+                }
+                return [
+                    { url: additional.communityTaxCertificate, label: "Community Tax Certificate" }
+                ];
+            }
+
+            // --- Death Registration ---
+            if (typeCode === "LCR_DEATH_REG") {
+                if (regType === "LATE") {
+                    return [
+                        { url: additional.psaNegative, label: "PSA Negative Certification" },
+                        { url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" }
+                    ];
+                }
+                return [
+                    { url: additional.municipalForm103, label: "Municipal Form No. 103" }
+                ];
+            }
+
+            // --- Marriage Registration ---
+            if (typeCode === "LCR_MARRIAGE_REG") {
+                if (regType === "LATE") {
+                    return [
+                        { url: additional.psaNeg, label: "Negative Certificate from PSA" },
+                        { url: additional.affidavitDelay, label: "Affidavit of Delayed Registration" },
+                        { url: additional.marriageLicense, label: "Certified Copy of Marriage License" }
+                    ];
+                }
+                return [
+                    { url: additional.marriageCert, label: "Accomplished Certificate of Marriage" }
+                ];
+            }
+
+            // --- Fallback for other LCR types: return any documents that have URLs ---
+            return [
                 { url: additional.marriageCertificate, label: "Marriage Certificate of Parents" },
                 { url: additional.municipalForm102, label: "Municipal Form 102" },
-                { url: additional.communityTaxCertificate, label: "Community Tax Certificate" }
-            ];
-            const late = [
+                { url: additional.communityTaxCertificate, label: "Community Tax Certificate" },
                 { url: additional.negativePSA, label: "Negative Certification from PSA" },
                 { url: additional.colb, label: "Certificate of Live Birth (COLB)" },
                 { url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" },
                 { url: additional.supportingEvidence1, label: "Supporting Evidence 1" },
-                { url: additional.supportingEvidence2, label: "Supporting Evidence 2" }
+                { url: additional.supportingEvidence2, label: "Supporting Evidence 2" },
+                { url: additional.municipalForm103, label: "Municipal Form No. 103" },
+                { url: additional.psaNegative, label: "PSA Negative Certification" },
+                { url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" },
+                { url: additional.marriageCert, label: "Accomplished Certificate of Marriage" },
+                { url: additional.psaNeg, label: "Negative Certificate from PSA" },
+                { url: additional.affidavitDelay, label: "Affidavit of Delayed Registration" },
+                { url: additional.marriageLicense, label: "Certified Copy of Marriage License" }
             ];
-            return regType === "LATE" ? late : standard;
         }
 
         // Default: generic user documents
@@ -811,6 +871,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
+                                    </div>
+                                )}
+                                {isLCR && (
+                                    <div className="flex justify-between items-center pt-2 gap-4">
+                                        <div>
+                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Miscellaneous Fee</span>
+                                            <p className="text-[10px] text-slate-400 italic">
+                                                {(additional.registrationType || "").toUpperCase() === "LATE"
+                                                    ? "Late registration surcharge"
+                                                    : "Standard registration — no surcharge"}
+                                            </p>
+                                        </div>
+                                        {(additional.registrationType || "").toUpperCase() === "LATE" ? (
+                                            <span className="text-sm font-black text-amber-600 italic">₱300.00</span>
+                                        ) : (
+                                            <span className="text-sm font-black text-emerald-600 italic">FREE</span>
+                                        )}
                                     </div>
                                 )}
 

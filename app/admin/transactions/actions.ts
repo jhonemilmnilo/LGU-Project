@@ -258,6 +258,24 @@ export async function ensureCivilRegistryTransactionTypes() {
                 supportsECopy: true
             },
             {
+                code: "LCR_MARRIAGE_REG",
+                name: "Marriage Registration",
+                description: "Register a new marriage record with the Local Civil Registry.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 100.00,
+                deliveryFee: 100.00,
+                isFixed: true,
+                requiredDocs: ["Accomplished Certificate of Marriage", "PSA Negative Certificate", "Affidavit of Delayed Registration", "Certified Copy of Marriage License"],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "MARRIAGE_REG",
+                    fields: ["applicant1", "applicant2", "dateOfMarriage", "placeOfMarriage"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            },
+            {
                 code: "LCR_DEATH",
                 name: "Death Certificate (Certified Copy)",
                 description: "Request for a certified true copy of a death certificate from the Local Civil Registry.",
@@ -318,6 +336,12 @@ export async function ensureCivilRegistryTransactionTypes() {
     }
 }
 
+function getPHTimeISOString() {
+    const phOffset = 8 * 60 * 60 * 1000; // UTC+8
+    const phTime = new Date(Date.now() + phOffset);
+    return phTime.toISOString().replace("Z", "+08:00");
+}
+
 export async function submitCivilRegistryTransaction(formData: FormData) {
     try {
         const session = await getSession();
@@ -356,7 +380,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
             ...additionalData,
             ...files,
             registryType,
-            submittedAt: new Date().toISOString()
+            submittedAt: getPHTimeISOString()
         };
         console.log("[submitCivilRegistryTransaction] updatedAdditionalData:", updatedAdditionalData);
 
@@ -440,7 +464,7 @@ export async function submitBirthRegistration(formData: FormData) {
             ...additionalData,
             ...files,
             registryType: "BIRTH_REG",
-            submittedAt: new Date().toISOString()
+            submittedAt: getPHTimeISOString()
         };
 
         // Server-side validation: ensure required documents are present

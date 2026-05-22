@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { format } from "date-fns";
+// Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
+function formatPHDate(date: string | Date): string {
+    return new Intl.DateTimeFormat("en-PH", {
+        timeZone: "Asia/Manila",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    }).format(new Date(date));
+}
 import { 
     Clock, 
     CheckCircle2, 
@@ -200,7 +208,7 @@ export default function UserServiceRequestsPage() {
                                             {req.type?.name || "Service Request"}
                                         </h3>
                                         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-slate-400">
-                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.createdAt ? format(new Date(req.createdAt), "MMM d, yyyy") : "N/A"}</span>
+                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.createdAt ? formatPHDate(req.createdAt) : "N/A"}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.fulfillmentType?.replace("_", " ") || "PENDING EVAL"}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
