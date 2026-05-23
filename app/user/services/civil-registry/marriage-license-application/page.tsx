@@ -63,7 +63,8 @@ function compressImageDataUrl(dataUrl: string, maxWidth = 1200, quality = 0.75):
 			try {
 				const compressed = canvas.toDataURL('image/jpeg', quality);
 				resolve(compressed);
-			} catch (e) {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			} catch (_e) {
 				resolve(dataUrl);
 			}
 		};
@@ -78,7 +79,8 @@ const MISC_FEE = 862; // misc fee for marriage license application
 function formatCurrency(amount: number) {
 	try {
 		return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
-	} catch (e) {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	} catch (_e) {
 		return `₱${amount.toFixed(2)}`;
 	}
 }

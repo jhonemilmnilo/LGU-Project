@@ -105,7 +105,8 @@ export default function DeathRegistrationPage() {
 
     const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
 
-    const isRestoredRef = useRef(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _isRestoredRef = useRef(false);
 
     // Restore progress from session storage & IndexedDB
     useEffect(() => {

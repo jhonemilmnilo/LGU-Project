@@ -236,7 +236,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         word2: "Express",
         logo: ""
     });
-    const [showAdditionalDebug, setShowAdditionalDebug] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [_showAdditionalDebug, _setShowAdditionalDebug] = useState(false);
     const [isResolvingDispute, setIsResolvingDispute] = useState(false);
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
@@ -244,7 +245,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const typeCode = (transaction?.type?.code || "").toUpperCase();
-    const isBirth = typeCode.includes("BIRTH");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
     const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
     const safeFormatDate = (dateStr: any) => {
@@ -793,7 +795,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         docs.push({ url: val, label });
                     }
                 }
-            } catch (e) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (_e) {
                 // ignore parsing errors
             }
 

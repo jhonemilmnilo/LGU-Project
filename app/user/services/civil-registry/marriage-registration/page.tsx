@@ -76,7 +76,8 @@ function compressImageDataUrl(dataUrl: string, maxWidth = 1200, quality = 0.75):
             try {
                 const compressed = canvas.toDataURL('image/jpeg', quality);
                 resolve(compressed);
-            } catch (e) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (_e) {
                 resolve(dataUrl);
             }
         };
