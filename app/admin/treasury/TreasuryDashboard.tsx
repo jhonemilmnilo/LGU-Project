@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { 
-    getTreasuryTransactions, 
+import {
+    getTreasuryTransactions,
     getPendingTreasuryCount,
     getTreasuryStatusCounts
 } from "@/app/admin/transactions/actions";
@@ -18,8 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-    Search, RefreshCcw, 
+import {
+    Search, RefreshCcw,
     Archive, Clock, ChevronDown
 } from "lucide-react";
 import {
@@ -36,7 +36,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const STATUS_TABS = [
-    { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
+    { value: "ALL", label: "All Status", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
     { value: "FOR_REQUESTING", label: "Evaluation", color: "text-amber-600", activeColor: "bg-amber-500 text-white" },
     { value: "FOR_REVISION", label: "For Revision", color: "text-amber-600", activeColor: "bg-amber-600 text-white" },
     { value: "FOR_PROCESSING", label: "Processing", color: "text-sky-600", activeColor: "bg-sky-500 text-white" },
@@ -148,7 +148,7 @@ export default function TreasuryDashboard() {
         if (!loading) {
             fetchStatusCounts();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading]);
 
     // Reset serviceFilter and page when status changes to prevent lingering filter states across empty pages
@@ -161,20 +161,20 @@ export default function TreasuryDashboard() {
         if (currentPage !== 1) {
             setCurrentPage(1);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, status, itemsPerPage]);
 
     const filteredTransactions = transactions.filter(tx => {
         const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
         const refId = tx.id.slice(-8).toUpperCase();
         const searchUpper = search.toUpperCase();
-        
-        const matchesSearch = name.includes(search.toLowerCase()) || 
-                             tx.id.toLowerCase().includes(search.toLowerCase()) ||
-                             refId.includes(searchUpper);
-                             
+
+        const matchesSearch = name.includes(search.toLowerCase()) ||
+            tx.id.toLowerCase().includes(search.toLowerCase()) ||
+            refId.includes(searchUpper);
+
         const matchesService = !serviceFilter || tx.type?.name === serviceFilter;
-        
+
         return matchesSearch && matchesService;
     });
 
@@ -182,7 +182,7 @@ export default function TreasuryDashboard() {
         if (sortBy === "service") {
             const serviceA = (a.type?.name || "").toLowerCase();
             const serviceB = (b.type?.name || "").toLowerCase();
-            return sortDirection === "asc" 
+            return sortDirection === "asc"
                 ? serviceA.localeCompare(serviceB)
                 : serviceB.localeCompare(serviceA);
         } else {
@@ -226,310 +226,271 @@ export default function TreasuryDashboard() {
                 <Tabs value={status} onValueChange={setStatus} className="w-full">
                     {/* Filters Section — matching ResidentFilters style */}
                     <div className="flex flex-col border-b border-slate-200 dark:border-[#2a3040] bg-slate-50/50 dark:bg-[#151b2b]">
-                        {/* Status Tabs */}
-                        <div className="px-4 pt-4 flex items-center gap-2 flex-wrap">
-                            <TabsList className="bg-transparent p-0 h-auto flex-wrap justify-start gap-2">
-                                {filteredTabs.map(tab => {
-                                    const isActive = status === tab.value;
-                                    const count = tab.value === "ALL"
-                                        ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
-                                        : (statusCounts[tab.value] || 0);
-                                    return (
-                                        <TabsTrigger
-                                            key={tab.value}
-                                            value={tab.value}
-                                            className={cn(
-                                                "rounded-xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-all duration-200 shadow-none",
-                                                isActive
-                                                    ? `${tab.activeColor} border-transparent`
-                                                    : `bg-white dark:bg-[#0f1117] border border-slate-200 dark:border-[#2a3040] ${tab.color} hover:border-slate-300 dark:hover:border-slate-600`
-                                            )}
-                                        >
-                                            {tab.label}
-                                            <span className={cn(
-                                                "text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
-                                                isActive ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                            )}>
-                                                {count}
-                                            </span>
-                                        </TabsTrigger>
-                                    );
-                                })}
-                            </TabsList>
-                        </div>
+                        {/* (Status dropdown moved inline into the search row below) */}
 
                         {/* Search Row — matching ResidentFilters style */}
                         <div className="p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
                             <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                                 <div className="relative w-full sm:w-[350px]">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                                    <Input 
-                                        placeholder="Search names or Reference ID..." 
+                                    <Input
+                                        placeholder="Search names or Reference ID..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-xl" 
+                                        className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-xl"
                                     />
                                 </div>
                             </div>
-                            <Button 
-                                onClick={fetchTransactions} 
-                                variant="outline" 
-                                className="h-11 w-11 rounded-xl p-0 border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]"
-                            >
-                                <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
-                            </Button>
+
+                            {/* Right controls: Status dropdown + Refresh */}
+                            <div className="flex items-center gap-3">
+                                <div className="hidden sm:block">
+                                    <Select value={serviceFilter ?? "ALL"} onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}>
+                                        <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
+                                            <SelectValue placeholder="Service" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white dark:bg-[#151b2b]">
+                                            <SelectItem value="ALL" className="text-sm">All Services</SelectItem>
+                                            {uniqueServices.map(srv => (
+                                                <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="hidden sm:block">
+                                    <Select value={status} onValueChange={(v) => setStatus(v)}>
+                                        <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white dark:bg-[#151b2b]">
+                                            {filteredTabs.map(tab => {
+                                                const count = tab.value === "ALL"
+                                                    ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
+                                                    : (statusCounts[tab.value] || 0);
+                                                return (
+                                                    <SelectItem key={tab.value} value={tab.value} className="text-sm">
+                                                        {tab.label}{count ? ` (${count})` : ""}
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <Button
+                                    onClick={fetchTransactions}
+                                    variant="outline"
+                                    className="h-11 w-11 rounded-xl p-0 border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]"
+                                >
+                                    <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
                     {status !== "SETTINGS" && (
                         <TabsContent value={status} className="mt-0">
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader className="bg-slate-50 border-b border-slate-200 dark:bg-[#1a1f2e] dark:border-[#2a3040]">
-                                    <TableRow className="hover:bg-transparent">
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">
-                                            <div className="flex items-center gap-2">
-                                                {/* Sort Trigger */}
-                                                <button
-                                                    onClick={handleServiceSortToggle}
-                                                    className="flex items-center gap-1.5 hover:text-primary transition-colors focus:outline-none font-bold"
-                                                >
-                                                    <span>Service</span>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-slate-50 border-b border-slate-200 dark:bg-[#1a1f2e] dark:border-[#2a3040]">
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
+                                            <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant</TableHead>
+                                            <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">
+                                                <div className="flex items-center gap-2">
+                                                    {/* Sort Trigger */}
+                                                    <button
+                                                        onClick={handleServiceSortToggle}
+                                                        className="flex items-center gap-1.5 hover:text-primary transition-colors focus:outline-none font-bold"
+                                                    >
+                                                        <span>Service</span>
+                                                        <span className={cn(
+                                                            "transition-colors duration-200 font-black text-[10px]",
+                                                            sortBy === "service"
+                                                                ? "text-blue-600 dark:text-blue-400 font-bold"
+                                                                : "text-slate-300 dark:text-slate-600"
+                                                        )}>
+                                                            {sortBy === "service"
+                                                                ? (sortDirection === "asc" ? "▲" : "▼")
+                                                                : "⇅"
+                                                            }
+                                                        </span>
+                                                    </button>
+
+                                                    {/* Service filter moved to the top controls for better UX */}
+                                                </div>
+                                            </TableHead>
+                                            <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
+                                            <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
+                                            <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
+                                            <TableHead
+                                                className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors py-5"
+                                                onClick={handleDateHeaderClick}
+                                            >
+                                                <div className="flex items-center gap-1.5 group">
+                                                    <span>Date</span>
                                                     <span className={cn(
                                                         "transition-colors duration-200 font-black text-[10px]",
-                                                        sortBy === "service" 
-                                                            ? "text-blue-600 dark:text-blue-400 font-bold" 
-                                                            : "text-slate-300 dark:text-slate-600"
+                                                        sortBy === "date"
+                                                            ? "text-blue-600 dark:text-blue-400 font-bold"
+                                                            : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400"
                                                     )}>
-                                                        {sortBy === "service" 
-                                                            ? (sortDirection === "asc" ? "▲" : "▼") 
+                                                        {sortBy === "date"
+                                                            ? (sortDirection === "asc" ? "▲" : "▼")
                                                             : "⇅"
                                                         }
                                                     </span>
-                                                </button>
-
-                                                {/* Dropdown Filter Trigger */}
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <button className={cn(
-                                                            "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide border transition-all duration-200 focus:outline-none cursor-pointer",
-                                                            serviceFilter
-                                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-900/60"
-                                                                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/50"
-                                                        )}>
-                                                            <span>{serviceFilter ? `Category: ${serviceFilter}` : "Filter"}</span>
-                                                            <ChevronDown className="w-3 h-3 text-slate-500" />
-                                                        </button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="start" className="w-64 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-[#2a3040] shadow-xl rounded-xl p-1.5 z-50">
-                                                        <DropdownMenuLabel className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 py-1.5 uppercase tracking-wider">
-                                                            Select Category
-                                                        </DropdownMenuLabel>
-                                                        <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
-                                                        <DropdownMenuItem
-                                                            onClick={() => setServiceFilter(null)}
-                                                            className={cn(
-                                                                "rounded-lg px-2.5 py-2 text-xs font-bold cursor-pointer transition-colors leading-none",
-                                                                !serviceFilter 
-                                                                    ? "bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400" 
-                                                                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                                            )}
-                                                        >
-                                                            All Categories
-                                                        </DropdownMenuItem>
-                                                        {uniqueServices.map(srv => (
-                                                            <DropdownMenuItem
-                                                                key={srv}
-                                                                onClick={() => {
-                                                                    setSortBy("service");
-                                                                    setServiceFilter(srv);
-                                                                }}
-                                                                className={cn(
-                                                                    "rounded-lg px-2.5 py-2 text-xs font-bold cursor-pointer transition-colors leading-none mt-0.5",
-                                                                    serviceFilter === srv 
-                                                                        ? "bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400" 
-                                                                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                                                )}
-                                                            >
-                                                                {srv}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
-                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
-                                        <TableHead 
-                                            className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors py-5"
-                                            onClick={handleDateHeaderClick}
-                                        >
-                                            <div className="flex items-center gap-1.5 group">
-                                                <span>Date</span>
-                                                <span className={cn(
-                                                    "transition-colors duration-200 font-black text-[10px]",
-                                                    sortBy === "date" 
-                                                        ? "text-blue-600 dark:text-blue-400 font-bold" 
-                                                        : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400"
-                                                )}>
-                                                    {sortBy === "date" 
-                                                        ? (sortDirection === "asc" ? "▲" : "▼") 
-                                                        : "⇅"
-                                                    }
-                                                </span>
-                                            </div>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
-                                        Array(5).fill(0).map((_, i) => (
-                                            <TableRow key={i} className="animate-pulse">
-                                                <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : paginatedTransactions.length > 0 ? (
-                                        paginatedTransactions.map((tx, index) => (
-                                            <TableRow 
-                                                key={tx.id} 
-                                                onClick={() => router.push(`/admin/treasury/${tx.id}`)}
-                                                className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
-                                            >
-                                                <TableCell className="py-4">
-                                                    <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
-                                                            {tx.type?.requiresBusinessName
-                                                                ? (tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY")
-                                                                : `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
-                                                            {tx.type?.requiresBusinessName ? "Business Entity" : "Registered Resident"}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">
-                                                        {tx.type?.name}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">{tx.fulfillmentType}</span>
-                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="font-bold text-slate-900 dark:text-white">
-                                                        {tx.totalAmount > 0 ? `₱${tx.totalAmount.toLocaleString()}` : "–"}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className={cn(
-                                                        "text-[10px] font-black uppercase italic tracking-wider",
-                                                        tx.isCancelled ? "text-red-600" : ({
-                                                            "FOR_REQUESTING": "text-amber-600",
-                                                            "FOR_REVISION": "text-amber-600",
-                                                            "EVALUATED": "text-blue-600",
-                                                            "FOR_CLAIM": "text-indigo-600",
-                                                            "FOR_PICKING": "text-pink-600",
-                                                            "IN_ROUTE": "text-orange-600",
-                                                            "DELIVERED": "text-teal-600",
-                                                            "FOR_PROCESSING": "text-sky-600",
-                                                            "PAID": "text-emerald-600",
-                                                            "RELEASED": "text-slate-600",
-                                                            "REJECTED": "text-red-600",
-                                                            "RETURN_REQUESTED": "text-orange-500",
-                                                            "REFUND_REQUESTED": "text-orange-500",
-                                                            "RETURNED": "text-slate-500",
-                                                            "REFUNDED": "text-slate-500",
-                                                            "DISPUTE_REJECTED": "text-red-700",
-                                                        } as Record<string, string>)[tx.status] || "text-slate-500"
-                                                    )}>
-                                                        {tx.isCancelled ? "CANCELLED" : tx.status?.replace(/_/g, " ")}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                                {/* Always show transaction update date and time */}
-                                                                {(() => {
-                                                                    const source = tx.updatedAt;
-                                                                    const f = formatDateTime(source);
-                                                                    return (
-                                                                        <>
-                                                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{f.date}</span>
-                                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{f.time}</span>
-                                                                        </>
-                                                                    );
-                                                                })()}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="h-[400px] text-center">
-                                                <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
-                                                    <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
-                                                    <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>
-                                                    <p className="mt-2">Try adjusting your filters or search term.</p>
                                                 </div>
-                                            </TableCell>
+                                            </TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        {/* Pagination Controls — matching ResidentTable */}
-                        <div className="p-6 border-t border-slate-200 dark:border-[#2a3040] flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-[#151b2b]/50">
-                            <div className="flex items-center space-x-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                <span className="hidden sm:inline-block">Rows per page:</span>
-                                <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-                                    <SelectTrigger className="h-8 w-[70px] border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117] rounded-lg">
-                                        <SelectValue placeholder={itemsPerPage} />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-white dark:bg-[#151b2b]">
-                                        <SelectItem value="10">10</SelectItem>
-                                        <SelectItem value="20">20</SelectItem>
-                                        <SelectItem value="30">30</SelectItem>
-                                        <SelectItem value="50">50</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            Array(5).fill(0).map((_, i) => (
+                                                <TableRow key={i} className="animate-pulse">
+                                                    <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : paginatedTransactions.length > 0 ? (
+                                            paginatedTransactions.map((tx, index) => (
+                                                <TableRow
+                                                    key={tx.id}
+                                                    onClick={() => router.push(`/admin/treasury/${tx.id}`)}
+                                                    className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
+                                                >
+                                                    <TableCell className="py-4">
+                                                        <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
+                                                                {tx.type?.requiresBusinessName
+                                                                    ? (tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY")
+                                                                    : `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
+                                                                {tx.type?.requiresBusinessName ? "Business Entity" : "Registered Resident"}
+                                                            </span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">
+                                                            {tx.type?.name}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">{tx.fulfillmentType}</span>
+                                                            <span className="text-[10px] text-slate-500 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="font-bold text-slate-900 dark:text-white">
+                                                            {tx.totalAmount > 0 ? `₱${tx.totalAmount.toLocaleString()}` : "–"}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className={cn(
+                                                            "text-[10px] font-black uppercase italic tracking-wider",
+                                                            tx.isCancelled ? "text-red-600" : ({
+                                                                "FOR_REQUESTING": "text-amber-600",
+                                                                "FOR_REVISION": "text-amber-600",
+                                                                "EVALUATED": "text-blue-600",
+                                                                "FOR_CLAIM": "text-indigo-600",
+                                                                "FOR_PICKING": "text-pink-600",
+                                                                "IN_ROUTE": "text-orange-600",
+                                                                "DELIVERED": "text-teal-600",
+                                                                "FOR_PROCESSING": "text-sky-600",
+                                                                "PAID": "text-emerald-600",
+                                                                "RELEASED": "text-slate-600",
+                                                                "REJECTED": "text-red-600",
+                                                                "RETURN_REQUESTED": "text-orange-500",
+                                                                "REFUND_REQUESTED": "text-orange-500",
+                                                                "RETURNED": "text-slate-500",
+                                                                "REFUNDED": "text-slate-500",
+                                                                "DISPUTE_REJECTED": "text-red-700",
+                                                            } as Record<string, string>)[tx.status] || "text-slate-500"
+                                                        )}>
+                                                            {tx.isCancelled ? "CANCELLED" : tx.status?.replace(/_/g, " ")}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            {/* Always show transaction update date and time */}
+                                                            {(() => {
+                                                                const source = tx.updatedAt;
+                                                                const f = formatDateTime(source);
+                                                                return (
+                                                                    <>
+                                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{f.date}</span>
+                                                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{f.time}</span>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="h-[400px] text-center">
+                                                    <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
+                                                        <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
+                                                        <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>
+                                                        <p className="mt-2">Try adjusting your filters or search term.</p>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </div>
-                            <div className="flex items-center space-x-4">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                                    Showing {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} of {filteredTransactions.length}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                        className="h-10 px-4 rounded-xl border-slate-200 dark:border-[#2a3040] font-bold"
-                                    >
-                                        Prev
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                        disabled={currentPage === totalPages || totalPages === 0}
-                                        className="h-10 px-4 rounded-xl border-slate-200 dark:border-[#2a3040] font-bold"
-                                    >
-                                        Next
-                                    </Button>
+
+                            {/* Pagination Controls — matching ResidentTable */}
+                            <div className="p-6 border-t border-slate-200 dark:border-[#2a3040] flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-[#151b2b]/50">
+                                <div className="flex items-center space-x-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                    <span className="hidden sm:inline-block">Rows per page:</span>
+                                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                                        <SelectTrigger className="h-8 w-[70px] border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117] rounded-lg">
+                                            <SelectValue placeholder={itemsPerPage} />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white dark:bg-[#151b2b]">
+                                            <SelectItem value="10">10</SelectItem>
+                                            <SelectItem value="20">20</SelectItem>
+                                            <SelectItem value="30">30</SelectItem>
+                                            <SelectItem value="50">50</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                        Showing {Math.min(currentPage * itemsPerPage, filteredTransactions.length)} of {filteredTransactions.length}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                            disabled={currentPage === 1}
+                                            className="h-10 px-4 rounded-xl border-slate-200 dark:border-[#2a3040] font-bold"
+                                        >
+                                            Prev
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                            disabled={currentPage === totalPages || totalPages === 0}
+                                            className="h-10 px-4 rounded-xl border-slate-200 dark:border-[#2a3040] font-bold"
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </TabsContent>
-                )}
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
         </div>
