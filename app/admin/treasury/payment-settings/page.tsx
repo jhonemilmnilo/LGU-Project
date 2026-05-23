@@ -30,7 +30,8 @@ export default async function PaymentSettingsPage() {
                     "gcash_account_number",
                     "bank_name",
                     "bank_account_name",
-                    "bank_account_number"
+                    "bank_account_number",
+                    "theme_color"
                 ]
             }
         }
@@ -41,25 +42,31 @@ export default async function PaymentSettingsPage() {
         return acc;
     }, {});
 
+    const themeColor = treasurySettings["theme_color"] || "#2563eb";
+
+    const transactionTypes = await prisma.transactionType.findMany({
+        orderBy: { name: "asc" }
+    });
+
     return (
-        <div className="min-h-screen pb-20">
-            {/* Elegant Header */}
-            <div className="bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 py-12 px-8 mb-10">
-                <div className="max-w-7xl mx-auto space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-8 bg-primary rounded-full" />
-                        <h1 className="text-4xl font-black italic uppercase tracking-tighter leading-none">
-                            Payment <span className="text-primary tracking-normal italic">Settings</span>
-                        </h1>
-                    </div>
-                    <p className="text-slate-500 font-medium italic text-lg max-w-2xl leading-relaxed">
-                        Manage official merchant identities and digital payment reception channels for municipality services.
-                    </p>
-                </div>
+        <div className="p-2 md:p-4 max-w-full mx-auto space-y-6 pb-20">
+            {/* Elegant Header Banner */}
+            <div className="px-6 py-8 rounded-[1.5rem] border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}25` }}>
+                <h1 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter drop-shadow-sm" style={{ color: themeColor }}>
+                    Payment <span className="tracking-normal italic">Settings</span>
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 font-black uppercase tracking-[0.2em] text-[10px] opacity-70">
+                    Manage official merchant identities and service transaction base fees.
+                </p>
             </div>
 
-            <div className="max-w-7xl mx-auto px-8">
-                <PaymentSettingsClient initialSettings={treasurySettings} role={role} />
+            <div className="w-full">
+                <PaymentSettingsClient 
+                    initialSettings={treasurySettings} 
+                    role={role} 
+                    transactionTypes={transactionTypes as any}
+                    themeColor={themeColor}
+                />
             </div>
         </div>
     );

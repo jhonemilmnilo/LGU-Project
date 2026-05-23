@@ -266,6 +266,8 @@ export default function CedulaApplicationPage() {
 
     // Remove PSGC fetch if not needed anymore
 
+    const selectedType = cedulaTypes.find((t: any) => t.id === formData.typeId);
+
     // --- LOGIC ---
     const updateCalc = React.useCallback(() => {
         const result = calculateCedula({
@@ -273,10 +275,11 @@ export default function CedulaApplicationPage() {
             income: parseFloat(formData.income.replace(/,/g, '')) || 0,
             propertyValue: parseFloat(formData.propertyValue) || 0,
             fulfillmentType: "PICK_UP", // Base amount only during initial app
-            deliveryFee: 0
+            deliveryFee: 0,
+            baseFee: selectedType?.baseFee
         });
         setCalcResult(result);
-    }, [formData.income, formData.propertyValue, formData.applicantType]);
+    }, [formData.income, formData.propertyValue, formData.applicantType, selectedType]);
 
     useEffect(() => {
         updateCalc();
@@ -835,7 +838,7 @@ export default function CedulaApplicationPage() {
                                             <div className="space-y-3 md:space-y-4 border-b border-white/10 pb-4 md:pb-6 relative z-10 font-bold">
                                                 <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic opacity-70">
                                                     <span>Basic Tax</span>
-                                                    <span>₱{calcResult?.basicTax.toFixed(2)}</span>
+                                                    <span>₱{(calcResult?.basicTax ?? selectedType?.baseFee ?? (formData.applicantType === "INDIVIDUAL" ? 5.00 : 500.00)).toFixed(2)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic opacity-70">
                                                     <span>Additional Tax</span>

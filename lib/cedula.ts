@@ -12,6 +12,7 @@ export interface CedulaCalculationParams {
     isPastDeadline?: boolean; // Default check: On or after March 1
     fulfillmentType?: "PICK_UP" | "DELIVERY" | "E_COPY" | null;
     deliveryFee?: number;
+    baseFee?: number;
 }
 
 export interface CedulaResult {
@@ -70,10 +71,11 @@ export function calculateCedula(params: CedulaCalculationParams): CedulaResult {
         income, 
         propertyValue, 
         fulfillmentType = "PICK_UP",
-        deliveryFee = 0
+        deliveryFee = 0,
+        baseFee
     } = params;
 
-    const basicTax = type === "INDIVIDUAL" ? 5.00 : 500.00;
+    const basicTax = baseFee !== undefined ? baseFee : (type === "INDIVIDUAL" ? 5.00 : 500.00);
     let additionalTax = 0;
     const totalBasis = income + propertyValue;
 

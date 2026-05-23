@@ -331,4 +331,23 @@ export async function updateTreasurySettings(formData: FormData) {
     }
 }
 
+export async function updateTransactionBaseFees(fees: { id: string, baseFee: number }[]) {
+    try {
+        const updates = fees.map(fee => 
+            prisma.transactionType.update({
+                where: { id: fee.id },
+                data: { baseFee: fee.baseFee }
+            })
+        );
+        await prisma.$transaction(updates);
+        
+        revalidatePath("/user/services");
+        revalidatePath("/admin/treasury/payment-settings");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error updating transaction base fees:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 // End of settings actions
