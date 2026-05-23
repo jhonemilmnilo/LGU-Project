@@ -2,6 +2,7 @@ import { getAboutData } from "./actions";
 import AboutClient from "./AboutClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getMultipleSystemSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,17 @@ export default async function AboutPageAdmin() {
     const managedBarangay = (session?.user as any)?.managedBarangay;
     const isBarangayAdmin = role === "BARANGAY_ADMIN";
 
-    const aboutData = await getAboutData(isBarangayAdmin ? managedBarangay : null);
+    const [aboutData, settings] = await Promise.all([
+        getAboutData(isBarangayAdmin ? managedBarangay : null),
+        getMultipleSystemSettings(["theme_color"])
+    ]);
+
+    const themeColor = settings.get("theme_color") || "#2563eb";
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 pb-20">
-            <div className="bg-blue-600/10 dark:bg-blue-900/20 px-8 py-10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/30">
-                <h1 className="text-4xl font-black italic text-slate-900 dark:text-white uppercase tracking-tighter drop-shadow-sm">
+        <div className="p-2 md:p-4 max-w-full mx-auto space-y-6 pb-20">
+            <div className="px-6 py-8 rounded-[1.5rem] border" style={{ backgroundColor: `${themeColor}15`, borderColor: `${themeColor}25` }}>
+                <h1 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter drop-shadow-sm" style={{ color: themeColor }}>
                     {isBarangayAdmin ? `Brgy. ${managedBarangay} Heritage` : "Municipal Heritage"}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-2 font-black uppercase tracking-[0.2em] text-[10px] opacity-70">
@@ -28,6 +34,7 @@ export default async function AboutPageAdmin() {
                 aboutData={aboutData} 
                 isBarangayAdmin={isBarangayAdmin}
                 managedBarangay={managedBarangay}
+                themeColor={themeColor}
             />
         </div>
     );
