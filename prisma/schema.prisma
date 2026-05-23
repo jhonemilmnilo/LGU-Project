@@ -623,6 +623,7 @@ model Transaction {
   
   cedula            Cedula?           // One-to-one link to the issued document
   businessPermit    BusinessPermit?   // One-to-one link to the issued business permit
+  buildingPermit    BuildingPermit?   // One-to-one link to the issued building permit
   birthCertificateRequest BirthCertificateRequest? // One-to-one link to the birth certificate request
   birthCertificateRegistry BirthCertificateRegistry? // One-to-one link for new registrations
   deathRegistration DeathRegistration? // One-to-one link for death registrations
@@ -760,6 +761,25 @@ model BusinessPermit {
   verificationId     String      @unique @default(cuid()) // Secure hash for verification QR Code
 }
 
+model BuildingPermit {
+  id                 String      @id @default(cuid())
+  transactionId      String      @unique
+  transaction        Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  permitNumber       String      @unique
+  dateIssued         DateTime    @default(now())
+  
+  applicantName      String
+  projectType        String
+  occupancyUse       String
+  location           String?
+  estimatedCost      Float
+  
+  documentUrl        String?     // Link to official generated E-Permit PDF
+  issuedBy           String      // Engineering Approver Name
+  verificationId     String      @unique @default(cuid()) // Secure hash for verification QR Code
+}
+
 model BirthCertificateRequest {
   id              String      @id @default(cuid())
   transactionId   String      @unique
@@ -821,6 +841,7 @@ enum TransactionStatus {
   EVALUATED
   FOR_CLAIM
   FOR_PICKING
+  FOR_INSPECTION
   IN_ROUTE
   DELIVERED
   UNPAID
