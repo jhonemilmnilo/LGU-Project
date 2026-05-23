@@ -254,6 +254,36 @@ export async function ensureCivilRegistryTransactionTypes() {
                 supportsECopy: true
             },
             {
+                code: "LCR_MARRIAGE_LICENSE",
+                name: "Marriage License Application",
+                description: "Apply for a marriage license to be married in Mapandan.",
+                level: 1,
+                category: "Civil Registry",
+                baseFee: 862.00,
+                deliveryFee: 0.00,
+                isFixed: true,
+                requiredDocs: [
+                    "Municipal Form No. 90",
+                    "Community Tax Certificate",
+                    "Parental Consent of the father/mother",
+                    "Certificate of Family Planning",
+                    "Certificate of Pre-Marriage Counseling",
+                    "Birth Certificate of Applicant 1",
+                    "Birth Certificate of Applicant 2",
+                    "Government ID of Applicant 1",
+                    "Government ID of Applicant 2",
+                    "Seminar Attendance Proof",
+                    "Legal Capacity (if one party is a foreigner)"
+                ],
+                formSchema: {
+                    type: "CIVIL_REGISTRY",
+                    registryType: "MARRIAGE_LICENSE",
+                    fields: ["applicant1", "applicant2", "requiredDocs"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            },
+            {
                 code: "LCR_MARRIAGE_REG",
                 name: "Marriage Registration",
                 description: "Register a new marriage record with the Local Civil Registry.",
@@ -295,7 +325,7 @@ export async function ensureCivilRegistryTransactionTypes() {
                 description: "Register a new death record with the Local Civil Registry.",
                 level: 1,
                 category: "Civil Registry",
-                baseFee: 100.00,
+                baseFee: 0.00,
                 deliveryFee: 100.00,
                 isFixed: true,
                 requiredDocs: ["Municipal Form No. 103", "Valid ID of Informant"],
@@ -357,12 +387,20 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
 
         const files: Record<string, string | null> = {};
 
-        // Dynamic file extraction from FormData
+        // Dynamic file extraction from FormData -- accept File-like blobs too
+        const isFileLike = (v: any) => {
+            return v && (v instanceof File || (typeof v === 'object' && typeof v.arrayBuffer === 'function' && typeof v.name === 'string'));
+        };
+
         for (const [key, value] of formData.entries()) {
-            if (value instanceof File && value.size > 0) {
-                // Use a standard bucket and specific folder
-                const url = await processFileUpload(value, `lcr/${registryType.toLowerCase()}`);
-                files[key] = url;
+            if (isFileLike(value)) {
+                const fileLike = value as File;
+                if ((fileLike as any).size && (fileLike as any).size > 0) {
+                    // Use a standard bucket and specific folder
+                    const url = await processFileUpload(fileLike, `lcr/${registryType.toLowerCase()}`);
+                    files[key] = url;
+                    if (!url) console.warn(`[submitCivilRegistryTransaction] upload returned null for key=${key}`);
+                }
             }
         }
 
@@ -733,6 +771,9 @@ export async function getTransactionById(id: string) {
                 businessPermit: true,
                 birthCertificateRequest: true,
                 birthCertificateRegistry: true,
+                deathRegistration: true,
+                marriageRegistration: true,
+                marriageLicenseApplication: true,
                 user: {
                     select: {
                         id: true,
@@ -1066,7 +1107,14 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             // Civil Registry (LCR) services like marriage/death/birth should use the
             // persisted transaction total when available (e.g., provided by registry
             // at submission). If not present, fall back to type base fee + delivery.
-            const baseFee = Number(transaction.type?.baseFee || 0);
+            const typeCode = (transaction.type?.code || "").toUpperCase();
+            const additional = transaction.additionalData as any || {};
+            const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
+            const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
+            
+            const baseFee = (isMarriageReg && !isLate)
+                ? 0
+                : Number(transaction.type?.baseFee || 0);
             const feeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || feeDelivery;
 
@@ -1285,7 +1333,17 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true, user: true, cedula: true, businessPermit: true }
+            include: {
+                type: true,
+                user: true,
+                cedula: true,
+                businessPermit: true,
+                birthCertificateRequest: true,
+                birthCertificateRegistry: true,
+                deathRegistration: true,
+                marriageRegistration: true,
+                marriageLicenseApplication: true
+            }
         });
 
         if (!transaction || !["PAID", "FOR_CLAIM", "FOR_PROCESSING"].includes(transaction.status as any)) {
@@ -1461,38 +1519,155 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         }
 
             // If this is a Local Civil Registry (LCR) service, ensure a BirthCertificateRegistry
-            // entry is created when releasing the document so it appears in official registry tables.
+            // or DeathRegistration entry is created when releasing the document so it appears in official registry tables.
             const isLCR = transaction.type.code.startsWith("LCR_");
             if (isLCR) {
-                // Prefer existing birthCertificateRequest details, otherwise fall back to additionalData
-                const brExisting = (transaction as any).birthCertificateRegistry;
-                if (!brExisting) {
-                    const bcr = (transaction as any).birthCertificateRequest;
-                    const src: any = bcr || additionalData || {};
+                const typeCode = (transaction.type.code || "").toUpperCase();
+                if (typeCode === "LCR_BIRTH_REG") {
+                    // Only create the registry entry on the final Confirm & Release (RELEASED status)
+                    const brExisting = (transaction as any).birthCertificateRegistry;
+                    if (!brExisting && targetStatus === "RELEASED") {
+                        const bcr = (transaction as any).birthCertificateRequest;
+                        const src: any = bcr || additionalData || {};
 
-                    // Only create registry if we have at least a subject name and event date/place
-                    const subjectName = src.subjectName || src.fullName || src.primaryChildName || null;
-                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : (src.dateOfBirth ? new Date(src.dateOfBirth) : null);
-                    const placeOfEvent = src.placeOfEvent || src.placeOfBirth || null;
+                        // Only create registry if we have at least a subject name and event date/place
+                        const subjectName = src.subjectName || src.fullName || src.primaryChildName || null;
+                        const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : (src.dateOfBirth ? new Date(src.dateOfBirth) : null);
+                        const placeOfEvent = src.placeOfEvent || src.placeOfBirth || null;
 
-                    if (subjectName && dateOfEvent && placeOfEvent) {
-                        const generatedRegistryNumber = src.registryNumber || `BIRTH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                        if (subjectName && dateOfEvent && placeOfEvent) {
+                            const generatedRegistryNumber = src.registryNumber || `BIRTH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                            try {
+                                await prisma.birthCertificateRegistry.create({
+                                    data: {
+                                        transactionId: id,
+                                        registryNumber: generatedRegistryNumber,
+                                        issuedBy: user.name || "System Administrator",
+                                        subjectName: subjectName,
+                                        dateOfEvent: dateOfEvent,
+                                        placeOfEvent: placeOfEvent,
+                                        fatherName: src.fatherName || src.father || null,
+                                        motherName: src.motherName || src.mother || null
+                                    }
+                                });
+                            } catch (createErr) {
+                                // If creation fails (e.g., unique constraint on registryNumber), log and continue
+                                console.error("Failed to create BirthCertificateRegistry:", createErr);
+                            }
+                        }
+                    }
+                } else if (typeCode === "LCR_DEATH_REG") {
+                    const drExisting = (transaction as any).deathRegistration;
+                    if (!drExisting && targetStatus === "RELEASED") {
+                        const subjectName = additionalData.fullName || additionalData.subjectName || null;
+                        const dateOfEvent = additionalData.dateOfDeath ? new Date(additionalData.dateOfDeath) : null;
+                        const placeOfEvent = additionalData.placeOfDeath || null;
+
+                        if (subjectName) {
+                            const generatedRegistryNumber = additionalData.registryNumber || `DEATH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                            try {
+                                await prisma.deathRegistration.create({
+                                    data: {
+                                        transactionId: id,
+                                        registryNumber: generatedRegistryNumber,
+                                        dateOfEvent: dateOfEvent,
+                                        placeOfEvent: placeOfEvent,
+                                        subjectName: subjectName,
+                                        fatherName: additionalData.fathersName || additionalData.fatherName || null,
+                                        motherName: additionalData.mothersName || additionalData.motherName || null,
+                                        issuedBy: user.name || "System Administrator",
+                                        documentUrl: eCopyUrl || transaction.eCopyUrl || null
+                                    }
+                                });
+                            } catch (createErr) {
+                                console.error("Failed to create DeathRegistration record:", createErr);
+                            }
+                        }
+                    }
+                } else if (typeCode === "LCR_MARRIAGE_REG") {
+                    const mrExisting = (transaction as any).marriageRegistration;
+                    if (!mrExisting && targetStatus === "RELEASED") {
+                        const subjectName = transaction.businessName || additionalData.subjectName || (additionalData.applicant1 && additionalData.applicant2 ? `${additionalData.applicant1.fullName} & ${additionalData.applicant2.fullName}` : null) || "Contracting Couple";
                         try {
-                            await prisma.birthCertificateRegistry.create({
+                            await prisma.marriageRegistration.create({
                                 data: {
                                     transactionId: id,
-                                    registryNumber: generatedRegistryNumber,
+                                    ctcNumber: ctcNumber || null,
+                                    taxYear: now.getFullYear(),
+                                    dateIssued: now,
+                                    expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59),
+                                    basicTax,
+                                    additionalTax,
+                                    penalty,
+                                    totalPaid: transaction.totalAmount,
                                     issuedBy: user.name || "System Administrator",
-                                    subjectName: subjectName,
-                                    dateOfEvent: dateOfEvent,
-                                    placeOfEvent: placeOfEvent,
-                                    fatherName: src.fatherName || src.father || null,
-                                    motherName: src.motherName || src.mother || null
+                                    businessName: subjectName,
+                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                    verificationId: `VER-MR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                                 }
                             });
                         } catch (createErr) {
-                            // If creation fails (e.g., unique constraint on registryNumber), log and continue
-                            console.error("Failed to create BirthCertificateRegistry:", createErr);
+                            console.error("Failed to create MarriageRegistration record:", createErr);
+                        }
+                    }
+                } else if (typeCode === "LCR_MARRIAGE_LICENSE") {
+                    const mlExisting = (transaction as any).marriageLicenseApplication;
+                    if (!mlExisting) {
+                        const applicant1 = additionalData?.applicant1 || {};
+                        const applicant2 = additionalData?.applicant2 || {};
+                        
+                        const app1FullName = applicant1.fullName || additionalData?.app1FullName || "";
+                        const app2FullName = applicant2.fullName || additionalData?.app2FullName || "";
+
+                        // Parse birth dates safely
+                        const app1BirthDate = applicant1.birthDate ? new Date(applicant1.birthDate) : (additionalData?.app1BirthDate ? new Date(additionalData.app1BirthDate) : null);
+                        const app2BirthDate = applicant2.birthDate ? new Date(applicant2.birthDate) : (additionalData?.app2BirthDate ? new Date(additionalData.app2BirthDate) : null);
+
+                        const app1BirthPlace = applicant1.birthPlace || additionalData?.app1BirthPlace || null;
+                        const app2BirthPlace = applicant2.birthPlace || additionalData?.app2BirthPlace || null;
+
+                        const app1Citizenship = applicant1.citizenship || additionalData?.app1Citizenship || null;
+                        const app2Citizenship = applicant2.citizenship || additionalData?.app2Citizenship || null;
+
+                        const generatedRegistryNumber = ctcNumber?.trim() || additionalData?.registryNumber || `ML-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                        
+                        // Valid for 120 days from date of issue
+                        const expiryDate = new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000);
+
+                        try {
+                            await prisma.marriageLicenseApplication.create({
+                                data: {
+                                    transactionId: id,
+                                    registryNumber: generatedRegistryNumber,
+                                    dateIssued: now,
+                                    expiryDate: expiryDate,
+                                    app1FullName,
+                                    app1BirthDate,
+                                    app1BirthPlace,
+                                    app1Citizenship,
+                                    app2FullName,
+                                    app2BirthDate,
+                                    app2BirthPlace,
+                                    app2Citizenship,
+                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                    issuedBy: user.name || "System Administrator",
+                                    verificationId: `VER-ML-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                                }
+                            });
+                        } catch (createErr) {
+                            console.error("Failed to create MarriageLicenseApplication record:", createErr);
+                        }
+                    } else if (ctcNumber || eCopyUrl) {
+                        try {
+                            await prisma.marriageLicenseApplication.update({
+                                where: { id: mlExisting.id },
+                                data: {
+                                    ...(ctcNumber ? { registryNumber: ctcNumber.trim() } : {}),
+                                    ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                                }
+                            });
+                        } catch (updateErr) {
+                            console.error("Failed to update MarriageLicenseApplication record:", updateErr);
                         }
                     }
                 }

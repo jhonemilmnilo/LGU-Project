@@ -236,12 +236,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         word2: "Express",
         logo: ""
     });
+    const [showAdditionalDebug, setShowAdditionalDebug] = useState(false);
     const [isResolvingDispute, setIsResolvingDispute] = useState(false);
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
+    const typeCode = (transaction?.type?.code || "").toUpperCase();
+    const isBirth = typeCode.includes("BIRTH");
+    const isDeath = typeCode.includes("DEATH");
+    const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
+    const safeFormatDate = (dateStr: any) => {
+        if (!dateStr) return "N/A";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "N/A";
+        return format(d, "MMM d, yyyy");
+    };
     const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status !== "FOR_REQUESTING";
 
     const fetchTransaction = useCallback(async () => {
@@ -546,13 +557,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isLCR) {
             // For Civil Registry (LCR) services, prefer persisted transaction.totalAmount
             // (set at submission time) or fall back to type baseFee + delivery fee.
-            const baseFee = Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
+            const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
+            const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
+            const baseFee = (isMarriageReg && !isLate)
+                ? 0
+                : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
             const typeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
                 : 0;
             // Miscellaneous fee: Late registration = ₱300, Standard = ₱0
-            const miscFee = (additional.registrationType || "").toUpperCase() === "LATE" ? 300 : 0;
+            const miscFee = isLate ? 300 : 0;
             const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0)
                 ? Number(transaction.totalAmount)
                 : baseFee + deliveryFeeUsed + miscFee;
@@ -643,7 +658,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     // Build evidence documents list for the Evidence Vault UI
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const evidenceDocs: { url?: string | null; label: string }[] = (() => {
         if (isBusinessPermit) {
             return [
@@ -662,75 +676,128 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const regType = (additional.registrationType || "").toUpperCase();
             const typeCode = (transaction?.type?.code || "").toUpperCase();
 
+            const docs: { url?: string | null; label: string }[] = [];
+
             // --- Birth Registration ---
-            if (typeCode === "LCR_BIRTH_REG") {
+            if (typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH") {
                 if (regType === "LATE") {
-                    return [
-                        { url: additional.negativePSA, label: "Negative Certification from PSA" },
-                        { url: additional.colb, label: "Certificate of Live Birth (COLB)" },
-                        { url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" },
-                        { url: additional.supportingEvidence1, label: "Supporting Evidence 1" },
-                        { url: additional.supportingEvidence2, label: "Supporting Evidence 2" }
-                    ];
+                    docs.push({ url: additional.negativePSA, label: "Negative Certification from PSA" });
+                    docs.push({ url: additional.colb, label: "Certificate of Live Birth (COLB)" });
+                    docs.push({ url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" });
+                    docs.push({ url: additional.supportingEvidence1, label: "Supporting Evidence 1" });
+                    docs.push({ url: additional.supportingEvidence2, label: "Supporting Evidence 2" });
+                } else {
+                    const parentsMarried = additional.parentsMarried === true || additional.parentsMarried === "true";
+                    if (parentsMarried) {
+                        docs.push({ url: additional.marriageCertificate, label: "Marriage Certificate of Parents" });
+                        docs.push({ url: additional.municipalForm102, label: "Municipal Form 102" });
+                    } else {
+                        docs.push({ url: additional.communityTaxCertificate, label: "Community Tax Certificate" });
+                    }
                 }
-                // Standard — parents' marital status determines which docs are required
-                const parentsMarried = additional.parentsMarried === true || additional.parentsMarried === "true";
-                if (parentsMarried) {
-                    return [
-                        { url: additional.marriageCertificate, label: "Marriage Certificate of Parents" },
-                        { url: additional.municipalForm102, label: "Municipal Form 102" }
-                    ];
-                }
-                return [
-                    { url: additional.communityTaxCertificate, label: "Community Tax Certificate" }
-                ];
             }
 
             // --- Death Registration ---
-            if (typeCode === "LCR_DEATH_REG") {
+            if (typeCode === "LCR_DEATH_REG" || typeCode === "LCR_DEATH") {
                 if (regType === "LATE") {
-                    return [
-                        { url: additional.psaNegative, label: "PSA Negative Certification" },
-                        { url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" }
-                    ];
+                    docs.push({ url: additional.psaNegative, label: "PSA Negative Certification" });
+                    docs.push({ url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" });
+                } else {
+                    docs.push({ url: additional.municipalForm103, label: "Municipal Form No. 103" });
                 }
-                return [
-                    { url: additional.municipalForm103, label: "Municipal Form No. 103" }
-                ];
             }
 
             // --- Marriage Registration ---
-            if (typeCode === "LCR_MARRIAGE_REG") {
+            if (typeCode === "LCR_MARRIAGE_REG" || typeCode === "LCR_MARRIAGE") {
                 if (regType === "LATE") {
-                    return [
-                        { url: additional.psaNeg, label: "Negative Certificate from PSA" },
-                        { url: additional.affidavitDelay, label: "Affidavit of Delayed Registration" },
-                        { url: additional.marriageLicense, label: "Certified Copy of Marriage License" }
-                    ];
+                    docs.push({ url: additional.psaNeg, label: "Negative Certificate from PSA" });
+                    docs.push({ url: additional.affidavitDelay, label: "Affidavit of Delayed Registration" });
+                    docs.push({ url: additional.marriageLicense, label: "Certified Copy of Marriage License" });
+                } else {
+                    docs.push({ url: additional.marriageCert, label: "Accomplished Certificate of Marriage" });
                 }
-                return [
-                    { url: additional.marriageCert, label: "Accomplished Certificate of Marriage" }
-                ];
             }
 
-            // --- Fallback for other LCR types: return any documents that have URLs ---
-            return [
-                { url: additional.marriageCertificate, label: "Marriage Certificate of Parents" },
-                { url: additional.municipalForm102, label: "Municipal Form 102" },
-                { url: additional.communityTaxCertificate, label: "Community Tax Certificate" },
-                { url: additional.negativePSA, label: "Negative Certification from PSA" },
-                { url: additional.colb, label: "Certificate of Live Birth (COLB)" },
-                { url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" },
-                { url: additional.supportingEvidence1, label: "Supporting Evidence 1" },
-                { url: additional.supportingEvidence2, label: "Supporting Evidence 2" },
-                { url: additional.municipalForm103, label: "Municipal Form No. 103" },
-                { url: additional.psaNegative, label: "PSA Negative Certification" },
-                { url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" },
-                { url: additional.marriageCert, label: "Accomplished Certificate of Marriage" },
-                { url: additional.psaNeg, label: "Negative Certificate from PSA" },
-                { url: additional.affidavitDelay, label: "Affidavit of Delayed Registration" },
-                { url: additional.marriageLicense, label: "Certified Copy of Marriage License" }
+            // --- Marriage License Application ---
+            if (typeCode === "LCR_MARRIAGE_LICENSE") {
+                const licenseDocs = [
+                    "Municipal Form No. 90",
+                    "Community Tax Certificate",
+                    "Parental Consent of the father/mother",
+                    "Certificate of Family Planning",
+                    "Certificate of Pre-Marriage Counseling",
+                    "Birth Certificate of Applicant 1",
+                    "Birth Certificate of Applicant 2",
+                    "Government ID of Applicant 1",
+                    "Government ID of Applicant 2",
+                    "Seminar Attendance Proof",
+                    "Legal Capacity (if one party is a foreigner)"
+                ];
+                for (const key of licenseDocs) {
+                    if (additional[key]) {
+                        docs.push({ url: additional[key], label: key });
+                    }
+                }
+            }
+
+            // Fallback: add commonly named LCR document keys
+            const fallbackKeys = [
+                { key: 'marriageCertificate', label: 'Marriage Certificate of Parents' },
+                { key: 'municipalForm102', label: 'Municipal Form 102' },
+                { key: 'communityTaxCertificate', label: 'Community Tax Certificate' },
+                { key: 'negativePSA', label: 'Negative Certification from PSA' },
+                { key: 'colb', label: 'Certificate of Live Birth (COLB)' },
+                { key: 'affidavitDelayed', label: 'Affidavit of Delayed Registration' },
+                { key: 'supportingEvidence1', label: 'Supporting Evidence 1' },
+                { key: 'supportingEvidence2', label: 'Supporting Evidence 2' },
+                { key: 'municipalForm103', label: 'Municipal Form No. 103' },
+                { key: 'psaNegative', label: 'PSA Negative Certification' },
+                { key: 'affidavitOfDelay', label: 'Affidavit of Delayed Registration' },
+                { key: 'marriageCert', label: 'Accomplished Certificate of Marriage' },
+                { key: 'psaNeg', label: 'Negative Certificate from PSA' },
+                { key: 'affidavitDelay', label: 'Affidavit of Delayed Registration' },
+                { key: 'marriageLicense', label: 'Certified Copy of Marriage License' }
             ];
+            for (const fk of fallbackKeys) {
+                if (additional[fk.key] && !docs.find(d => d.label === fk.label)) docs.push({ url: additional[fk.key], label: fk.label });
+            }
+
+            // --- NEW: include any uploaded files whose keys match the transaction type's requiredDocs labels ---
+            try {
+                let reqDocs: string[] = [];
+                if (Array.isArray(transaction.type?.requiredDocs)) reqDocs = transaction.type.requiredDocs as string[];
+                else if (typeof transaction.type?.requiredDocs === 'string' && transaction.type.requiredDocs.length > 0) {
+                    try { reqDocs = JSON.parse(transaction.type.requiredDocs as string); } catch { reqDocs = [] }
+                }
+                const normalize = (s?: any) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+                const additionalKeys = Object.keys(additional || {});
+                for (const label of reqDocs) {
+                    if (!label) continue;
+                    let val = (additional as any)[label];
+                    if (!val) {
+                        // try to find a matching additionalData key by normalized comparison
+                        const target = normalize(label);
+                        for (const k of additionalKeys) {
+                            if (!k) continue;
+                            const v = (additional as any)[k];
+                            if (!v || typeof v !== 'string') continue;
+                            const nk = normalize(k);
+                            if (!nk) continue;
+                            if (nk === target || nk.includes(target) || target.includes(nk)) {
+                                val = v;
+                                break;
+                            }
+                        }
+                    }
+                    if (val && typeof val === 'string' && !docs.find(d => d.label === label)) {
+                        docs.push({ url: val, label });
+                    }
+                }
+            } catch (e) {
+                // ignore parsing errors
+            }
+
+            return docs;
         }
 
         // Default: generic user documents
@@ -908,69 +975,223 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     <div className="p-2.5 bg-blue-500 rounded-xl text-white shadow-lg shadow-blue-500/20">
                                         <FileText className="w-5 h-5" />
                                     </div>
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">Civil Registry Record Data</h3>
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
+                                        {isDeath ? "Death Registry Record Data" : isMarriage ? "Marriage Registry Record Data" : "Birth Registry Record Data"}
+                                    </h3>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    {/* Column 1: Primary Subject details */}
                                     <div className="space-y-6">
-                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Subject / Document Info</h4>
+                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">
+                                            {isDeath ? "Deceased / Event Info" : isMarriage ? "Contracting Parties / Marriage Info" : "Subject / Document Info"}
+                                        </h4>
                                         <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-5">
+                                            {/* Deceased/Subject Name */}
                                             <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Subject Name</span>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                    {isMarriage ? "Contracting Couple" : isDeath ? "Deceased Full Name" : "Subject Name"}
+                                                </span>
                                                 <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                    {transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A"}
+                                                    {isDeath 
+                                                        ? (transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A") 
+                                                        : isMarriage
+                                                        ? (transaction.marriageRegistration?.businessName || 
+                                                           (transaction.marriageLicenseApplication 
+                                                                ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}` 
+                                                                : additional.subjectName || "N/A"))
+                                                        : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A")}
                                                 </p>
                                             </div>
+
+                                            {/* Event Date & Registry No */}
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Event Date</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                        {isDeath ? "Date of Death" : isMarriage ? "Date of Marriage" : "Event Date"}
+                                                    </span>
                                                     <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                        {(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent)
-                                                            ? format(new Date(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent), "MMM d, yyyy")
-                                                            : "N/A"}
+                                                        {isDeath 
+                                                            ? safeFormatDate(transaction.deathRegistration?.dateOfEvent || additional.dateOfDeath || additional.dateOfEvent)
+                                                            : isMarriage 
+                                                            ? safeFormatDate(additional.dateOfMarriage || additional.dateOfEvent || transaction.marriageLicenseApplication?.dateIssued)
+                                                            : safeFormatDate(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent)}
                                                     </p>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Registry No.</span>
                                                     <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                        {transaction.birthCertificateRegistry?.registryNumber || transaction.birthCertificateRequest?.registryNumber || "PENDING"}
+                                                        {isDeath 
+                                                            ? (transaction.deathRegistration?.registryNumber || "PENDING")
+                                                            : isMarriage
+                                                            ? (transaction.marriageRegistration?.ctcNumber || transaction.marriageLicenseApplication?.registryNumber || "PENDING")
+                                                            : (transaction.birthCertificateRegistry?.registryNumber || transaction.birthCertificateRequest?.registryNumber || "PENDING")}
                                                     </p>
                                                 </div>
                                             </div>
-                                            {(transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy) && (
+
+                                            {/* Extra Fields specifically for Death */}
+                                            {isDeath && (
+                                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                    <div className="space-y-1">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Cause of Death</span>
+                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            {additional.causeOfDeath || "N/A"}
+                                                        </p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Death</span>
+                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            {transaction.deathRegistration?.placeOfEvent || additional.placeOfDeath || "N/A"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Extra Fields specifically for Marriage */}
+                                            {isMarriage && (
+                                                <div className="space-y-1 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Marriage</span>
+                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                        {additional.placeOfMarriage || "N/A"}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Issued By info */}
+                                            {(transaction.deathRegistration?.issuedBy || 
+                                              transaction.birthCertificateRegistry?.issuedBy || 
+                                              transaction.birthCertificateRequest?.issuedBy || 
+                                              transaction.marriageRegistration?.issuedBy ||
+                                              transaction.marriageLicenseApplication?.issuedBy ||
+                                              additional.issuedBy) && (
                                                 <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-4">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Issued By</span>
                                                     <p className="text-md font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy}
+                                                        {isDeath 
+                                                            ? (transaction.deathRegistration?.issuedBy || additional.issuedBy)
+                                                            : isMarriage
+                                                            ? (transaction.marriageRegistration?.issuedBy || transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy)
+                                                            : (transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy)}
                                                     </p>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
-                                        <div className="space-y-6">
-                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Matrix</h4>
-                                            <div className="space-y-4">
-                                                {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Father</span>
-                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                            {transaction.birthCertificateRegistry?.fatherName || additional.fatherName}
-                                                        </p>
+                                    {/* Column 2: Secondary parties details */}
+                                    <div className="space-y-6">
+                                        {isDeath ? (
+                                            <>
+                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Informant & Parental Dossier</h4>
+                                                <div className="space-y-4">
+                                                    {/* Informant Details */}
+                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Informant Profile</span>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div>
+                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Name</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                    {additional.informantFirstName ? `${additional.informantFirstName} ${additional.informantLastName}` : "N/A"}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Relationship</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                    {additional.relationship || "N/A"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="pt-2 border-t border-slate-100 dark:border-white/5">
+                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400">Contact Number</span>
+                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                {additional.contactNumber || "N/A"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Parents */}
+                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
+                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Parental Matrix</span>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Father</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                    {additional.fathersName || additional.fatherName || "N/A"}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Mother</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                    {additional.mothersName || additional.motherName || "N/A"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : isMarriage ? (
+                                            <>
+                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Applicants Dossier</h4>
+                                                <div className="space-y-4">
+                                                    {/* Applicant 1 */}
+                                                    {(additional.applicant1 || transaction.marriageLicenseApplication) && (
+                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
+                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 1 (Groom/Spouse)</span>
+                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
+                                                                {additional.applicant1?.fullName || transaction.marriageLicenseApplication?.app1FullName}
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
+                                                                <span>DOB: {safeFormatDate(additional.applicant1?.birthDate || transaction.marriageLicenseApplication?.app1BirthDate)}</span>
+                                                                <span>Citizenship: {additional.applicant1?.citizenship || transaction.marriageLicenseApplication?.app1Citizenship || "N/A"}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Applicant 2 */}
+                                                    {(additional.applicant2 || transaction.marriageLicenseApplication) && (
+                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
+                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 2 (Bride/Spouse)</span>
+                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
+                                                                {additional.applicant2?.fullName || transaction.marriageLicenseApplication?.app2FullName}
+                                                            </p>
+                                                            <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
+                                                                <span>DOB: {safeFormatDate(additional.applicant2?.birthDate || transaction.marriageLicenseApplication?.app2BirthDate)}</span>
+                                                                <span>Citizenship: {additional.applicant2?.citizenship || transaction.marriageLicenseApplication?.app2Citizenship || "N/A"}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Birth Details */}
+                                                {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
+                                                    <div className="space-y-6">
+                                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Matrix</h4>
+                                                        <div className="space-y-4">
+                                                            {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
+                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Father</span>
+                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                        {transaction.birthCertificateRegistry?.fatherName || additional.fatherName}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                            {(additional.motherName || transaction.birthCertificateRegistry?.motherName) && (
+                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Mother</span>
+                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                        {transaction.birthCertificateRegistry?.motherName || additional.motherName}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )}
-                                                {(additional.motherName || transaction.birthCertificateRegistry?.motherName) && (
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Mother</span>
-                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                            {transaction.birthCertificateRegistry?.motherName || additional.motherName}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1158,23 +1379,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                {(isBusinessPermit
-                                    ? [
-                                        { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
-                                        { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
-                                        { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
-                                        { url: additional.brgyClearanceUrl, label: "Barangay Clearance" },
-                                        { url: additional.locationPhotoUrl, label: "Location Photo" },
-                                        { url: additional.sanitaryPermitUrl, label: "Sanitary Permit" },
-                                        { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
-                                        { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
-                                        { url: additional.previousPermitUrl, label: "Previous Business Permit" },
-                                    ]
-                                    : [
-                                        { url: additional.validIdUrl, label: "Valid ID Evidence" },
-                                        { url: additional.proofOfIncomeUrl, label: "Income Verification" }
-                                    ]
-                                ).filter(doc => doc.url).map((doc, i) => (
+                                {evidenceDocs.filter(doc => doc && doc.url).map((doc, i) => (
                                     <Dialog key={i}>
                                         <DialogTrigger asChild>
                                             <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">

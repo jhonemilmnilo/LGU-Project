@@ -46,6 +46,44 @@ import {
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+
+const PREVIEW_MAX_BYTES = 500 * 1024; // 500KB per preview target after compression
+
+function estimateDataUrlSize(dataUrl: string) {
+    const parts = dataUrl.split(',');
+    if (parts.length < 2) return 0;
+    const base64 = parts[1];
+    const padding = (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
+    return Math.ceil(base64.length * 3 / 4) - padding;
+}
+
+function compressImageDataUrl(dataUrl: string, maxWidth = 1200, quality = 0.75): Promise<string> {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            if (width > maxWidth) {
+                height = Math.round(height * (maxWidth / width));
+                width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(dataUrl);
+            ctx.drawImage(img, 0, 0, width, height);
+            try {
+                const compressed = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressed);
+            } catch (e) {
+                resolve(dataUrl);
+            }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+    });
+}
 
 // --- Resident Search Component ---
 const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSelect: (r: any) => void; placeholder?: string }) => {
@@ -167,11 +205,19 @@ export default function MarriageRegistrationPage() {
     // Save progress to localStorage
     useEffect(() => {
         if (!loading) {
-            const savableForm = (() => { const copy: any = { ...form }; delete copy.files; delete copy.previews; return copy; })();
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            // Persist drafts to localStorage. We strip files and previews
+            // to avoid hitting the quota limit, since binary files are stored in IndexedDB.
+            const savableForm = (() => {
+                const copy: any = { ...form };
+                delete copy.files;
+                delete copy.previews;
+                return copy;
+            })();
+            const serialized = JSON.stringify({
                 form: savableForm,
                 currentStep
-            }));
+            });
+            localStorage.setItem(STORAGE_KEY, serialized);
             setHasDraft(true);
         }
     }, [form, currentStep, loading]);
@@ -200,6 +246,29 @@ export default function MarriageRegistrationPage() {
                 if (savedData) {
                     setForm(prev => ({ ...prev, ...savedData.form }));
                     setCurrentStep(savedData.currentStep);
+                }
+
+                // Restore draft files from IndexedDB
+                try {
+                    const draftFiles = await getDraftFiles(STORAGE_KEY);
+                    if (draftFiles && Object.keys(draftFiles).length > 0) {
+                        setForm(prev => {
+                            const newFiles = { ...prev.files, ...draftFiles };
+                            const newPreviews = { ...prev.previews };
+                            Object.entries(draftFiles).forEach(([key, file]) => {
+                                if (file && file.type.startsWith("image/")) {
+                                    newPreviews[key] = URL.createObjectURL(file);
+                                }
+                            });
+                            return {
+                                ...prev,
+                                files: newFiles,
+                                previews: newPreviews
+                            };
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to restore draft files from IndexedDB:", e);
                 }
 
                 if (activeResident) {
@@ -239,12 +308,45 @@ export default function MarriageRegistrationPage() {
                 toast.error("File size exceeds 5MB limit.");
                 return;
             }
-            const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
-            setForm(prev => ({
-                ...prev,
-                files: { ...prev.files, [key]: file },
-                previews: { ...prev.previews, [key]: previewUrl }
-            }));
+            // Save raw file to IndexedDB
+            saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+                console.error("Failed to save draft file to IndexedDB:", err);
+            });
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result as string | null;
+                    if (!dataUrl) return;
+
+                    // Set File reference
+                    setForm(prev => ({ ...prev, files: { ...prev.files, [key]: file } }));
+
+                    const size = estimateDataUrlSize(dataUrl);
+                    if (size > PREVIEW_MAX_BYTES) {
+                        // Compress preview
+                        compressImageDataUrl(dataUrl).then((compressed) => {
+                            const newSize = estimateDataUrlSize(compressed);
+                            if (newSize <= PREVIEW_MAX_BYTES) {
+                                setForm(prev => ({ ...prev, previews: { ...prev.previews, [key]: compressed } }));
+                            } else {
+                                setForm(prev => ({ ...prev, previews: { ...prev.previews, [key]: null } }));
+                                toast.warning("Image preview too large to persist; draft preview not saved.");
+                            }
+                        }).catch(() => {
+                            setForm(prev => ({ ...prev, previews: { ...prev.previews, [key]: null } }));
+                        });
+                    } else {
+                        setForm(prev => ({ ...prev, previews: { ...prev.previews, [key]: dataUrl } }));
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setForm(prev => ({
+                    ...prev,
+                    files: { ...prev.files, [key]: file },
+                    previews: { ...prev.previews, [key]: null }
+                }));
+            }
         }
     };
 
@@ -289,14 +391,44 @@ export default function MarriageRegistrationPage() {
             console.log("[LCR Submit] additionalData:", additionalData);
             formData.append("additionalData", JSON.stringify(additionalData));
 
+            // Helper function to convert base64 to File object
+            const dataURLtoFile = (dataurl: string, filename: string): File | null => {
+                try {
+                    const arr = dataurl.split(',');
+                    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while (n--) {
+                        u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    return new File([u8arr], filename, { type: mime });
+                } catch (e) {
+                    console.error("Failed to convert dataURL to File:", e);
+                    return null;
+                }
+            };
+
+            // Reconstruct any missing files from data URL previews (so reloads survive!)
+            const finalFiles = { ...form.files };
+            Object.entries(form.previews).forEach(([key, previewUrl]) => {
+                if (previewUrl && previewUrl.startsWith("data:") && !finalFiles[key]) {
+                    const reconstructedFile = dataURLtoFile(previewUrl, `${key}.png`);
+                    if (reconstructedFile) {
+                        finalFiles[key] = reconstructedFile;
+                    }
+                }
+            });
+
             // Append files based on registration type
-            Object.entries(form.files).forEach(([key, file]) => {
+            Object.entries(finalFiles).forEach(([key, file]) => {
                 if (file) formData.append(key, file);
             });
 
             const result = await submitCivilRegistryTransaction(formData);
             if (result.success) {
                 localStorage.removeItem(STORAGE_KEY);
+                await clearDraftFiles(STORAGE_KEY);
                 toast.success("Marriage Registration Submitted Successfully");
                 router.push("/user/services/requests");
             } else {

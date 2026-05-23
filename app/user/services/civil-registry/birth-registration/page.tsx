@@ -48,6 +48,9 @@ import {
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+
+const STORAGE_KEY = "lcr_birth_registration_draft";
 
 // --- TYPES ---
 
@@ -172,7 +175,7 @@ export default function BirthRegistrationPage() {
     // Misc fee is display-only and represents the total amount payable
     const totalAmount = Number(baseFee || 0);
 
-    // Persist progress to session storage
+    // Restore progress from session storage & IndexedDB
     useEffect(() => {
         const savedStep = sessionStorage.getItem("birth-reg-step");
         const savedForm = sessionStorage.getItem("birth-reg-form");
@@ -181,103 +184,68 @@ export default function BirthRegistrationPage() {
         if (savedForm) {
             try {
                 const parsed = JSON.parse(savedForm);
-
-                // Remove saved drafts for required document uploads so users must re-upload after reload
-                const requiredDocKeys = [
-                    'marriageCertificate','municipalForm102','communityTaxCertificate',
-                    'negativePSA','colb','affidavitDelayed','supportingEvidence1','supportingEvidence2'
-                ];
-                if (parsed.previews) {
-                    requiredDocKeys.forEach(k => { if (parsed.previews[k]) delete parsed.previews[k]; });
-                }
-                if (parsed.filesMeta) {
-                    requiredDocKeys.forEach(k => { if (parsed.filesMeta[k]) delete parsed.filesMeta[k]; });
-                }
-
-                // reconstruct files from saved previews + filesMeta when possible
-                const restoredPreviews: Record<string, string> = parsed.previews || {};
-                const filesMeta: Record<string, any> = parsed.filesMeta || {};
-
-                const reconstructedFiles: Record<string, File | null> = {};
-
-                const dataURLtoFile = (dataurl: string, filename: string, mime: string) => {
-                    try {
-                        const arr = dataurl.split(',');
-                        const mimeMatch = arr[0].match(/:(.*?);/);
-                        const bstr = atob(arr[1]);
-                        let n = bstr.length;
-                        const u8arr = new Uint8Array(n);
-                        while (n--) {
-                            u8arr[n] = bstr.charCodeAt(n);
-                        }
-                        return new File([u8arr], filename || 'file', { type: mime || (mimeMatch ? mimeMatch[1] : '') });
-                    } catch (err) {
-                        void err;
-                        return null;
-                    }
-                };
-
-                Object.entries(restoredPreviews).forEach(([key, preview]) => {
-                    const meta = filesMeta[key];
-                    if (preview) {
-                        const f = meta ? dataURLtoFile(preview, meta.name, meta.type) : null;
-                        reconstructedFiles[key] = f;
-                    }
-                });
-
                 setForm(prev => ({
                     ...prev,
-                    ...parsed,
-                    files: { ...prev.files, ...reconstructedFiles },
-                    previews: { ...prev.previews, ...restoredPreviews }
+                    ...parsed
                 }));
-
-                isRestoredRef.current = true;
-
-                // Notify user if progress restored
-                if ((Object.keys(restoredPreviews || {}).length > 0) || (savedStep && savedStep !== "IDENTITY")) {
-                    toast.info("Progress restored. Uploaded document previews recovered.", {
-                        description: "Files are preserved as previews — you can re-upload originals if needed before submitting.",
-                        duration: 6000
-                    });
-                }
             } catch (e) {
                 console.error("Failed to parse saved form", e);
             }
         }
+
+        // Hydrate files from IndexedDB
+        async function hydrateFiles() {
+            try {
+                const draftFiles = await getDraftFiles(STORAGE_KEY);
+                if (draftFiles && Object.keys(draftFiles).length > 0) {
+                    setForm(prev => {
+                        const newFiles = { ...prev.files, ...draftFiles };
+                        return {
+                            ...prev,
+                            files: newFiles
+                        };
+                    });
+
+                    // Asynchronously read each image file to recover previews
+                    Object.entries(draftFiles).forEach(([key, file]) => {
+                        if (file && file.type.startsWith("image/")) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                setForm(prev => ({
+                                    ...prev,
+                                    previews: { ...prev.previews, [key]: reader.result as string }
+                                }));
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+
+                    toast.info("Progress restored. Uploaded document drafts recovered.", {
+                        duration: 6000
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to hydrate draft files from IndexedDB:", error);
+            }
+        }
+
+        hydrateFiles();
     }, []);
 
     useEffect(() => {
         if (!loading) {
             try {
-                const hasUploadedFiles = Object.values(form.files).some(f => f !== null);
-                if (hasUploadedFiles) {
-                    sessionStorage.removeItem("birth-reg-step");
-                    sessionStorage.removeItem("birth-reg-form");
-                    return;
-                }
-
                 sessionStorage.setItem("birth-reg-step", currentStep);
 
-                // Build a serializable snapshot: omit File objects, but include metadata and previews
-                const filesMeta: Record<string, any> = {};
-                Object.entries(form.files).forEach(([k, f]) => {
-                    if (f) filesMeta[k] = { name: f.name, type: f.type, size: f.size };
-                });
+                // Build a serializable snapshot: omit File objects and previews
+                // to prevent SessionStorage QuotaExceeded errors. Binary files are stored in IndexedDB.
+                const copy: any = { ...form };
+                delete copy.files;
+                delete copy.previews;
 
-                const serializable = {
-                    ...form,
-                    files: {},
-                    filesMeta,
-                    previews: form.previews || {}
-                };
-
-                sessionStorage.setItem("birth-reg-form", JSON.stringify(serializable));
+                sessionStorage.setItem("birth-reg-form", JSON.stringify(copy));
             } catch (err) {
-                console.warn("Failed to persist form to sessionStorage (possibly quota exceeded):", err);
-                try {
-                    toast.warning("Local preview storage failed — files may not persist after reload.");
-                } catch (e) { void e; }
+                console.warn("Failed to persist form to sessionStorage:", err);
             }
         }
     }, [currentStep, form, loading]);
@@ -396,6 +364,11 @@ export default function BirthRegistrationPage() {
                 toast.error("File size exceeds 5MB limit.");
                 return;
             }
+
+            // Save raw file to IndexedDB
+            saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+                console.error("Failed to save draft file to IndexedDB:", err);
+            });
 
             const reader = new FileReader();
             reader.onload = () => {
@@ -589,6 +562,7 @@ export default function BirthRegistrationPage() {
                 toast.success("Birth Registration submitted successfully!");
                 sessionStorage.removeItem("birth-reg-step");
                 sessionStorage.removeItem("birth-reg-form");
+                await clearDraftFiles(STORAGE_KEY);
                 router.push(`/user/services/requests/${res.data.id}`);
             } else {
                 toast.error(res.error || "Submission failed", {

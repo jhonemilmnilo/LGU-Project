@@ -522,6 +522,7 @@ enum UserRole {
   TREASURY_STAFF
   ADMIN_AIDE
   RIDER
+  ENGINEER
 }
 
 enum ResidentStatus {
@@ -624,6 +625,9 @@ model Transaction {
   businessPermit    BusinessPermit?   // One-to-one link to the issued business permit
   birthCertificateRequest BirthCertificateRequest? // One-to-one link to the birth certificate request
   birthCertificateRegistry BirthCertificateRegistry? // One-to-one link for new registrations
+  deathRegistration DeathRegistration? // One-to-one link for death registrations
+  marriageRegistration MarriageRegistration? // One-to-one link for marriage registrations
+  marriageLicenseApplication MarriageLicenseApplication? // One-to-one link for marriage license applications
   
   isCancelled       Boolean           @default(false)
   revisionCount     Int               @default(0)
@@ -652,6 +656,82 @@ model Cedula {
   
   issuedBy       String      // Name of the Treasury Personnel
   verificationId String      @unique @default(cuid()) // Unique hash for the QR Code
+}
+
+model DeathRegistration {
+  id             String      @id @default(cuid())
+  transactionId  String?     @unique
+  transaction    Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  registryNumber String?     @unique
+  dateOfEvent    DateTime?   // Date of death
+  placeOfEvent   String?
+
+  subjectName    String?     // Deceased full name
+  fatherName     String?
+  motherName     String?
+
+  documentUrl    String?     // Link for E-Copy or scanned record
+  issuedBy       String?     // LCR Officer Name
+  verificationId String      @unique @default(cuid()) // Secure hash for verification QR Code
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model MarriageRegistration {
+  id             String      @id @default(cuid())
+  transactionId  String      @unique
+  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  ctcNumber      String?     @unique // The physical serial number from the booklet
+  taxYear        Int         // e.g., 2026
+  dateIssued     DateTime    @default(now())
+  expiryDate     DateTime    // Automatically calculated based on tax year
+  
+  // Official Tax Breakdown (For Certificate Printing)
+  basicTax       Float
+  additionalTax  Float
+  penalty        Float
+  totalPaid      Float
+  
+  businessName   String?     // Official Name for Juridical entities
+  documentUrl    String?     // Link for E-Copy downloads
+  
+  issuedBy       String      // Name of the LCR/Treasury Personnel
+  verificationId String      @unique @default(cuid()) // Unique hash for the QR Code
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model MarriageLicenseApplication {
+  id                  String      @id @default(cuid())
+  transactionId       String      @unique
+  transaction         Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  registryNumber      String?     @unique // Book/Page number or Registry ID
+  dateIssued          DateTime    @default(now())
+  expiryDate          DateTime?   // Valid for 120 days from the date of issue
+
+  // Applicant 1
+  app1FullName        String
+  app1BirthDate       DateTime?
+  app1BirthPlace      String?
+  app1Citizenship     String?
+
+  // Applicant 2
+  app2FullName        String
+  app2BirthDate       DateTime?
+  app2BirthPlace      String?
+  app2Citizenship     String?
+
+  documentUrl         String?     // Link to official generated E-Copy PDF
+  issuedBy            String      // LCR Officer Name
+  verificationId      String      @unique @default(cuid()) // Secure hash for verification QR Code
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 }
 
 model BusinessPermit {

@@ -46,6 +46,9 @@ import {
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+
+const STORAGE_KEY = "lcr_death_registration_draft";
 
 type Step = "IDENTITY" | "DETAILS" | "CONFIRM";
 
@@ -104,7 +107,7 @@ export default function DeathRegistrationPage() {
 
     const isRestoredRef = useRef(false);
 
-    // Persist progress to session storage
+    // Restore progress from session storage & IndexedDB
     useEffect(() => {
         const savedStep = sessionStorage.getItem("death-reg-step");
         const savedForm = sessionStorage.getItem("death-reg-form");
@@ -117,32 +120,38 @@ export default function DeathRegistrationPage() {
                     ...prev,
                     ...parsed
                 }));
-                isRestoredRef.current = true;
-
-                if (savedStep && savedStep !== "IDENTITY") {
-                    toast.info("Progress restored. Please re-upload your documents.", {
-                        description: "Due to security, files must be re-selected after a page reload.",
-                        duration: 6000
-                    });
-                }
             } catch (e) {
                 console.error("Failed to parse saved form", e);
             }
         }
+
+        // Hydrate files from IndexedDB
+        async function hydrateFiles() {
+            try {
+                const draftFiles = await getDraftFiles(STORAGE_KEY);
+                if (draftFiles && Object.keys(draftFiles).length > 0) {
+                    setFiles(prev => ({
+                        ...prev,
+                        ...draftFiles
+                    }));
+                    toast.info("Progress restored. Uploaded document drafts recovered.", {
+                        duration: 6000
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to hydrate draft files from IndexedDB:", error);
+            }
+        }
+
+        hydrateFiles();
     }, []);
 
     useEffect(() => {
         if (!loading) {
-            const hasUploadedFiles = Object.values(files).some(f => f !== null);
-            if (hasUploadedFiles) {
-                sessionStorage.removeItem("death-reg-step");
-                sessionStorage.removeItem("death-reg-form");
-                return;
-            }
             sessionStorage.setItem("death-reg-step", currentStep);
             sessionStorage.setItem("death-reg-form", JSON.stringify(formData));
         }
-    }, [currentStep, formData, files, loading]);
+    }, [currentStep, formData, loading]);
 
     useEffect(() => {
         async function init() {
@@ -199,7 +208,13 @@ export default function DeathRegistrationPage() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         if (e.target.files && e.target.files[0]) {
-            setFiles(prev => ({ ...prev, [key]: e.target.files![0] }));
+            const file = e.target.files[0];
+            setFiles(prev => ({ ...prev, [key]: file }));
+
+            // Save raw file to IndexedDB
+            saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+                console.error("Failed to save draft file to IndexedDB:", err);
+            });
         }
     };
 
@@ -282,7 +297,10 @@ export default function DeathRegistrationPage() {
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setFiles(prev => ({ ...prev, [fileKey]: null }))}
+                                    onClick={async () => {
+                                        setFiles(prev => ({ ...prev, [fileKey]: null }));
+                                        await saveDraftFile(STORAGE_KEY, fileKey, null);
+                                    }}
                                     className="h-5 px-2 rounded-md text-[7px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-1"
                                 >
                                     <Trash2 className="w-2 h-2" /> Remove
@@ -385,6 +403,7 @@ export default function DeathRegistrationPage() {
                 toast.success("Death Registration submitted successfully!");
                 sessionStorage.removeItem("death-reg-step");
                 sessionStorage.removeItem("death-reg-form");
+                await clearDraftFiles(STORAGE_KEY);
                 router.push(`/user/services/requests/${res.data.id}`);
             } else {
                 toast.error(res.error || "Failed to submit registration");
