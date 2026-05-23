@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+
 
 const STATUS_TABS = [
     { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
@@ -50,7 +50,6 @@ function formatDateTime(date: string | Date): { date: string; time: string } {
 
 export default function EngineerDashboard() {
     const router = useRouter();
-    const { data: session } = useSession();
 
 
     const [status, setStatus] = useState("ALL");
