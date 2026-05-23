@@ -71,6 +71,7 @@ export default function UserServiceRequestsPage() {
         switch (status) {
             case "FOR_REVISION": return { color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20", icon: AlertCircle, label: "NEEDS REVISION", opacity: 1 };
             case "FOR_REQUESTING": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: Clock, label: "PENDING", opacity: 0.8 };
+            case "FOR_INSPECTION": return { color: "text-white", bg: "bg-blue-600", border: "border-transparent", icon: Search, label: "UNDER INSPECTION", opacity: 0.9 };
             case "EVALUATED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "EVALUATED", opacity: 0.9 };
             case "PAID": return { color: "text-white", bg: "bg-emerald-500", border: "border-transparent", icon: CheckCircle2, label: "PAID", opacity: 1 };
             case "FOR_PROCESSING": return { color: "text-white", bg: "bg-blue-500", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };

@@ -19,7 +19,9 @@ import {
     ExternalLink,
     AlertCircle,
     Ban,
-    Hash
+    Hash,
+    Trash2,
+    Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -242,6 +244,26 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
+    const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string }[]>([
+        { label: "Mayor's Permit Fee", amount: "" }
+    ]);
+
+    const addFeeLineItem = () => {
+        setFeeLineItems([...feeLineItems, { label: "", amount: "" }]);
+    };
+
+    const removeFeeLineItem = (index: number) => {
+        const updated = [...feeLineItems];
+        updated.splice(index, 1);
+        setFeeLineItems(updated);
+    };
+
+    const updateFeeLineItem = (index: number, field: 'label' | 'amount', value: string) => {
+        const updated = [...feeLineItems];
+        updated[index][field] = value;
+        setFeeLineItems(updated);
+    };
+
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const typeCode = (transaction?.type?.code || "").toUpperCase();
@@ -255,7 +277,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isNaN(d.getTime())) return "N/A";
         return format(d, "MMM d, yyyy");
     };
-    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status !== "FOR_REQUESTING";
+    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status !== "FOR_INSPECTION";
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -527,17 +549,30 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         : null;
 
     const calcResult = (() => {
-        if (fiscal) {
+        if (fiscal && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) {
             return {
                 basicTax: fiscal.basicTax,
                 additionalTax: fiscal.additionalTax,
                 penalty: fiscal.penaltyCharge,
                 deliveryFee: fiscal.deliveryFee || 0,
-                totalAmount: fiscal.totalAmount
+                totalAmount: fiscal.totalAmount,
+                lineItems: fiscal.lineItems
             };
         }
 
         if (isBusinessPermit) {
+            if (transaction.status === "FOR_REQUESTING") {
+                const itemsSum = feeLineItems.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+                const dFee = transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0;
+                return {
+                    basicTax: itemsSum,
+                    additionalTax: 0,
+                    penalty: 0,
+                    deliveryFee: dFee,
+                    totalAmount: itemsSum + dFee,
+                    lineItems: feeLineItems
+                };
+            }
             const cap = Number(additional.capitalInvestment || 0);
             const sales = Number(additional.grossSales || 0);
             const res = calculateBusinessPermit({
@@ -594,7 +629,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     })();
 
     // Prefer persisted `transaction.totalAmount` when available (greater than 0); otherwise use calculated result
-    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
+    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
@@ -604,20 +639,39 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ? (additional.businessType === "NEW" ? "Capital Investment" : "Declared Gross Sales")
         : "Declared Gross";
 
-    const baseSteps = [
-        { id: "FOR_REQUESTING", label: "EVALUATION" },
-        { id: "EVALUATED", label: "ASSESSMENT" },
-        { id: "PAID", label: "PAID" },
-        { id: "FOR_PROCESSING", label: "PROCESSING" },
-        {
-            id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
-            label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
-        },
-        {
-            id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
-            label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
-        },
-    ];
+    const baseSteps = (() => {
+        if (isBusinessPermit) {
+            return [
+                { id: "FOR_INSPECTION", label: "INSPECTION" },
+                { id: "FOR_REQUESTING", label: "EVALUATION" },
+                { id: "EVALUATED", label: "ASSESSMENT" },
+                { id: "PAID", label: "PAID" },
+                { id: "FOR_PROCESSING", label: "PROCESSING" },
+                {
+                    id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
+                    label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
+                },
+                {
+                    id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
+                    label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
+                }
+            ];
+        }
+        return [
+            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "EVALUATED", label: "ASSESSMENT" },
+            { id: "PAID", label: "PAID" },
+            { id: "FOR_PROCESSING", label: "PROCESSING" },
+            {
+                id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
+                label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
+            },
+            {
+                id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
+                label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
+            }
+        ];
+    })();
 
     // Logic to add terminal or dispute steps
     let steps = [...baseSteps];
@@ -813,7 +867,21 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleEvaluate = async () => {
         setActionLoading(true);
         try {
-            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks);
+            let itemsToSend: { label: string; amount: number }[] | undefined = undefined;
+            if (isBusinessPermit && userRole !== "ADMIN_AIDE") {
+                const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "");
+                if (validItems.length === 0) {
+                    toast.error("Please add at least one valid fee line item.");
+                    setActionLoading(false);
+                    return;
+                }
+                itemsToSend = validItems.map(item => ({
+                    label: item.label.trim(),
+                    amount: parseFloat(item.amount) || 0
+                }));
+            }
+
+            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend);
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push("/admin/treasury");
@@ -861,115 +929,198 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <div className="col-span-12 lg:col-span-8 space-y-8">
 
                     {/* MAIN ASSESSMENT CARD */}
-                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
+                    <div className={cn(
+                        userRole === "ADMIN_AIDE" && isBusinessPermit 
+                            ? "space-y-12" 
+                            : "bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12"
+                    )}>
 
                         {/* IDENTIFIER */}
-                        <div className="space-y-4">
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
-                                        {transaction.type.requiresBusinessName ? "Registered Business Name" : "Primary Applicant Profile"}
-                                    </span>
-                                    {transaction.revisionCount > 0 ? (
-                                        <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
-                                            Revision Count: {transaction.revisionCount}
-                                        </Badge>
-                                    ) : (
-                                        <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
-                                            First Submission
-                                        </Badge>
-                                    )}
-                                </div>
-                                <div className="flex items-center justify-between gap-4">
-                                    <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                        {transaction.type.requiresBusinessName
-                                            ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
-                                            : `${resident.firstName} ${resident.lastName}`}
-                                    </h1>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* TOP METRICS GRID */}
-                        <div className="grid grid-cols-3 gap-6">
-                            <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
-                                <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
-                            </div>
-                            <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
-                                <p className={cn(
-                                    "font-black italic tracking-tighter dark:text-slate-200 leading-none",
-                                    (transaction.paymentType?.length || 0) > 12 ? "text-xl" : "text-2xl"
-                                )}>
-                                    {transaction.paymentType?.replace(/_/g, " ") || "--"}
-                                </p>
-                            </div>
-                            <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
-                                <p className="text-2xl font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
-                            </div>
-                        </div>
-
-                        {/* COMPUTATION BREAKDOWN */}
-                        <div className="space-y-6 pt-6">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Tax Computation Breakdown</h3>
+                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
                             <div className="space-y-4">
-                                {!isLCR && (
-                                    <>
-                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                            <span>{isBusinessPermit ? "Base Mayor's Permit Fee" : "Basic Community Tax"}</span>
-                                            <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                            <span>{isBusinessPermit ? "Assessed Tax Bill (1% of Basis)" : "Additional Tax (₱1.00 per ₱1,000 gross)"}</span>
-                                            <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
-                                        </div>
-                                    </>
-                                )}
-                                {calcResult.penalty > 0 && (
-                                    <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
-                                        <span>Penalty Charge</span>
-                                        <span>₱{calcResult.penalty.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                {transaction.fulfillmentType === "DELIVERY" && (
-                                    <div className="flex justify-between items-center pt-2 gap-4">
-                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-black text-primary">₱</span>
-                                            <span className="text-xs font-black dark:text-white italic">
-                                                {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-                                {isLCR && (
-                                    <div className="flex justify-between items-center pt-2 gap-4">
-                                        <div>
-                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Miscellaneous Fee</span>
-                                            <p className="text-[10px] text-slate-400 italic">
-                                                {(additional.registrationType || "").toUpperCase() === "LATE"
-                                                    ? "Late registration surcharge"
-                                                    : "Standard registration — no surcharge"}
-                                            </p>
-                                        </div>
-                                        {(additional.registrationType || "").toUpperCase() === "LATE" ? (
-                                            <span className="text-sm font-black text-amber-600 italic">₱300.00</span>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
+                                            {transaction.type.requiresBusinessName 
+                                                ? "Registered Business Name" 
+                                                : "Primary Applicant Profile"}
+                                        </span>
+                                        {transaction.revisionCount > 0 ? (
+                                            <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                                Revision Count: {transaction.revisionCount}
+                                            </Badge>
                                         ) : (
-                                            <span className="text-sm font-black text-emerald-600 italic">FREE</span>
+                                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                                First Submission
+                                            </Badge>
                                         )}
                                     </div>
-                                )}
-
-                                <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
-                                    <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
-                                    <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                                        ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </span>
+                                    <div className="flex items-center justify-between gap-4">
+                                        <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                            {transaction.type.requiresBusinessName
+                                                ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
+                                                : `${resident.firstName} ${resident.lastName}`}
+                                        </h1>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* TOP METRICS GRID */}
+                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
+                            <div className="grid grid-cols-3 gap-6">
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
+                                    <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
+                                </div>
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
+                                    <p className={cn(
+                                        "font-black italic tracking-tighter dark:text-slate-200 leading-none",
+                                        (transaction.paymentType?.length || 0) > 12 ? "text-xl" : "text-2xl"
+                                    )}>
+                                        {transaction.paymentType?.replace(/_/g, " ") || "--"}
+                                    </p>
+                                </div>
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                    <p className="text-2xl font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* COMPUTATION BREAKDOWN */}
+                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
+                            <div className="space-y-6 pt-6">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                    {isBusinessPermit ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
+                                </h3>
+                                <div className="space-y-4">
+                                    {isBusinessPermit ? (
+                                        (transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
+                                            <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
+                                                {feeLineItems.map((item, idx) => (
+                                                    <div key={idx} className="flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                                        <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
+                                                            {String(idx + 1).padStart(2, '0')}
+                                                        </span>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Fee Description"
+                                                            value={item.label}
+                                                            onChange={(e) => updateFeeLineItem(idx, 'label', e.target.value)}
+                                                            className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
+                                                        />
+                                                        <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
+                                                            <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="0.00"
+                                                                value={item.amount}
+                                                                onChange={(e) => updateFeeLineItem(idx, 'amount', e.target.value)}
+                                                                className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                            />
+                                                        </div>
+                                                        {feeLineItems.length > 1 ? (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => removeFeeLineItem(idx)}
+                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        ) : (
+                                                            <div className="w-8 h-8 shrink-0" />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    onClick={addFeeLineItem}
+                                                    className="h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 font-black italic text-[10px] tracking-widest gap-2 text-slate-400 hover:text-primary hover:border-primary/50 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all w-full mt-1"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" /> ADD FEE LINE ITEM
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {(calcResult as any).lineItems && (calcResult as any).lineItems.length > 0 ? (
+                                                    (calcResult as any).lineItems.map((item: any, idx: number) => (
+                                                        <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                            <span>{item.label}</span>
+                                                            <span className="dark:text-slate-200">₱{(Number(item.amount) || 0).toFixed(2)}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        <span>Base Mayors Permit Fee</span>
+                                                        <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    ) : (
+                                        <>
+                                            {!isLCR && (
+                                                <>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        <span>Basic Community Tax</span>
+                                                        <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        <span>Additional Tax (₱1.00 per ₱1,000 gross)</span>
+                                                        <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                    {calcResult.penalty > 0 && (
+                                        <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
+                                            <span>Penalty Charge</span>
+                                            <span>₱{calcResult.penalty.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    {transaction.fulfillmentType === "DELIVERY" && (
+                                        <div className="flex justify-between items-center pt-2 gap-4">
+                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-black text-primary">₱</span>
+                                                <span className="text-xs font-black dark:text-white italic">
+                                                    {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {isLCR && (
+                                        <div className="flex justify-between items-center pt-2 gap-4">
+                                            <div>
+                                                <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Miscellaneous Fee</span>
+                                                <p className="text-[10px] text-slate-400 italic">
+                                                    {(additional.registrationType || "").toUpperCase() === "LATE"
+                                                        ? "Late registration surcharge"
+                                                        : "Standard registration — no surcharge"}
+                                                </p>
+                                            </div>
+                                            {(additional.registrationType || "").toUpperCase() === "LATE" ? (
+                                                <span className="text-sm font-black text-amber-600 italic">₱300.00</span>
+                                            ) : (
+                                                <span className="text-sm font-black text-emerald-600 italic">FREE</span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
+                                        <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
+                                        <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
+                                            ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* LCR SPECIFIC DETAILS */}
                         {isLCR && (
@@ -1376,7 +1527,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     {/* IDENTITY & AUTHENTICATION */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
+                        <div className={cn(
+                            "bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6",
+                            userRole === "ADMIN_AIDE" && isBusinessPermit ? "md:col-span-2" : ""
+                        )}>
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
@@ -1834,7 +1988,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                         ) : !isRejecting && !isRequestingRevision ? (
                             <>
-                                {transaction.status === "FOR_REQUESTING" && (
+                                {(((transaction.status === "FOR_REQUESTING" && (!isBusinessPermit || userRole === "TREASURY_STAFF" || userRole === "ADMIN"))) || (transaction.status === "FOR_INSPECTION" && isBusinessPermit && (userRole === "ADMIN_AIDE" || userRole === "ADMIN"))) && (
                                     <div className="space-y-3">
                                         <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
                                             {actionLoading ? "Processing..." : "Confirm Assessment"}

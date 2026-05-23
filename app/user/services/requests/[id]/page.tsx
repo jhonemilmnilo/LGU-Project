@@ -455,6 +455,8 @@ export default function RequestHubPage() {
                 return { label: "NEEDS REVISION", color: "bg-amber-500 text-white border-amber-500", icon: AlertCircle };
             case "FOR_REQUESTING":
                 return { label: "PENDING", color: "bg-primary text-white border-transparent", icon: Clock };
+            case "FOR_INSPECTION":
+                return { label: "UNDER INSPECTION", color: "bg-blue-600 text-white border-blue-600", icon: Search };
             case "FOR_PROCESSING":
                 return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
             case "FOR_CLAIM":
@@ -532,7 +534,8 @@ export default function RequestHubPage() {
                 penaltyAmount: fiscal.penaltyCharge || 0,
                 deliveryFee: dFee,
                 finalTotal: (fiscal.totalAmount || 0) + dFee,
-                cedulaType
+                cedulaType,
+                lineItems: fiscal.lineItems
             };
         }
 
@@ -697,14 +700,25 @@ export default function RequestHubPage() {
                                             <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed">Evaluation complete. Secure your issuance below.</p>
                                         </div>
                                         <div className="space-y-4 md:space-y-5">
-                                            <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
-                                                <span className="text-lg md:text-2xl font-black italic">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                            </div>
-                                            <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
-                                                <span className="text-lg md:text-2xl font-black italic">₱{computation?.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                            </div>
+                                            {isBusinessPermit && computation?.lineItems && computation.lineItems.length > 0 ? (
+                                                computation.lineItems.map((item: any, idx: number) => (
+                                                    <div key={idx} className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">{item.label}</span>
+                                                        <span className="text-lg md:text-2xl font-black italic">₱{(Number(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <>
+                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
+                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
+                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                </>
+                                            )}
                                             {computation && computation.penaltyAmount > 0 && (
                                                 <div className="flex justify-between items-end pb-3 border-b border-white/5 text-orange-500">
                                                     <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">Penalty</span>

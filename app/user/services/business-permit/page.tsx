@@ -35,7 +35,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { calculateBusinessPermit, BusinessPermitResult } from "@/lib/business-permit";
+import { calculateBusinessPermit } from "@/lib/business-permit";
 import { useDraft } from "@/hooks/useDraft";
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
@@ -236,7 +236,8 @@ export default function BusinessPermitWizardPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [isSuspended, setIsSuspended] = useState(false); // 3-Strike Penalty Flag
-    const [calcResult, setCalcResult] = useState<BusinessPermitResult | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [calcResult, setCalcResult] = useState<any | null>(null);
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
@@ -1458,24 +1459,7 @@ export default function BusinessPermitWizardPage() {
                                          )}
                                     </div>
 
-                                    {/* Math Calculator Realtime Preview Panel */}
-                                    {calcResult && (
-                                        <div className="mt-8 p-6 bg-emerald-500/[0.02] border-2 border-dashed border-emerald-500/20 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3.5">
-                                                <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
-                                                    <Calculator className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Live Tax Computation Simulated</h4>
-                                                    <p className="text-xs text-slate-400 leading-tight">Estimated base tax assessment.</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="block text-[8px] font-black uppercase tracking-widest text-slate-400">Simulated Base Bill</span>
-                                                <span className="text-2xl font-black text-emerald-500 font-mono">₱{(calcResult.baseFee + calcResult.taxAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                                            </div>
-                                        </div>
-                                    )}
+
                                 </div>
                             )}
 
@@ -1630,14 +1614,14 @@ export default function BusinessPermitWizardPage() {
                             )}
 
                             {/* STEP 4: FINAL REVIEWS & FULFILLMENT */}
-                            {currentStep === "SUBMIT" && calcResult && (
+                            {currentStep === "SUBMIT" && (
                                 <div className="space-y-8">
                                     <div className="border-b border-slate-100 dark:border-white/5 pb-4">
                                         <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">Final Assessment & Submission</h2>
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Review your assessed bill and confirm your permit request</p>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 gap-8">
                                         {/* Column A: Summary & Declarations */}
                                         <div className="space-y-6">
                                             <div className="p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl space-y-4">
@@ -1711,28 +1695,14 @@ export default function BusinessPermitWizardPage() {
                                             )}
                                         </div>
 
-                                        {/* Column B: Billing Details */}
-                                        <div className="space-y-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 p-6 rounded-[2rem] flex flex-col justify-between">
-                                            <div className="space-y-4">
-                                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white italic">Assessed Tax Invoice</h3>
-
-                                                <div className="space-y-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                                    <div className="flex justify-between">
-                                                        <span>Base Mayor&apos;s Permit Fee</span>
-                                                        <span className="font-mono">₱{calcResult.baseFee.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span>Municipal Business Tax</span>
-                                                        <span className="font-mono">₱{calcResult.taxAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                </div>
+                                        {/* Note: Tax computation will be assessed by Treasury after review */}
+                                        <div className="p-5 bg-amber-500/[0.04] border border-dashed border-amber-500/20 rounded-2xl flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 shrink-0">
+                                                <Calculator className="w-4 h-4" />
                                             </div>
-
-                                            <div className="space-y-4 pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
-                                                <div className="flex justify-between items-end flex-wrap gap-2">
-                                                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Total Assessed Due</span>
-                                                    <span className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono leading-none">₱{calcResult.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-                                                </div>
+                                            <div>
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Tax Assessment Pending</h4>
+                                                <p className="text-[9px] text-slate-400 font-bold italic leading-tight">Your fees will be assessed by the Municipal Treasury after your application is reviewed and approved.</p>
                                             </div>
                                         </div>
                                     </div>
