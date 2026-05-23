@@ -217,6 +217,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const router = useRouter();
     const { data: session } = useSession();
     const userRole = (session?.user as any)?.role;
+    const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -243,6 +244,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
+    const isBuildingPermit = transaction?.type?.code?.startsWith("BUILDING_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const typeCode = (transaction?.type?.code || "").toUpperCase();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -353,7 +355,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const res = await rejectTransaction(transaction.id, remarks);
             if (res.success) {
                 toast.success("Rejected");
-                router.push("/admin/treasury");
+                router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
@@ -366,7 +368,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const res = await sendForRevision(transaction.id, remarks);
             if (res.success) {
                 toast.success("Sent back for revision");
-                router.push("/admin/treasury");
+                router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
@@ -428,11 +430,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 toast.success(message);
                 setECopyFile(null);
                 setOrFile(null);
-                router.push("/admin/treasury");
+                router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, backUrl]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -507,7 +509,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
                     This service request has been officially cancelled by the citizen. No further processing or evaluation is required for this record.
                 </p>
-                <Link href="/admin/treasury">
+                <Link href={backUrl}>
                     <Button variant="outline" className="h-14 px-8 rounded-2xl border-2 font-black italic uppercase text-xs tracking-widest hover:bg-slate-50 dark:hover:bg-white/5 transition-all active:scale-95">
                         Back to Dashboard
                     </Button>
@@ -816,7 +818,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks);
             if (res.success) {
                 toast.success("Evaluated Successfully");
-                router.push("/admin/treasury");
+                router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
@@ -845,7 +847,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         >
             {/* Minimal Header */}
             <header className="h-16 px-8 flex items-center justify-between border-b border-transparent dark:border-white/5">
-                <Link href="/admin/treasury">
+                <Link href={backUrl}>
                     <Button variant="ghost" className="gap-2 text-slate-400 dark:text-slate-500 font-bold hover:text-primary">
                         <ArrowLeft className="w-4 h-4" /> BACK TO DASHBOARD
                     </Button>
@@ -861,6 +863,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <div className="col-span-12 lg:col-span-8 space-y-8">
 
                     {/* MAIN ASSESSMENT CARD */}
+                    {!isBuildingPermit && (
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
 
                         {/* IDENTIFIER */}
@@ -1199,6 +1202,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                         )}
                     </div>
+                    )}
 
                     {/* INLINE IDENTITY DOSSIER */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
@@ -1373,9 +1377,106 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         )}
                     </div>
 
+                    {/* BUILDING PERMIT SPECIFIC BLOCKS */}
+                    {isBuildingPermit && (
+                        <div className="space-y-8">
+                            {/* Q&A Block */}
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
+                                <div>
+                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                        Application <span className="text-primary">Details</span>
+                                    </h2>
+                                    <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
+                                        Building Permit Questionnaire
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Description of Work</label>
+                                        <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">
+                                            {additional?.descriptionOfWork || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Occupancy Use</label>
+                                        <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">
+                                            {additional?.occupancyUse || "--"}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Estimated Cost</label>
+                                        <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary min-h-[48px]">
+                                            ₱{Number(additional?.estimatedCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Images Block */}
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Submitted Requirements</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { url: additional?.documents?.newIdFile || resident?.idFileUrl, label: "Applicant Valid ID" },
+                                        { url: additional?.documents?.tctFile, label: "TCT / Land Title" },
+                                        ...[
+                                            "Barangay Clearance/Certification",
+                                            "Tax Declaration",
+                                            "Land Title (if any)",
+                                            "Community Tax Certificate",
+                                            "Latest Tax Receipts",
+                                            "Electrical & Sanitary Permit",
+                                            "Adjoining Owners Confirmation",
+                                            "Locational Clearance",
+                                            "2 Affidavits",
+                                            "Affidavit of Consent",
+                                            "Affidavit of Adjoining Owners",
+                                            "Signed & Sealed Plans",
+                                            "Fire Safety Clearance"
+                                        ].map((label, idx) => ({ url: additional?.documents?.[`req_${idx}`], label })),
+                                        ...[
+                                            "1. Building Permit",
+                                            "2. Electrical Permit",
+                                            "3. Plumbing Permit",
+                                            "4. Sanitary Permit",
+                                            "5. Excavation & Ground Preparation Permit",
+                                            "6. Fencing Permit (if any)",
+                                            "7. Affidavit Form",
+                                            "8. Scaffolding Permit",
+                                            "9. Mechanical Permit"
+                                        ].map((label, idx) => ({ url: additional?.documents?.[`permit_${idx}`], label }))
+                                    ].filter(doc => doc.url).map((doc, i) => (
+                                        <Dialog key={i}>
+                                            <DialogTrigger asChild>
+                                                <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
+                                                    <Image src={doc.url} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                            <ZoomIn className="w-5 h-5 text-white" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute bottom-2 left-2 right-2 z-10">
+                                                        <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
+                                                            {doc.label}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </DialogTrigger>
+                                            <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                                        </Dialog>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* IDENTITY & AUTHENTICATION */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
+                        {!isBuildingPermit && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
@@ -1412,6 +1513,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 ))}
                             </div>
                         </div>
+                        )}
 
                         {/* Verification Vault: Payment & Delivery */}
                         {((transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") || (transaction.status === "DELIVERED" && transaction.podUrl)) && (

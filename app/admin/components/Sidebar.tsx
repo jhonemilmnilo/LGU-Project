@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList, CreditCard, Truck
+    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList, CreditCard, Truck, HardHat
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -155,6 +155,8 @@ export function Sidebar({
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
     } else if (role === "TREASURY_STAFF" || role === "ADMIN_AIDE") {
         menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payment Settings"].includes(item.label));
+    } else if (role === "ENGINEER") {
+        menuItems = [{ href: "/admin/engineer", label: "Engineer Hub", icon: HardHat, category: "Engineering" }];
     }
 
     return (
@@ -338,7 +340,9 @@ export function Sidebar({
                                                     ? "Treasury Staff"
                                                     : role === "ADMIN_AIDE"
                                                         ? "Admin Aide"
-                                                        : "Admin System"}
+                                                        : role === "ENGINEER"
+                                                            ? "Municipal Engineer"
+                                                            : "Admin System"}
                                     </p>
                                 </div>
                             </div>
