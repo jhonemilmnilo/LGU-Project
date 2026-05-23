@@ -267,7 +267,7 @@ async function main() {
       description: "Register a new death record with the Local Civil Registry.",
       level: 1,
       category: "Civil Registry",
-      baseFee: 100.00,
+      baseFee: 0.00,
       deliveryFee: 100.00,
       isFixed: true,
       requiresBusinessName: false,

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { getCurrentUserResident, getTransactionTypes, ensureCivilRegistryTransactionTypes, submitCivilRegistryTransaction } from "@/app/admin/transactions/actions";
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
+import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 
 const REQUIRED_DOCS = [
 	"Municipal Form No. 90",
@@ -33,6 +34,56 @@ const REQUIRED_DOCS = [
 ];
 
 const STORAGE_KEY = "lcr_marriage_license_draft";
+
+const PREVIEW_MAX_BYTES = 500 * 1024; // 500KB per preview target after compression
+
+function estimateDataUrlSize(dataUrl: string) {
+	const parts = dataUrl.split(',');
+	if (parts.length < 2) return 0;
+	const base64 = parts[1];
+	const padding = (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
+	return Math.ceil(base64.length * 3 / 4) - padding;
+}
+
+function compressImageDataUrl(dataUrl: string, maxWidth = 1200, quality = 0.75): Promise<string> {
+	return new Promise((resolve) => {
+		const img = new Image();
+		img.onload = () => {
+			const canvas = document.createElement('canvas');
+			let { width, height } = img;
+			if (width > maxWidth) {
+				height = Math.round(height * (maxWidth / width));
+				width = maxWidth;
+			}
+			canvas.width = width;
+			canvas.height = height;
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return resolve(dataUrl);
+			ctx.drawImage(img, 0, 0, width, height);
+			try {
+				const compressed = canvas.toDataURL('image/jpeg', quality);
+				resolve(compressed);
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			} catch (_e) {
+				resolve(dataUrl);
+			}
+		};
+		img.onerror = () => resolve(dataUrl);
+		img.src = dataUrl;
+	});
+}
+
+// Payment constants
+const MISC_FEE = 862; // misc fee for marriage license application
+
+function formatCurrency(amount: number) {
+	try {
+		return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	} catch (_e) {
+		return `₱${amount.toFixed(2)}`;
+	}
+}
 
 // Resident search component (copied from marriage-registration)
 const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSelect: (r: any) => void; placeholder?: string }) => {
@@ -123,8 +174,17 @@ export default function MarriageLicenseApplicationPage() {
 
 	useEffect(() => {
 		if (!loading) {
-			const savable = (() => { const copy: any = { ...form }; delete copy.files; delete copy.previews; return copy; })();
-			localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: savable, currentStep }));
+			// Persist drafts to localStorage. We strip files and previews
+			// to avoid hitting the quota limit, since binary files are stored in IndexedDB.
+			const savable = (() => {
+				const copy: any = { ...form };
+				delete copy.files;
+				delete copy.previews;
+				return copy;
+			})();
+
+			const serialized = JSON.stringify({ form: savable, currentStep });
+			localStorage.setItem(STORAGE_KEY, serialized);
 			setHasDraft(true);
 		}
 	}, [form, currentStep, loading]);
@@ -133,11 +193,44 @@ export default function MarriageLicenseApplicationPage() {
 		async function init() {
 	 		try {
 	 			await ensureCivilRegistryTransactionTypes();
-	 			const typesRes = await getTransactionTypes();
-	 			if (typesRes.success && typesRes.data) {
-	 				const marriageLicense = typesRes.data.find((t: any) => t.code === "LCR_MARRIAGE_LICENSE" || t.code === "LCR_MARRIAGE");
-	 				if (marriageLicense) setTypeId(marriageLicense.id);
-	 			}
+					const typesRes = await getTransactionTypes();
+						if (typesRes.success && typesRes.data) {
+							const allTypes = typesRes.data as any[];
+							// Prefer exact match for a 'marriage license' transaction type
+							let marriageLicense = allTypes.find((t: any) => ((t.code || "") as string).toLowerCase() === "lcr_marriage_license");
+							// Next, prefer any type that mentions both 'marriage' and 'license' in the name/code
+							if (!marriageLicense) {
+								marriageLicense = allTypes.find((t: any) => {
+									const code = (t.code || "").toString().toLowerCase();
+									const name = (t.name || "").toString().toLowerCase();
+									return (code.includes("marriage") || name.includes("marriage")) && (code.includes("license") || name.includes("license"));
+								});
+							}
+							// Then any type that includes 'license' (less specific)
+							if (!marriageLicense) {
+								marriageLicense = allTypes.find((t: any) => {
+									const code = (t.code || "").toString().toLowerCase();
+									const name = (t.name || "").toString().toLowerCase();
+									return code.includes("license") || name.includes("license");
+								});
+							}
+							if (marriageLicense) {
+								setTypeId(marriageLicense.id);
+							} else {
+								// Fallback: pick any type that mentions 'marriage' but warn (this may pick the certified-copy service)
+								const marriageFallback = allTypes.find((t: any) => {
+									const code = (t.code || "").toString().toLowerCase();
+									const name = (t.name || "").toString().toLowerCase();
+									return code.includes("marriage") || name.includes("marriage");
+								});
+								if (marriageFallback) {
+									setTypeId(marriageFallback.id);
+									toast.warning("Selected fallback marriage service: " + marriageFallback.name + ". If this is the certified-copy service, please ensure a 'marriage license' transaction type exists.");
+								} else {
+									console.error("No marriage-related transaction types found; check database seeding.");
+								}
+							}
+						}
 
 	 			const saved = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
 	 			const savedData = saved ? JSON.parse(saved) : null;
@@ -153,6 +246,29 @@ export default function MarriageLicenseApplicationPage() {
 	 			if (savedData) {
 	 				setForm((prev: any) => ({ ...prev, ...savedData.form }));
 	 				if (savedData.currentStep) setCurrentStep(savedData.currentStep);
+	 			}
+
+	 			// Restore draft files from IndexedDB
+	 			try {
+	 				const draftFiles = await getDraftFiles(STORAGE_KEY);
+	 				if (draftFiles && Object.keys(draftFiles).length > 0) {
+	 					setForm((prev: any) => {
+	 						const newFiles = { ...prev.files, ...draftFiles };
+	 						const newPreviews = { ...prev.previews };
+	 						Object.entries(draftFiles).forEach(([key, file]) => {
+	 							if (file && file.type.startsWith("image/")) {
+	 								newPreviews[key] = URL.createObjectURL(file);
+	 							}
+	 						});
+	 						return {
+	 							...prev,
+	 							files: newFiles,
+	 							previews: newPreviews
+	 						};
+	 					});
+	 				}
+	 			} catch (e) {
+	 				console.error("Failed to restore draft files from IndexedDB:", e);
 	 			}
 
 	 			if (activeResident) {
@@ -223,15 +339,49 @@ export default function MarriageLicenseApplicationPage() {
 				toast.error("File size exceeds 5MB limit.");
 				return;
 			}
-			const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
-			setForm((prev: any) => ({
-				...prev,
-				files: { ...prev.files, [key]: file },
-				previews: { ...prev.previews, [key]: previewUrl }
-			}));
+			// Save raw file to IndexedDB
+			saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+				console.error("Failed to save draft file to IndexedDB:", err);
+			});
 
-			// clear missing alert for this key when user provides a file
-			setMissingFiles((m) => ({ ...m, [key]: false }));
+			// Read image files as data URL so previews persist across reloads
+			if (file.type.startsWith("image/")) {
+				const reader = new FileReader();
+				reader.onload = () => {
+					const dataUrl = reader.result as string | null;
+					if (!dataUrl) return;
+					// set File reference
+					setForm((prev: any) => ({ ...prev, files: { ...prev.files, [key]: file } }));
+					const size = estimateDataUrlSize(dataUrl);
+					if (size > PREVIEW_MAX_BYTES) {
+						// try compressing
+						compressImageDataUrl(dataUrl).then((compressed) => {
+							const newSize = estimateDataUrlSize(compressed);
+							if (newSize <= PREVIEW_MAX_BYTES) {
+								setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: compressed } }));
+							} else {
+								setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: null } }));
+								toast.warning("Image preview too large to persist; preview not saved.");
+							}
+							setMissingFiles((m) => ({ ...m, [key]: false }));
+						}).catch(() => {
+							setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: null } }));
+							setMissingFiles((m) => ({ ...m, [key]: false }));
+						});
+					} else {
+						setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: dataUrl } }));
+						setMissingFiles((m) => ({ ...m, [key]: false }));
+					}
+				};
+				reader.readAsDataURL(file);
+			} else {
+				setForm((prev: any) => ({
+					...prev,
+					files: { ...prev.files, [key]: file },
+					previews: { ...prev.previews, [key]: null }
+				}));
+				setMissingFiles((m) => ({ ...m, [key]: false }));
+			}
 		}
 	};
 
@@ -297,6 +447,16 @@ export default function MarriageLicenseApplicationPage() {
 			return;
 		}
 
+		// Ensure the transaction type was resolved during init
+		if (!typeId) {
+			console.error("[LCR Submit] Missing typeId - transaction type not loaded");
+			toast.error("Service type not loaded. Please reload the page and try again.");
+			return;
+		}
+
+		// Helpful debug info for failed submissions
+		console.log("[LCR Submit] typeId:", typeId, "registryType:", "MARRIAGE_LICENSE", "resident:", resident, "form:", form);
+
 		setSubmitting(true);
 		try {
 			const formData = new FormData();
@@ -320,17 +480,51 @@ export default function MarriageLicenseApplicationPage() {
 					citizenship: form.app2Citizenship
 				},
 				requiredDocs: selectedDocs,
-				subjectName: `${form.app1FullName} & ${form.app2FullName}`
+				subjectName: `${form.app1FullName} & ${form.app2FullName}`,
+				payments: [
+					{ label: "Misc Fee", amount: MISC_FEE }
+				],
+				totalAmount: MISC_FEE
 			};
 
 			console.log("[LCR Submit] additionalData:", additionalData);
 			formData.append("additionalData", JSON.stringify(additionalData));
 
-			Object.entries(form.files || {}).forEach(([key, file]) => { if (file) formData.append(key, file as File); });
+			// Helper function to convert base64 to File object
+			const dataURLtoFile = (dataurl: string, filename: string): File | null => {
+				try {
+					const arr = dataurl.split(',');
+					const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+					const bstr = atob(arr[1]);
+					let n = bstr.length;
+					const u8arr = new Uint8Array(n);
+					while (n--) {
+						u8arr[n] = bstr.charCodeAt(n);
+					}
+					return new File([u8arr], filename, { type: mime });
+				} catch (e) {
+					console.error("Failed to convert dataURL to File:", e);
+					return null;
+				}
+			};
+
+			// Reconstruct any missing files from data URL previews (so reloads survive!)
+			const finalFiles = { ...(form.files || {}) };
+			Object.entries(form.previews || {}).forEach(([key, previewUrl]) => {
+				if (previewUrl && typeof previewUrl === "string" && previewUrl.startsWith("data:") && !finalFiles[key]) {
+					const reconstructedFile = dataURLtoFile(previewUrl, `${key}.png`);
+					if (reconstructedFile) {
+						finalFiles[key] = reconstructedFile;
+					}
+				}
+			});
+
+			Object.entries(finalFiles).forEach(([key, file]) => { if (file) formData.append(key, file as File); });
 
 			const res = await submitCivilRegistryTransaction(formData);
 			if (res.success) {
 				localStorage.removeItem(STORAGE_KEY);
+				await clearDraftFiles(STORAGE_KEY);
 				toast.success("Marriage License Application Submitted");
 				router.push('/user/services/requests');
 			} else {
@@ -598,8 +792,28 @@ export default function MarriageLicenseApplicationPage() {
 								))}
 							</ul>
 						</div>
+						{/* Payment Summary */}
 						<div className="mt-4">
-							{/* Data Privacy Agreement panel */}
+							<div className="p-4 rounded-2xl border border-slate-200/40 bg-slate-50 dark:bg-white/5">
+								<div className="flex items-center justify-between">
+									<div className="font-black uppercase text-sm">Payment Summary</div>
+									<div className="text-[12px] text-slate-500 italic">Payable now</div>
+								</div>
+								<div className="mt-3">
+									<div className="flex justify-between items-center">
+										<div className="text-xs text-slate-600">Misc Fee</div>
+										<div className="font-black">{formatCurrency(MISC_FEE)}</div>
+									</div>
+									<div className="flex justify-between items-center mt-3 border-t pt-3">
+										<div className="text-sm font-black">Total</div>
+										<div className="text-sm font-black text-amber-600">{formatCurrency(MISC_FEE)}</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Data Privacy Agreement panel */}
+						<div className="mt-4">
 							<div className="p-4 rounded-2xl border border-slate-200/40 bg-slate-50 dark:bg-white/5 flex items-start gap-4">
 								<button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-amber-500 border-amber-500 text-white" : "border-slate-300") }>
 									{policyAccepted ? <Check className="w-3 h-3" /> : null}
@@ -625,7 +839,7 @@ export default function MarriageLicenseApplicationPage() {
 					{currentStep !== 'CONFIRM' ? (
 						<Button onClick={nextStep} className="h-14 px-10 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase italic tracking-widest">Next</Button>
 					) : (
-						<Button onClick={handleSubmit} disabled={!form.certify || submitting} className="h-14 px-10 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase italic tracking-widest">
+						<Button onClick={handleSubmit} disabled={!policyAccepted || submitting} className="h-14 px-10 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase italic tracking-widest">
 							{submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
 							Submit Application
 						</Button>
