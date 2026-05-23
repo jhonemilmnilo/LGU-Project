@@ -659,7 +659,7 @@ model BusinessPermit {
   transactionId      String      @unique
   transaction        Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   
-  permitNumber       String      @unique // The physical serial number from the booklet / license index
+  permitNumber       String // The physical serial number from the booklet / license index
   taxYear            Int         // e.g., 2026
   dateIssued         DateTime    @default(now())
   expiryDate         DateTime    // Standard BPLO permit expiration is Dec 31

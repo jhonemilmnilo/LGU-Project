@@ -1392,8 +1392,15 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         // Handle either BPLO or Cedula lifecycle
         if (isBusinessPermit) {
+            const isRenewal = transaction.type.code === "BUSINESS_PERMIT_RENEW" || 
+                              additionalData?.businessType === "RENEWAL" || 
+                              additionalData?.businessType === "RENEW";
+            const existingPermitNo = additionalData?.permitNumber || additionalData?.existingPermitNumber || additionalData?.existingPermitNo;
+
             if (!transaction.businessPermit) {
-                const generatedPermitNo = ctcNumber?.trim() || `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                const generatedPermitNo = (isRenewal && existingPermitNo)
+                    ? existingPermitNo.trim()
+                    : (ctcNumber?.trim() || `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`);
                 await prisma.businessPermit.create({
                     data: {
                         transactionId: id,
@@ -1419,7 +1426,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 await prisma.businessPermit.update({
                     where: { id: transaction.businessPermit.id },
                     data: {
-                        ...(ctcNumber ? { permitNumber: ctcNumber.trim() } : {}),
+                        ...((ctcNumber && !isRenewal) ? { permitNumber: ctcNumber.trim() } : {}),
                         ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
                     }
                 });
