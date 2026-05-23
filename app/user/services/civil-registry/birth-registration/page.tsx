@@ -17,7 +17,8 @@ import {
     Upload,
     Search,
     CheckCircle2,
-    Users
+    Users,
+    AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -249,6 +250,13 @@ export default function BirthRegistrationPage() {
     useEffect(() => {
         if (!loading) {
             try {
+                const hasUploadedFiles = Object.values(form.files).some(f => f !== null);
+                if (hasUploadedFiles) {
+                    sessionStorage.removeItem("birth-reg-step");
+                    sessionStorage.removeItem("birth-reg-form");
+                    return;
+                }
+
                 sessionStorage.setItem("birth-reg-step", currentStep);
 
                 // Build a serializable snapshot: omit File objects, but include metadata and previews
@@ -1318,6 +1326,17 @@ export default function BirthRegistrationPage() {
                                                 <p className="text-[10px] text-slate-500 italic">Select parents&apos; marital status — required documents adjust automatically.</p>
                                             </div>
 
+                                            {/* Modern Inline Alert */}
+                                            <div className="bg-blue-500/5 border border-blue-500/10 p-5 rounded-2xl flex items-start gap-3">
+                                                <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-black uppercase tracking-wider text-blue-500">Document Upload Notice</p>
+                                                    <p className="text-xs font-bold italic text-blue-500/80 leading-normal">
+                                                        Please ensure all files are clear and readable before proceeding. Any blurry, altered, or incorrect documents will result in an immediate rejection or revision request.
+                                                    </p>
+                                                </div>
+                                            </div>
+
                                             <div id="documents-section" className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
                                                 {form.registrationType === "STANDARD" ? (
                                                     (form.parentsMarried ? [
@@ -1339,7 +1358,7 @@ export default function BirthRegistrationPage() {
                                                                     </div>
                                                                 )}
                                                                 <div className="flex flex-col gap-0.5">
-                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
+                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
                                                                     <span className={cn(
                                                                         "text-[8px] font-black uppercase tracking-[0.2em] italic",
                                                                         (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
@@ -1354,7 +1373,7 @@ export default function BirthRegistrationPage() {
                                                                     onChange={(e) => handleFileChange(e, doc.key)}
                                                                     className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                                                     accept="image/*,.pdf"
-                                                                />
+                                                                 />
                                                                 <div className={cn(
                                                                     "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
                                                                     (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
@@ -1385,7 +1404,7 @@ export default function BirthRegistrationPage() {
                                                                     </div>
                                                                 )}
                                                                 <div className="flex flex-col gap-0.5">
-                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label}</span>
+                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
                                                                     <span className={cn(
                                                                         "text-[8px] font-black uppercase tracking-[0.2em] italic",
                                                                         (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
