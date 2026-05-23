@@ -46,7 +46,8 @@ import {
     submitTransaction,
     ensureCedulaTransactionTypes,
     getTransactionById,
-    resubmitTransaction
+    resubmitTransaction,
+    getUserTransactions
 } from "@/app/admin/transactions/actions";
 import { calculateCedula, CedulaResult, isPastCedulaDeadline, getCedulaPenaltyRate } from "@/lib/cedula";
 import { toast } from "sonner";
@@ -95,6 +96,8 @@ export default function CedulaApplicationPage() {
     const [revisionId, setRevisionId] = useState<string | null>(null);
     const [revisionTx, setRevisionTx] = useState<any>(null);
     const [cedulaTypes, setCedulaTypes] = useState<any[]>([]);
+    const [hasActiveIndividualCedula, setHasActiveIndividualCedula] = useState(false);
+    const [hasActiveJuridicalCedula, setHasActiveJuridicalCedula] = useState(false);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [showValidationErrors, setShowValidationErrors] = useState(false);
     const incomeInputRef = useRef<HTMLInputElement>(null);
@@ -136,6 +139,24 @@ export default function CedulaApplicationPage() {
                         defaultTypeId = individualType.id;
                         setFormData(prev => ({ ...prev, typeId: individualType.id }));
                     }
+                }
+
+                // Fetch User Transactions to verify pending requests for CEDULA_IND and CEDULA_JUR
+                const txsRes = await getUserTransactions();
+                if (txsRes.success && txsRes.data) {
+                    const activeCedula = txsRes.data.some((tx: any) => 
+                        tx.type?.code === "CEDULA_IND" && 
+                        !tx.isCancelled && 
+                        !["DELIVERED", "RELEASED", "REJECTED", "DRAFT"].includes(tx.status)
+                    );
+                    setHasActiveIndividualCedula(activeCedula);
+
+                    const activeJuridical = txsRes.data.some((tx: any) => 
+                        tx.type?.code === "CEDULA_JUR" && 
+                        !tx.isCancelled && 
+                        !["DELIVERED", "RELEASED", "REJECTED", "DRAFT"].includes(tx.status)
+                    );
+                    setHasActiveJuridicalCedula(activeJuridical);
                 }
 
                 // Check for revisionId query parameter
@@ -297,6 +318,12 @@ export default function CedulaApplicationPage() {
     const isStepValid = (stepId: Step) => {
         switch (stepId) {
             case "STATUS":
+                if (hasActiveIndividualCedula && formData.applicantType === "INDIVIDUAL" && !revisionId) {
+                    return false;
+                }
+                if (hasActiveJuridicalCedula && formData.applicantType === "JURIDICAL" && !revisionId) {
+                    return false;
+                }
                 return !!formData.typeId;
             case "RESIDENT":
                 const r = formData.residentData;
@@ -329,7 +356,13 @@ export default function CedulaApplicationPage() {
     const handleNext = () => {
         if (!isStepValid(currentStep)) {
             if (currentStep === "STATUS") {
-                toast.error("Please identify your status first.");
+                if (hasActiveIndividualCedula && formData.applicantType === "INDIVIDUAL" && !revisionId) {
+                    toast.error("You already have an active Individual Cedula request currently in progress.");
+                } else if (hasActiveJuridicalCedula && formData.applicantType === "JURIDICAL" && !revisionId) {
+                    toast.error("You already have an active Juridical Cedula request currently in progress.");
+                } else {
+                    toast.error("Please identify your status first.");
+                }
             } else if (currentStep === "RESIDENT") {
                 contactInputRef.current?.focus();
                 toast.error("Please provide your contact number for better coordination.");
@@ -494,6 +527,14 @@ export default function CedulaApplicationPage() {
                         <div
                             key={idx}
                             onClick={() => {
+                                if (hasActiveIndividualCedula && formData.applicantType === "INDIVIDUAL" && !revisionId && step.id !== "STATUS") {
+                                    toast.error("This phase is locked due to a pending Individual Cedula request.");
+                                    return;
+                                }
+                                if (hasActiveJuridicalCedula && formData.applicantType === "JURIDICAL" && !revisionId && step.id !== "STATUS") {
+                                    toast.error("This phase is locked due to a pending Juridical Cedula request.");
+                                    return;
+                                }
                                 if (canNavigate(step.id)) {
                                     setCurrentStep(step.id);
                                 } else {
@@ -1001,7 +1042,7 @@ export default function CedulaApplicationPage() {
                 <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-200 dark:border-white/10 flex justify-end">
                     <Button
                         onClick={currentStep === "CONFIRM" ? onSubmit : handleNext}
-                        disabled={submitting || (currentStep !== "CONFIRM" && !isStepValid(currentStep))}
+                        disabled={submitting || (currentStep !== "CONFIRM" && currentStep !== "STATUS" && !isStepValid(currentStep))}
                         className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
                     >
                         {submitting ? (
