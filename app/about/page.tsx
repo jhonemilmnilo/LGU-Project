@@ -4,6 +4,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AboutClientView } from "./AboutClientView";
 
+export const dynamic = "force-dynamic";
+
 export default async function AboutPage(props: { searchParams: Promise<{ barangay?: string }> }) {
     const searchParams = await props.searchParams;
     const barangay = searchParams.barangay;

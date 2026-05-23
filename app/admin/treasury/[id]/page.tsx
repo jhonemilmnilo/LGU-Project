@@ -571,12 +571,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             income,
             propertyValue,
             fulfillmentType: transaction.fulfillmentType,
-            deliveryFee
+            deliveryFee,
+            baseFee: transaction.type?.baseFee
         });
     })();
 
-    // Prefer persisted `transaction.totalAmount` when available; otherwise use calculated result
-    const displayTotal = Number(transaction.totalAmount ?? calcResult.totalAmount ?? 0);
+    // Prefer persisted `transaction.totalAmount` when available (greater than 0); otherwise use calculated result
+    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))

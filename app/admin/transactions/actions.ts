@@ -106,9 +106,7 @@ export async function ensureCedulaTransactionTypes() {
                 where: { code: t.code },
                 update: {
                     requiresBusinessName: t.requiresBusinessName,
-                    supportsECopy: t.supportsECopy,
-                    deliveryFee: t.deliveryFee,
-                    baseFee: t.baseFee
+                    supportsECopy: t.supportsECopy
                 },
                 create: t
             });
@@ -184,8 +182,6 @@ export async function ensureBusinessPermitTransactionTypes() {
                 update: {
                     requiresBusinessName: t.requiresBusinessName,
                     supportsECopy: t.supportsECopy,
-                    deliveryFee: t.deliveryFee,
-                    baseFee: t.baseFee,
                     requiredDocs: t.requiredDocs,
                     formSchema: t.formSchema
                 },
@@ -319,8 +315,6 @@ export async function ensureCivilRegistryTransactionTypes() {
                 update: {
                     name: t.name,
                     description: t.description,
-                    baseFee: t.baseFee,
-                    deliveryFee: t.deliveryFee,
                     requiredDocs: t.requiredDocs,
                     formSchema: t.formSchema,
                     supportsECopy: t.supportsECopy
@@ -1058,7 +1052,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 income: additionalData.income || 0,
                 propertyValue: additionalData.propertyValue || 0,
                 fulfillmentType: transaction.fulfillmentType,
-                deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
+                deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee,
+                baseFee: transaction.type?.baseFee
             });
             result = {
                 basicTax: cedulaCalc.basicTax,
@@ -1327,7 +1322,8 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 income: additionalData.income || 0,
                 propertyValue: additionalData.propertyValue || 0,
                 fulfillmentType: transaction.fulfillmentType,
-                deliveryFee: transaction.type.deliveryFee
+                deliveryFee: transaction.type.deliveryFee,
+                baseFee: transaction.type.baseFee
             });
             basicTax = calc.basicTax;
             additionalTax = calc.additionalTax;
