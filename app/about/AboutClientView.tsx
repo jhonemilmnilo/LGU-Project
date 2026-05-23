@@ -136,70 +136,59 @@ export function AboutClientView({ aboutData, pastMayors, themeColor, brandWord1,
                     variants={fadeIn}
                     className="w-full"
                 >
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start w-full">
-                        {/* Photo Card Section */}
-                        <div className="lg:col-span-4 w-full">
-                            {aboutData.mayorImageUrl ? (
-                                <Card className="border-none shadow-none md:shadow-2xl bg-white dark:bg-slate-950 rounded-[2rem] overflow-hidden relative group aspect-[3/4] max-w-md mx-auto lg:max-w-none">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
-                                    <div className="relative w-full h-full p-4">
-                                        <div className="relative w-full h-full rounded-[1.5rem] overflow-hidden shadow-xl">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img 
-                                                src={aboutData.mayorImageUrl || ""} 
-                                                alt={isBarangayView ? "Captain" : "Mayor"} 
-                                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                                            
-                                            {/* Caption Overlay */}
-                                            <div className="absolute bottom-6 left-6 right-6 z-10 pointer-events-none">
-                                                <p className="text-white text-lg font-black uppercase italic tracking-tighter leading-none">
-                                                    {isBarangayView ? "Barangay Captain" : "Municipal Mayor"}
-                                                </p>
-                                                <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mt-1">
-                                                    LGU Leadership Directory
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Card>
-                            ) : (
-                                <Card className="border-none shadow-none md:shadow-2xl bg-white dark:bg-slate-950 rounded-[2rem] overflow-hidden aspect-[3/4] flex items-center justify-center p-12 max-w-md mx-auto lg:max-w-none">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
-                                    <div className="text-center opacity-50 space-y-4 relative z-10">
-                                        <Building2 className="w-16 h-16 mx-auto" style={{ color: themeColor }} />
-                                        <p className="text-xs font-bold uppercase tracking-widest">{isBarangayView ? "Barangay Office" : "Office of the Mayor"}</p>
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-
-                        {/* Message Card Section */}
-                        <div className="lg:col-span-8 w-full">
-                            <Card className="border-none shadow-none md:shadow-2xl bg-white dark:bg-slate-950 rounded-[2rem] overflow-hidden relative">
-                                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
-                                <div className="p-6 py-8 md:p-12 lg:p-16 xl:p-20 relative z-10 flex flex-col justify-center">
-                                    <div className="flex items-center gap-3 mb-4 md:mb-6">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
-                                            <Quote className="w-4 h-4" />
-                                        </div>
-                                        <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500">Message from the Office</h2>
-                                    </div>
-                                    
-                                    <h3 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white mb-4 md:mb-8 tracking-tighter leading-none">
-                                        {isBarangayView ? "Captain's" : "Mayor's"} <br/><span style={{ color: themeColor }}>Message</span>
-                                    </h3>
-                                    
-                                    <div className="relative">
-                                        <p className="text-base md:text-lg lg:text-xl text-slate-600 dark:text-slate-400 leading-loose italic font-medium whitespace-pre-wrap">
-                                            {aboutData.mayorMessage}
-                                        </p>
-                                    </div>
+                    <Card className="border-none shadow-none md:shadow-2xl bg-white dark:bg-slate-950 rounded-[2rem] overflow-hidden relative w-full">
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
+                        <div className="p-6 py-8 md:p-12 lg:p-16 xl:p-20 relative z-10">
+                            
+                            {/* Header Section */}
+                            <div className="flex flex-col items-center text-center mb-8 md:mb-12">
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3 md:mb-4 shadow-md" style={{ backgroundColor: `${themeColor}20`, color: themeColor }}>
+                                    <Quote className="w-5 h-5" />
                                 </div>
-                            </Card>
+                                <h2 className="text-xs md:text-sm font-extrabold uppercase tracking-[0.2em] text-slate-500 mb-2">Message from the Office</h2>
+                                <h3 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+                                    {isBarangayView ? "Captain's" : "Mayor's"} <span style={{ color: themeColor }}>Message</span>
+                                </h3>
+                            </div>
+
+                            {/* Content Block with Elegant Floating Flow */}
+                            <div className="flow-root">
+                                {aboutData.mayorImageUrl ? (
+                                    <div className="w-full md:w-[280px] lg:w-[320px] aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-xl mb-6 md:float-left md:mr-8 md:mb-6 group relative">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-10" />
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img 
+                                            src={aboutData.mayorImageUrl} 
+                                            alt={isBarangayView ? "Captain" : "Mayor"} 
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                        />
+                                        
+                                        {/* Caption Overlay */}
+                                        <div className="absolute bottom-6 left-6 right-6 z-20 pointer-events-none">
+                                            <p className="text-white text-lg font-black uppercase italic tracking-tighter leading-none">
+                                                {isBarangayView ? "Barangay Captain" : "Municipal Mayor"}
+                                            </p>
+                                            <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mt-1">
+                                                LGU Leadership Directory
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full md:w-[280px] lg:w-[320px] aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-xl mb-6 md:float-left md:mr-8 md:mb-6 relative flex items-center justify-center p-12 bg-slate-100 dark:bg-slate-900">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-100 dark:to-slate-900/50 pointer-events-none" />
+                                        <div className="text-center opacity-50 space-y-4 relative z-10">
+                                            <Building2 className="w-16 h-16 mx-auto" style={{ color: themeColor }} />
+                                            <p className="text-xs font-bold uppercase tracking-widest">{isBarangayView ? "Barangay Office" : "Office of the Mayor"}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <p className="text-base md:text-lg lg:text-xl text-slate-600 dark:text-slate-400 leading-loose italic font-medium whitespace-pre-wrap">
+                                    {aboutData.mayorMessage}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </Card>
                 </motion.div>
 
                 {/* Historical Background */}
