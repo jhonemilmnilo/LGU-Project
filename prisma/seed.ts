@@ -8,7 +8,7 @@ async function main() {
 
   // 1. CLEANUP PREVIOUS DATA
   console.log("🧹 Cleaning up existing database records...");
-  
+
   // Delete records in reverse dependency order
   await prisma.cedula.deleteMany({});
   await prisma.businessPermit.deleteMany({});
@@ -32,7 +32,7 @@ async function main() {
     { key: "brand_word_2", value: "Mapandan", description: "Second part of the system brand name" },
     { key: "theme_color", value: "#2563eb", description: "Primary branding theme color (Hex)" },
     { key: "site_logo", value: "", description: "URL to the system navigation logo" },
-    
+
     // Landing Page Sections visibility
     { key: "section_dining_lodging", value: "true", description: "Toggle Dining and Lodging section" },
     { key: "section_places_to_visit", value: "true", description: "Toggle Tourism Spots / Gallery section" },
@@ -63,8 +63,8 @@ async function main() {
   // 3. SEED BARANGAY INFORMATION
   console.log("🏡 Seeding official Mapandan Barangays with logistics configurations...");
   const barangays = [
-    "Amanoaoac", "Apaya", "Aserda", "Baloling", "Coral", "Golden", "Jimenez", 
-    "Lambayan", "Luyan South", "Nilombot", "Pias", "Poblacion", "Primicias", 
+    "Amanoaoac", "Apaya", "Aserda", "Baloling", "Coral", "Golden", "Jimenez",
+    "Lambayan", "Luyan South", "Nilombot", "Pias", "Poblacion", "Primicias",
     "Sta. Maria", "Torres"
   ];
 
@@ -314,7 +314,7 @@ async function main() {
 
   // 6. SEED USERS & MOCK ROLES
   console.log("👥 Creating administrative and user test accounts...");
-  
+
   const saltRounds = 10;
   const commonHashedPassword = await bcrypt.hash("password123", saltRounds);
 

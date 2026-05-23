@@ -147,7 +147,7 @@ export default function UserServiceRequestsPage() {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8">
                         <div className="space-y-3 md:space-y-4">
                             <div className="space-y-1">
-                                <h1 className="text-4xl md:text-7xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
+                                <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
                                     Track <span className="text-primary italic underline decoration-primary/20 underline-offset-8 decoration-4">Status</span>
                                 </h1>
                                 <p className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] md:ml-2 italic">Service Records Portfolio</p>
