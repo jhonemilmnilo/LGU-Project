@@ -1067,8 +1067,6 @@ export async function addHotline(formData: FormData) {
         const orderValue = formData.get("order") as string;
         const parsedOrder = orderValue ? parseInt(orderValue, 10) : 0;
 
-        const barangay = formData.get("barangay") as string || await getSessionBarangay();
-
         const newHotline = await (prisma as any).hotline.create({
             data: {
                 name: formData.get("name") as string,
@@ -1078,7 +1076,6 @@ export async function addHotline(formData: FormData) {
                 address: formData.get("address") as string | null,
                 order: isNaN(parsedOrder) ? 0 : parsedOrder,
                 isActive: true,
-                barangay: barangay || null,
             } as any,
         });
 

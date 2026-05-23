@@ -16,15 +16,18 @@ export function useHotlinesForm() {
         const formData = new FormData(e.currentTarget);
 
         try {
-            if (editingData) {
-                await updateHotline(editingData.id, formData);
-                toast.success("Hotline updated successfully!");
+            const response = editingData
+                ? await updateHotline(editingData.id, formData)
+                : await addHotline(formData);
+
+            if (response && response.success) {
+                toast.success(editingData ? "Hotline updated successfully!" : "Hotline added successfully!");
+                setIsAddModalOpen(false);
+                setEditingData(null);
             } else {
-                await addHotline(formData);
-                toast.success("Hotline added successfully!");
+                const errMsg = response && "error" in response ? response.error : "Failed to save hotline.";
+                toast.error(errMsg || "Failed to save hotline.");
             }
-            setIsAddModalOpen(false);
-            setEditingData(null);
         } catch (error) {
             console.error("Error saving hotline:", error);
             toast.error("Failed to save hotline. Please try again.");
