@@ -431,6 +431,14 @@ export default function BuildingPermitPage() {
   };
 
   const handleSubmit = async () => {
+    if (Object.keys(uploadedRequirements).length < 13) {
+      toast.warning("Please upload ALL 13 required documents.");
+      return;
+    }
+    if (Object.keys(uploadedPermits).length < 9) {
+      toast.warning("Please upload ALL 9 required permits.");
+      return;
+    }
     if (!signatureData) {
       toast.warning("Please provide your digital signature before submitting.");
       return;
@@ -459,6 +467,13 @@ export default function BuildingPermitPage() {
       const result = await submitBuildingPermit(data);
       if (result.success) {
         await saveTransactionSignature(result.transactionId!, signatureData);
+        // Fetch the updated data so the application becomes read-only and back button works
+        const permitsRes = await getExistingBuildingPermits();
+        if (permitsRes.success) {
+          setExistingApplications(permitsRes.data);
+          const newApp = permitsRes.data.find((a: any) => a.id === result.transactionId);
+          if (newApp) setSelectedApplication(newApp);
+        }
         setCurrentStep("EVALUATION");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
@@ -1102,6 +1117,18 @@ export default function BuildingPermitPage() {
                   </button>
                   <button 
                     onClick={() => {
+                      if (!formData.descriptionOfWork || !formData.estimatedCost || !formData.occupancyUse) {
+                        toast.warning("Please fill out the Description of Work, Estimated Cost, and Occupancy Use.");
+                        return;
+                      }
+                      if (idChoice === "UPLOAD" && !formData.newIdFile) {
+                        toast.warning("Please upload a Government ID if you chose to upload a new one.");
+                        return;
+                      }
+                      if (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile) {
+                        toast.warning("Please upload the Certified True Copy of the TCT.");
+                        return;
+                      }
                       setCurrentStep("DOCUMENTS");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }} 
