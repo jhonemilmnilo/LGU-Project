@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
     getEngineerTransactions, 
     getEngineerPendingCount,
@@ -51,7 +51,7 @@ function formatDateTime(date: string | Date): { date: string; time: string } {
 export default function EngineerDashboard() {
     const router = useRouter();
     const { data: session } = useSession();
-    const userRole = (session?.user as any)?.role;
+
 
     const [status, setStatus] = useState("ALL");
     const [transactions, setTransactions] = useState<any[]>([]);

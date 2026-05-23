@@ -2688,8 +2688,7 @@ export async function getEngineerTransactions(status?: string) {
  */
 export async function getEngineerPendingCount() {
     try {
-        const session = await getSession();
-        const user = session?.user as any;
+    const session = await getSession();
 
         const count = await prisma.transaction.count({
             where: {

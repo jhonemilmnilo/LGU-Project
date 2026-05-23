@@ -43,7 +43,6 @@ export async function submitBuildingPermit(formData: FormData) {
     const descriptionOfWork = formData.get("descriptionOfWork") as string;
     const occupancyUse = formData.get("occupancyUse") as string;
     const estimatedCost = formData.get("estimatedCost") as string;
-    const applicantName = formData.get("applicantName") as string || session.user.name || "Unknown";
 
     // Prepare JSON for additional Data
     const additionalData: any = {

@@ -1,10 +1,10 @@
+/* eslint-disable react/no-unescaped-entities, @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect } from "react";
 import {
   Book,
   CheckCircle,
-  CheckSquare,
   ClipboardList,
   FileSignature,
   FileText,
@@ -12,7 +12,6 @@ import {
   Handshake,
   Home,
   Landmark,
-  Lightbulb,
   MapPin,
   PenTool,
   Ruler,
@@ -34,8 +33,7 @@ import {
   Hourglass,
   Receipt
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,7 +84,7 @@ export default function BuildingPermitPage() {
   const [residentData, setResidentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
+
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [idChoice, setIdChoice] = useState<"PROFILE" | "UPLOAD">("PROFILE");
   const [activeDocTab, setActiveDocTab] = useState<"REQUIREMENTS" | "PERMITS">("REQUIREMENTS");
@@ -461,7 +459,6 @@ export default function BuildingPermitPage() {
       const result = await submitBuildingPermit(data);
       if (result.success) {
         await saveTransactionSignature(result.transactionId!, signatureData);
-        setTransactionId(result.transactionId!);
         setCurrentStep("EVALUATION");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
