@@ -58,13 +58,13 @@ export async function processImageUpload(formData: FormData, fieldName: string =
             // Clean naming conventions as requested by user
             if (fieldName === "mayor-image") {
                 const ext = file.name.split('.').pop() || 'jpg';
-                filename = `mayor-image.${ext}`;
+                filename = `mayor-image-${Date.now()}.${ext}`;
             } else if (fieldName === "past-mayor") {
                 const ext = file.name.split('.').pop() || 'jpg';
                 filename = `past-mayor-${Date.now()}.${ext}`;
             } else if (fieldName === "captain-image") {
                 const ext = file.name.split('.').pop() || 'jpg';
-                filename = `captain-image.${ext}`;
+                filename = `captain-image-${Date.now()}.${ext}`;
             }
 
             const storagePath = `${folder}/${filename}`;
