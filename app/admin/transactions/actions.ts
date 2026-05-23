@@ -196,6 +196,59 @@ export async function ensureBusinessPermitTransactionTypes() {
     }
 }
 
+export async function ensureBuildingPermitTransactionTypes() {
+    try {
+        const types = [
+            {
+                code: "BUILDING_PERMIT",
+                name: "Building Permit",
+                description: "Apply for a new building permit online. Manage your construction requirements.",
+                level: 1,
+                category: "Building Permit",
+                baseFee: 1000.00,
+                deliveryFee: 100.00,
+                isFixed: false,
+                requiredDocs: [
+                    "Plans duly signed & sealed by licensed professional",
+                    "Certified true copy of Tax Declaration",
+                    "Xerox copy of land title",
+                    "Community Tax Certificate (Cedula)",
+                    "Electrical & Sanitary permit",
+                    "Locational clearance",
+                    "Fire Safety clearance"
+                ],
+                formSchema: {
+                    type: "BUILDING_PERMIT",
+                    fields: ["applicantName", "projectType", "floorArea", "estimatedCost", "location"]
+                },
+                requiresBusinessName: false,
+                supportsECopy: true
+            }
+        ];
+
+        for (const t of types) {
+            await prisma.transactionType.upsert({
+                where: { code: t.code },
+                update: {
+                    name: t.name,
+                    description: t.description,
+                    baseFee: t.baseFee,
+                    deliveryFee: t.deliveryFee,
+                    requiredDocs: t.requiredDocs,
+                    formSchema: t.formSchema,
+                    supportsECopy: t.supportsECopy
+                },
+                create: t
+            });
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Ensure building permit types error:", error);
+        return { success: false, error: "Failed to initialize Building Permit service types" };
+    }
+}
+
 export async function ensureCivilRegistryTransactionTypes() {
     try {
         const types = [
@@ -798,6 +851,12 @@ export async function getTransactionById(id: string) {
             return { success: false, error: "Forbidden: Admin Aides can only access Business Permit transactions." };
         }
 
+        // ENGINEER should only be able to view Building Permit transactions
+        const isBuildingPermit = transaction.type.code.startsWith("BUILDING_PERMIT");
+        if (user?.role === "ENGINEER" && !isBuildingPermit) {
+            return { success: false, error: "Forbidden: Engineers can only access Building Permit transactions." };
+        }
+
         // Ordinary resident check: can only fetch their own transactions
         if (user?.role === "USER" && transaction.userId !== user.id) {
             return { success: false, error: "Forbidden" };
@@ -1007,7 +1066,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1280,7 +1339,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1327,7 +1386,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1911,7 +1970,7 @@ export async function rejectTransaction(id: string, remarks: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -2017,7 +2076,7 @@ export async function sendForRevision(id: string, remarks: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -2580,3 +2639,107 @@ export async function getAllSuccessfulBusinessPermits() {
 }
 
 
+/**
+ * Fetch all Building Permit transactions for Engineer Hub
+ */
+export async function getEngineerTransactions(status?: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const where: any = {
+            type: { code: { startsWith: "BUILDING_PERMIT" } }
+        };
+
+        if (status && status !== "ALL") {
+            if (status === "CANCELLED") {
+                where.isCancelled = true;
+            } else if (status === "PAID") {
+                where.status = "PAID" as any;
+                where.isCancelled = false;
+            } else {
+                where.status = status;
+                where.isCancelled = false;
+            }
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where,
+            include: {
+                user: true,
+                type: true,
+                buildingPermit: true
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return { success: true, data: transactions as any[] };
+    } catch (error) {
+        console.error("Fetch engineer transactions error:", error);
+        return { success: false, error: "Failed to fetch transactions" };
+    }
+}
+
+/**
+ * Get count of pending building permit transactions for Engineer
+ */
+export async function getEngineerPendingCount() {
+    try {
+
+        const count = await prisma.transaction.count({
+            where: {
+                type: { code: { startsWith: "BUILDING_PERMIT" } },
+                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any }
+            }
+        });
+        return { success: true, count };
+    } catch (error) {
+        console.error("Fetch engineer pending count error:", error);
+        return { success: false, count: 0 };
+    }
+}
+
+/**
+ * Fetch counts per status for Engineer Hub building permit transactions (for tab badges)
+ */
+export async function getEngineerStatusCounts() {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden", data: {} };
+        }
+
+        const where: any = {
+            type: { code: { startsWith: "BUILDING_PERMIT" } },
+            isCancelled: false
+        };
+
+        const grouped = await prisma.transaction.groupBy({
+            by: ["status"],
+            where,
+            _count: { _all: true }
+        });
+
+        const cancelledCount = await prisma.transaction.count({
+            where: {
+                type: { code: { startsWith: "BUILDING_PERMIT" } },
+                isCancelled: true
+            }
+        });
+
+        const counts: Record<string, number> = {};
+        for (const group of grouped) {
+            counts[group.status] = group._count?._all ?? 0;
+        }
+        counts["CANCELLED"] = cancelledCount;
+
+        return { success: true, data: counts };
+    } catch (error) {
+        console.error("Fetch engineer status counts error:", error);
+        return { success: false, error: "Failed to fetch counts", data: {} };
+    }
+}

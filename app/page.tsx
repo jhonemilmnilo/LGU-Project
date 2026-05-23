@@ -33,7 +33,7 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { ensureBusinessPermitTransactionTypes, ensureCivilRegistryTransactionTypes } from "@/app/admin/transactions/actions";
+import { ensureBusinessPermitTransactionTypes, ensureCivilRegistryTransactionTypes, ensureBuildingPermitTransactionTypes } from "@/app/admin/transactions/actions";
 
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +50,7 @@ export default async function Home({
     // Ensure all service types are seeded in the database
     await ensureBusinessPermitTransactionTypes();
     await ensureCivilRegistryTransactionTypes();
+    await ensureBuildingPermitTransactionTypes();
 
     // Validate barangay: if a specific barangay is requested, check if it exists in the database
     if (isFiltered) {
@@ -125,28 +126,28 @@ export default async function Home({
         barangays, transactionTypes
     ] = await Promise.all([
         prisma.heroSlide.findMany({
-            where: { 
+            where: {
                 isActive: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
             } as any,
             orderBy: { order: 'asc' }
         }),
         prisma.tourismSpot.findMany({
-            where: { 
+            where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             take: 5
         }),
         prisma.dining.findMany({
-            where: { 
+            where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             take: 4
         }),
         prisma.accommodation.findMany({
-            where: { 
+            where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
@@ -181,16 +182,16 @@ export default async function Home({
         prisma.project.findMany({
             where: {
                 isPublished: true,
-                 ...(isFiltered ? { barangay: selectedBarangay } : {})
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             orderBy: { createdAt: 'desc' },
             take: 3
         }),
-         
+
         (prisma as any).job.findMany({
             where: {
                 isActive: true,
-                 ...(isFiltered ? { barangay: selectedBarangay } : {})
+                ...(isFiltered ? { barangay: selectedBarangay } : {})
             },
             orderBy: [
                 { deadline: 'asc' },
@@ -213,16 +214,16 @@ export default async function Home({
             orderBy: { order: "asc" }
         }),
         // Fetch ONLY Main Church (Global) context for the Landing Page
-         
+
         (prisma as any).churchInfo.findFirst({
-            where: { 
+            where: {
                 ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
             } as any,
             include: { schedules: true }
         }),
         (prisma as any).churchSchedule.findMany({
             where: {
-                churchInfo: { 
+                churchInfo: {
                     ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
                 }
             } as any,
@@ -230,7 +231,7 @@ export default async function Home({
         }),
         (prisma as any).churchCollection.findMany({
             where: {
-                churchInfo: { 
+                churchInfo: {
                     ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
                 }
             } as any,
@@ -247,7 +248,8 @@ export default async function Home({
                 OR: [
                     { code: "CEDULA_IND" },
                     { code: "BUSINESS_PERMIT_NEW" },
-                    { code: "LCR_BIRTH" }
+                    { code: "LCR_BIRTH" },
+                    { code: "BUILDING_PERMIT" }
                 ],
                 level: isFiltered ? 2 : 1
             },
@@ -274,6 +276,15 @@ export default async function Home({
                 fee: t.baseFee
             };
         }
+        if (t.code === "BUILDING_PERMIT") {
+            return {
+                id: t.id,
+                code: "BUILDING_PERMIT",
+                name: "Building Permit",
+                description: "Apply for a new building permit online. Manage your construction requirements.",
+                fee: t.baseFee
+            };
+        }
         return {
             id: t.id,
             code: t.code,
@@ -285,13 +296,13 @@ export default async function Home({
 
     // Merge and shuffle discovery items
     const discoveryItems = [
-         
+
         ...dining.map((d: any) => ({
             ...d,
             itemType: "kainan" as const,
             cuisineType: d.cuisineType || undefined
         })),
-         
+
         ...lodging.map((l: any) => ({
             ...l,
             itemType: "tuluyan" as const,
