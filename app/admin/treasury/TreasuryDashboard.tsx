@@ -456,9 +456,9 @@ export default function TreasuryDashboard() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
-                                                                {/* Show event date for marriage services when available */}
+                                                                {/* Always show transaction update date and time */}
                                                                 {(() => {
-                                                                    const source = tx.eventDate || tx.updatedAt;
+                                                                    const source = tx.updatedAt;
                                                                     const f = formatDateTime(source);
                                                                     return (
                                                                         <>
