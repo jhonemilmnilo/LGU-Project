@@ -224,7 +224,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
             toast.error("An unexpected error occurred");
             console.error("Login error:", error);
         }
-    }, [lockout, handleFailedAttempt, handleSuccessAttempt, router]);
+    }, [lockout, handleFailedAttempt, handleSuccessAttempt, router, triggerLeave]);
 
     const handlePasswordChangeSuccess = () => {
         setShowChangeModal(false);

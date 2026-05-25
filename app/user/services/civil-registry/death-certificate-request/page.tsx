@@ -1,19 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
     User,
-    ChevronRight,
     Loader2,
     Check,
-    AlertCircle,
     Sparkles,
-    Skull,
     ArrowRight,
-    CreditCard,
-    Info,
     Upload,
     Search,
     CheckCircle2,
@@ -22,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+
 import {
     Breadcrumb,
     BreadcrumbItem,
