@@ -395,16 +395,9 @@ export default function TreasuryDashboard() {
                                                         <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
-                                                                {tx.type?.requiresBusinessName
-                                                                    ? (tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY")
-                                                                    : `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`}
-                                                            </span>
-                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
-                                                                {tx.type?.requiresBusinessName ? "Business Entity" : "Registered Resident"}
-                                                            </span>
-                                                        </div>
+                                                        <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
+                                                            {tx.residentSnapshot ? `${tx.residentSnapshot.firstName} ${tx.residentSnapshot.lastName}` : "UNKNOWN APPLICANT"}
+                                                        </span>
                                                     </TableCell>
                                                     <TableCell>
                                                         <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">

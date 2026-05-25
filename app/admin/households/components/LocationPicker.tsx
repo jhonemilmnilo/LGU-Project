@@ -55,15 +55,7 @@ export default function LocationPicker({ initialLat, initialLng, onSelect, onClo
     const [position, setPosition] = useState<[number, number]>([initialLat || 16.0264, initialLng || 120.4537]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setMounted(true);
-            fetch('/mapandan-border.json')
-                .then(res => res.json())
-                .then(() => {})
-                .catch(err => console.error("Failed to load Mapandan border:", err));
-        }, 0);
-
-        // Fix Leaflet icons
+        // Fix Leaflet icons and only mount the map once Leaflet is ready
         import("leaflet").then(L => {
             const proto = L.Icon.Default.prototype as unknown as { _getIconUrl?: string };
             delete proto._getIconUrl;
@@ -72,9 +64,13 @@ export default function LocationPicker({ initialLat, initialLng, onSelect, onClo
                 iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
                 shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
             });
+            setMounted(true);
         });
 
-        return () => clearTimeout(timer);
+        fetch('/mapandan-border.json')
+            .then(res => res.json())
+            .then(() => {})
+            .catch(err => console.error("Failed to load Mapandan border:", err));
     }, []);
 
     if (!mounted) return <MapLoading />;
