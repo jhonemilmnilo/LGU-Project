@@ -70,6 +70,7 @@ interface FormState {
     idFile: File | null;
     proofFile: File | null;
     businessName: string;
+    incomeSource: string;
 }
 
 // --- CONSTANTS ---
@@ -114,7 +115,8 @@ export default function CedulaApplicationPage() {
         propertyValue: "",
         idFile: null,
         proofFile: null,
-        businessName: ""
+        businessName: "",
+        incomeSource: "PROFESSION"
     });
 
 
@@ -201,7 +203,8 @@ export default function CedulaApplicationPage() {
                             propertyValue: addData.propertyValue != null ? String(addData.propertyValue) : "",
                             idFile: null,
                             proofFile: null,
-                            businessName: addData.businessName || ""
+                            businessName: addData.businessName || "",
+                            incomeSource: addData.incomeSource || "PROFESSION"
                         });
 
                         // Set the baseline so auto-draft doesn't overwrite it
@@ -211,7 +214,8 @@ export default function CedulaApplicationPage() {
                             residentData: resSnapshot,
                             income: formattedIncome,
                             propertyValue: addData.propertyValue != null ? String(addData.propertyValue) : "",
-                            businessName: addData.businessName || ""
+                            businessName: addData.businessName || "",
+                            incomeSource: addData.incomeSource || "PROFESSION"
                         }));
                     } else {
                         toast.error("Failed to fetch revision details");
@@ -227,7 +231,8 @@ export default function CedulaApplicationPage() {
                         residentData: resident,
                         income: "",
                         propertyValue: "",
-                        businessName: ""
+                        businessName: "",
+                        incomeSource: "PROFESSION"
                     }));
 
                     setFormData(prev => ({
@@ -287,15 +292,15 @@ export default function CedulaApplicationPage() {
 
     // Auto-save form draft whenever text fields change
     useEffect(() => {
-        if (loading || !baseDraft) return; // Prevent overwriting draft on initial render before hydration finishes
-        
+        if (loading) return;
         const textInputs = {
             typeId: formData.typeId,
             applicantType: formData.applicantType,
             residentData: formData.residentData,
             income: formData.income,
             propertyValue: formData.propertyValue,
-            businessName: formData.businessName
+            businessName: formData.businessName,
+            incomeSource: formData.incomeSource
         };
 
         const currentDraftStr = JSON.stringify(textInputs);
@@ -312,6 +317,7 @@ export default function CedulaApplicationPage() {
         formData.income,
         formData.propertyValue,
         formData.businessName,
+        formData.incomeSource,
         persistDraft,
         loading,
         baseDraft,
@@ -428,7 +434,8 @@ export default function CedulaApplicationPage() {
                 applicantType: formData.applicantType,
                 income: parseFloat(formData.income.replace(/,/g, '')) || 0,
                 propertyValue: parseFloat(formData.propertyValue) || 0,
-                businessName: formData.businessName
+                businessName: formData.businessName,
+                incomeSource: formData.applicantType === "INDIVIDUAL" ? formData.incomeSource : undefined
             }));
 
             if (formData.idFile) submitData.append("idFile", formData.idFile);
@@ -498,7 +505,7 @@ export default function CedulaApplicationPage() {
 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 px-1 md:px-0">
                 <div className="space-y-1 md:space-y-2">
-                    <h1 className="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
+                    <h1 className="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white uppercase italic tracking-tighter leading-tight select-none">
                         Online <span className="text-primary underline decoration-[4px] md:decoration-[6px] decoration-primary/20 underline-offset-[4px] md:underline-offset-[8px]">Cedula</span>
                     </h1>
                     <p className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-1 md:ml-2 italic">LGU Digital Governance Portal</p>
@@ -590,11 +597,15 @@ export default function CedulaApplicationPage() {
                                 {currentStep === "STATUS" && (
                                     <div className="space-y-8 md:space-y-12">
                                         <div className="space-y-3 md:space-y-4 text-center">
-                                            <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight">Identify Your <span className="text-primary italic">Status</span></h2>
-                                            <p className="text-slate-500 font-medium italic text-xs md:text-lg uppercase tracking-widest max-w-2xl mx-auto">Select the appropriate category for this Community Tax assessment.</p>
+                                            <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight select-none">
+                                                Choose Application <span className="text-primary italic">Pathway</span>
+                                            </h2>
+                                            <p className="text-slate-500 dark:text-slate-400 font-medium italic text-xs md:text-sm uppercase tracking-widest max-w-2xl mx-auto select-none">
+                                                Select your current community tax status to proceed.
+                                            </p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
                                             {[
                                                 { 
                                                     id: "INDIVIDUAL", 
@@ -611,11 +622,12 @@ export default function CedulaApplicationPage() {
                                                 const label = matched?.name || (opt.id === "INDIVIDUAL" ? "Individual Citizen" : "Juridical Entity");
                                                 const desc = matched?.description || (opt.id === "INDIVIDUAL" ? "For private citizens, professionals, and employees." : "For corporations, partnerships, and business firms.");
                                                 
-                                                const Icon = opt.icon;
                                                 const isSelected = formData.applicantType === opt.id;
+                                                const Icon = opt.icon;
                                                 return (
                                                     <button
                                                         key={opt.id}
+                                                        type="button"
                                                         onClick={() => {
                                                             const t = cedulaTypes.find((x: any) => x.code === opt.code) || cedulaTypes[0];
                                                             if (t) {
@@ -623,26 +635,42 @@ export default function CedulaApplicationPage() {
                                                             }
                                                         }}
                                                         className={cn(
-                                                            "p-6 md:p-10 rounded-2xl md:rounded-[3rem] border-2 md:border-4 transition-all duration-500 text-left relative group select-none overflow-hidden",
-                                                            isSelected ? "bg-primary text-white border-primary shadow-2xl scale-[1.02]" : "bg-white/40 dark:bg-white/5 backdrop-blur-md border-slate-100 dark:border-white/10 hover:border-primary/30"
+                                                            "p-8 rounded-[2rem] border-2 text-left relative group select-none overflow-hidden transition-all duration-300 min-h-[260px] flex flex-col justify-between cursor-pointer",
+                                                            isSelected 
+                                                                ? "border-primary bg-primary text-white shadow-xl scale-[1.02]" 
+                                                                : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30"
                                                         )}
                                                     >
-                                                        <div className={cn("w-14 h-14 md:w-20 md:h-20 rounded-xl md:rounded-[2rem] flex items-center justify-center mb-6 md:mb-10 transition-transform group-hover:scale-110", isSelected ? "bg-white/20" : "bg-primary/5 text-primary")}>
-                                                            <Icon className={cn("w-6 h-6 md:w-10 md:h-10", isSelected ? "animate-pulse" : "")} />
+                                                        {/* Top Row: Icon and Checkmark */}
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <div className={cn(
+                                                                "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                                                                isSelected ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
+                                                            )}>
+                                                                <Icon className="w-5 h-5 stroke-[2.5]" />
+                                                            </div>
+                                                            {isSelected && (
+                                                                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-md animate-in zoom-in-50 duration-300">
+                                                                    <Check className="w-3.5 h-3.5 text-primary stroke-[3]" />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div className="space-y-1 md:space-y-2 relative z-10">
-                                                            <h4 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">
-                                                                {label}
+
+                                                        {/* Bottom Row: Text content */}
+                                                        <div className="space-y-2 mt-8">
+                                                            <h4 className={cn(
+                                                                "text-lg md:text-xl font-black uppercase italic tracking-wider leading-tight",
+                                                                isSelected ? "text-white" : "text-slate-800 dark:text-slate-200"
+                                                            )}>
+                                                                {label.toUpperCase()}
                                                             </h4>
-                                                            <p className={cn("text-[9px] md:text-[11px] font-bold uppercase italic tracking-widest leading-relaxed", isSelected ? "text-white/70" : "text-slate-400")}>
-                                                                {desc}
+                                                            <p className={cn(
+                                                                "text-[9px] md:text-[10px] font-bold uppercase tracking-wider leading-relaxed",
+                                                                isSelected ? "text-white/80" : "text-slate-400 dark:text-slate-500"
+                                                            )}>
+                                                                {desc.toUpperCase()}
                                                             </p>
                                                         </div>
-                                                        {isSelected && (
-                                                            <motion.div layoutId="check" className="absolute top-6 right-6 md:top-8 md:right-8 w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center text-primary shadow-xl">
-                                                                <Check className="w-4 h-4 md:w-6 md:h-6 stroke-[4]" />
-                                                            </motion.div>
-                                                        )}
                                                     </button>
                                                 )
                                             })}
@@ -829,6 +857,61 @@ export default function CedulaApplicationPage() {
                                                     />
                                                 </div>
                                             </div>
+
+                                            {formData.applicantType === "INDIVIDUAL" && (
+                                                <div className="space-y-4">
+                                                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic ml-1">
+                                                         Income Source Category
+                                                     </Label>
+                                                     <div className="flex flex-col gap-2">
+                                                         {[
+                                                            { 
+                                                                id: "PROFESSION", 
+                                                                label: "Profession", 
+                                                                desc: "Employees, Freelancers, & Salary"
+                                                            },
+                                                            { 
+                                                                id: "BUSINESS", 
+                                                                label: "Business", 
+                                                                desc: "Trade, Stores, & Services"
+                                                            },
+                                                            { 
+                                                                id: "PROPERTY", 
+                                                                label: "Property", 
+                                                                desc: "Real Estate Rentals & Leases"
+                                                            }
+                                                        ].map(opt => {
+                                                            const isSelected = formData.incomeSource === opt.id;
+                                                            return (
+                                                                <button
+                                                                    key={opt.id}
+                                                                    type="button"
+                                                                    onClick={() => setFormData(p => ({ ...p, incomeSource: opt.id }))}
+                                                                    className={cn(
+                                                                        "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
+                                                                        isSelected 
+                                                                            ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
+                                                                            : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
+                                                                    )}
+                                                                >
+                                                                    <h4 className={cn(
+                                                                        "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
+                                                                        isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
+                                                                    )}>
+                                                                        {opt.label}
+                                                                    </h4>
+                                                                    <p className={cn(
+                                                                        "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
+                                                                        isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
+                                                                    )}>
+                                                                        {opt.desc}
+                                                                    </p>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="bg-slate-900 dark:bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group/calc transition-transform">

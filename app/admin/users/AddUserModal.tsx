@@ -150,6 +150,16 @@ export function AddUserModal({ isOpen, onClose }: AddUserModalProps) {
                                 </Select>
                             </div>
                         )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="department" className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400">Assigned Department</Label>
+                            <Input 
+                                id="department" 
+                                name="department" 
+                                placeholder="e.g. Treasury, BPLO, Civil Registry" 
+                                className="h-12 rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium"
+                            />
+                        </div>
                     </div>
 
                     <DialogFooter className="pt-4">

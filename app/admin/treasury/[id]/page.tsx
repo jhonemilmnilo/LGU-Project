@@ -1005,7 +1005,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             <div className="grid grid-cols-3 gap-6">
                                 <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
-                                    <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
+                                    </div>
                                 </div>
                                 <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
@@ -1023,12 +1025,41 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             </div>
                         )}
 
+                        {/* INCOME SOURCE */}
+                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && additional.incomeSource && (
+                            <div className="border-t border-dashed border-slate-100 dark:border-white/5 pt-6 space-y-3">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                    Primary Source of Income
+                                </span>
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-2xl flex items-center">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black italic text-base select-none">
+                                            {additional.incomeSource.substring(0, 2).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-black italic uppercase tracking-tight text-slate-800 dark:text-white leading-tight">
+                                                {(() => {
+                                                    if (additional.incomeSource === "PROFESSION") return "Profession / Practice of Profession";
+                                                    if (additional.incomeSource === "BUSINESS") return "Business / Trade / Commerce";
+                                                    if (additional.incomeSource === "PROPERTY") return "Property / Rental / Real Estate";
+                                                    return additional.incomeSource;
+                                                })()}
+                                            </p>
+                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                                                Declared for Tax Computation
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* COMPUTATION BREAKDOWN */}
                         {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
-                            <div className="space-y-6 pt-6">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                    {isBusinessPermit ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
-                                </h3>
+                            <div className={cn("space-y-6", additional.incomeSource ? "pt-0 !mt-6" : "pt-6")}>
+<h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                     {isBusinessPermit ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
+                                 </h3>
                                 <div className="space-y-4">
                                     {isBusinessPermit ? (
                                         (transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (

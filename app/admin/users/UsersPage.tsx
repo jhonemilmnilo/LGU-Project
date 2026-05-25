@@ -17,6 +17,7 @@ type UserWithProfile = {
     emailVerified: Date | null;
     isEmailVerified: boolean;
     role: UserRole;
+    department?: string | null;
     createdAt: Date;
     residentProfile: {
         id: string;
@@ -89,6 +90,7 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                         <TableRow className="hover:bg-transparent">
                             <TableHead className="font-bold py-5">User Details</TableHead>
                             <TableHead className="font-bold">Verification Status</TableHead>
+                            <TableHead className="font-bold">Role & Departments</TableHead>
                             <TableHead className="font-bold">Resident Profile</TableHead>
                             <TableHead className="font-bold">Joined Date</TableHead>
                         </TableRow>
@@ -96,7 +98,7 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                     <TableBody>
                         {users.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-40 text-center text-slate-500">
+                                <TableCell colSpan={5} className="h-40 text-center text-slate-500">
                                     No user accounts found.
                                 </TableCell>
                             </TableRow>
@@ -129,6 +131,49 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                                                     at {format(new Date(user.emailVerified), "PPP p")}
                                                 </span>
                                             )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-1.5">
+                                            {/* Role Badge */}
+                                            {(() => {
+                                                let style = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                                                if (user.role === "ADMIN") style = "bg-rose-500/10 text-rose-500 border-rose-500/20";
+                                                else if (user.role === "ADMIN_AIDE") style = "bg-purple-500/10 text-purple-500 border-purple-500/20";
+                                                else if (user.role === "TREASURY_STAFF") style = "bg-blue-500/10 text-blue-500 border-blue-500/20";
+                                                else if (user.role === "BARANGAY_ADMIN") style = "bg-teal-500/10 text-teal-500 border-teal-500/20";
+                                                else if (user.role === "CONTENT_ADMIN") style = "bg-indigo-500/10 text-indigo-500 border-indigo-500/20";
+                                                else if (user.role === "ENGINEER") style = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+                                                else if (user.role === "RIDER") style = "bg-amber-500/10 text-amber-500 border-amber-500/20";
+
+                                                return (
+                                                    <Badge variant="outline" className={`font-black uppercase text-[9px] w-fit italic tracking-wider py-0.5 px-2 ${style}`}>
+                                                        {user.role.replace("_", " ")}
+                                                    </Badge>
+                                                );
+                                            })()}
+
+                                            {/* Department Sub-Pill */}
+                                            {user.department ? (
+                                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                                    {(() => {
+                                                        const depUpper = user.department.toUpperCase();
+                                                        let label = user.department;
+                                                        let style = "bg-slate-100/50 text-slate-500 dark:bg-white/5 dark:text-slate-400";
+                                                        if (depUpper.includes("TREASURY") || depUpper.includes("TREASURER")) { label = `🏦 ${user.department}`; style = "bg-blue-500/5 text-blue-500 dark:bg-blue-500/10"; }
+                                                        else if (depUpper.includes("BPLO")) { label = `📄 ${user.department}`; style = "bg-violet-500/5 text-violet-500 dark:bg-violet-500/10"; }
+                                                        else if (depUpper.includes("LCR") || depUpper.includes("CIVIL") || depUpper.includes("REGISTRY")) { label = `👥 ${user.department}`; style = "bg-pink-500/5 text-pink-500 dark:bg-pink-500/10"; }
+
+                                                        return (
+                                                            <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border border-transparent dark:border-white/5 ${style}`}>
+                                                                {label}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            ) : ["ADMIN", "ADMIN_AIDE", "TREASURY_STAFF"].includes(user.role) ? (
+                                                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic font-medium mt-0.5">No Dept Assigned</span>
+                                            ) : null}
                                         </div>
                                     </TableCell>
                                     <TableCell>

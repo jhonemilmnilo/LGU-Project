@@ -2538,6 +2538,7 @@ export async function createUser(formData: FormData) {
         const password = formData.get("password") as string;
         const role = formData.get("role") as any;
         const managedBarangay = formData.get("managedBarangay") as string;
+        const department = formData.get("department") as string;
 
         if (!name || !email || !password || !role) {
             return { success: false, error: "Missing required fields" };
@@ -2557,6 +2558,7 @@ export async function createUser(formData: FormData) {
                 password: hashedPassword,
                 role,
                 managedBarangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
+                department: department || null,
                 isEmailVerified: true,
                 isPasswordChanged: true, // Admin set, bypass forced change
                 emailVerified: new Date(),
