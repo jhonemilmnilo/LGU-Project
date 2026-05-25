@@ -718,7 +718,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     // Build evidence documents list for the Evidence Vault UI
     const evidenceDocs: { url?: string | null; label: string }[] = (() => {
         if (isBusinessPermit) {
-            return [
+            const docs = [
                 { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
                 { url: additional.ctcUrl, label: "Cedula (CTC) Copy" },
                 { url: additional.dtiSecUrl, label: "DTI / SEC Registry" },
@@ -728,6 +728,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 { url: additional.fireSafetyUrl, label: "Fire Safety Certificate" },
                 { url: additional.birCorUrl, label: "BIR Certificate (COR)" },
             ];
+
+            // For renewal requests, include the previous business permit document
+            if (additional.businessType === "RENEWAL" || additional.previousPermitUrl) {
+                docs.push({ url: additional.previousPermitUrl, label: "Previous Business Permit" });
+            }
+
+            return docs;
         }
 
         if (isLCR) {
@@ -905,8 +912,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         window.print();
     };
 
-
-
+    const hasVerification = !!((transaction?.paymentType === "E_PAYMENT" || transaction?.paymentType === "BANK_TRANSFER") || (transaction?.status === "DELIVERED" && transaction?.podUrl));
+    const hasDispute = !!(transaction?.status?.includes("RETURN") || transaction?.status?.includes("REFUND") || transaction?.status === "DISPUTE_REJECTED");
+    const isRequirementsAlone = !hasVerification && !hasDispute;
 
     return (
         <div
@@ -931,7 +939,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <div className="col-span-12 lg:col-span-8 space-y-8">
 
                     {/* MAIN ASSESSMENT CARD */}
-                    {!isBuildingPermit && (
+                    {!isBuildingPermit && !(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
 
                         {/* IDENTIFIER */}
@@ -1494,9 +1502,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         </div>
                                     </div>
                                     <div className="col-span-12 md:col-span-6 space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Registration / Permit No.</label>
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
+                                            {additional?.businessType === "RENEWAL" ? "Existing Permit License" : "Registration / Permit No."}
+                                        </label>
                                         <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-primary truncate">
-                                            {additional?.dtiSecNumber || additional?.existingPermitNumber || additional?.permitNumber || "--"}
+                                            {transaction.businessPermit?.permitNumber || additional?.existingPermitNumber || additional?.permitNumber || additional?.dtiSecNumber || "--"}
                                         </div>
                                     </div>
 
@@ -1624,7 +1634,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
                         {!isBuildingPermit && (
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
+                        <div className={cn(
+                            "bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6 transition-all duration-500",
+                            isRequirementsAlone && "md:col-span-2"
+                        )}>
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
@@ -1633,7 +1646,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 {evidenceDocs.filter(doc => doc && doc.url).map((doc, i) => (
                                     <Dialog key={i}>
                                         <DialogTrigger asChild>
-                                            <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
+                                            <div className={cn(
+                                                "group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in transition-all duration-500",
+                                                isRequirementsAlone ? "aspect-[4/3]" : "aspect-video"
+                                            )}>
                                                 {doc.url ? (
                                                     <>
                                                         <Image src={doc.url} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />

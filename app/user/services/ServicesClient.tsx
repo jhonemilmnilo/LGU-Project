@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
     Search, 
@@ -166,6 +166,22 @@ export default function ServicesClient({ initialServices, themeColor }: Services
         setExpandedCode(expandedCode === code ? null : code);
     };
 
+    // Reactively and smoothly scroll the expanded card to the center of the screen
+    useEffect(() => {
+        if (expandedCode) {
+            const element = document.getElementById(`service-card-${expandedCode}`);
+            if (element) {
+                const timer = setTimeout(() => {
+                    element.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+                }, 150); // 150ms delay perfectly aligns with Framer Motion's height expansion
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [expandedCode]);
+
     return (
         <div className="space-y-8 md:space-y-10">
             {/* Elegant Floating Glass Breadcrumbs */}
@@ -257,6 +273,7 @@ export default function ServicesClient({ initialServices, themeColor }: Services
                             return (
                                 <motion.div
                                     key={service.code}
+                                    id={`service-card-${service.code}`}
                                     initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: idx * 0.05 }}

@@ -76,15 +76,26 @@ export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", bran
 
     // Build breadcrumbs from pathname segments
     const segments = (pathname || "").split("/").filter(Boolean);
-    const origCrumbs = segments.map((seg, i) => ({
+
+    // Identify dynamic IDs (such as UUIDs, purely numeric IDs, or CUIDs/other long database keys)
+    const isId = (s: string) => {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s) || 
+               /^\d+$/.test(s) ||
+               (s.length >= 20 && /^[a-zA-Z0-9]+$/.test(s));
+    };
+
+    // Filter out dynamic ID segments so the breadcrumbs remain clean and readable
+    const filteredSegments = segments.filter(s => !isId(s));
+
+    const origCrumbs = filteredSegments.map((seg, i) => ({
         seg,
         label: formatSegment(seg),
-        href: "/" + segments.slice(0, i + 1).join("/"),
-        isLast: i === segments.length - 1,
+        href: "/" + filteredSegments.slice(0, i + 1).join("/"),
+        isLast: i === filteredSegments.length - 1,
     }));
 
     // Always show 'Dashboard' as the first breadcrumb. Exclude 'admin' and 'dashboard' from the tail.
-    const nonAdminSegments = segments.filter((s) => s !== "admin");
+    const nonAdminSegments = filteredSegments.filter((s) => s !== "admin");
     const tailCrumbs = origCrumbs.filter((c) => c.seg !== "admin" && c.seg !== "dashboard");
     const dashboardIsLast = nonAdminSegments.length === 1 && nonAdminSegments[0] === "dashboard";
     const crumbsToRender = [
