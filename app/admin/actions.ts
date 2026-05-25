@@ -2580,3 +2580,72 @@ export async function createUser(formData: FormData) {
     }
 }
 
+/**
+ * Update user details
+ */
+export async function updateUser(userId: string, formData: FormData) {
+    try {
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const role = formData.get("role") as any;
+        const managedBarangay = formData.get("managedBarangay") as string;
+        const department = formData.get("department") as string;
+
+        if (!name || !email || !role) {
+            return { success: false, error: "Missing required fields" };
+        }
+
+        // Check if email already taken by someone else
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing && existing.id !== userId) {
+            return { success: false, error: "Email is already taken by another account" };
+        }
+
+        const dataToUpdate: any = {
+            name,
+            email,
+            role,
+            managedBarangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
+            department: department || null,
+        };
+
+        if (password && password.trim() !== "") {
+            dataToUpdate.password = await bcrypt.hash(password, 10);
+            dataToUpdate.isPasswordChanged = true;
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: dataToUpdate
+        });
+
+        revalidatePath("/admin/users");
+        return { success: true, user: updatedUser };
+    } catch (error: any) {
+        console.error("Failed to update user:", error);
+        return { success: false, error: error.message || "Failed to update user" };
+    }
+}
+
+/**
+ * Delete user account
+ */
+export async function deleteUser(userId: string) {
+    try {
+        const existing = await prisma.user.findUnique({ where: { id: userId } });
+        if (!existing) {
+            return { success: false, error: "User account not found" };
+        }
+
+        await prisma.user.delete({
+            where: { id: userId }
+        });
+
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to delete user:", error);
+        return { success: false, error: error.message || "Failed to delete user account" };
+    }
+}

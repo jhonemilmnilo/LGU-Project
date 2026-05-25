@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { Home, User as UserIcon, Mail, Clock, BadgeCheck, XCircle, UserPlus, Search, Filter, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, User as UserIcon, Mail, Clock, BadgeCheck, XCircle, UserPlus, Search, Filter, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { AddUserModal } from "./AddUserModal";
+import { EditUserModal } from "./EditUserModal";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { deleteUser } from "../actions";
+import { toast } from "sonner";
 
 import { UserRole } from "@prisma/client";
 
@@ -30,6 +33,32 @@ type UserWithProfile = {
 
 export function UsersPage({ users }: { users: UserWithProfile[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    // Edit & Delete states and handlings
+    const [selectedUserToEdit, setSelectedUserToEdit] = useState<UserWithProfile | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    const handleEditClick = (user: UserWithProfile) => {
+        setSelectedUserToEdit(user);
+        setIsEditModalOpen(true);
+    };
+
+    const handleDeleteClick = async (userId: string) => {
+        if (!confirm("Are you absolutely sure you want to delete this user account? This action is permanent and cannot be undone.")) {
+            return;
+        }
+
+        try {
+            const res = await deleteUser(userId);
+            if (res.success) {
+                toast.success("User account deleted successfully!");
+            } else {
+                toast.error(res.error || "Failed to delete user");
+            }
+        } catch {
+            toast.error("An unexpected error occurred");
+        }
+    };
 
     // Search, Filter, Sort, and Pagination States
     const [searchQuery, setSearchQuery] = useState("");
@@ -214,12 +243,13 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                                     )}
                                 </div>
                             </TableHead>
+                            <TableHead className="font-bold text-right pr-8">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {paginatedUsers.length === 0 ? (
                             <TableRow className="hover:bg-transparent">
-                                <TableCell colSpan={5} className="h-40 text-center text-slate-500 font-medium italic uppercase tracking-widest text-[10px]">
+                                <TableCell colSpan={6} className="h-40 text-center text-slate-500 font-medium italic uppercase tracking-widest text-[10px]">
                                     {users.length === 0 ? "No user accounts found in database." : "No user accounts match your filters / search criteria."}
                                 </TableCell>
                             </TableRow>
@@ -313,6 +343,26 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                                     <TableCell className="text-slate-500 font-bold text-xs uppercase">
                                         {format(new Date(user.createdAt), "MMM d, yyyy")}
                                     </TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => handleEditClick(user)}
+                                                className="h-8 w-8 p-0 rounded-lg border-slate-200 dark:border-[#2a3040] hover:bg-slate-50 dark:hover:bg-white/5 hover:text-blue-500 transition-all shadow-sm bg-transparent"
+                                                title="Edit User Account"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => handleDeleteClick(user.id)}
+                                                className="h-8 w-8 p-0 rounded-lg border-slate-200 dark:border-[#2a3040] hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-all shadow-sm bg-transparent"
+                                                title="Delete User Account"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}
@@ -376,6 +426,14 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
             <AddUserModal 
                 isOpen={isAddModalOpen} 
                 onClose={() => setIsAddModalOpen(false)} 
+            />
+            <EditUserModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedUserToEdit(null);
+                }}
+                user={selectedUserToEdit}
             />
         </div>
     );
