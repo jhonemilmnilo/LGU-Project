@@ -1,16 +1,8 @@
 "use client";
 
-import { MapPin, Briefcase, PhilippinePeso, Clock, Share2, Home, CheckCircle2, Circle, PlayCircle, XCircle, Gauge } from "lucide-react";
-import Link from "next/link";
+import { MapPin, Briefcase, PhilippinePeso, Clock, Share2, CheckCircle2, Circle, PlayCircle, XCircle, Gauge } from "lucide-react";
 import Image from "next/image";
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { UserBreadcrumb } from "@/components/shared/UserBreadcrumb";
 import { format } from "date-fns";
 import { Project } from "../../../admin/projects/providers/ProjectsProvider";
 import { toast } from "sonner";
@@ -56,30 +48,10 @@ export function ProjectDetailView({ project }: { project: Project }) {
         <div className="min-h-screen pb-20 space-y-6 md:space-y-10">
             {/* Breadcrumb section */}
             <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
-                <Breadcrumb>
-                    <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
-                                    <Home className="w-3.5 h-3.5 mb-0.5" />
-                                    Home
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href="/user/projects" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
-                                    Projects
-                                </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="hidden sm:block" />
-                        <BreadcrumbItem className="hidden sm:block">
-                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic max-w-[150px] truncate">{project.title}</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
+                <UserBreadcrumb items={[
+                    { label: "Municipal Projects", href: "/user/projects" },
+                    { label: project.title }
+                ]} />
             </div>
 
             {/* Main Content Area */}

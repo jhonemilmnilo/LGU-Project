@@ -9,7 +9,6 @@ import {
 } from "./components";
 import { Home, Users } from "lucide-react";
 
-
 interface OfficialsPageProps {
     initialData: Official[];
     barangays: string[];

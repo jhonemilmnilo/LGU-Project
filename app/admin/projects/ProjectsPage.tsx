@@ -9,7 +9,6 @@ import {
 } from "./components";
 import { Home, FolderKanban } from "lucide-react";
 
-
 interface ProjectsPageProps {
     initialData: Project[];
     currentBarangay?: string;
