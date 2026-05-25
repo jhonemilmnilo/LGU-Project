@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { Home, User as UserIcon, Mail, Clock, BadgeCheck, XCircle, UserPlus } from "lucide-react";
+import { Home, User as UserIcon, Mail, Clock, BadgeCheck, XCircle, UserPlus, Search, Filter, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { AddUserModal } from "./AddUserModal";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 import { UserRole } from "@prisma/client";
 
@@ -27,6 +30,50 @@ type UserWithProfile = {
 
 export function UsersPage({ users }: { users: UserWithProfile[] }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    // Search, Filter, Sort, and Pagination States
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedRole, setSelectedRole] = useState("ALL");
+    const [selectedVerification, setSelectedVerification] = useState("ALL");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Toggle sorting direction
+    const toggleSortOrder = () => {
+        setSortOrder(prev => prev === "desc" ? "asc" : "desc");
+    };
+
+    // Advanced Live Filtering
+    const filteredUsers = users.filter((user) => {
+        const nameMatch = user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
+        const emailMatch = user.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
+        const matchesSearch = searchQuery === "" || nameMatch || emailMatch;
+
+        const matchesRole = selectedRole === "ALL" || user.role === selectedRole;
+
+        const matchesVerification = selectedVerification === "ALL" || 
+            (selectedVerification === "VERIFIED" && user.isEmailVerified) ||
+            (selectedVerification === "UNVERIFIED" && !user.isEmailVerified);
+
+        return matchesSearch && matchesRole && matchesVerification;
+    });
+
+    // Date Sorting
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
+    // Pagination Calculations
+    const itemsPerPage = 10;
+    const totalItems = sortedUsers.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const activePage = Math.max(1, Math.min(currentPage, totalPages));
+    const startIndex = (activePage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
+
     return (
         <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 text-slate-900 dark:text-white">
             {/* Header Section */}
@@ -42,14 +89,6 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">User Management</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Control and monitor user accounts, verification status, and linked profiles.</p>
                 </div>
-
-                <Button 
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="h-14 px-8 rounded-2xl bg-primary text-white font-black uppercase italic tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2"
-                >
-                    <UserPlus className="w-5 h-5" />
-                    Provision New User
-                </Button>
             </div>
 
             {/* Stats Summary */}
@@ -83,6 +122,76 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                 </div>
             </div>
 
+            {/* Premium Action Toolbar (Relocated Provision User button here!) */}
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-white dark:bg-[#151b2b] p-4 rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto flex-1">
+                    <div className="relative w-full sm:w-[280px] lg:w-[350px]">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <Input
+                            placeholder="Search name or email..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="pl-10 h-12 bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-0 rounded-xl transition-all font-medium italic text-xs uppercase tracking-wider"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-auto flex flex-wrap gap-2">
+                        <Select
+                            value={selectedRole}
+                            onValueChange={(val) => {
+                                setSelectedRole(val);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl flex items-center min-w-[140px] text-[10px] font-black uppercase italic tracking-wider">
+                                <Filter className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                                <SelectValue placeholder="All Roles" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] rounded-xl">
+                                <SelectItem value="ALL" className="text-[10px] font-black uppercase italic">All Roles</SelectItem>
+                                <SelectItem value="USER" className="text-[10px] font-black uppercase italic">Resident / User</SelectItem>
+                                <SelectItem value="ADMIN" className="text-[10px] font-black uppercase italic">System Admin</SelectItem>
+                                <SelectItem value="CONTENT_ADMIN" className="text-[10px] font-black uppercase italic">Content Admin</SelectItem>
+                                <SelectItem value="BARANGAY_ADMIN" className="text-[10px] font-black uppercase italic">Barangay Admin</SelectItem>
+                                <SelectItem value="TREASURY_STAFF" className="text-[10px] font-black uppercase italic">Treasury Staff</SelectItem>
+                                <SelectItem value="ADMIN_AIDE" className="text-[10px] font-black uppercase italic">Admin Aide</SelectItem>
+                                <SelectItem value="RIDER" className="text-[10px] font-black uppercase italic">Logistics Rider</SelectItem>
+                                <SelectItem value="ENGINEER" className="text-[10px] font-black uppercase italic">Municipal Engineer</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={selectedVerification}
+                            onValueChange={(val) => {
+                                setSelectedVerification(val);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] rounded-xl flex items-center min-w-[160px] text-[10px] font-black uppercase italic tracking-wider">
+                                <BadgeCheck className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                                <SelectValue placeholder="All Verification" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] rounded-xl">
+                                <SelectItem value="ALL" className="text-[10px] font-black uppercase italic">All Verification</SelectItem>
+                                <SelectItem value="VERIFIED" className="text-[10px] font-black uppercase italic">Verified Only</SelectItem>
+                                <SelectItem value="UNVERIFIED" className="text-[10px] font-black uppercase italic">Unverified Only</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                <Button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="h-12 px-6 rounded-xl bg-primary text-white font-black uppercase italic tracking-widest text-[10px] shadow-lg shadow-primary/10 hover:scale-[1.03] active:scale-95 transition-all flex items-center gap-2 w-full lg:w-auto shrink-0 justify-center"
+                >
+                    <UserPlus className="w-4 h-4 animate-pulse" />
+                    Add New User
+                </Button>
+            </div>
+
             {/* Users Table */}
             <div className="bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-2xl shadow-blue-500/5 overflow-hidden ring-1 ring-slate-200 dark:ring-white/5">
                 <Table>
@@ -92,18 +201,30 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                             <TableHead className="font-bold">Verification Status</TableHead>
                             <TableHead className="font-bold">Role & Departments</TableHead>
                             <TableHead className="font-bold">Resident Profile</TableHead>
-                            <TableHead className="font-bold">Joined Date</TableHead>
+                            <TableHead 
+                                onClick={toggleSortOrder}
+                                className="font-bold cursor-pointer select-none group/sort hover:text-primary transition-colors"
+                            >
+                                <div className="flex items-center gap-1">
+                                    <span>Joined Date</span>
+                                    {sortOrder === "desc" ? (
+                                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover/sort:text-primary transition-colors" />
+                                    ) : (
+                                        <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover/sort:text-primary transition-colors" />
+                                    )}
+                                </div>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-40 text-center text-slate-500">
-                                    No user accounts found.
+                        {paginatedUsers.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={5} className="h-40 text-center text-slate-500 font-medium italic uppercase tracking-widest text-[10px]">
+                                    {users.length === 0 ? "No user accounts found in database." : "No user accounts match your filters / search criteria."}
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            users.map((user) => (
+                            paginatedUsers.map((user) => (
                                 <TableRow key={user.id} className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50">
                                     <TableCell className="py-4">
                                         <div className="flex flex-col">
@@ -198,10 +319,64 @@ export function UsersPage({ users }: { users: UserWithProfile[] }) {
                     </TableBody>
                 </Table>
             </div>
-        <AddUserModal 
-            isOpen={isAddModalOpen} 
-            onClose={() => setIsAddModalOpen(false)} 
-        />
+
+            {/* Premium Pagination Footer */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-[#151b2b] p-6 rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">
+                        Showing <span className="text-slate-900 dark:text-white font-black">{totalItems === 0 ? 0 : startIndex + 1}</span> to{" "}
+                        <span className="text-slate-900 dark:text-white font-black">{endIndex}</span> of{" "}
+                        <span className="text-slate-900 dark:text-white font-black">{totalItems}</span> users
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={activePage === 1}
+                            className="h-10 px-4 rounded-xl border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 text-[10px] font-black uppercase italic tracking-widest transition-all"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-1.5" /> Prev
+                        </Button>
+
+                        {/* Page number buttons */}
+                        <div className="hidden sm:flex items-center gap-1.5">
+                            {Array.from({ length: totalPages }).map((_, i) => {
+                                const pageNum = i + 1;
+                                const isCurrent = pageNum === activePage;
+                                return (
+                                    <Button
+                                        key={pageNum}
+                                        onClick={() => setCurrentPage(pageNum)}
+                                        className={cn(
+                                            "w-10 h-10 rounded-xl font-black text-[10px] uppercase italic tracking-wider transition-all",
+                                            isCurrent
+                                                ? "bg-primary text-white shadow-md shadow-primary/20 scale-105 hover:bg-primary"
+                                                : "bg-transparent hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-[#2a3040] text-slate-700 dark:text-slate-200"
+                                        )}
+                                    >
+                                        {pageNum}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={activePage === totalPages}
+                            className="h-10 px-4 rounded-xl border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 text-[10px] font-black uppercase italic tracking-widest transition-all"
+                        >
+                            Next <ChevronRight className="w-4 h-4 ml-1.5" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <AddUserModal 
+                isOpen={isAddModalOpen} 
+                onClose={() => setIsAddModalOpen(false)} 
+            />
         </div>
     );
 }
