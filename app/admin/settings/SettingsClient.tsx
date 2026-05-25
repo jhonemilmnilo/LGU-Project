@@ -20,9 +20,9 @@ import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 
 interface SettingsClientProps {
-     
+
     settings: any;
-     
+
     slides: any[];
     role?: string;
     managedBarangay?: string;
@@ -109,7 +109,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                         {isBarangayAdmin ? "Banner Management" : "Website Management"}
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium italic">
-                        {isBarangayAdmin 
+                        {isBarangayAdmin
                             ? "Customize the hero sliders for your barangay's landing page."
                             : "Configure your portal's global settings and landing page content."
                         }
@@ -135,7 +135,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
                         <Layout className="w-3.5 h-3.5 mr-2" />
                         {isBarangayAdmin ? "Banners" : "Hero Sections"}
                     </TabsTrigger>
-                    
+
                     {isAdmin && (
                         <TabsTrigger value="sections" className="rounded-xl px-4 py-2.5 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-slate-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-slate-950">
                             <Users className="w-3.5 h-3.5 mr-2" />
@@ -358,7 +358,7 @@ export function SettingsClient({ settings, slides, role, managedBarangay }: Sett
     );
 }
 
- 
+
 function HeroSlidesManager({
     initialSlides,
     themeColor,
@@ -370,7 +370,7 @@ function HeroSlidesManager({
 }) {
     const [slides, setSlides] = useState(initialSlides);
     const [showModal, setShowModal] = useState(false);
-     
+
     const [editingSlide, setEditingSlide] = useState<any>(null);
 
     useEffect(() => {
@@ -600,10 +600,10 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
 
         setIsSaving(true);
         try {
-            const result = slide 
+            const result = slide
                 ? await updateHeroSlide(slide.id, data)
                 : await createHeroSlide(data);
-                
+
             if (result.success) {
                 toast.success(slide ? "Slide updated successfully!" : "New slide added successfully!");
                 onClose();
@@ -621,7 +621,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent 
+            <DialogContent
                 showCloseButton={false}
                 className="sm:max-w-6xl h-[90vh] overflow-hidden rounded-[2.5rem] bg-white dark:bg-[#0f1117] p-0 border-slate-200 dark:border-[#2a3040] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] flex flex-col gap-0"
             >
@@ -655,7 +655,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                                 <div className="md:col-span-3 space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Headline</Label>
-                                    <Input 
+                                    <Input
                                         placeholder="e.g. Welcome to Mapandan"
                                         value={formData.title}
                                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -664,7 +664,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Display Order</Label>
-                                    <Input 
+                                    <Input
                                         type="number"
                                         value={formData.order}
                                         onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
@@ -675,7 +675,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Tagline (Small Text)</Label>
-                                    <Input 
+                                    <Input
                                         placeholder="The Gateway to Paradise"
                                         value={formData.tagline}
                                         onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
@@ -684,7 +684,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Secondary Description</Label>
-                                    <Input 
+                                    <Input
                                         placeholder="A place of wonder and beauty"
                                         value={formData.subtitle}
                                         onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
@@ -729,8 +729,8 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
                             <div className="lg:col-span-7 space-y-6 text-left">
                                 <div className="space-y-3">
                                     <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Native File Upload</Label>
-                                    <Input 
-                                        type="file" 
+                                    <Input
+                                        type="file"
                                         accept="image/*"
                                         onChange={handleFileChange}
                                         className="h-14 rounded-2xl bg-white dark:bg-[#0b0e14] border-slate-200 dark:border-[#2a3040] file:border-none file:bg-emerald-600 file:text-white file:text-[10px] file:font-black file:uppercase file:mr-4 file:h-full file:px-6 cursor-pointer shadow-sm"
@@ -745,7 +745,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
 
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Direct URL (CDN)</Label>
-                                    <Input 
+                                    <Input
                                         placeholder="https://cdn.example.com/banners/hero.jpg"
                                         value={formData.imageUrl}
                                         onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
@@ -795,7 +795,7 @@ function HeroSlideModal({ isOpen, onClose, slide, order, themeColor }: HeroSlide
     );
 }
 
- 
+
 function SlideEditor({ slide, onEdit, onDelete }: { slide: any, onEdit: () => void, onDelete: (id: string) => void }) {
     return (
         <Card className="border-slate-200 dark:border-[#2a3040] shadow-sm overflow-hidden group hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 rounded-[2rem] bg-white dark:bg-[#0f1117]">
@@ -815,7 +815,7 @@ function SlideEditor({ slide, onEdit, onDelete }: { slide: any, onEdit: () => vo
                         </div>
                     )}
                     <div className="absolute top-4 left-4 z-10">
-                         <span className={cn(
+                        <span className={cn(
                             "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl backdrop-blur-md",
                             slide.isActive ? "bg-emerald-500/90 text-white" : "bg-slate-500/90 text-white"
                         )}>
@@ -845,11 +845,11 @@ function SlideEditor({ slide, onEdit, onDelete }: { slide: any, onEdit: () => vo
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                             {slide.primaryBtnText && (
+                            {slide.primaryBtnText && (
                                 <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] font-bold text-slate-500 dark:text-slate-400">
                                     [BTN] {slide.primaryBtnText}
                                 </span>
-                             )}
+                            )}
                         </div>
                     </div>
 

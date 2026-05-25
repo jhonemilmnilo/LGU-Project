@@ -24,16 +24,16 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const REGISTRY_TYPES = [
-    // { 
-    //     id: "BIRTH_REQ", 
-    //     label: "Birth Certificate Request", 
-    //     icon: FileText, 
-    //     description: "Request a certified true copy of an existing birth certificate.", 
-    //     color: "blue",
-    //     requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)", "Proof of Relationship"],
-    //     href: "/user/services/civil-registry/birth-certificate-request",
-    //     available: true
-    // },
+    {
+        id: "BIRTH_REQ",
+        label: "Birth Certificate Request",
+        icon: FileText,
+        description: "Request a certified true copy of an existing birth certificate.",
+        color: "blue",
+        requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)", "Proof of Relationship"],
+        href: "/user/services/civil-registry/birth-certificate-request",
+        available: true
+    },
     {
         id: "BIRTH_REG",
         label: "Birth Registration",
