@@ -252,7 +252,7 @@ export default function TreasuryDashboard() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-white dark:bg-[#151b2b]">
                                             <SelectItem value="ALL" className="text-sm">All Services</SelectItem>
-                                            {uniqueServices.map(srv => (
+                                            {allServices.map(srv => (
                                                 <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
                                             ))}
                                         </SelectContent>
