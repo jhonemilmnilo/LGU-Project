@@ -192,7 +192,7 @@ async function main() {
       isFixed: true,
       requiresBusinessName: false,
       supportsECopy: true,
-      requiredDocs: ["Valid ID of Applicant", "Authorization Letter (if not owner)", "Proof of Relationship"],
+      requiredDocs: ["Valid ID of Applicant", "Authorization Letter (if not owner)"],
       formSchema: {
         type: "CIVIL_REGISTRY",
         registryType: "BIRTH",

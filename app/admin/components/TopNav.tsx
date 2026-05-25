@@ -18,6 +18,7 @@ import {
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarContext";
+import { motion } from "framer-motion";
 
 interface TopNavProps {
     session: {
@@ -130,7 +131,12 @@ export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", bran
                         : "Admin System";
 
     return (
-        <header className="h-14 shrink-0 flex items-center justify-between px-4 bg-white dark:bg-[#1e2330] border-b border-slate-200 dark:border-[#2a3040] z-30 relative">
+        <motion.header 
+            initial={{ y: "-100%" }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="h-14 shrink-0 flex items-center justify-between px-4 bg-white dark:bg-[#1e2330] border-b border-slate-200 dark:border-[#2a3040] z-30 relative"
+        >
             {/* Left: Hamburger + Breadcrumbs */}
             <div className="flex items-center gap-3 min-w-0">
                 {/* Hamburger toggle */}
@@ -262,6 +268,6 @@ export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", bran
                     </div>
                 )}
             </div>
-        </header>
+        </motion.header>
     );
 }

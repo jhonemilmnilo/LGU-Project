@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { isValidUrl } from "@/utils/image";
 import { format, differenceInYears } from "date-fns";
 import {
     FileText,
@@ -148,7 +149,7 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                     }}
                 >
                     <Image
-                        src={src}
+                        src={isValidUrl(src) ? src : "/placeholder.png"}
                         alt={alt}
                         fill
                         className="object-contain"
@@ -824,9 +825,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 { key: 'marriageLicense', label: 'Certified Copy of Marriage License' }
             ];
             for (const fk of fallbackKeys) {
-                if (additional[fk.key] && !docs.find(d => d.label === fk.label)) docs.push({ url: additional[fk.key], label: fk.label });
+                if (additional[fk.key] && !docs.find(d => d.label === fk.label)) {
+                    docs.push({ url: additional[fk.key], label: fk.label });
+                }
             }
-
             // --- NEW: include any uploaded files whose keys match the transaction type's requiredDocs labels ---
             try {
                 let reqDocs: string[] = [];
@@ -858,10 +860,35 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         docs.push({ url: val, label });
                     }
                 }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (_e) {
+            } catch {
                 // ignore parsing errors
             }
+            
+            // --- ID & Document Uploads for Civil Registry Request/Registration ---
+            const idFront = additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl;
+            const idBack = additional.validIdBack || additional.idBackUrl || resident.idBackUrl;
+            
+            if (idFront && !docs.find(d => d.url === idFront)) {
+                docs.push({ url: idFront, label: "Government ID (Front)" });
+            }
+            if (idBack && !docs.find(d => d.url === idBack)) {
+                docs.push({ url: idBack, label: "Government ID (Back)" });
+            }
+
+            // Also check for any other uploaded files in additionalData that are valid URLs
+            Object.entries(additional).forEach(([key, val]) => {
+                if (typeof val === 'string' && val.startsWith('http') && !docs.find(d => d.url === val)) {
+                    // Avoid duplicating paymentReference, eCopyUrl, or orUrl in requirements vault
+                    if (key !== 'paymentReference' && key !== 'eCopyUrl' && key !== 'orUrl') {
+                        // Humanize the key for the label
+                        const label = key
+                            .replace(/([A-Z])/g, ' $1')
+                            .replace(/^./, str => str.toUpperCase())
+                            .trim();
+                        docs.push({ url: val, label });
+                    }
+                }
+            });
 
             return docs;
         }
@@ -1609,7 +1636,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <Dialog key={i}>
                                             <DialogTrigger asChild>
                                                 <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
-                                                    <Image src={doc.url} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                    {/* Guarded Image */}
+                                                    <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                         <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                             <ZoomIn className="w-5 h-5 text-white" />
@@ -1652,7 +1680,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             )}>
                                                 {doc.url ? (
                                                     <>
-                                                        <Image src={doc.url} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                        <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-5 h-5 text-white" />
@@ -1702,7 +1730,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     )}>
                                                         {transaction.paymentReference ? (
                                                             <>
-                                                                <Image src={transaction.paymentReference} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                                {/* Guarded Image */}
+                                                                <Image src={isValidUrl(transaction.paymentReference) ? transaction.paymentReference : "/placeholder.png"} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
                                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                                     <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                         <ZoomIn className="w-4 h-4 text-white" />
@@ -1753,7 +1782,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             <Dialog>
                                                 <DialogTrigger asChild>
                                                     <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
-                                                        <Image src={transaction.podUrl} alt="POD" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        {/* Guarded Image */}
+                                                        <Image src={isValidUrl(transaction.podUrl) ? transaction.podUrl : "/placeholder.png"} alt="POD" fill className="object-cover group-hover:scale-105 transition-transform" />
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-5 h-5 text-white" />
@@ -1803,7 +1833,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             <Dialog>
                                                 <DialogTrigger asChild>
                                                     <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in shadow-md hover:shadow-xl transition-all">
-                                                        <Image src={transaction.disputeProofUrl} alt="Proof" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        {/* Guarded Image */}
+                                                        <Image src={isValidUrl(transaction.disputeProofUrl) ? transaction.disputeProofUrl : "/placeholder.png"} alt="Proof" fill className="object-cover group-hover:scale-105 transition-transform" />
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-6 h-6 text-white" />
@@ -1898,7 +1929,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             >
                                                 {transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg") || transaction.eCopyUrl.includes("image")) ? (
                                                     <Image
-                                                        src={transaction.eCopyUrl}
+                                                        src={isValidUrl(transaction.eCopyUrl) ? transaction.eCopyUrl : "/placeholder.png"}
                                                         fill
                                                         className="object-cover opacity-80 hover:opacity-100 transition-opacity"
                                                         alt="Official Registry"
@@ -1925,7 +1956,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
                                                         {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && (transaction.eCopyUrl.toLowerCase().endsWith(".jpg") || transaction.eCopyUrl.toLowerCase().endsWith(".png") || transaction.eCopyUrl.toLowerCase().endsWith(".jpeg")))) ? (
                                                             <Image
-                                                                src={eCopyPreview || transaction.eCopyUrl}
+                                                                src={isValidUrl(eCopyPreview || transaction.eCopyUrl) ? (eCopyPreview || transaction.eCopyUrl) : "/placeholder.png"}
                                                                 fill
                                                                 className="object-cover opacity-60 group-hover:opacity-100 transition-opacity"
                                                                 alt="Registry Preview"
@@ -1997,7 +2028,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 >
                                                     {transaction.orUrl && (transaction.orUrl.toLowerCase().endsWith(".jpg") || transaction.orUrl.toLowerCase().endsWith(".png") || transaction.orUrl.toLowerCase().endsWith(".jpeg") || transaction.orUrl.includes("image")) ? (
                                                         <Image
-                                                            src={transaction.orUrl}
+                                                            src={isValidUrl(transaction.orUrl) ? transaction.orUrl : "/placeholder.png"}
                                                             fill
                                                             className="object-cover opacity-80 hover:opacity-100 transition-opacity"
                                                             alt="Official Receipt"
@@ -2024,7 +2055,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
                                                             {((orFile && orFile.type.startsWith("image/")) || (!orFile && transaction.orUrl && (transaction.orUrl.toLowerCase().endsWith(".jpg") || transaction.orUrl.toLowerCase().endsWith(".png") || transaction.orUrl.toLowerCase().endsWith(".jpeg")))) ? (
                                                                 <Image
-                                                                    src={orPreview || transaction.orUrl}
+                                                                    src={isValidUrl(orPreview || transaction.orUrl) ? (orPreview || transaction.orUrl) : "/placeholder.png"}
                                                                     fill
                                                                     className="object-cover opacity-60 group-hover:opacity-100 transition-opacity"
                                                                     alt="OR Preview"
@@ -2408,7 +2439,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     <div className="border-b-[3px] border-black p-3 flex items-center justify-between bg-black text-white">
                         <div className="flex items-center gap-3">
                             {branding.logo ? (
-                                <Image src={branding.logo} alt="Logo" width={40} height={40} className="object-contain" unoptimized />
+                                <Image src={isValidUrl(branding.logo) ? branding.logo : "/placeholder.png"} alt="Logo" width={40} height={40} className="object-contain" unoptimized />
                             ) : (
                                 <div className="w-8 h-8 border-2 border-white rounded-full flex items-center justify-center font-black text-[10px]">A</div>
                             )}

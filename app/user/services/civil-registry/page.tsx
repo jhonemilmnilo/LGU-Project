@@ -26,11 +26,11 @@ import { toast } from "sonner";
 const REGISTRY_TYPES = [
     {
         id: "BIRTH_REQ",
-        label: "Birth Certificate Request",
+        label: "Birth Certificate Request (True Copy)",
         icon: FileText,
         description: "Request a certified true copy of an existing birth certificate.",
         color: "blue",
-        requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)", "Proof of Relationship"],
+        requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)"],
         href: "/user/services/civil-registry/birth-certificate-request",
         available: true
     },
@@ -51,6 +51,16 @@ const REGISTRY_TYPES = [
         available: true
     },
     {
+        id: "DEATH_REQ",
+        label: "Death Certificate Request (True Copy)",
+        icon: FileText,
+        description: "Request a certified true copy of an existing death certificate.",
+        color: "slate",
+        requirements: ["Valid ID of Applicant (Immediate Family)", "Authorization Letter (if not immediate family)"],
+        href: "/user/services/civil-registry/death-certificate-request",
+        available: true
+    },
+    {
         id: "DEATH",
         label: "Death Registration",
         icon: Skull,
@@ -63,6 +73,16 @@ const REGISTRY_TYPES = [
             "Affidavit of Delay (for Late Registration)"
         ],
         href: "/user/services/civil-registry/death-registration",
+        available: true
+    },
+    {
+        id: "MARRIAGE_REQ",
+        label: "Marriage Certificate Request (True Copy)",
+        icon: FileText,
+        description: "Request a certified true copy of an existing marriage certificate.",
+        color: "rose",
+        requirements: ["Valid ID of Applicant (Spouse/Immediate Family)", "Authorization Letter (if not spouse)"],
+        href: "/user/services/civil-registry/birth-certificate-request?type=MARRIAGE",
         available: true
     },
     {
