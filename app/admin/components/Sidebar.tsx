@@ -7,11 +7,11 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Menu, X, Info, Church, ClipboardList, CreditCard, Truck, HardHat
+    ChevronDown, ChevronUp, LogOut, Search, Info, Church, ClipboardList, CreditCard, Truck, HardHat
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { useSidebar } from "./SidebarContext";
 
 interface SidebarProps {
     session: {
@@ -45,10 +45,11 @@ export function Sidebar({
 }: SidebarProps) {
     const pathname = usePathname();
     const role = session?.user?.role || "ADMIN";
+    const { isOpen: isSidebarOpen, close } = useSidebar();
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+    const [searchQuery, setSearchQuery] = React.useState("");
 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -159,26 +160,28 @@ export function Sidebar({
         menuItems = [{ href: "/admin/engineer", label: "Engineer Hub", icon: HardHat, category: "Engineering" }];
     }
 
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filteredMenuItems = React.useMemo(() => {
+        if (!normalizedQuery) return menuItems;
+        return menuItems.filter((item) => {
+            const label = (item.label || "").toLowerCase();
+            if (label.includes(normalizedQuery)) return true;
+            if (item.subItems) {
+                return item.subItems.some((sub) => (sub.label || "").toLowerCase().includes(normalizedQuery));
+            }
+            return false;
+        });
+    }, [menuItems, normalizedQuery]);
+
     return (
         <>
             {/* Mobile Overlay */}
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-40 md:hidden"
-                    onClick={() => setIsSidebarOpen(false)}
+                    onClick={close}
                 />
             )}
-
-            {/* Sidebar Toggle Button */}
-            <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className={cn(
-                    "fixed z-50 p-2 bg-white dark:bg-[#1e2330] rounded-lg shadow-md border border-slate-200 dark:border-[#2a3040] transition-all duration-300 text-slate-600 dark:text-slate-300 hover:text-primary",
-                    isSidebarOpen ? "opacity-0 pointer-events-none -translate-x-full" : "top-4 left-4 opacity-100 translate-x-0"
-                )}
-            >
-                <Menu size={20} />
-            </button>
 
             <aside className={cn(
                 "fixed md:static inset-y-0 left-0 flex-shrink-0 z-40 bg-white dark:bg-[#1e2330] border-r border-slate-200 dark:border-[#2a3040] transition-all duration-300 overflow-hidden",
@@ -187,41 +190,66 @@ export function Sidebar({
                 <div className="w-64 h-full flex flex-col justify-between">
                     <div className="overflow-y-auto custom-scrollbar flex-1 pb-4">
                         {/* Logo & Branding */}
-                        <div className="p-6 flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div
-                                    className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg"
-                                    style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
-                                >
-                                    {logoUrl ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={logoUrl} alt="Logo" className="w-full h-full object-cover p-1.5" />
-                                    ) : (
-                                        <Map className="text-white w-5 h-5 transition-transform group-hover:rotate-12" />
-                                    )}
+                        <div className="sticky top-0 z-20 bg-white dark:bg-[#1e2330] border-b border-slate-100 dark:border-[#2a3040]">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div
+                                            className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg"
+                                            style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}33` }}
+                                        >
+                                            {logoUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover p-1.5" />
+                                            ) : (
+                                                <Map className="text-white w-5 h-5 transition-transform group-hover:rotate-12" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h2 className="text-slate-900 dark:text-slate-100 font-bold text-lg leading-tight">
+                                                {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
+                                            </h2>
+                                            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Admin Control</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-slate-900 dark:text-slate-100 font-bold text-lg leading-tight">
-                                        {brandWord1}<span style={{ color: themeColor }}>{brandWord2}</span>
-                                    </h2>
-                                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">Admin Control</p>
+
+                                {/* Search bar */}
+                                <div className="mt-4">
+                                    <div className="relative">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                            <Search size={16} />
+                                        </div>
+                                        <input
+                                            type="search"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Search menu..."
+                                            aria-label="Search navigation"
+                                            className="w-full pl-10 pr-3 py-2 rounded-lg border border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1724] text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-white/10"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setIsSidebarOpen(false)}
-                                className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
                         </div>
 
                         <nav className="px-4 space-y-1">
-                            {menuItems.map((item, idx) => {
+                            {filteredMenuItems.length === 0 && (
+                                <div className="px-3 pt-4 text-sm text-slate-500 dark:text-slate-400">No menu items found.</div>
+                            )}
+
+                            {filteredMenuItems.map((item, idx) => {
                                 const Icon = item.icon;
-                                // Only show category if it's different from the previous item
-                                const showCategory = item.category && (idx === 0 || menuItems[idx - 1].category !== item.category);
+                                // Only show category if it's different from the previous filtered item
+                                const showCategory = item.category && (idx === 0 || filteredMenuItems[idx - 1].category !== item.category);
 
                                 if (item.isDropdown) {
+                                    const parentMatches = normalizedQuery && item.label?.toLowerCase().includes(normalizedQuery);
+                                    const subMatches = normalizedQuery
+                                        ? item.subItems?.filter((sub) => (sub.label || "").toLowerCase().includes(normalizedQuery))
+                                        : item.subItems;
+                                    const showDropdown = item.isOpen || (normalizedQuery && ((parentMatches) || (subMatches && subMatches.length > 0)));
+
                                     return (
                                         <div key={idx}>
                                             {showCategory && (
@@ -244,9 +272,9 @@ export function Sidebar({
                                                 {item.isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                             </button>
 
-                                            {item.isOpen && (
+                                            {showDropdown && (
                                                 <div className="mt-1 ml-4 pl-4 border-l border-slate-200 dark:border-[#2a3040] space-y-1">
-                                                    {item.subItems?.map((sub) => {
+                                                    {(normalizedQuery && !parentMatches ? subMatches : item.subItems)?.map((sub) => {
                                                         const isSubActive = pathname?.includes(sub.href.split("?")[0]) && (pathname?.includes("tab=") ? pathname?.includes(sub.href.split("tab=")[1] || "general") : true);
                                                         return (
                                                             <Link
@@ -313,9 +341,8 @@ export function Sidebar({
                         </nav>
                     </div>
 
-                    <div className="p-4 space-y-2 border-t border-slate-200 dark:border-[#2a3040]">
-                        <ThemeToggle />
-                        <div className="flex items-center justify-between px-3 pt-4">
+                    <div className="p-4 border-t border-slate-200 dark:border-[#2a3040]">
+                        <div className="flex items-center justify-between px-3 py-3">
                             <div className="flex items-center space-x-3">
                                 <div
                                     className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white shadow-lg relative overflow-hidden"
