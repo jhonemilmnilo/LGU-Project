@@ -125,6 +125,7 @@ export default function DocumentViewerModal({
                                 />
                             ) : (
                                 <div className="relative w-full h-full flex items-center justify-center">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={activeUrl}
                                         alt={title}

@@ -2,10 +2,11 @@
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GENDERS, CIVIL_STATUSES } from "../../constants";
+import { GENDERS, CIVIL_STATUSES, RELIGIONS, BLOOD_TYPES } from "../../constants";
 import { useState, useEffect } from "react";
 import { getResidentCategories } from "../../../actions";
 import { useResident, Resident } from "../../providers/ResidentProvider";
+import { Search } from "lucide-react";
 
 interface ResidentCategory {
     id: string;
@@ -28,6 +29,20 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
         if (!data?.civilStatus) return "Single";
         return CIVIL_STATUSES.includes(data.civilStatus) ? data.civilStatus : "Other";
     });
+
+    const [religionVal, setReligionVal] = useState(() => {
+        if (!data?.religion) return "";
+        const upper = data.religion.toUpperCase().trim();
+        return RELIGIONS.includes(upper) ? upper : "OTHER";
+    });
+    const [religionSearch, setReligionSearch] = useState("");
+
+    const [bloodTypeVal, setBloodTypeVal] = useState(() => {
+        if (!data?.bloodType) return "";
+        const upper = data.bloodType.toUpperCase().trim();
+        return BLOOD_TYPES.includes(upper) ? upper : "OTHER";
+    });
+    const [bloodSearch, setBloodSearch] = useState("");
 
     const [dob, setDob] = useState(data?.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : "");
 
@@ -69,19 +84,19 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Last Name <span className="text-red-500">*</span></label>
-                    <Input name="lastName" defaultValue={data?.lastName || ""} placeholder="e.g. DELA CRUZ" required />
+                    <Input name="lastName" defaultValue={data?.lastName || ""} placeholder="e.g. DELA CRUZ" className="uppercase font-bold" required />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">First Name <span className="text-red-500">*</span></label>
-                    <Input name="firstName" defaultValue={data?.firstName || ""} placeholder="e.g. JUAN" required />
+                    <Input name="firstName" defaultValue={data?.firstName || ""} placeholder="e.g. JUAN" className="uppercase font-bold" required />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Middle Name</label>
-                    <Input name="middleName" defaultValue={data?.middleName || ""} placeholder="e.g. RAMOS" />
+                    <Input name="middleName" defaultValue={data?.middleName || ""} placeholder="e.g. RAMOS" className="uppercase font-bold" />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Suffix</label>
-                    <Input name="suffix" defaultValue={data?.suffix || ""} placeholder="e.g. JR, III" />
+                    <Input name="suffix" defaultValue={data?.suffix || ""} placeholder="e.g. JR, III" className="uppercase font-bold" />
                 </div>
             </div>
 
@@ -98,7 +113,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 defaultValue={(data?.gender === "Other" ? "" : data?.gender) || ""}
                                 required 
                                 style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
-                                className="h-10 font-bold focus-visible:ring-1"
+                                className="h-10 font-bold focus-visible:ring-1 uppercase"
                                 autoFocus
                             />
                             <button 
@@ -155,7 +170,7 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                                 defaultValue={(data?.civilStatus === "Other" ? "" : data?.civilStatus) || ""}
                                 required 
                                 style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
-                                className="h-10 font-bold focus-visible:ring-1"
+                                className="h-10 font-bold focus-visible:ring-1 uppercase"
                                 autoFocus
                             />
                             <button 
@@ -185,23 +200,153 @@ export function PersonalInfoSection({ data }: { data?: Partial<Resident> }) {
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Place of Birth <span className="text-red-500">*</span></label>
-                    <Input name="placeOfBirth" defaultValue={data?.placeOfBirth || ""} placeholder="City/Municipality, Province" required />
+                    <Input name="placeOfBirth" defaultValue={data?.placeOfBirth || ""} placeholder="City/Municipality, Province" className="uppercase font-bold" required />
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Citizenship</label>
-                    <Input name="citizenship" defaultValue={data?.citizenship || "Filipino"} placeholder="e.g. Filipino" />
+                    <Input name="citizenship" defaultValue={data?.citizenship || "Filipino"} placeholder="e.g. Filipino" className="uppercase font-bold" />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Religion</label>
-                    <Input name="religion" defaultValue={data?.religion || ""} placeholder="e.g. Catholic" />
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                        Religion
+                    </label>
+                    {religionVal === "OTHER" ? (
+                        <div className="relative flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
+                            <Input 
+                                name="religion" 
+                                placeholder="Specify religion" 
+                                defaultValue={(data?.religion === "OTHER" ? "" : data?.religion) || ""}
+                                required 
+                                style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+                                className="h-10 font-bold focus-visible:ring-1 uppercase"
+                                autoFocus
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    setReligionVal("");
+                                    setReligionSearch("");
+                                }}
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                style={{ color: themeColor }}
+                                title="Back to list"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
+                            </button>
+                        </div>
+                    ) : (
+                        <Select 
+                            name="religion" 
+                            value={religionVal}
+                            onValueChange={setReligionVal}
+                            onOpenChange={(open) => {
+                                if (!open) setReligionSearch("");
+                            }}
+                        >
+                            <SelectTrigger className="h-10 font-semibold">
+                                <SelectValue placeholder="Select Religion" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px] flex flex-col p-0" position="popper">
+                                <div className="p-2 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#0f1117] sticky top-0 z-20">
+                                    <div className="relative flex items-center">
+                                        <Search className="absolute left-2.5 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search religion..."
+                                            value={religionSearch}
+                                            onChange={(e) => setReligionSearch(e.target.value)}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#2a3040] rounded-lg outline-none focus:border-slate-300 dark:focus:border-white/20 font-semibold"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="overflow-y-auto max-h-[220px] p-1">
+                                    {RELIGIONS.filter(r => r.toLowerCase().includes(religionSearch.toLowerCase())).length > 0 ? (
+                                        RELIGIONS.filter(r => r.toLowerCase().includes(religionSearch.toLowerCase())).map(r => (
+                                            <SelectItem key={r} value={r} className="font-bold text-xs uppercase">{r}</SelectItem>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 text-center text-xs text-slate-400">No religion found</div>
+                                    )}
+                                </div>
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
+
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold">Blood Type</label>
-                    <Input name="bloodType" defaultValue={data?.bloodType || ""} placeholder="e.g. O+" />
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                        Blood Type
+                    </label>
+                    {bloodTypeVal === "OTHER" ? (
+                        <div className="relative flex items-center gap-2 animate-in slide-in-from-right-2 duration-300">
+                            <Input 
+                                name="bloodType" 
+                                placeholder="Specify blood type" 
+                                defaultValue={(data?.bloodType === "OTHER" ? "" : data?.bloodType) || ""}
+                                required 
+                                style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+                                className="h-10 font-bold focus-visible:ring-1 uppercase"
+                                autoFocus
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    setBloodTypeVal("");
+                                    setBloodSearch("");
+                                }}
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
+                                style={{ color: themeColor }}
+                                title="Back to list"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"/><path d="m3 12 9-9"/><path d="m3 12 9 9"/></svg>
+                            </button>
+                        </div>
+                    ) : (
+                        <Select 
+                            name="bloodType" 
+                            value={bloodTypeVal}
+                            onValueChange={setBloodTypeVal}
+                            onOpenChange={(open) => {
+                                if (!open) setBloodSearch("");
+                            }}
+                        >
+                            <SelectTrigger className="h-10 font-semibold">
+                                <SelectValue placeholder="Select Blood Type" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px] flex flex-col p-0" position="popper">
+                                <div className="p-2 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#0f1117] sticky top-0 z-20">
+                                    <div className="relative flex items-center">
+                                        <Search className="absolute left-2.5 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search blood type..."
+                                            value={bloodSearch}
+                                            onChange={(e) => setBloodSearch(e.target.value)}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#2a3040] rounded-lg outline-none focus:border-slate-300 dark:focus:border-white/20 font-semibold"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="overflow-y-auto max-h-[220px] p-1">
+                                    {BLOOD_TYPES.filter(b => b.toLowerCase().includes(bloodSearch.toLowerCase())).length > 0 ? (
+                                        BLOOD_TYPES.filter(b => b.toLowerCase().includes(bloodSearch.toLowerCase())).map(b => (
+                                            <SelectItem key={b} value={b} className="font-bold text-xs uppercase">{b}</SelectItem>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 text-center text-xs text-slate-400">No blood type found</div>
+                                    )}
+                                </div>
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
+
                 <div className="space-y-2">
                     <label className="text-sm font-semibold">Height (cm)</label>
                     <Input name="height" type="number" defaultValue={data?.height || ""} placeholder="e.g. 170" />
