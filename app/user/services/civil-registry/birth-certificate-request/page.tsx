@@ -332,6 +332,7 @@ export default function CivilRegistryPage() {
 
         // Require privacy terms acceptance before allowing submit
         if (!policyAccepted) {
+            setShowErrors(true);
             toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
             return;
         }
@@ -1320,11 +1321,20 @@ export default function CivilRegistryPage() {
                                 </Card>
 
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-3 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/20">
-                                        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-                                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold italic">
-                                            By submitting, I certify that all information provided is true and correct. I am aware of the data privacy policy of Mapandan.
-                                        </p>
+                                    <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
+                                        <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300") }>
+                                            {policyAccepted ? <Check className="w-3 h-3" /> : null}
+                                        </button>
+                                        <div className="flex-1 text-xs">
+                                            <div className="font-black uppercase text-[11px] tracking-wider text-slate-800 dark:text-white">DATA PRIVACY & CERTIFICATION AGREEMENT</div>
+                                            <div className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">
+                                                BY SUBMITTING, I CERTIFY THAT ALL INFORMATION PROVIDED IS TRUE AND CORRECT. I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY POLICY OF MAPANDAN. CLICK TO REVIEW AGREEMENT.
+                                            </div>
+                                            {showErrors && !policyAccepted && (
+                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-1">Please accept the Privacy Policy & Terms before submitting.</p>
+                                            )}
+                                        </div>
+                                        <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600 shrink-0">Review</button>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
