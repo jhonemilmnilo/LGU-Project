@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
+import { AuthTransitionContext } from "@/components/shared/AuthLayout";
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -42,6 +43,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
+    const { triggerLeave } = React.useContext(AuthTransitionContext);
     const [showPassword, setShowPassword] = React.useState(false);
     const [showChangeModal, setShowChangeModal] = React.useState(false);
     const [userEmail, setUserEmail] = React.useState("");
@@ -195,16 +197,28 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 }
 
                 // Normal redirect based on role
-                if (role === "ADMIN" || role === "CONTENT_ADMIN") {
-                    router.push("/admin/dashboard");
-                } else if (role === "USER") {
-                    router.push("/");
+                const performRedirect = () => {
+                    if (role === "ADMIN" || role === "CONTENT_ADMIN") {
+                        router.push("/admin/dashboard");
+                    } else if (role === "USER") {
+                        router.push("/");
+                    } else {
+                        router.push("/");
+                    }
+                    toast.success("Logged in successfully");
+                };
+
+                if (triggerLeave) {
+                    triggerLeave(performRedirect);
+                } else {
+                    performRedirect();
+                }
+            } else {
+                if (triggerLeave) {
+                    triggerLeave(() => router.push("/"));
                 } else {
                     router.push("/");
                 }
-                toast.success("Logged in successfully");
-            } else {
-                router.push("/");
             }
         } catch (error) {
             toast.error("An unexpected error occurred");

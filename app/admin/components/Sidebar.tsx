@@ -6,12 +6,13 @@ import * as React from "react";
 import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
-    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Layers, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Search, Info, Church, ClipboardList, CreditCard, Truck, HardHat
+    UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Megaphone, UserCheck,
+    ChevronDown, ChevronUp, LogOut, Search, Info, Church, CreditCard, Truck, HardHat
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./SidebarContext";
+import { motion } from "framer-motion";
 
 interface SidebarProps {
     session: {
@@ -50,6 +51,7 @@ export function Sidebar({
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
     const [searchQuery, setSearchQuery] = React.useState("");
+    const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -62,7 +64,7 @@ export function Sidebar({
             onToggle: () => setIsSettingsOpen(!isSettingsOpen),
             subItems: [
                 { href: "/admin/settings?tab=general", label: "General" },
-                { href: "/admin/settings?tab=login", label: "Login Branding" },
+                // { href: "/admin/settings?tab=login", label: "Login Branding" },
                 { href: "/admin/settings?tab=hero", label: "Hero Carousel" },
                 { href: "/admin/settings?tab=credentials", label: "Credentials" },
                 { href: "/admin/settings?tab=sections", label: "Landing Sections" },
@@ -105,13 +107,13 @@ export function Sidebar({
         { href: "/admin/jobs", label: "Job Postings", icon: Briefcase },
         { href: "/admin/officials", label: "Council Members", icon: Users },
         { href: "/admin/hotlines", label: "Hotlines", icon: Phone },
-        { href: "/admin/settings?tab=hero", label: "Banner Slider", icon: Layers, category: "Content" },
-        { href: "/admin/resident-approvals", label: "Resident Approvals", icon: UserCheck, category: "Citizens & Services", badge: pendingResidentsCount },
+        // { href: "/admin/settings?tab=hero", label: "Banner Slider", icon: Layers, category: "Content" },
+        { href: "/admin/resident-approvals", label: "Resident Approvals", icon: UserCheck, category: "Resident Management", badge: pendingResidentsCount },
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
-        { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
+        // { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        { href: "/admin/treasury", label: "Treasury Hub", icon: LayoutDashboard, category: "Citizens & Services" },
-        { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Citizens & Services" },
+        { href: "/admin/treasury", label: "Treasury Hub", icon: LayoutDashboard, category: "Treasury" },
+        { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Treasury" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
 
@@ -144,8 +146,8 @@ export function Sidebar({
         "Council Members",
         "Resident Approvals",
         "Resident Registry",
-        "Barangay Services",
-        "Banner Slider",
+        // "Barangay Services",
+        // "Banner Slider",
         "Household Map"
     ];
 
@@ -183,10 +185,17 @@ export function Sidebar({
                 />
             )}
 
-            <aside className={cn(
-                "fixed md:static inset-y-0 left-0 flex-shrink-0 z-40 bg-white dark:bg-[#1e2330] border-r border-slate-200 dark:border-[#2a3040] transition-all duration-300 overflow-hidden",
-                isSidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"
-            )}>
+            <motion.aside
+                initial={isEntranceComplete ? undefined : { x: "-100%" }}
+                animate={isEntranceComplete ? undefined : { x: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                onAnimationComplete={() => setIsEntranceComplete(true)}
+                className={cn(
+                    "fixed md:static inset-y-0 left-0 flex-shrink-0 z-40 bg-white dark:bg-[#1e2330] border-r border-slate-200 dark:border-[#2a3040] overflow-hidden",
+                    isEntranceComplete && "transition-all duration-300",
+                    isSidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:translate-x-0 md:w-0"
+                )}
+            >
                 <div className="w-64 h-full flex flex-col justify-between">
                     <div className="overflow-y-auto custom-scrollbar flex-1 pb-4">
                         {/* Logo & Branding */}
@@ -359,10 +368,10 @@ export function Sidebar({
                                         className="text-[10px] text-slate-500 mt-1 hover:opacity-80 cursor-pointer transition-colors font-bold uppercase tracking-widest"
                                         style={{ color: themeColor }}
                                     >
-                                        {role === "CONTENT_ADMIN" 
-                                            ? "Content Admin" 
-                                            : role === "BARANGAY_ADMIN" 
-                                                ? `Brgy. ${session?.user?.managedBarangay || "Admin"}` 
+                                        {role === "CONTENT_ADMIN"
+                                            ? "Content Admin"
+                                            : role === "BARANGAY_ADMIN"
+                                                ? `Brgy. ${session?.user?.managedBarangay || "Admin"}`
                                                 : role === "TREASURY_STAFF"
                                                     ? "Treasury Staff"
                                                     : role === "ADMIN_AIDE"
@@ -383,7 +392,7 @@ export function Sidebar({
                         </div>
                     </div>
                 </div>
-            </aside>
+            </motion.aside>
         </>
     );
 }

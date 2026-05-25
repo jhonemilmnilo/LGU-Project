@@ -261,7 +261,7 @@ export async function ensureCivilRegistryTransactionTypes() {
                 baseFee: 150.00,
                 deliveryFee: 100.00,
                 isFixed: true,
-                requiredDocs: ["Valid ID of Applicant", "Authorization Letter (if not owner)", "Proof of Relationship"],
+                requiredDocs: ["Valid ID of Applicant", "Authorization Letter (if not owner)"],
                 formSchema: {
                     type: "CIVIL_REGISTRY",
                     registryType: "BIRTH",
@@ -620,6 +620,23 @@ export async function searchCivilRegistryRecords(type: string, query: string) {
     } catch (error) {
         console.error("Search LCR records error:", error);
         return { success: false, error: "Failed to search records" };
+    }
+}
+
+export async function getAllResidents() {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const residents = await prisma.resident.findMany({
+            where: { registrationStatus: "APPROVED" },
+            orderBy: { lastName: "asc" }
+        });
+
+        return { success: true, data: residents };
+    } catch (error) {
+        console.error("Get all residents error:", error);
+        return { success: false, error: "Failed to fetch residents" };
     }
 }
 
@@ -1086,7 +1103,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const isLCR = transaction.type.code.startsWith("LCR_");
 
         // ADMIN_AIDE can only evaluate Business Permits in FOR_INSPECTION status
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_INSPECTION") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (transaction.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
         }
 
@@ -1385,7 +1402,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_INSPECTION") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (transaction.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
@@ -1445,7 +1462,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_INSPECTION") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (transaction.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
         const additionalData = transaction.additionalData as any;
@@ -1616,7 +1633,37 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             const isLCR = transaction.type.code.startsWith("LCR_");
             if (isLCR) {
                 const typeCode = (transaction.type.code || "").toUpperCase();
-                if (typeCode === "LCR_BIRTH_REG") {
+                if (typeCode === "LCR_BIRTH") {
+                    const bcrExisting = (transaction as any).birthCertificateRequest;
+                    if (!bcrExisting && targetStatus === "RELEASED") {
+                        const src: any = additionalData || {};
+                        const subjectName = src.subjectName || src.fullName || null;
+                        const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
+                        const placeOfEvent = src.placeOfEvent || null;
+
+                        if (subjectName && dateOfEvent && placeOfEvent) {
+                            const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                            try {
+                                await prisma.birthCertificateRequest.create({
+                                    data: {
+                                        transactionId: id,
+                                        registryNumber: generatedRegistryNumber,
+                                        subjectName: subjectName,
+                                        dateOfEvent: dateOfEvent,
+                                        placeOfEvent: placeOfEvent,
+                                        fatherName: src.fatherName || src.father || null,
+                                        motherName: src.motherName || src.mother || null,
+                                        issuedBy: user.name || "System Administrator",
+                                        documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                        verificationId: `VER-BCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                                    }
+                                });
+                            } catch (createErr) {
+                                console.error("Failed to create BirthCertificateRequest:", createErr);
+                            }
+                        }
+                    }
+                } else if (typeCode === "LCR_BIRTH_REG") {
                     // Only create the registry entry on the final Confirm & Release (RELEASED status)
                     const brExisting = (transaction as any).birthCertificateRegistry;
                     if (!brExisting && targetStatus === "RELEASED") {
@@ -2018,7 +2065,7 @@ export async function rejectTransaction(id: string, remarks: string) {
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_INSPECTION") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (tx.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
         }
 
@@ -2122,7 +2169,7 @@ export async function sendForRevision(id: string, remarks: string) {
         if (!tx) return { success: false, error: "Transaction inaccessible" };
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_INSPECTION") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (tx.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
@@ -2706,7 +2753,7 @@ export async function getEngineerTransactions(status?: string) {
                 user: true,
                 type: true,
                 buildingPermit: true
-            },
+            } as any,
             orderBy: { createdAt: "desc" }
         });
 
