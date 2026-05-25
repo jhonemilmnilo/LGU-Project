@@ -23,31 +23,21 @@ function MapLoading() {
     );
 }
 
-// Leaflet icon fix for Next.js - handled inside a useEffect
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-let DefaultIcon: import("leaflet").Icon | null = null;
-let SafeIcon: import("leaflet").Icon | null = null;
-let RiskIcon: import("leaflet").Icon | null = null;
-
 export function HouseholdMapView() {
     const { households, searchQuery, selectedBarangay, selectedRiskLevel, viewMode } = useHousehold();
     const [mounted, setMounted] = useState(false);
-    const [iconsLoaded, setIconsLoaded] = useState(false);
+    const [safeIcon, setSafeIcon] = useState<any>(null);
+    const [riskIcon, setRiskIcon] = useState<any>(null);
 
     useEffect(() => {
         // Fetch Mapandan Border GeoJSON
         fetch('/mapandan-border.json')
             .then(res => res.json())
-            .then(() => {
-                setIconsLoaded(true);
-            })
             .catch(err => console.error("Failed to load Mapandan border:", err));
 
-        setMounted(true);
         // We only require leaflet dynamically on the client side
         import("leaflet").then(L => {
             // Fix default icon path issues
-             
             delete (L.Icon.Default.prototype as any)._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -56,7 +46,7 @@ export function HouseholdMapView() {
             });
 
             // Create custom icons based on risk level
-            SafeIcon = new L.Icon({
+            const safe = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
                 shadowUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-shadow.png',
                 iconSize: [25, 41],
@@ -65,7 +55,7 @@ export function HouseholdMapView() {
                 shadowSize: [41, 41]
             });
 
-            RiskIcon = new L.Icon({
+            const risk = new L.Icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-shadow.png',
                 iconSize: [25, 41],
@@ -74,13 +64,14 @@ export function HouseholdMapView() {
                 shadowSize: [41, 41]
             });
 
-            DefaultIcon = SafeIcon;
-            setIconsLoaded(true);
+            setSafeIcon(safe);
+            setRiskIcon(risk);
+            setMounted(true);
         });
     }, []);
 
     // Do not render map if in list view or if not mounted (SSR check)
-    if (!mounted || !iconsLoaded || viewMode === "list") return <MapLoading />;
+    if (!mounted || !safeIcon || !riskIcon || viewMode === "list") return <MapLoading />;
 
     // Filter logic
     const filteredHouseholds = households.filter((h) => {
@@ -128,7 +119,7 @@ export function HouseholdMapView() {
                     >
                         {filteredHouseholds.map((h) => {
                             const isRisk = ["High Risk", "Flood Prone", "Landslide Prone"].includes(h.riskLevel);
-                            const iconToUse = isRisk && RiskIcon ? RiskIcon : (SafeIcon || undefined);
+                            const iconToUse = isRisk ? riskIcon : safeIcon;
 
                             return (
                                 <Marker

@@ -9,7 +9,6 @@ import {
 } from "./components";
 import { Home, Briefcase } from "lucide-react";
 
-
 interface JobsPageProps {
     initialData: Job[];
     currentBarangay?: string | null;

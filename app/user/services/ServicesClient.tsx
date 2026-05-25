@@ -15,14 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { UserBreadcrumb } from "@/components/shared/UserBreadcrumb";
 
 interface TransactionType {
     id: string;
@@ -186,17 +179,7 @@ export default function ServicesClient({ initialServices, themeColor }: Services
         <div className="space-y-8 md:space-y-10">
             {/* Elegant Floating Glass Breadcrumbs */}
             <div className="flex items-center justify-between">
-                <Breadcrumb className="bg-white/60 dark:bg-white/[0.02] backdrop-blur-md px-6 py-3 rounded-full border border-slate-100 dark:border-white/5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.02)]">
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <BreadcrumbLink href="/" className="font-bold uppercase tracking-widest text-[8px] md:text-[9px] hover:text-primary transition-colors italic">Home</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator className="opacity-40" />
-                        <BreadcrumbItem>
-                            <BreadcrumbPage className="font-black uppercase tracking-widest text-[8px] md:text-[9px] italic" style={{ color: themeColor }}>Services Portal</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
+                <UserBreadcrumb themeColor={themeColor} />
             </div>
 
             {/* Premium Header/Banner with Ambient Gradient Backdrop */}

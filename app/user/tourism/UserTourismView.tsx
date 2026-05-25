@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Compass, Home, Search, Filter } from "lucide-react";
+import { Compass, Search, Filter } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { 
@@ -14,14 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { UserBreadcrumb } from "@/components/shared/UserBreadcrumb";
 
 export interface TourismSpot {
     id: string;
@@ -70,22 +63,9 @@ export function UserTourismView({
     return (
         <div className="space-y-4 md:space-y-10 pb-20">
             {/* Breadcrumb section */}
-            <Breadcrumb className="px-4 md:px-0">
-                <BreadcrumbList className="bg-white/50 dark:bg-white/5 backdrop-blur-sm px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5 w-fit shadow-sm">
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">
-                                <Home className="w-3.5 h-3.5 mb-0.5" />
-                                Home
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest text-primary italic">Tourism Gallery</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+            <div className="px-4 md:px-0">
+                <UserBreadcrumb />
+            </div>
 
             {/* Header section */}
             <div className="sticky md:static top-[64px] sm:top-[80px] md:top-auto z-40 bg-white/95 dark:bg-[#0a0c10]/95 md:bg-transparent md:dark:bg-transparent px-4 md:px-0 pt-4 pb-3 md:py-0 -mx-4 md:mx-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-8 border-b border-slate-200/50 dark:border-white/5 md:border-none shadow-sm md:shadow-none">
