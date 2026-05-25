@@ -1039,9 +1039,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <div>
                                             <p className="text-base font-black italic uppercase tracking-tight text-slate-800 dark:text-white leading-tight">
                                                 {(() => {
-                                                    if (additional.incomeSource === "PROFESSION") return "Profession / Practice of Profession";
-                                                    if (additional.incomeSource === "BUSINESS") return "Business / Trade / Commerce";
-                                                    if (additional.incomeSource === "PROPERTY") return "Property / Rental / Real Estate";
+                                                    if (additional.incomeSource === "PROFESSION") return "Profession";
+                                                    if (additional.incomeSource === "BUSINESS") return "Business";
+                                                    if (additional.incomeSource === "PROPERTY") return "Real Property";
                                                     return additional.incomeSource;
                                                 })()}
                                             </p>

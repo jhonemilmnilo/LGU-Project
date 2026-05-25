@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/tooltip";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 /**
  * multi-step form for Cedula Application.
  */
@@ -118,6 +119,23 @@ export default function CedulaApplicationPage() {
         businessName: "",
         incomeSource: "PROFESSION"
     });
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (file: File | null, existingUrl: string | null, title?: string) => {
+        setViewerFile(file);
+        setViewerUrl(existingUrl);
+        if (title) {
+            setViewerTitle(title);
+        } else {
+            const isProof = file === formData.proofFile || (existingUrl === existingProofUrl && existingUrl !== null);
+            setViewerTitle(isProof ? "Proof of Income Document" : "Valid ID Document");
+        }
+        setViewerOpen(true);
+    };
 
 
 
@@ -278,7 +296,7 @@ export default function CedulaApplicationPage() {
         const result = calculateCedula({
             type: formData.applicantType,
             income: parseFloat(formData.income.replace(/,/g, '')) || 0,
-            propertyValue: parseFloat(formData.propertyValue) || 0,
+            propertyValue: parseFloat(formData.propertyValue.replace(/,/g, '')) || 0,
             fulfillmentType: "PICK_UP", // Base amount only during initial app
             deliveryFee: 0,
             baseFee: selectedType?.baseFee
@@ -289,6 +307,15 @@ export default function CedulaApplicationPage() {
     useEffect(() => {
         updateCalc();
     }, [updateCalc]);
+
+    // Normalize incomeSource based on applicantType (heals draft states)
+    useEffect(() => {
+        if (formData.applicantType === "JURIDICAL" && formData.incomeSource !== "BUSINESS" && formData.incomeSource !== "PROPERTY") {
+            setFormData(prev => ({ ...prev, incomeSource: "BUSINESS" }));
+        } else if (formData.applicantType === "INDIVIDUAL" && formData.incomeSource !== "BUSINESS" && formData.incomeSource !== "PROPERTY" && formData.incomeSource !== "PROFESSION") {
+            setFormData(prev => ({ ...prev, incomeSource: "PROFESSION" }));
+        }
+    }, [formData.applicantType, formData.incomeSource]);
 
     // Auto-save form draft whenever text fields change
     useEffect(() => {
@@ -338,8 +365,16 @@ export default function CedulaApplicationPage() {
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
             case "DECLARATION":
-                // Require Annual Gross Income to be > 0
-                return (parseFloat(formData.income) > 0);
+                if (formData.applicantType === "JURIDICAL") {
+                    const isProp = formData.incomeSource === "PROPERTY";
+                    const hasBusinessName = !!formData.businessName?.trim();
+                    if (isProp) {
+                        return hasBusinessName && (parseFloat(formData.propertyValue.replace(/,/g, '')) > 0);
+                    } else {
+                        return hasBusinessName && (parseFloat(formData.income.replace(/,/g, '')) > 0);
+                    }
+                }
+                return (parseFloat(formData.income.replace(/,/g, '')) > 0);
             case "CONFIRM":
                 // Final submission requires Data Privacy acceptance (or revisionId) AND either a new upload or an existing ID AND either a new upload or existing proof
                 return (!!revisionId || privacyAccepted) && (!!formData.idFile || !!existingIdUrl) && (!!formData.proofFile || !!existingProofUrl);
@@ -376,8 +411,15 @@ export default function CedulaApplicationPage() {
                 contactInputRef.current?.focus();
                 toast.error("Please provide your contact number for better coordination.");
             } else if (currentStep === "DECLARATION") {
-                incomeInputRef.current?.focus();
-                toast.error("Please declare your annual gross income.");
+                if (formData.applicantType === "JURIDICAL" && !formData.businessName?.trim()) {
+                    toast.error("Oops! You need to enter your Business Name, boss.");
+                } else if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
+                    incomeInputRef.current?.focus();
+                    toast.error("Please declare the worth of your real property owned, pare.");
+                } else {
+                    incomeInputRef.current?.focus();
+                    toast.error("Please declare your annual gross income.");
+                }
             } else {
                 toast.error("Please complete all required fields in this phase.");
             }
@@ -433,9 +475,9 @@ export default function CedulaApplicationPage() {
             submitData.append("additionalData", JSON.stringify({
                 applicantType: formData.applicantType,
                 income: parseFloat(formData.income.replace(/,/g, '')) || 0,
-                propertyValue: parseFloat(formData.propertyValue) || 0,
+                propertyValue: parseFloat(formData.propertyValue.replace(/,/g, '')) || 0,
                 businessName: formData.businessName,
-                incomeSource: formData.applicantType === "INDIVIDUAL" ? formData.incomeSource : undefined
+                incomeSource: formData.incomeSource
             }));
 
             if (formData.idFile) submitData.append("idFile", formData.idFile);
@@ -631,7 +673,12 @@ export default function CedulaApplicationPage() {
                                                         onClick={() => {
                                                             const t = cedulaTypes.find((x: any) => x.code === opt.code) || cedulaTypes[0];
                                                             if (t) {
-                                                                setFormData(p => ({ ...p, applicantType: opt.id as any, typeId: t.id }));
+                                                                setFormData(p => ({ 
+                                                                    ...p, 
+                                                                    applicantType: opt.id as any, 
+                                                                    typeId: t.id,
+                                                                    incomeSource: opt.id === "JURIDICAL" ? "BUSINESS" : "PROFESSION"
+                                                                }));
                                                             }
                                                         }}
                                                         className={cn(
@@ -816,7 +863,7 @@ export default function CedulaApplicationPage() {
                              {currentStep === "DECLARATION" && (
                                 <div className="space-y-8 md:space-y-12">
                                     <div className="space-y-2 md:space-y-4 text-center md:text-left">
-                                        <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight">Tax <span className="text-primary italic">Declaration</span></h2>
+                                                        <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight">Tax <span className="text-primary italic">Declaration</span></h2>
                                         <p className="text-slate-500 font-medium italic text-xs md:text-lg leading-relaxed">Declare your annual financial status for the tax computation.</p>
                                     </div>
 
@@ -833,30 +880,101 @@ export default function CedulaApplicationPage() {
                                                     />
                                                 </div>
                                             )}
+
                                             <div className="space-y-2 md:space-y-3">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Annual Gross Income</Label>
+                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">
+                                                    {formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY" 
+                                                        ? "Worth of Real Property Owned" 
+                                                        : "Annual Gross Income"}
+                                                </Label>
                                                 <div className="relative">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg md:text-xl font-black text-slate-300 italic">₱</span>
                                                      <Input
                                                         ref={incomeInputRef}
                                                         type="text"
-                                                        value={formData.income}
+                                                        value={formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY" 
+                                                            ? formData.propertyValue 
+                                                            : formData.income}
                                                         onChange={(e) => {
                                                             const val = e.target.value.replace(/[^0-9.]/g, '');
                                                             if (val === '') {
-                                                                setFormData(p => ({ ...p, income: '' }));
+                                                                if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
+                                                                    setFormData(p => ({ ...p, propertyValue: '' }));
+                                                                } else {
+                                                                    setFormData(p => ({ ...p, income: '' }));
+                                                                }
                                                                 return;
                                                             }
                                                             const parts = val.split('.');
                                                             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
                                                             const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
-                                                            setFormData(p => ({ ...p, income: formatted }));
+                                                            
+                                                            if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
+                                                                setFormData(p => ({ ...p, propertyValue: formatted }));
+                                                            } else {
+                                                                setFormData(p => ({ ...p, income: formatted }));
+                                                            }
                                                         }}
                                                         placeholder="0.00"
                                                         className="h-12 md:h-16 pl-10 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-lg md:text-xl font-black italic bg-white"
                                                     />
                                                 </div>
                                             </div>
+
+                                            {formData.applicantType === "JURIDICAL" && (
+                                                <div className="space-y-4">
+                                                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic ml-1">
+                                                         Income Source Category
+                                                     </Label>
+                                                     <div className="flex flex-col gap-2">
+                                                         {[
+                                                             { 
+                                                                 id: "BUSINESS", 
+                                                                 label: "Business", 
+                                                                 desc: "Annual Gross Receipts / Income"
+                                                             },
+                                                             { 
+                                                                 id: "PROPERTY", 
+                                                                 label: "Real Property", 
+                                                                 desc: "Worth of Real Property Owned"
+                                                             }
+                                                         ].map(opt => {
+                                                             const isSelected = formData.incomeSource === opt.id;
+                                                             return (
+                                                                 <button
+                                                                     key={opt.id}
+                                                                     type="button"
+                                                                     onClick={() => setFormData(p => ({ 
+                                                                         ...p, 
+                                                                         incomeSource: opt.id,
+                                                                         income: opt.id === "BUSINESS" ? p.income : "",
+                                                                         propertyValue: opt.id === "PROPERTY" ? p.propertyValue : ""
+                                                                     }))}
+                                                                     className={cn(
+                                                                         "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
+                                                                         isSelected 
+                                                                             ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
+                                                                             : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
+                                                                     )}
+                                                                 >
+                                                                     <h4 className={cn(
+                                                                         "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
+                                                                         isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
+                                                                     )}>
+                                                                         {opt.label}
+                                                                     </h4>
+                                                                     <p className={cn(
+                                                                         "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
+                                                                         isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
+                                                                     )}>
+                                                                         {opt.desc}
+                                                                     </p>
+                                                                 </button>
+                                                             );
+                                                         })}
+                                                     </div>
+                                                </div>
+                                            )}
 
                                             {formData.applicantType === "INDIVIDUAL" && (
                                                 <div className="space-y-4">
@@ -865,51 +983,51 @@ export default function CedulaApplicationPage() {
                                                      </Label>
                                                      <div className="flex flex-col gap-2">
                                                          {[
-                                                            { 
-                                                                id: "PROFESSION", 
-                                                                label: "Profession", 
-                                                                desc: "Employees, Freelancers, & Salary"
-                                                            },
-                                                            { 
-                                                                id: "BUSINESS", 
-                                                                label: "Business", 
-                                                                desc: "Trade, Stores, & Services"
-                                                            },
-                                                            { 
-                                                                id: "PROPERTY", 
-                                                                label: "Property", 
-                                                                desc: "Real Estate Rentals & Leases"
-                                                            }
-                                                        ].map(opt => {
-                                                            const isSelected = formData.incomeSource === opt.id;
-                                                            return (
-                                                                <button
-                                                                    key={opt.id}
-                                                                    type="button"
-                                                                    onClick={() => setFormData(p => ({ ...p, incomeSource: opt.id }))}
-                                                                    className={cn(
-                                                                        "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
-                                                                        isSelected 
-                                                                            ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
-                                                                            : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
-                                                                    )}
-                                                                >
-                                                                    <h4 className={cn(
-                                                                        "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
-                                                                        isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
-                                                                    )}>
-                                                                        {opt.label}
-                                                                    </h4>
-                                                                    <p className={cn(
-                                                                        "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
-                                                                        isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
-                                                                    )}>
-                                                                        {opt.desc}
-                                                                    </p>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                             { 
+                                                                 id: "PROFESSION", 
+                                                                 label: "Profession", 
+                                                                 desc: "Employees, Freelancers, & Salary"
+                                                             },
+                                                             { 
+                                                                 id: "BUSINESS", 
+                                                                 label: "Business", 
+                                                                 desc: "Trade, Stores, & Services"
+                                                             },
+                                                             { 
+                                                                 id: "PROPERTY", 
+                                                                 label: "Property", 
+                                                                 desc: "Real Estate Rentals & Leases"
+                                                             }
+                                                         ].map(opt => {
+                                                             const isSelected = formData.incomeSource === opt.id;
+                                                             return (
+                                                                 <button
+                                                                     key={opt.id}
+                                                                     type="button"
+                                                                     onClick={() => setFormData(p => ({ ...p, incomeSource: opt.id }))}
+                                                                     className={cn(
+                                                                         "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
+                                                                         isSelected 
+                                                                             ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
+                                                                             : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
+                                                                     )}
+                                                                 >
+                                                                     <h4 className={cn(
+                                                                         "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
+                                                                         isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
+                                                                     )}>
+                                                                         {opt.label}
+                                                                     </h4>
+                                                                     <p className={cn(
+                                                                         "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
+                                                                         isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
+                                                                     )}>
+                                                                         {opt.desc}
+                                                                     </p>
+                                                                 </button>
+                                                             );
+                                                         })}
+                                                     </div>
                                                 </div>
                                             )}
                                         </div>
@@ -994,36 +1112,68 @@ export default function CedulaApplicationPage() {
                                                     </div>
                                                 </div>
 
-                                                {formData.idFile && formData.idFile.type.startsWith("image/") ? (
-                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg mt-1">
-                                                        <Image
-                                                            src={URL.createObjectURL(formData.idFile)}
-                                                            alt="ID Preview"
-                                                            fill
-                                                            unoptimized
-                                                            className="object-cover"
-                                                        />
-                                                    </div>
-                                                ) : existingIdUrl ? (
-                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/10 shadow-lg mt-1">
-                                                        <Image
-                                                            src={existingIdUrl}
-                                                            alt="Existing ID Preview"
-                                                            fill
-                                                            unoptimized
-                                                            className="object-cover opacity-60"
-                                                        />
-                                                    </div>
-                                                ) : null}
+                                                {formData.idFile ? (
+                                                     formData.idFile.type.startsWith("image/") ? (
+                                                         <div 
+                                                             onClick={() => handleViewFile(formData.idFile, null)}
+                                                             className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg mt-1 cursor-pointer group/preview"
+                                                         >
+                                                             <Image
+                                                                 src={URL.createObjectURL(formData.idFile)}
+                                                                 alt="ID Preview"
+                                                                 fill
+                                                                 unoptimized
+                                                                 className="object-cover group-hover/preview:scale-105 transition-transform duration-500"
+                                                             />
+                                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 select-none z-20">
+                                                                 <span className="text-[10px] font-black uppercase tracking-widest text-white italic">🔍 Click to View Full Size</span>
+                                                             </div>
+                                                         </div>
+                                                     ) : (
+                                                         <div 
+                                                             onClick={() => handleViewFile(formData.idFile, null)}
+                                                             className="w-full p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between mt-1 cursor-pointer hover:bg-primary/10 transition-colors"
+                                                         >
+                                                             <span className="text-xs font-bold text-primary truncate max-w-[200px]">{formData.idFile.name}</span>
+                                                             <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">🔍 Click to View</span>
+                                                         </div>
+                                                     )
+                                                 ) : existingIdUrl ? (
+                                                     <div 
+                                                         onClick={() => handleViewFile(null, existingIdUrl)}
+                                                         className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/10 shadow-lg mt-1 cursor-pointer group/preview"
+                                                     >
+                                                         <Image
+                                                             src={existingIdUrl}
+                                                             alt="Existing ID Preview"
+                                                             fill
+                                                             unoptimized
+                                                             className="object-cover opacity-60 group-hover/preview:scale-105 transition-transform duration-500"
+                                                         />
+                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 select-none z-20">
+                                                             <span className="text-[10px] font-black uppercase tracking-widest text-white italic">🔍 Click to View Full Size</span>
+                                                         </div>
+                                                     </div>
+                                                 ) : null}
 
-                                                <div className="flex items-center justify-between w-full gap-2 md:gap-3 mt-1">
-                                                    <input type="file" onChange={(e) => handleFileChange(e, "idFile")} className="hidden" id="id-upload" />
-                                                    <Button asChild variant={(formData.idFile || existingIdUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
-                                                        <label htmlFor="id-upload" className="cursor-pointer">
-                                                            {formData.idFile ? "Change" : existingIdUrl ? "Replace ID" : "Upload"}
-                                                        </label>
-                                                    </Button>
-                                                </div>
+                                                 <div className="flex items-center justify-between w-full gap-2 md:gap-3 mt-1">
+                                                     <input type="file" onChange={(e) => handleFileChange(e, "idFile")} className="hidden" id="id-upload" />
+                                                     {(formData.idFile || existingIdUrl) && (
+                                                         <Button 
+                                                             type="button"
+                                                             variant="outline"
+                                                             onClick={() => handleViewFile(formData.idFile, existingIdUrl)}
+                                                             className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full border-primary/20 text-primary hover:bg-primary/5 flex-1"
+                                                         >
+                                                             View Document
+                                                         </Button>
+                                                     )}
+                                                     <Button asChild variant={(formData.idFile || existingIdUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
+                                                         <label htmlFor="id-upload" className="cursor-pointer">
+                                                             {formData.idFile ? "Change" : existingIdUrl ? "Replace ID" : "Upload"}
+                                                         </label>
+                                                     </Button>
+                                                 </div>
                                             </div>
                                         </div>
 
@@ -1046,36 +1196,68 @@ export default function CedulaApplicationPage() {
                                                     </div>
                                                 </div>
 
-                                                {formData.proofFile && formData.proofFile.type.startsWith("image/") ? (
-                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg mt-1">
-                                                        <Image
-                                                            src={URL.createObjectURL(formData.proofFile)}
-                                                            alt="Proof Preview"
-                                                            fill
-                                                            unoptimized
-                                                            className="object-cover"
-                                                        />
-                                                    </div>
-                                                ) : existingProofUrl ? (
-                                                    <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/10 shadow-lg mt-1">
-                                                        <Image
-                                                            src={existingProofUrl}
-                                                            alt="Existing Proof Preview"
-                                                            fill
-                                                            unoptimized
-                                                            className="object-cover opacity-60"
-                                                        />
-                                                    </div>
-                                                ) : null}
+                                                {formData.proofFile ? (
+                                                     formData.proofFile.type.startsWith("image/") ? (
+                                                         <div 
+                                                             onClick={() => handleViewFile(formData.proofFile, null)}
+                                                             className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/20 shadow-lg mt-1 cursor-pointer group/preview"
+                                                         >
+                                                             <Image
+                                                                 src={URL.createObjectURL(formData.proofFile)}
+                                                                 alt="Proof Preview"
+                                                                 fill
+                                                                 unoptimized
+                                                                 className="object-cover group-hover/preview:scale-105 transition-transform duration-500"
+                                                             />
+                                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 select-none z-20">
+                                                                 <span className="text-[10px] font-black uppercase tracking-widest text-white italic">🔍 Click to View Full Size</span>
+                                                             </div>
+                                                         </div>
+                                                     ) : (
+                                                         <div 
+                                                             onClick={() => handleViewFile(formData.proofFile, null)}
+                                                             className="w-full p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between mt-1 cursor-pointer hover:bg-primary/10 transition-colors"
+                                                         >
+                                                             <span className="text-xs font-bold text-primary truncate max-w-[200px]">{formData.proofFile.name}</span>
+                                                             <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">🔍 Click to View</span>
+                                                         </div>
+                                                     )
+                                                 ) : existingProofUrl ? (
+                                                     <div 
+                                                         onClick={() => handleViewFile(null, existingProofUrl)}
+                                                         className="relative w-full aspect-[21/9] rounded-xl overflow-hidden border-2 border-primary/10 shadow-lg mt-1 cursor-pointer group/preview"
+                                                     >
+                                                         <Image
+                                                             src={existingProofUrl}
+                                                             alt="Existing Proof Preview"
+                                                             fill
+                                                             unoptimized
+                                                             className="object-cover opacity-60 group-hover/preview:scale-105 transition-transform duration-500"
+                                                         />
+                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 select-none z-20">
+                                                             <span className="text-[10px] font-black uppercase tracking-widest text-white italic">🔍 Click to View Full Size</span>
+                                                         </div>
+                                                     </div>
+                                                 ) : null}
 
-                                                <div className="flex items-center justify-between w-full gap-2 md:gap-3 mt-1">
-                                                    <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
-                                                    <Button asChild variant={(formData.proofFile || existingProofUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
-                                                        <label htmlFor="proof-upload" className="cursor-pointer">
-                                                            {formData.proofFile ? "Change" : existingProofUrl ? "Replace Proof" : "Upload"}
-                                                        </label>
-                                                    </Button>
-                                                </div>
+                                                 <div className="flex items-center justify-between w-full gap-2 md:gap-3 mt-1">
+                                                     <input type="file" onChange={(e) => handleFileChange(e, "proofFile")} className="hidden" id="proof-upload" />
+                                                     {(formData.proofFile || existingProofUrl) && (
+                                                         <Button 
+                                                             type="button"
+                                                             variant="outline"
+                                                             onClick={() => handleViewFile(formData.proofFile, existingProofUrl)}
+                                                             className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full border-primary/20 text-primary hover:bg-primary/5 flex-1"
+                                                         >
+                                                             View Document
+                                                         </Button>
+                                                     )}
+                                                     <Button asChild variant={(formData.proofFile || existingProofUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
+                                                         <label htmlFor="proof-upload" className="cursor-pointer">
+                                                             {formData.proofFile ? "Change" : existingProofUrl ? "Replace Proof" : "Upload"}
+                                                         </label>
+                                                     </Button>
+                                                 </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1132,7 +1314,10 @@ export default function CedulaApplicationPage() {
                         className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
                     >
                         {submitting ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>{revisionId ? "RESUBMITTING..." : "SUBMITTING..."}</span>
+                            </div>
                         ) : (
                             <div className="flex items-center">
                                 {currentStep === "CONFIRM" ? (revisionId ? "Resubmit" : "Finalize Submission") : "Next Phase"}
@@ -1165,6 +1350,14 @@ export default function CedulaApplicationPage() {
                     setPrivacyAccepted(true);
                     setIsPrivacyModalOpen(false);
                 }}
+                themeColor="var(--primary-theme)"
+            />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
                 themeColor="var(--primary-theme)"
             />
             {/* Secure Idle Inactivity Timer */}
