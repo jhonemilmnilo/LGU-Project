@@ -86,6 +86,14 @@ export default function TreasuryDashboard() {
     const [sortBy, setSortBy] = useState<"date" | "service">("date");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [serviceFilter, setServiceFilter] = useState<string | null>(null);
+    const [serviceSearch, setServiceSearch] = useState("");
+
+    // Memoize the filtered list of services based on the search query for optimal performance
+    const filteredServices = useMemo(() => {
+        return allServices.filter(srv =>
+            srv.toLowerCase().includes(serviceSearch.toLowerCase())
+        );
+    }, [allServices, serviceSearch]);
 
     // Fetch all active service types directly from the database for the filter dropdown
     useEffect(() => {
@@ -246,15 +254,38 @@ export default function TreasuryDashboard() {
                             {/* Right controls: Status dropdown + Refresh */}
                             <div className="flex items-center gap-3">
                                 <div className="hidden sm:block">
-                                    <Select value={serviceFilter ?? "ALL"} onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}>
+                                    <Select 
+                                        value={serviceFilter ?? "ALL"} 
+                                        onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}
+                                        onOpenChange={(open) => { if (!open) setServiceSearch(""); }}
+                                    >
                                         <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
                                             <SelectValue placeholder="Service" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-white dark:bg-[#151b2b]">
+                                        <SelectContent className="bg-white dark:bg-[#151b2b] min-w-[220px] max-h-80 overflow-y-auto">
+                                            {/* Search input to filter dropdown items */}
+                                            <div className="p-2 border-b border-slate-100 dark:border-[#2a3040] sticky top-0 bg-white dark:bg-[#151b2b] z-10">
+                                                <div className="relative">
+                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+                                                    <Input
+                                                        placeholder="Search service..."
+                                                        value={serviceSearch}
+                                                        onChange={(e) => setServiceSearch(e.target.value)}
+                                                        className="pl-8 h-8 text-xs bg-slate-50 dark:bg-[#0f1117] border-slate-100 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-lg w-full"
+                                                        onKeyDown={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                            </div>
                                             <SelectItem value="ALL" className="text-sm">All Services</SelectItem>
-                                            {allServices.map(srv => (
-                                                <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
-                                            ))}
+                                            {filteredServices.length === 0 ? (
+                                                <div className="p-3 text-xs text-slate-500 dark:text-slate-400 text-center italic">
+                                                    No services found
+                                                </div>
+                                            ) : (
+                                                filteredServices.map(srv => (
+                                                    <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
