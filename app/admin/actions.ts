@@ -165,16 +165,19 @@ export async function getResidentCategories() {
 }
 
 
-export async function searchHeads(query: string) {
+export async function searchHeads(query: string, page: number = 1, limit: number = 10) {
     try {
         const managedBarangay = await getSessionBarangay();
         const where: any = {
-            isHead: true,
-            OR: [
+            isHead: true
+        };
+
+        if (query && query.trim()) {
+            where.OR = [
                 { firstName: { contains: query, mode: 'insensitive' } },
                 { lastName: { contains: query, mode: 'insensitive' } },
-            ]
-        };
+            ];
+        }
 
         if (managedBarangay) {
             where.barangay = managedBarangay;
@@ -182,7 +185,8 @@ export async function searchHeads(query: string) {
 
         const residents = await (prisma as any).resident.findMany({
             where,
-            take: 10,
+            skip: (page - 1) * limit,
+            take: limit,
             select: {
                 id: true,
                 firstName: true,
@@ -197,15 +201,17 @@ export async function searchHeads(query: string) {
     }
 }
 
-export async function searchResidents(query: string) {
+export async function searchResidents(query: string, page: number = 1, limit: number = 10) {
     try {
         const managedBarangay = await getSessionBarangay();
-        const where: any = {
-            OR: [
+        const where: any = {};
+
+        if (query && query.trim()) {
+            where.OR = [
                 { firstName: { contains: query, mode: 'insensitive' } },
                 { lastName: { contains: query, mode: 'insensitive' } },
-            ]
-        };
+            ];
+        }
 
         if (managedBarangay) {
             where.barangay = managedBarangay;
@@ -213,7 +219,8 @@ export async function searchResidents(query: string) {
 
         const residents = await (prisma as any).resident.findMany({
             where,
-            take: 10,
+            skip: (page - 1) * limit,
+            take: limit,
             select: {
                 id: true,
                 firstName: true,
@@ -2538,6 +2545,7 @@ export async function createUser(formData: FormData) {
         const password = formData.get("password") as string;
         const role = formData.get("role") as any;
         const managedBarangay = formData.get("managedBarangay") as string;
+        const department = formData.get("department") as string;
 
         if (!name || !email || !password || !role) {
             return { success: false, error: "Missing required fields" };
@@ -2557,6 +2565,7 @@ export async function createUser(formData: FormData) {
                 password: hashedPassword,
                 role,
                 managedBarangay: role === "BARANGAY_ADMIN" ? managedBarangay : null,
+                department: department || null,
                 isEmailVerified: true,
                 isPasswordChanged: true, // Admin set, bypass forced change
                 emailVerified: new Date(),

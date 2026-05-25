@@ -43,13 +43,14 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Your account has not been approved yet. Please wait for an administrator to process your registration.");
                 }
 
-                return {
+                 return {
                     id: user.id,
                     email: user.email,
                     name: user.name,
                     role: user.role,
                     isPasswordChanged: user.isPasswordChanged,
                     managedBarangay: user.managedBarangay,
+                    department: user.department,
                 };
             },
         }),
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
                 token.isPasswordChanged = (user as any).isPasswordChanged;
 
                 token.managedBarangay = (user as any).managedBarangay;
+                token.department = (user as any).department;
             }
 
             // Sync Database dynamically with Session to Auto-Logout rejected/pending users!
@@ -98,6 +100,7 @@ export const authOptions: NextAuthOptions = {
                 (session.user as any).isPasswordChanged = token.isPasswordChanged;
 
                 (session.user as any).managedBarangay = token.managedBarangay;
+                (session.user as any).department = token.department || null;
             }
             return session;
         },

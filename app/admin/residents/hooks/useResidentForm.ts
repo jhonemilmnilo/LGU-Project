@@ -14,8 +14,24 @@ export function useResidentForm() {
 
         const formData = new FormData(e.currentTarget);
         
-        // The FormData constructor captures file inputs if they have a 'name' attribute.
-        // But we need to handle specific IDs from the multi-step form.
+        const uppercaseKeys = [
+            "firstName", "lastName", "middleName", "suffix",
+            "placeOfBirth", "citizenship", "religion", "bloodType",
+            "houseNumber", "street", "sitio", "purok",
+            "occupation", "employer",
+            "motherFirstName", "motherMiddleName", "motherLastName",
+            "fatherFirstName", "fatherMiddleName", "fatherLastName",
+            "relationshipToHead",
+            "otherGender", "otherCivilStatus", "otherEducationalAttainment",
+            "otherEmploymentStatus", "otherIdType", "otherSector"
+        ];
+        
+        uppercaseKeys.forEach(key => {
+            const val = formData.get(key);
+            if (typeof val === "string") {
+                formData.set(key, val.toUpperCase().trim());
+            }
+        });
 
         try {
             if (editingData) {

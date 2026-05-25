@@ -55,3 +55,48 @@ export const ID_TYPES = [
   "N/A (Minor/No ID)",
   "Other"
 ];
+
+export const RELIGIONS = [
+  "ROMAN CATHOLIC",
+  "ISLAM",
+  "IGLESIA NI CRISTO",
+  "EVANGELICAL CHRISTIAN",
+  "JEHOVAH'S WITNESSES",
+  "SEVENTH-DAY ADVENTIST",
+  "BIBLE BAPTIST",
+  "AGLIPAYAN",
+  "METHODIST",
+  "OTHER"
+];
+
+export const BLOOD_TYPES = [
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
+  "UNKNOWN",
+  "OTHER"
+];
+
+export const OCCUPATIONS = [
+  "FARMER",
+  "TEACHER",
+  "DRIVER",
+  "EMPLOYEE (PRIVATE)",
+  "EMPLOYEE (GOVERNMENT)",
+  "BUSINESS OWNER",
+  "HOUSEWIFE / HOUSEHUSBAND",
+  "STUDENT",
+  "SEAMAN / MARINER",
+  "RETIRED",
+  "UNEMPLOYED",
+  "CONSTRUCTION WORKER",
+  "VENDOR",
+  "BARANGAY OFFICIAL / STAFF",
+  "HEALTH WORKER / BHW",
+  "OTHER"
+];

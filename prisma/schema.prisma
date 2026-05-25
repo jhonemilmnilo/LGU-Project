@@ -21,6 +21,7 @@ model User {
   isPasswordChanged Boolean   @default(false)
   rejectionCount    Int       @default(0)
   managedBarangay   String?
+  department        String?
   accounts          Account[]
   reports           Report[]
   residentProfile   Resident?
