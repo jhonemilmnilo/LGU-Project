@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import {
     CheckCircle, XCircle, X, User, MapPin, Phone,
     Briefcase, Shield, Heart, Users, FileText, AlertTriangle,
-    Clock, BadgeCheck
+    Clock, BadgeCheck, RotateCw, RefreshCw, ZoomIn, ZoomOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { approveResident, rejectResident } from "@/app/admin/actions/registration-approval";
@@ -53,6 +53,69 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
     const [isRejecting, setIsRejecting] = useState(false);
     const [remarks, setRemarks] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // Zoom, Rotation, and Drag Lightbox state
+    const [zoomedImage, setZoomedImage] = useState<{ src: string; label: string } | null>(null);
+    const [rotation, setRotation] = useState(0);
+    const [scale, setScale] = useState(1);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    const openLightbox = (src: string, label: string) => {
+        setZoomedImage({ src, label });
+        setRotation(0);
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+        setIsDragging(false);
+    };
+
+    const handleReset = () => {
+        setRotation(0);
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+        setIsDragging(false);
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (scale === 1) return; // Only allow drag when zoomed in
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    // Listen for Escape key to close the lightbox preview
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setZoomedImage(null);
+            }
+        };
+
+        if (zoomedImage) {
+            window.addEventListener("keydown", handleKeyDown);
+            // Disable background scrolling when zooming in
+            document.body.style.overflow = "hidden";
+        }
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+            document.body.style.overflow = "unset";
+        };
+    }, [zoomedImage]);
 
     if (!isOpen || !resident) return null;
 
@@ -112,27 +175,56 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative bg-white dark:bg-[#151b2b] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#2a3040] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="relative bg-white dark:bg-[#151b2b] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#2a3040] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-start justify-between p-6 border-b border-slate-100 dark:border-[#2a3040] flex-shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                        {/* Interactive Profile Picture */}
+                        <button 
+                            type="button"
+                            className={`group relative w-16 h-16 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0 transition-all duration-300 hover:scale-105 hover:shadow-md ${(resident.livenessUrl || resident.imageUrl) ? "cursor-zoom-in" : "cursor-default"}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const url = resident.livenessUrl || resident.imageUrl;
+                                if (url) {
+                                    openLightbox(url, "Profile Photo");
+                                }
+                            }}
+                            disabled={!(resident.livenessUrl || resident.imageUrl)}
+                            title={(resident.livenessUrl || resident.imageUrl) ? "Click to view full photo" : ""}
+                        >
                             {(resident.livenessUrl || resident.imageUrl) ? (
-                                <Image src={(resident.livenessUrl || resident.imageUrl) || ""} alt="Profile" fill className="object-cover" />
+                                <Image 
+                                    src={(resident.livenessUrl || resident.imageUrl) || ""} 
+                                    alt="Profile" 
+                                    fill 
+                                    className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                                />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center font-black text-xl text-slate-400 uppercase">
                                     {(resident.firstName && resident.firstName[0]) || ""}{(resident.lastName && resident.lastName[0]) || ""}
                                 </div>
                             )}
-                        </div>
+                        </button>
                         <div>
                             <h2 className="text-xl font-black uppercase tracking-tighter italic text-slate-900 dark:text-white leading-none">
                                 {resident.lastName}, {resident.firstName} {resident.middleName ? `${resident.middleName[0]}.` : ""} {resident.suffix}
                             </h2>
                             <p className="text-xs text-slate-500 mt-1 font-medium">{resident.email || "No email on file"}</p>
-                            <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full border text-xs font-bold ${status.bg} ${status.color}`}>
-                                <StatusIcon className="w-3.5 h-3.5" />
-                                {status.label}
+                            
+                            {/* Badges Container */}
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${status.bg} ${status.color}`}>
+                                    <StatusIcon className="w-3.5 h-3.5" />
+                                    {status.label}
+                                </div>
+
+                                {resident.isHead && (
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-850 text-violet-700 dark:text-violet-300 shadow-sm transition-all duration-300 hover:scale-105">
+                                        <Users className="w-3.5 h-3.5 text-violet-500" />
+                                        Family Head
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -154,6 +246,18 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
                         <Field label="Blood Type" value={resident.bloodType} />
                         <Field label="Height" value={resident.height} />
                         <Field label="Weight" value={resident.weight} />
+                    </Section>
+
+                    <Section icon={Users} title="Family Status">
+                        <Field label="Is Family Head?" value={resident.isHead} />
+                        {!resident.isHead ? (
+                            <>
+                                <Field label="Relationship to Head" value={resident.relationshipToHead || "Member"} />
+                                <Field label="Family Head Name" value={resident.headName} />
+                            </>
+                        ) : (
+                            <Field label="Family Members Count" value={resident.household?.members?.length || 0} />
+                        )}
                     </Section>
 
                     <Section icon={MapPin} title="Address">
@@ -213,18 +317,38 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
                             <div className="grid grid-cols-2 gap-4">
                                 {resident.idFrontUrl && (
                                     <div>
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">ID Front</p>
-                                        <div className="relative h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100">
-                                            <Image src={resident.idFrontUrl} alt="ID Front" fill className="object-cover" />
-                                        </div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">ID Front (Click to view)</p>
+                                        <button 
+                                            type="button"
+                                            className="group relative w-full h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 cursor-zoom-in transition-all duration-300 hover:scale-[1.02] hover:shadow-md"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (resident.idFrontUrl) {
+                                                    openLightbox(resident.idFrontUrl, "ID Front Document");
+                                                }
+                                            }}
+                                            title="Click to view high-res ID front"
+                                        >
+                                            <Image src={resident.idFrontUrl} alt="ID Front" fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                                        </button>
                                     </div>
                                 )}
                                 {resident.idBackUrl && (
                                     <div>
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">ID Back</p>
-                                        <div className="relative h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100">
-                                            <Image src={resident.idBackUrl} alt="ID Back" fill className="object-cover" />
-                                        </div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">ID Back (Click to view)</p>
+                                        <button 
+                                            type="button"
+                                            className="group relative w-full h-32 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 cursor-zoom-in transition-all duration-300 hover:scale-[1.02] hover:shadow-md"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (resident.idBackUrl) {
+                                                    openLightbox(resident.idBackUrl, "ID Back Document");
+                                                }
+                                            }}
+                                            title="Click to view high-res ID back"
+                                        >
+                                            <Image src={resident.idBackUrl} alt="ID Back" fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -308,6 +432,125 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
                     </div>
                 )}
             </div>
+
+            {/* Lightbox Preview Modal */}
+            {zoomedImage && (
+                <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-in fade-in duration-200">
+                    {/* Click background to close */}
+                    <div className="absolute inset-0 cursor-zoom-out" onClick={() => setZoomedImage(null)} />
+                    
+                    {/* Top glassmorphic header bar */}
+                    <div className="absolute top-0 inset-x-0 h-16 flex items-center justify-between px-6 bg-black/40 border-b border-white/10 backdrop-blur-sm z-10">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resident Verification</span>
+                            <span className="text-sm font-black text-white italic uppercase tracking-tight">{zoomedImage.label}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2.5 z-20">
+                            {/* Zoom Out Button */}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setScale((prev) => Math.max(prev - 0.25, 1));
+                                }}
+                                disabled={scale === 1}
+                                className="flex items-center justify-center p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 disabled:opacity-40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
+                                title="Zoom Out"
+                            >
+                                <ZoomOut className="w-4 h-4" />
+                            </button>
+
+                            {/* Zoom In Button */}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setScale((prev) => Math.min(prev + 0.25, 6));
+                                }}
+                                disabled={scale === 6}
+                                className="flex items-center justify-center p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 disabled:opacity-40 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
+                                title="Zoom In"
+                            >
+                                <ZoomIn className="w-4 h-4" />
+                            </button>
+
+                            {/* Rotate 90deg button */}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRotation((prev) => (prev + 90) % 360);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
+                                title="Rotate Image 90 degrees"
+                            >
+                                <RotateCw className="w-3.5 h-3.5 text-blue-400" />
+                                Rotate 90°
+                            </button>
+
+                            {/* Reset Button */}
+                            {(rotation !== 0 || scale !== 1 || position.x !== 0 || position.y !== 0) && (
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleReset();
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 shadow-md animate-in slide-in-from-right duration-200"
+                                    title="Reset Zoom & Rotation"
+                                >
+                                    <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                                    Reset
+                                </button>
+                            )}
+
+                            {/* Close Lightbox */}
+                            <button 
+                                onClick={() => setZoomedImage(null)} 
+                                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* High-res Image Content with Zoom wheel & Drag panning */}
+                    <div 
+                        className="relative w-full max-w-4xl h-[70vh] flex items-center justify-center p-4 z-0 overflow-hidden select-none pointer-events-auto"
+                        onWheel={(e) => {
+                            const delta = e.deltaY < 0 ? 0.25 : -0.25;
+                            setScale((prev) => Math.min(Math.max(prev + delta, 1), 6));
+                        }}
+                    >
+                        <div 
+                            className={`relative flex items-center justify-center transition-transform duration-200 ease-out select-none`}
+                            style={{ 
+                                transform: `translate(${position.x}px, ${position.y}px)`, 
+                                cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in"
+                            }}
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseLeave={handleMouseUp}
+                        >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img 
+                                src={zoomedImage.src} 
+                                alt={zoomedImage.label} 
+                                className={`max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl border border-white/10 pointer-events-none select-none ${isDragging ? "transition-none" : "transition-transform duration-200 ease-out"}`}
+                                style={{ 
+                                    transform: `rotate(${rotation}deg) scale(${scale})`,
+                                    transformOrigin: "center"
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Bottom overlay shortcut hint */}
+                    <div className="absolute bottom-6 text-center z-10 pointer-events-none">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            Scroll to Zoom • Drag to Pan {scale > 1 && "• Double-click to Reset"} • Press <kbd className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white text-[9px]">ESC</kbd> to Close
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

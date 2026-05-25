@@ -704,7 +704,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const txData = {
             userId: session.user.id,
             typeId,
-            status: "FOR_REQUESTING",
+            status: "FOR_INSPECTION",
             fulfillmentType: additionalData.fulfillmentType || null,
             paymentType: null,
             residentSnapshot,
@@ -841,8 +841,8 @@ export async function getTransactionById(id: string) {
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        // TREASURY_STAFF should not be able to view Business Permits in pre-screening status (FOR_REQUESTING or EVALUATED)
-        if (isBusinessPermit && user?.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(transaction.status)) {
+        // TREASURY_STAFF should not be able to view Business Permits in pre-screening status (FOR_INSPECTION)
+        if (isBusinessPermit && user?.role === "TREASURY_STAFF" && ["FOR_INSPECTION"].includes(transaction.status)) {
             return { success: false, error: "Forbidden: Pre-screening and evaluation must be handled by an Admin Aide first." };
         }
 
@@ -986,6 +986,11 @@ export async function submitTransaction(formData: FormData) {
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
         const typeId = formData.get("typeId") as string;
+        const transactionType = await prisma.transactionType.findUnique({
+            where: { id: typeId }
+        });
+        const isBusinessPermit = transactionType?.code.startsWith("BUSINESS_PERMIT") || false;
+        const initialStatus = isBusinessPermit ? "FOR_INSPECTION" : "FOR_REQUESTING";
 
         // Snapshots and Data
         const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
@@ -1018,7 +1023,7 @@ export async function submitTransaction(formData: FormData) {
                 data: {
                     userId: session.user.id,
                     typeId,
-                    status: "FOR_REQUESTING",
+                    status: initialStatus,
                     fulfillmentType: null,
                     paymentType: null,
                     residentSnapshot,
@@ -1061,7 +1066,7 @@ export async function submitTransaction(formData: FormData) {
 /**
  * Evaluate a Cedula Transaction (Treasury Staff side)
  */
-export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string) {
+export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string, bpFeeLineItems?: { label: string; amount: number }[]) {
     try {
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
@@ -1080,8 +1085,13 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
         const isLCR = transaction.type.code.startsWith("LCR_");
 
+        // ADMIN_AIDE can only evaluate Business Permits in FOR_INSPECTION status
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_INSPECTION") {
+            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
+        }
+
         // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
-        if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(transaction.status)) {
+        if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_INSPECTION"].includes(transaction.status)) {
             return { success: false, error: "Forbidden: Pre-screening and evaluation must be handled by an Admin Aide first." };
         }
         const isCedula = transaction.type.code.includes("CEDULA");
@@ -1130,22 +1140,45 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         };
 
         if (isBusinessPermit) {
-            const cap = Number(additionalData.capitalInvestment || 0);
-            const sales = Number(additionalData.grossSales || 0);
-            const bploCalc = calculateBusinessPermit({
-                type: additionalData.businessType === "NEW" ? "NEW" : "RENEWAL",
-                capitalization: cap,
-                grossSales: sales,
-                fulfillmentType: transaction.fulfillmentType,
-                deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
-            });
-            result = {
-                basicTax: bploCalc.baseFee,
-                additionalTax: bploCalc.taxAmount,
-                penalty: 0,
-                deliveryFee: bploCalc.deliveryFee,
-                totalAmount: bploCalc.totalAmount
-            };
+            if (user.role === "ADMIN_AIDE") {
+                result = {
+                    basicTax: 0,
+                    additionalTax: 0,
+                    penalty: 0,
+                    deliveryFee: 0,
+                    totalAmount: 0
+                };
+            } else if (bpFeeLineItems && bpFeeLineItems.length > 0) {
+                const itemsSum = bpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+                const deliveryFee = transaction.fulfillmentType === "DELIVERY"
+                    ? (deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || 0)
+                    : 0;
+                const total = itemsSum + deliveryFee;
+                result = {
+                    basicTax: itemsSum,
+                    additionalTax: 0,
+                    penalty: 0,
+                    deliveryFee: deliveryFee,
+                    totalAmount: total
+                };
+            } else {
+                const cap = Number(additionalData.capitalInvestment || 0);
+                const sales = Number(additionalData.grossSales || 0);
+                const bploCalc = calculateBusinessPermit({
+                    type: additionalData.businessType === "NEW" ? "NEW" : "RENEWAL",
+                    capitalization: cap,
+                    grossSales: sales,
+                    fulfillmentType: transaction.fulfillmentType,
+                    deliveryFee: deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee
+                });
+                result = {
+                    basicTax: bploCalc.baseFee,
+                    additionalTax: bploCalc.taxAmount,
+                    penalty: 0,
+                    deliveryFee: bploCalc.deliveryFee,
+                    totalAmount: bploCalc.totalAmount
+                };
+            }
         } else if (isCedula) {
             const cedulaCalc = calculateCedula({
                 type: additionalData.applicantType || "INDIVIDUAL",
@@ -1192,8 +1225,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         }
 
         // Determine New Status
-        // Now strictly EVALUATED as the resident will choose fulfillment later
-        const newStatus = "EVALUATED" as any;
+        // If it is an ADMIN_AIDE pre-screening a Business Permit, the status should be set to FOR_REQUESTING
+        const newStatus = (user.role === "ADMIN_AIDE" && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
@@ -1207,14 +1240,15 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     additionalTax: result!.additionalTax,
                     penaltyCharge: result!.penalty,
                     deliveryFee: result!.deliveryFee, // Persist delivery fee here
-                    totalAmount: result!.totalAmount
+                    totalAmount: result!.totalAmount,
+                    ...(isBusinessPermit && bpFeeLineItems ? { lineItems: bpFeeLineItems } : {})
                 }
             } as any,
             include: { user: true }
         }) as any;
 
         // Trigger email notification for payment
-        if (updatedTransaction.user?.email) {
+        if (updatedTransaction.user?.email && newStatus === "EVALUATED") {
             const resident = updatedTransaction.residentSnapshot as any;
             await sendEmail({
                 type: "FOR_PAYMENT",
@@ -1351,7 +1385,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_REQUESTING") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
@@ -1411,7 +1445,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_REQUESTING") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && transaction.status !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
         const additionalData = transaction.additionalData as any;
@@ -1782,7 +1816,7 @@ export async function getTreasuryTransactions(status?: string) {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
-            where.status = "FOR_REQUESTING";
+            where.status = "FOR_INSPECTION";
         }
 
         if (status && status !== "ALL") {
@@ -1797,12 +1831,12 @@ export async function getTreasuryTransactions(status?: string) {
             }
         }
 
-        // TREASURY_STAFF should not see Business Permits in pre-screening status (FOR_REQUESTING or EVALUATED)
+        // TREASURY_STAFF should not see Business Permits in pre-screening status (FOR_INSPECTION)
         if (user.role === "TREASURY_STAFF") {
             where.NOT = {
                 AND: [
                     { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                    { status: { in: ["FOR_INSPECTION"] } }
                 ]
             };
         }
@@ -1852,7 +1886,7 @@ export async function getPendingTreasuryCount() {
 
         const where: any = {
             type: { processorRole: "TREASURY_STAFF" },
-            status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
+            status: { in: ["FOR_REQUESTING", "FOR_INSPECTION", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
         };
 
         if (user?.role === "ADMIN_AIDE") {
@@ -1860,7 +1894,7 @@ export async function getPendingTreasuryCount() {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
-            where.status = "FOR_REQUESTING";
+            where.status = "FOR_INSPECTION";
         }
 
         // TREASURY_STAFF should not count Business Permits in pre-screening status
@@ -1868,7 +1902,7 @@ export async function getPendingTreasuryCount() {
             where.NOT = {
                 AND: [
                     { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                    { status: { in: ["FOR_INSPECTION"] } }
                 ]
             };
         }
@@ -1905,14 +1939,14 @@ export async function getTreasuryStatusCounts() {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
-            where.status = "FOR_REQUESTING";
+            where.status = "FOR_INSPECTION";
         }
 
         if (user.role === "TREASURY_STAFF") {
             where.NOT = {
                 AND: [
                     { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                    { status: { in: ["FOR_INSPECTION"] } }
                 ]
             };
         }
@@ -1934,14 +1968,14 @@ export async function getTreasuryStatusCounts() {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
-            cancelledWhere.status = "FOR_REQUESTING";
+            cancelledWhere.status = "FOR_INSPECTION";
         }
 
         if (user.role === "TREASURY_STAFF") {
             cancelledWhere.NOT = {
                 AND: [
                     { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_REQUESTING", "EVALUATED"] } }
+                    { status: { in: ["FOR_INSPECTION"] } }
                 ]
             };
         }
@@ -1984,12 +2018,12 @@ export async function rejectTransaction(id: string, remarks: string) {
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_REQUESTING") {
-            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_INSPECTION") {
+            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
         }
 
         // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
-        if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_REQUESTING", "EVALUATED"].includes(tx.status)) {
+        if (isBusinessPermit && user.role === "TREASURY_STAFF" && ["FOR_INSPECTION"].includes(tx.status)) {
             return { success: false, error: "Forbidden: Pre-screening and evaluation must be handled by an Admin Aide first." };
         }
 
@@ -2088,7 +2122,7 @@ export async function sendForRevision(id: string, remarks: string) {
         if (!tx) return { success: false, error: "Transaction inaccessible" };
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_REQUESTING") {
+        if (isBusinessPermit && user.role === "ADMIN_AIDE" && tx.status !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 

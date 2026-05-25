@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
     getTreasuryTransactions,
     getPendingTreasuryCount,
-    getTreasuryStatusCounts
+    getTreasuryStatusCounts,
+    getTransactionTypes
 } from "@/app/admin/transactions/actions";
 import {
     Table,
@@ -30,6 +31,7 @@ import { useSession } from "next-auth/react";
 const STATUS_TABS = [
     { value: "ALL", label: "All Status", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
     { value: "FOR_REQUESTING", label: "Evaluation", color: "text-amber-600", activeColor: "bg-amber-500 text-white" },
+    { value: "FOR_INSPECTION", label: "Inspection", color: "text-blue-600", activeColor: "bg-blue-500 text-white" },
     { value: "FOR_REVISION", label: "For Revision", color: "text-amber-600", activeColor: "bg-amber-600 text-white" },
     { value: "FOR_PROCESSING", label: "Processing", color: "text-sky-600", activeColor: "bg-sky-500 text-white" },
     { value: "FOR_CLAIM", label: "For Claim", color: "text-indigo-600", activeColor: "bg-indigo-500 text-white" },
@@ -60,20 +62,22 @@ export default function TreasuryDashboard() {
 
     const filteredTabs = useMemo(() => {
         if (userRole === "ADMIN_AIDE") {
-            return STATUS_TABS.filter(tab => tab.value === "FOR_REQUESTING");
+            return STATUS_TABS.filter(tab => tab.value === "FOR_INSPECTION");
         }
-        return STATUS_TABS;
+        // Treasury Staff and other roles should not see the Inspection tab as it is processed exclusively by Admin Aide
+        return STATUS_TABS.filter(tab => tab.value !== "FOR_INSPECTION");
     }, [userRole]);
 
     const [status, setStatus] = useState("ALL");
 
-    // Default status tab to FOR_REQUESTING for ADMIN_AIDE
+    // Default status tab to FOR_INSPECTION for ADMIN_AIDE
     useEffect(() => {
         if (userRole === "ADMIN_AIDE") {
-            setStatus("FOR_REQUESTING");
+            setStatus("FOR_INSPECTION");
         }
     }, [userRole]);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [allServices, setAllServices] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -83,16 +87,21 @@ export default function TreasuryDashboard() {
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [serviceFilter, setServiceFilter] = useState<string | null>(null);
 
-    // Compute unique services present in the current transactions list for dynamic cycling
-    const uniqueServices = useMemo(() => {
-        const services = new Set<string>();
-        transactions.forEach(tx => {
-            if (tx.type?.name) {
-                services.add(tx.type.name);
+    // Fetch all active service types directly from the database for the filter dropdown
+    useEffect(() => {
+        async function fetchServices() {
+            try {
+                const res = await getTransactionTypes();
+                if (res.success && res.data) {
+                    const names = res.data.map(t => t.name).filter(Boolean);
+                    setAllServices(names);
+                }
+            } catch (err) {
+                console.error("Failed to load services for filter:", err);
             }
-        });
-        return Array.from(services).sort();
-    }, [transactions]);
+        }
+        fetchServices();
+    }, []);
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -243,7 +252,7 @@ export default function TreasuryDashboard() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-white dark:bg-[#151b2b]">
                                             <SelectItem value="ALL" className="text-sm">All Services</SelectItem>
-                                            {uniqueServices.map(srv => (
+                                            {allServices.map(srv => (
                                                 <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
                                             ))}
                                         </SelectContent>
