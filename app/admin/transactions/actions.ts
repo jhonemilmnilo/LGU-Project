@@ -1434,7 +1434,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
 /**
  * Release Cedula (Treasury Staff side)
  */
-export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string, orUrl?: string) {
+export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string, orUrl?: string, stickerNumber?: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
@@ -1457,16 +1457,23 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             }
         });
 
-        if (!transaction || !["PAID", "FOR_CLAIM", "FOR_PROCESSING"].includes(transaction.status as any)) {
-            return { success: false, error: "Transaction must be paid, processing, or ready for claiming before release" };
+        if (!transaction || !["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status as any)) {
+            return { success: false, error: "Transaction must be paid, processing, ready for claiming, or under re-inspection before release" };
         }
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && isUserAdminAide(user) && (transaction.status as any) !== "FOR_INSPECTION") {
-            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
+        if (isBusinessPermit && user.role === "TREASURY_STAFF") {
+            return { success: false, error: "Forbidden: Treasury Staff cannot process or release Business Permits. This must be handled by BPLO Admin." };
+        }
+
+        if (isBusinessPermit && isUserAdminAide(user) && !["FOR_INSPECTION", "FOR_PROCESSING", "PAID", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status as any)) {
+            return { success: false, error: "Forbidden: BPLO Admins can only process Business Permits in the inspection, evaluation, processing, or release phases." };
         }
         const additionalData = transaction.additionalData as any;
+        if (stickerNumber) {
+            additionalData.stickerNumber = stickerNumber.trim();
+        }
 
         let basicTax = 0;
         let additionalTax = 0;
@@ -1500,20 +1507,22 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         }
 
         // Determine target status: FOR_PICKING for Delivery, FOR_CLAIM for Pickup prepare, else RELEASED
-        const isInitialRelease = transaction.status === "FOR_PROCESSING" || transaction.status === "PAID";
-        const targetStatus = isInitialRelease
-            ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
-            : "RELEASED";
+        const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
+        const targetStatus = (isBusinessPermit && (transaction.status as any) === "FOR_PROCESSING")
+            ? "FOR_REINSPECTION"
+            : isInitialRelease
+                ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
+                : "RELEASED";
 
-        // Strictly enforce E-Copy and OR attachments for Business Permits in initial release phase
+        // Strictly enforce OR attachments for Business Permits in initial release phase, and e-copy during FOR_REINSPECTION
         if (isBusinessPermit && isInitialRelease) {
-            const currentECopy = eCopyUrl || transaction.eCopyUrl;
             const currentOr = orUrl || transaction.orUrl;
-            if (!currentECopy) {
-                return { success: false, error: "Digital E-Copy is required for Business Permits before releasing." };
-            }
+            const currentECopy = eCopyUrl || transaction.eCopyUrl;
             if (!currentOr) {
                 return { success: false, error: "Official Receipt (OR) attachment is required for Business Permits before releasing." };
+            }
+            if ((transaction.status as any) === "FOR_REINSPECTION" && !currentECopy) {
+                return { success: false, error: "Digital E-Copy Permit is required during the Re-Inspection phase before releasing." };
             }
         }
 
@@ -1566,7 +1575,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 const generatedPermitNo = (isRenewal && existingPermitNo)
                     ? existingPermitNo.trim()
                     : (ctcNumber?.trim() || `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`);
-                await prisma.businessPermit.create({
+                await (prisma.businessPermit.create as any)({
                     data: {
                         transactionId: id,
                         permitNumber: generatedPermitNo,
@@ -1583,16 +1592,18 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                         employeeCount: Number(additionalData.employeeCount ?? 0),
                         businessArea: Number(additionalData.businessArea || 0),
                         documentUrl: eCopyUrl || transaction.eCopyUrl,
+                        stickerNumber: stickerNumber || additionalData.stickerNumber || null,
                         issuedBy: user.name || "System Administrator",
                         verificationId: `VER-BP-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                     }
                 });
-            } else if (ctcNumber || eCopyUrl) {
-                await prisma.businessPermit.update({
+            } else if (ctcNumber || eCopyUrl || stickerNumber) {
+                await (prisma.businessPermit.update as any)({
                     where: { id: transaction.businessPermit.id },
                     data: {
                         ...((ctcNumber && !isRenewal) ? { permitNumber: ctcNumber.trim() } : {}),
-                        ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                        ...(eCopyUrl ? { documentUrl: eCopyUrl } : {}),
+                        ...(stickerNumber ? { stickerNumber: stickerNumber.trim() } : {})
                     }
                 });
             }
@@ -1819,6 +1830,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             where: { id },
             data: {
                 status: targetStatus as any,
+                additionalData: additionalData as any,
                 ...(eCopyUrl ? { eCopyUrl } : {}),
                 ...(orUrl ? { orUrl } : {})
             }
@@ -1864,7 +1876,11 @@ export async function getTreasuryTransactions(status?: string) {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
-            where.status = "FOR_INSPECTION";
+            if (!status || status === "ALL") {
+                where.status = { in: ["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED", "REJECTED"] };
+            } else {
+                where.status = status;
+            }
         }
 
         if (status && status !== "ALL") {
@@ -1879,12 +1895,12 @@ export async function getTreasuryTransactions(status?: string) {
             }
         }
 
-        // TREASURY_STAFF should not see Business Permits in pre-screening status (FOR_INSPECTION)
+        // TREASURY_STAFF should not see Business Permits in pre-screening, processing, reinspection, picking/claiming, delivery/release, or rejection stages
         if (user.role === "TREASURY_STAFF") {
             where.NOT = {
                 AND: [
                     { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_INSPECTION"] } }
+                    { status: { in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "RELEASED", "REJECTED"] } }
                 ]
             };
         }
@@ -2066,8 +2082,8 @@ export async function rejectTransaction(id: string, remarks: string) {
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && isUserAdminAide(user) && (tx.status as any) !== "FOR_INSPECTION") {
-            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
+        if (isBusinessPermit && isUserAdminAide(user) && !["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(tx.status as any)) {
+            return { success: false, error: "Forbidden: BPLO Admins can only reject Business Permits in active inspection, processing, or release phases." };
         }
 
         // TREASURY_STAFF cannot pre-screen or evaluate Business Permits that are in pre-screening states
@@ -2170,8 +2186,8 @@ export async function sendForRevision(id: string, remarks: string) {
         if (!tx) return { success: false, error: "Transaction inaccessible" };
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && isUserAdminAide(user) && (tx.status as any) !== "FOR_INSPECTION") {
-            return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
+        if (isBusinessPermit && isUserAdminAide(user) && !["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(tx.status as any)) {
+            return { success: false, error: "Forbidden: BPLO Admins can only request revisions for Business Permits in active inspection, processing, or release phases." };
         }
 
         const nextRevisionCount = (tx.revisionCount || 0) + 1;
