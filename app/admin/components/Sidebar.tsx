@@ -22,6 +22,7 @@ interface SidebarProps {
             image?: string | null;
             role?: string;
             managedBarangay?: string | null;
+            department?: string | null;
         };
     };
     logoUrl?: string;
@@ -152,7 +153,20 @@ export function Sidebar({
     ];
 
     let menuItems = allMenuItems;
-    if (role === "CONTENT_ADMIN") {
+    const department = session?.user?.department;
+
+    if (role === "ADMIN" && department) {
+        if (department.toUpperCase() === "BPLO") {
+            menuItems = [
+                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+                { href: "/admin/treasury", label: "Business Permit", icon: CreditCard, category: "Treasury" }
+            ];
+        } else {
+            menuItems = [
+                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
+            ];
+        }
+    } else if (role === "CONTENT_ADMIN") {
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));

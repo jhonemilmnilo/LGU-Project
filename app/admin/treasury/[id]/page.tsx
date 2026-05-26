@@ -219,7 +219,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const { id } = use(params);
     const router = useRouter();
     const { data: session } = useSession();
-    const userRole = (session?.user as any)?.role;
+    const rawUserRole = (session?.user as any)?.role;
+    const userDepartment = (session?.user as any)?.department;
+    // Map BPLO Admin to behave exactly like ADMIN_AIDE for Treasury pages
+    const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment === "BPLO";
+    const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
     const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);

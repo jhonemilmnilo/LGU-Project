@@ -59,23 +59,25 @@ export default function TreasuryDashboard() {
     const router = useRouter();
     const { data: session } = useSession();
     const userRole = (session?.user as any)?.role;
+    const userDepartment = (session?.user as any)?.department;
+    const isAdminAide = userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && userDepartment?.toUpperCase() === "BPLO");
 
     const filteredTabs = useMemo(() => {
-        if (userRole === "ADMIN_AIDE") {
+        if (isAdminAide) {
             return STATUS_TABS.filter(tab => tab.value === "FOR_INSPECTION");
         }
         // Treasury Staff and other roles should not see the Inspection tab as it is processed exclusively by Admin Aide
         return STATUS_TABS.filter(tab => tab.value !== "FOR_INSPECTION");
-    }, [userRole]);
+    }, [isAdminAide]);
 
     const [status, setStatus] = useState("ALL");
 
     // Default status tab to FOR_INSPECTION for ADMIN_AIDE
     useEffect(() => {
-        if (userRole === "ADMIN_AIDE") {
+        if (isAdminAide) {
             setStatus("FOR_INSPECTION");
         }
-    }, [userRole]);
+    }, [isAdminAide]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [allServices, setAllServices] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);

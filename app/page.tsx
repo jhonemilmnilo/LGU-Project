@@ -33,7 +33,7 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { ensureBusinessPermitTransactionTypes, ensureCivilRegistryTransactionTypes, ensureBuildingPermitTransactionTypes } from "@/app/admin/transactions/actions";
+// import { ensureBusinessPermitTransactionTypes, ensureCivilRegistryTransactionTypes, ensureBuildingPermitTransactionTypes } from "@/app/admin/transactions/actions";
 
 
 export const dynamic = 'force-dynamic';
@@ -48,9 +48,9 @@ export default async function Home({
     const isFiltered = selectedBarangay !== "All";
 
     // Ensure all service types are seeded in the database
-    await ensureBusinessPermitTransactionTypes();
-    await ensureCivilRegistryTransactionTypes();
-    await ensureBuildingPermitTransactionTypes();
+    // await ensureBusinessPermitTransactionTypes();
+    // await ensureCivilRegistryTransactionTypes();
+    // await ensureBuildingPermitTransactionTypes();
 
     // Validate barangay: if a specific barangay is requested, check if it exists in the database
     if (isFiltered) {
@@ -118,43 +118,37 @@ export default async function Home({
     const showChurch = settings.get("section_church") !== "false";
     const showMap = settings.get("section_map") !== "false";
 
-    const [
-        slides, tourismSpots, dining, lodging,
-        announcements, events, news, projects,
-        jobs, officials, hotlines,
-        churchInfo, churchSchedules, latestCollection,
-        barangays, transactionTypes
-    ] = await Promise.all([
+    const slides = await 
         prisma.heroSlide.findMany({
             where: {
                 isActive: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
             } as any,
             orderBy: { order: 'asc' }
-        }),
-        prisma.tourismSpot.findMany({
-            where: {
+        });
+    const tourismSpots = await prisma.tourismSpot.findMany({
+        where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             take: 5
-        }),
-        prisma.dining.findMany({
-            where: {
+        });
+    const dining = await prisma.dining.findMany({
+        where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             take: 4
-        }),
-        prisma.accommodation.findMany({
-            where: {
+        });
+    const lodging = await prisma.accommodation.findMany({
+        where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             take: 4
-        }),
-        prisma.announcement.findMany({
-            where: {
+        });
+    const announcements = await prisma.announcement.findMany({
+        where: {
                 isActive: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
@@ -163,33 +157,33 @@ export default async function Home({
                 { createdAt: 'desc' }
             ],
             take: 3
-        }),
-        prisma.event.findMany({
-            where: {
+        });
+    const events = await prisma.event.findMany({
+        where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             orderBy: { startDate: 'asc' }
-        }),
-        prisma.news.findMany({
-            where: {
+        });
+    const news = await prisma.news.findMany({
+        where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             orderBy: { publishDate: 'desc' },
             take: 4
-        }),
-        prisma.project.findMany({
-            where: {
+        });
+    const projects = await prisma.project.findMany({
+        where: {
                 isPublished: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             } as any,
             orderBy: { createdAt: 'desc' },
             take: 3
-        }),
+        });
 
-        (prisma as any).job.findMany({
-            where: {
+    const jobs = await (prisma as any).job.findMany({
+        where: {
                 isActive: true,
                 ...(isFiltered ? { barangay: selectedBarangay } : {})
             },
@@ -198,9 +192,9 @@ export default async function Home({
                 { createdAt: 'desc' }
             ],
             take: 3
-        }),
-        prisma.official.findMany({
-            where: {
+        });
+    const officials = await prisma.official.findMany({
+        where: {
                 isActive: true,
                 ...(isFiltered ? { barangay: selectedBarangay, category: { in: ['Barangay Council', 'SK Council', 'Barangay', 'SK'] } } : {})
             } as any,
@@ -208,42 +202,42 @@ export default async function Home({
                 { order: "asc" },
                 { createdAt: "asc" }
             ]
-        }),
-        prisma.hotline.findMany({
-            where: { isActive: true },
+        });
+    const hotlines = await prisma.hotline.findMany({
+        where: { isActive: true },
             orderBy: { order: "asc" }
-        }),
+        });
         // Fetch ONLY Main Church (Global) context for the Landing Page
 
-        (prisma as any).churchInfo.findFirst({
-            where: {
+    const churchInfo = await (prisma as any).churchInfo.findFirst({
+        where: {
                 ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
             } as any,
             include: { schedules: true }
-        }),
-        (prisma as any).churchSchedule.findMany({
-            where: {
+        });
+    const churchSchedules = await (prisma as any).churchSchedule.findMany({
+        where: {
                 churchInfo: {
                     ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
                 }
             } as any,
             orderBy: [{ day: "asc" }, { time: "asc" }]
-        }),
-        (prisma as any).churchCollection.findMany({
-            where: {
+        });
+    const latestCollection = await (prisma as any).churchCollection.findMany({
+        where: {
                 churchInfo: {
                     ...(isFiltered ? { barangay: selectedBarangay } : { OR: [{ barangay: null }, { barangay: "" }] })
                 }
             } as any,
             orderBy: { date: "desc" },
             take: 4
-        }),
-        (prisma as any).barangayInfo.findMany({
-            select: { name: true },
+        });
+    const barangays = await (prisma as any).barangayInfo.findMany({
+        select: { name: true },
             orderBy: { name: 'asc' }
-        }).then((list: any[]) => list.map((b: any) => b.name)),
-        prisma.transactionType.findMany({
-            where: {
+        }).then((list: any[]) => list.map((b: any) => b.name));
+    const transactionTypes = await prisma.transactionType.findMany({
+        where: {
                 isActive: true,
                 OR: [
                     { code: "CEDULA_IND" },
@@ -255,7 +249,7 @@ export default async function Home({
             },
             orderBy: { name: "asc" }
         })
-    ]);
+    ;
 
     const services = (transactionTypes as any[]).map(t => {
         if (t.code === "BUSINESS_PERMIT_NEW") {
@@ -402,4 +396,5 @@ export default async function Home({
         </main>
     );
 }
+
 
