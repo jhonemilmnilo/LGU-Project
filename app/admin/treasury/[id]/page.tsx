@@ -219,7 +219,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const { id } = use(params);
     const router = useRouter();
     const { data: session } = useSession();
-    const userRole = (session?.user as any)?.role;
+    const rawUserRole = (session?.user as any)?.role;
+    const userDepartment = (session?.user as any)?.department;
+    // Map BPLO Admin to behave exactly like ADMIN_AIDE for Treasury pages
+    const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment === "BPLO";
+    const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
     const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -689,6 +693,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         steps = [
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "FOR_REVISION", label: "REVISION REQ." }
+        ];
+    } else if (status === "FOR_REINSPECTION") {
+        steps = [
+            { id: "FOR_INSPECTION", label: "INSPECTION" },
+            { id: "FOR_REINSPECTION", label: "RE-INSPECTION" }
         ];
     } else if (status.includes("RETURN") || status.includes("REFUND") || status === "DISPUTE_REJECTED") {
         const disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");

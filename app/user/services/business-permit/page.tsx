@@ -17,7 +17,8 @@ import {
     Building2,
     HelpCircle,
     X,
-    ChevronDown
+    ChevronDown,
+    Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ import { useDraft } from "@/hooks/useDraft";
 import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -149,7 +151,7 @@ const STEP_BY_STEP_GUIDES: Record<string, { title: string; steps: string[] }> = 
         ]
     },
     brgyClearanceFile: {
-        title: "How to get a Barangay Business Clearance",
+        title: "How to get a Barangay Clearance",
         steps: [
             "Visit the Barangay Hall of the barangay where your business is located.",
             "Bring your approved DTI / SEC / CDA Registration and a Valid Government-Issued ID.",
@@ -180,7 +182,7 @@ const STEP_BY_STEP_GUIDES: Record<string, { title: string; steps: string[] }> = 
     }
 };
 
-function FilePreview({ file }: { file: File }) {
+function FilePreview({ file, onClick }: { file: File; onClick?: () => void }) {
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
 
     React.useEffect(() => {
@@ -198,16 +200,20 @@ function FilePreview({ file }: { file: File }) {
     if (file.type.startsWith("image/")) {
         if (!previewUrl) return null;
         return (
-            <div className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200">
+            <div 
+                onClick={onClick}
+                className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200 cursor-pointer"
+            >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={previewUrl}
                     alt="Document Preview"
                     className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
-                    <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3 py-1 rounded-full backdrop-blur-md">
-                        Selected Image Preview
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3.5 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5 hover:bg-black/80 transition-colors">
+                        <Eye className="w-3.5 h-3.5" />
+                        Click to View
                     </span>
                 </div>
             </div>
@@ -215,14 +221,20 @@ function FilePreview({ file }: { file: File }) {
     }
 
     return (
-        <div className="w-full py-4 px-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 mt-3 flex items-center gap-2.5 animate-in fade-in duration-200">
-            <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold text-xs font-mono shrink-0">
-                PDF
+        <div 
+            onClick={onClick}
+            className="w-full py-4 px-3 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 mt-3 flex items-center justify-between gap-2.5 animate-in fade-in duration-200 cursor-pointer group/pdf hover:border-primary/25 transition-all"
+        >
+            <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+                    PDF
+                </div>
+                <div className="truncate text-left">
+                    <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 truncate font-mono">{file.name}</span>
+                    <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Document File</span>
+                </div>
             </div>
-            <div className="truncate text-left">
-                <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 truncate font-mono">{file.name}</span>
-                <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Document File</span>
-            </div>
+            <Eye className="w-4 h-4 text-slate-400 group-hover/pdf:text-primary transition-colors shrink-0 mr-1" />
         </div>
     );
 }
@@ -285,6 +297,19 @@ export default function BusinessPermitWizardPage() {
         birCorFile: null,
         previousPermitFile: null
     });
+
+    // Document Viewer States
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const openViewer = (file: File | null, url: string | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(url);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
 
 
@@ -1478,7 +1503,7 @@ export default function BusinessPermitWizardPage() {
                                                 { label: "2. Community Tax Certificate (CTC/Cedula)", field: "ctcFile" },
                                                 { label: "3. DTI / SEC / CDA Registration", field: "dtiSecFile" },
                                                 { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile" },
-                                                { label: "5. Barangay Business Clearance", field: "brgyClearanceFile" },
+                                                { label: "5. Barangay Clearance", field: "brgyClearanceFile" },
                                                 { label: "6. Location Photo of Business", field: "locationPhotoFile" },
                                                 { label: "7. Sanitary Permit", field: "sanitaryPermitFile" },
                                                 { label: "8. Fire Safety Inspection Certificate", field: "fireSafetyFile" }
@@ -1497,6 +1522,7 @@ export default function BusinessPermitWizardPage() {
                                                     <div className="flex items-center justify-between">
                                                         <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500 italic flex items-center">
                                                             <span>{item.label}</span>
+                                                            {!item.optional && <span className="text-rose-500 ml-0.5">*</span>}
                                                             {STEP_BY_STEP_GUIDES[item.field] && (
                                                                 <button
                                                                     type="button"
@@ -1546,64 +1572,90 @@ export default function BusinessPermitWizardPage() {
 
                                                         {/* Live File Preview Card for Images/PDFs or Preloaded Identity Card */}
                                                         {file ? (
-                                                            <FilePreview file={file} />
+                                                            <FilePreview file={file} onClick={() => openViewer(file, null, item.label)} />
                                                         ) : revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`] ? (
                                                             String(revisionTx.additionalData[`${item.field.replace("File", "Url")}`]).toLowerCase().includes('.pdf') ? (
-                                                                <div className="w-full py-4 px-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 mt-3 flex items-center gap-2.5 animate-in fade-in duration-200">
-                                                                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs font-mono shrink-0">
-                                                                        PDF
+                                                                <div 
+                                                                    onClick={() => openViewer(null, revisionTx.additionalData[`${item.field.replace("File", "Url")}`] as string, item.label)}
+                                                                    className="w-full py-4 px-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 mt-3 flex items-center justify-between gap-2.5 animate-in fade-in duration-200 cursor-pointer group/pdf hover:border-emerald-500/30 transition-all"
+                                                                >
+                                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs font-mono shrink-0">
+                                                                            PDF
+                                                                        </div>
+                                                                        <div className="truncate text-left">
+                                                                            <span className="block text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate font-mono">View PDF Document</span>
+                                                                            <span className="block text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Active Revision File</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="truncate text-left">
-                                                                        <a href={revisionTx.additionalData[`${item.field.replace("File", "Url")}`]} target="_blank" rel="noreferrer" className="block text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate font-mono hover:underline">View PDF Document</a>
-                                                                        <span className="block text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Active Revision File</span>
-                                                                    </div>
+                                                                    <Eye className="w-4 h-4 text-emerald-500/70 group-hover/pdf:text-emerald-600 transition-colors shrink-0 mr-1" />
                                                                 </div>
                                                             ) : (
-                                                                <div className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200">
+                                                                <div 
+                                                                    onClick={() => openViewer(null, revisionTx.additionalData[`${item.field.replace("File", "Url")}`] as string, item.label)}
+                                                                    className="relative w-full h-36 rounded-xl overflow-hidden mt-3 border border-slate-100 dark:border-white/10 shadow-inner bg-slate-50 dark:bg-black/20 flex items-center justify-center group/preview animate-in fade-in zoom-in-95 duration-200 cursor-pointer"
+                                                                >
                                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                     <img
-                                                                        src={revisionTx.additionalData[`${item.field.replace("File", "Url")}`]}
+                                                                        src={revisionTx.additionalData[`${item.field.replace("File", "Url")}`] as string}
                                                                         alt="Revision Document Preview"
                                                                         className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-300"
                                                                     />
-                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
-                                                                        <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3 py-1 rounded-full backdrop-blur-md">
-                                                                            Saved File Preview
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                        <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3.5 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5 hover:bg-black/80 transition-colors">
+                                                                            <Eye className="w-3.5 h-3.5" />
+                                                                            CLICK TO VIEW FULL SIZE
                                                                         </span>
                                                                     </div>
                                                                 </div>
                                                             )
                                                         ) : (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) ? (
-                                                            <div className="relative rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 bg-slate-100 dark:bg-black/30 h-28 flex items-center justify-center">
+                                                            <div 
+                                                                onClick={() => openViewer(null, formData.residentData.idFrontUrl as string, item.label)}
+                                                                className="relative rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 bg-slate-100 dark:bg-black/30 h-28 flex items-center justify-center group/preview cursor-pointer"
+                                                            >
                                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                 <img
                                                                     src={formData.residentData.idFrontUrl}
                                                                     alt="Preloaded ID Front"
-                                                                    className="object-cover w-full h-full"
+                                                                    className="object-cover w-full h-full group-hover/preview:scale-105 transition-transform duration-300"
                                                                 />
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                    <span className="text-[10px] text-white font-black uppercase tracking-widest bg-black/60 px-3.5 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5 hover:bg-black/80 transition-colors">
+                                                                        <Eye className="w-3.5 h-3.5" />
+                                                                        CLICK TO VIEW FULL SIZE
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         ) : null}
 
-                                                        <div className="flex items-center justify-between w-full gap-2 mt-1">
+                                                        <div className="flex items-center justify-between w-full mt-1">
                                                             <input
                                                                 type="file"
                                                                 onChange={(e) => handleFileChange(e, item.field as keyof FormState)}
                                                                 className="hidden"
                                                                 id={`upload-${item.field}`}
                                                             />
-                                                            <Button
-                                                                asChild
-                                                                className={cn(
-                                                                    "font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none shadow-md active:scale-[0.98]",
-                                                                    (file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`])
-                                                                        ? "bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white"
-                                                                        : "bg-primary hover:bg-primary/90 text-white"
-                                                                )}
-                                                            >
-                                                                <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
-                                                                    {(file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]) ? "Replace File" : "Upload"}
-                                                                </label>
-                                                            </Button>
+                                                            {(file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]) ? (
+                                                                <Button
+                                                                    asChild
+                                                                    variant="outline"
+                                                                    className="font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98] shadow-sm bg-transparent"
+                                                                >
+                                                                    <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
+                                                                        Change File
+                                                                    </label>
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    asChild
+                                                                    className="font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none bg-primary hover:bg-primary/90 text-white shadow-md active:scale-[0.98]"
+                                                                >
+                                                                    <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
+                                                                        Upload
+                                                                    </label>
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1750,6 +1802,14 @@ export default function BusinessPermitWizardPage() {
                     setPrivacyAccepted(true);
                     setIsPrivacyModalOpen(false);
                 }}
+                themeColor="var(--primary-theme)"
+            />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
                 themeColor="var(--primary-theme)"
             />
 

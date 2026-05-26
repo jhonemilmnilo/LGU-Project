@@ -10,6 +10,7 @@ import { calculateBusinessPermit } from "@/lib/business-permit";
 import { sendEmail } from "@/lib/mail";
 import { uploadFile } from "@/lib/storage";
 
+const isUserAdminAide = (u: any) => u?.role === "ADMIN_AIDE" || (u?.role === "ADMIN" && u?.department?.toUpperCase() === "BPLO");
 
 
 async function getSession() {
@@ -864,7 +865,7 @@ export async function getTransactionById(id: string) {
         }
 
         // ADMIN_AIDE should only be able to view Business Permit transactions
-        if (user?.role === "ADMIN_AIDE" && !isBusinessPermit) {
+        if (isUserAdminAide(user) && !isBusinessPermit) {
             return { success: false, error: "Forbidden: Admin Aides can only access Business Permit transactions." };
         }
 
@@ -1088,7 +1089,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1103,7 +1104,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const isLCR = transaction.type.code.startsWith("LCR_");
 
         // ADMIN_AIDE can only evaluate Business Permits in FOR_INSPECTION status
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (transaction.status as any) !== "FOR_INSPECTION") {
+        if (isBusinessPermit && isUserAdminAide(user) && (transaction.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
         }
 
@@ -1157,7 +1158,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         };
 
         if (isBusinessPermit) {
-            if (user.role === "ADMIN_AIDE") {
+            if (isUserAdminAide(user)) {
                 result = {
                     basicTax: 0,
                     additionalTax: 0,
@@ -1243,7 +1244,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
 
         // Determine New Status
         // If it is an ADMIN_AIDE pre-screening a Business Permit, the status should be set to FOR_REQUESTING
-        const newStatus = (user.role === "ADMIN_AIDE" && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
+        const newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
@@ -1390,7 +1391,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1402,7 +1403,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (transaction.status as any) !== "FOR_INSPECTION") {
+        if (isBusinessPermit && isUserAdminAide(user) && (transaction.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
@@ -1437,7 +1438,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1462,7 +1463,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (transaction.status as any) !== "FOR_INSPECTION") {
+        if (isBusinessPermit && isUserAdminAide(user) && (transaction.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
         const additionalData = transaction.additionalData as any;
@@ -1850,7 +1851,7 @@ export async function getTreasuryTransactions(status?: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user))) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1858,7 +1859,7 @@ export async function getTreasuryTransactions(status?: string) {
             type: { processorRole: "TREASURY_STAFF" }
         };
 
-        if (user.role === "ADMIN_AIDE") {
+        if (isUserAdminAide(user)) {
             where.type = {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
@@ -1936,7 +1937,7 @@ export async function getPendingTreasuryCount() {
             status: { in: ["FOR_REQUESTING", "FOR_INSPECTION", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
         };
 
-        if (user?.role === "ADMIN_AIDE") {
+        if (isUserAdminAide(user)) {
             where.type = {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
@@ -1971,7 +1972,7 @@ export async function getTreasuryStatusCounts() {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user))) {
             return { success: false, error: "Forbidden", data: {} };
         }
 
@@ -1981,7 +1982,7 @@ export async function getTreasuryStatusCounts() {
             isCancelled: false
         };
 
-        if (user.role === "ADMIN_AIDE") {
+        if (isUserAdminAide(user)) {
             where.type = {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
@@ -2010,7 +2011,7 @@ export async function getTreasuryStatusCounts() {
             isCancelled: true
         };
 
-        if (user.role === "ADMIN_AIDE") {
+        if (isUserAdminAide(user)) {
             cancelledWhere.type = {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
@@ -2051,7 +2052,7 @@ export async function rejectTransaction(id: string, remarks: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -2065,7 +2066,7 @@ export async function rejectTransaction(id: string, remarks: string) {
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (tx.status as any) !== "FOR_INSPECTION") {
+        if (isBusinessPermit && isUserAdminAide(user) && (tx.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
         }
 
@@ -2157,7 +2158,7 @@ export async function sendForRevision(id: string, remarks: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && user.role !== "ADMIN_AIDE" && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -2169,7 +2170,7 @@ export async function sendForRevision(id: string, remarks: string) {
         if (!tx) return { success: false, error: "Transaction inaccessible" };
 
         const isBusinessPermit = tx.type.code.startsWith("BUSINESS_PERMIT");
-        if (isBusinessPermit && user.role === "ADMIN_AIDE" && (tx.status as any) !== "FOR_INSPECTION") {
+        if (isBusinessPermit && isUserAdminAide(user) && (tx.status as any) !== "FOR_INSPECTION") {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 

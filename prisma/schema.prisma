@@ -22,6 +22,9 @@ model User {
   rejectionCount    Int       @default(0)
   managedBarangay   String?
   department        String?
+  accessiblePages   String[]  @default([])
+  accessibleCategories String[] @default([])
+  accessibleStatuses String[] @default([])
   accounts          Account[]
   reports           Report[]
   residentProfile   Resident?
@@ -838,6 +841,7 @@ enum TransactionStatus {
   FOR_REQUESTING
   FOR_REVISION
   FOR_INSPECTION
+  FOR_REINSPECTION
   FOR_PROCESSING
   EVALUATED
   FOR_CLAIM

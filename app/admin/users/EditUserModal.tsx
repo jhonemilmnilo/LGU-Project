@@ -19,22 +19,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserRole } from "@prisma/client";
-import { Loader2, UserPlus } from "lucide-react";
+import { Edit3, Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { createUser, getBarangaysList } from "../actions";
+import { getBarangaysList, updateUser } from "../actions";
 
-interface AddUserModalProps {
+interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: UserRole;
+    department?: string | null;
+    managedBarangay?: string | null;
+  } | null;
   themeColor?: string | null;
 }
 
-export function AddUserModal({
+export function EditUserModal({
   isOpen,
   onClose,
+  user,
   themeColor,
-}: AddUserModalProps) {
+}: EditUserModalProps) {
   const [loading, setLoading] = useState(false);
   const [barangays, setBarangays] = useState<{ id: string; name: string }[]>(
     [],
@@ -49,18 +58,26 @@ export function AddUserModal({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (user) {
+      setRole(user.role);
+    }
+  }, [user]);
+
+  if (!user) return null;
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const formData = new FormData(e.currentTarget);
 
     try {
-      const res = await createUser(formData);
+      const res = await updateUser(user.id, formData);
       if (res.success) {
-        toast.success("User created successfully!");
+        toast.success("User account updated successfully!");
         onClose();
       } else {
-        toast.error(res.error || "Failed to create user");
+        toast.error(res.error || "Failed to update user");
       }
     } catch {
       toast.error("An unexpected error occurred");
@@ -80,19 +97,21 @@ export function AddUserModal({
                 backgroundColor: themeColor ? `${themeColor}1A` : undefined,
               }}
             >
-              <UserPlus
+              <Edit3
                 className="w-5 h-5"
                 style={{ color: themeColor ?? undefined }}
               />
             </div>
             <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
-              Provision{" "}
-              <span style={{ color: themeColor ?? undefined }}>Account</span>
+              Edit{" "}
+              <span style={{ color: themeColor ?? undefined }}>
+                User Account
+              </span>
             </DialogTitle>
           </div>
           <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic">
-            Create a new administrative or resident account. All admin-created
-            accounts are auto-verified.
+            Modify roles, departments, or set a new password for this user
+            account.
           </DialogDescription>
         </DialogHeader>
 
@@ -108,9 +127,10 @@ export function AddUserModal({
               <Input
                 id="name"
                 name="name"
-                placeholder="e.g. Juan Dela Cruz"
+                defaultValue={user.name || ""}
+                readOnly
                 required
-                className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium px-3 text-sm"
+                className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium bg-slate-50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 cursor-not-allowed select-none opacity-75 px-3 text-sm"
               />
             </div>
 
@@ -125,9 +145,10 @@ export function AddUserModal({
                 id="email"
                 name="email"
                 type="email"
-                placeholder="juan@example.com"
+                defaultValue={user.email || ""}
+                readOnly
                 required
-                className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium px-3 text-sm"
+                className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium bg-slate-50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 cursor-not-allowed select-none opacity-75 px-3 text-sm"
               />
             </div>
 
@@ -141,7 +162,7 @@ export function AddUserModal({
                 </Label>
                 <Select
                   name="role"
-                  defaultValue="USER"
+                  defaultValue={user.role}
                   onValueChange={(v) => setRole(v as UserRole)}
                 >
                   <SelectTrigger className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium px-3 text-sm">
@@ -170,14 +191,13 @@ export function AddUserModal({
                   htmlFor="password"
                   className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400"
                 >
-                  Account Password
+                  New Password (Optional)
                 </Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
-                  placeholder="••••••••"
-                  required
+                  placeholder="Leave blank to keep current"
                   className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium px-3 text-sm"
                 />
               </div>
@@ -191,10 +211,14 @@ export function AddUserModal({
                 >
                   Managed Barangay
                 </Label>
-                <Select name="managedBarangay" required>
+                <Select
+                  name="managedBarangay"
+                  defaultValue={user.managedBarangay || undefined}
+                >
                   <SelectTrigger className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium px-3 text-sm">
                     <SelectValue placeholder="Select Barangay" />
                   </SelectTrigger>
+
                   <SelectContent className="rounded-xl border-slate-100 dark:border-white/10 bg-white dark:bg-[#151b2b]">
                     {barangays.map((b) => (
                       <SelectItem key={b.id} value={b.name}>
@@ -216,6 +240,7 @@ export function AddUserModal({
               <Input
                 id="department"
                 name="department"
+                defaultValue={user.department || ""}
                 placeholder="e.g. Treasury, BPLO, Civil Registry"
                 className="!h-12 !w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-white/5 italic font-medium px-3 text-sm"
               />
@@ -232,7 +257,7 @@ export function AddUserModal({
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Create User Account"
+                "Save Changes"
               )}
             </Button>
           </DialogFooter>

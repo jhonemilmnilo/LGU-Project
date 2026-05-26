@@ -73,7 +73,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                         typeof parsed.attemptsLeft === "number"
                     ) {
                         setLockout(parsed);
-                        
+
                         if (parsed.cooldownUntil) {
                             const remaining = Math.ceil((parsed.cooldownUntil - Date.now()) / 1000);
                             if (remaining > 0) {
@@ -346,8 +346,8 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 </form>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-white/5">
-                    <Link 
-                        href="/" 
+                    <Link
+                        href="/"
                         className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-primary transition-colors group"
                     >
                         <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
