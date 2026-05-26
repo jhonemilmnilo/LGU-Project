@@ -694,6 +694,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "FOR_REVISION", label: "REVISION REQ." }
         ];
+    } else if (status === "FOR_REINSPECTION") {
+        steps = [
+            { id: "FOR_INSPECTION", label: "INSPECTION" },
+            { id: "FOR_REINSPECTION", label: "RE-INSPECTION" }
+        ];
     } else if (status.includes("RETURN") || status.includes("REFUND") || status === "DISPUTE_REJECTED") {
         const disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");
         steps.push({ id: status, label: disputeLabel });
