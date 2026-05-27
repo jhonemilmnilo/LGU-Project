@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import * as React from "react";
 import {
     LayoutDashboard, Users, Newspaper,
@@ -46,14 +46,16 @@ export function Sidebar({
     pendingTransactionsCount = 0
 }: SidebarProps) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const role = session?.user?.role || "ADMIN";
     const { isOpen: isSidebarOpen, close } = useSidebar();
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
+    const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
-
+ 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
         {
@@ -113,7 +115,21 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         // { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        { href: "/admin/treasury", label: "Treasury Hub", icon: LayoutDashboard, category: "Treasury" },
+        {
+            label: "Treasury Hub",
+            icon: LayoutDashboard,
+            category: "Treasury",
+            isDropdown: true,
+            isOpen: isTreasuryOpen,
+            onToggle: () => setIsTreasuryOpen(!isTreasuryOpen),
+            subItems: [
+                { href: "/admin/treasury?category=ALL", label: "All Categories" },
+                { href: "/admin/treasury?category=CEDULA", label: "CEDULA" },
+                { href: "/admin/treasury?category=Business Permit", label: "Business Permit" },
+                { href: "/admin/treasury?category=Civil Registry", label: "Civil Registry" },
+                { href: "/admin/treasury?category=Building Permit", label: "Building Permit" },
+            ]
+        },
         { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Treasury" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
@@ -298,7 +314,16 @@ export function Sidebar({
                                             {showDropdown && (
                                                 <div className="mt-1 ml-4 pl-4 border-l border-slate-200 dark:border-[#2a3040] space-y-1">
                                                     {(normalizedQuery && !parentMatches ? subMatches : item.subItems)?.map((sub) => {
-                                                        const isSubActive = pathname?.includes(sub.href.split("?")[0]) && (pathname?.includes("tab=") ? pathname?.includes(sub.href.split("tab=")[1] || "general") : true);
+                                                        const currentCategory = searchParams.get("category") || "ALL";
+                                                        const currentTab = searchParams.get("tab") || "general";
+                                                        
+                                                        const urlObj = new URL(sub.href, "http://localhost");
+                                                        const subCategory = urlObj.searchParams.get("category");
+                                                        const subTab = urlObj.searchParams.get("tab");
+                                                        
+                                                        const isSubActive = pathname === urlObj.pathname && 
+                                                            (subCategory ? currentCategory === subCategory : true) &&
+                                                            (subTab ? currentTab === subTab : true);
                                                         return (
                                                             <Link
                                                                 key={sub.href}
