@@ -185,7 +185,7 @@ export function ResidentReviewModal({ resident, isOpen, onClose }: ResidentRevie
                 </div>
 
                 {/* Body - Scrollable */}
-                <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                <div className="overflow-y-auto custom-scrollbar flex-1 p-6 space-y-6">
                     <Section icon={User} title="Personal Information">
                         <Field label="Gender" value={resident.gender} />
                         <Field label="Civil Status" value={resident.civilStatus} />
@@ -208,6 +208,54 @@ export function ResidentReviewModal({ resident, isOpen, onClose }: ResidentRevie
                             </>
                         ) : (
                             <Field label="Family Members Count" value={resident.household?.members?.length || 0} />
+                        )}
+
+                        {((resident.household?.members && resident.household.members.length > 0) || (resident.familyMembers && resident.familyMembers.length > 0)) && (
+                            <div className="col-span-2 mt-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 space-y-3 shadow-sm">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Registered Family / Household Members</p>
+                                <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                                    {resident.household?.members && resident.household.members.length > 0 ? (
+                                        resident.household.members.map((member, idx) => (
+                                            <div key={member.id || idx} className="py-2.5 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-500 uppercase border border-slate-200 dark:border-slate-700">
+                                                        {(member.firstName && member.firstName[0]) || ""}{(member.lastName && member.lastName[0]) || ""}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                                            {member.firstName} {member.lastName} {member.id === resident.id && <span className="text-[9px] font-bold text-primary dark:text-blue-400 uppercase tracking-wider ml-1">(Current)</span>}
+                                                        </p>
+                                                        <p className="text-[10px] font-semibold text-slate-400">
+                                                            {member.isHead ? "Family Head" : (member.relationshipToHead || "Member")}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">{member.gender}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400">{member.age ? `${member.age} yrs old` : "Age N/A"}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        resident.familyMembers?.map((member, idx) => (
+                                            <div key={member.id || idx} className="py-2.5 flex items-center justify-between gap-4 first:pt-0 last:pb-0">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-500 uppercase border border-slate-200 dark:border-slate-700">
+                                                        {member.fullName[0] || "F"}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{member.fullName}</p>
+                                                        <p className="text-[10px] font-semibold text-slate-400">{member.relationship}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">{member.age ? `${member.age} yrs old` : "Age N/A"}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </Section>
 
