@@ -4,9 +4,24 @@ import prisma from "@/lib/db/prisma";
 import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { isRateLimited, getClientIp } from "@/lib/rate-limit";
 
 export async function sendOTP(email: string) {
     try {
+        const ip = await getClientIp();
+        const emailClean = email.trim().toLowerCase();
+        // Rate limit: Max 3 OTP requests per hour per email + IP
+        const limitKey = `otp:send:${emailClean}:${ip}`;
+        const limitCheck = await isRateLimited(limitKey, 3, 3600000); // 1 hour window
+
+        if (!limitCheck.success) {
+            const minutesLeft = Math.ceil(((limitCheck.resetTime?.getTime() || 0) - Date.now()) / 60000);
+            return { 
+                success: false, 
+                error: `Too many OTP requests. Please try again after ${minutesLeft} minute(s).` 
+            };
+        }
+
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
@@ -28,6 +43,20 @@ export async function sendOTP(email: string) {
 
 export async function verifyOTPOnly(email: string, otp: string) {
     try {
+        const ip = await getClientIp();
+        const emailClean = email.trim().toLowerCase();
+        // Rate limit: Max 10 verification attempts per 15 mins per email + IP
+        const limitKey = `otp:verify:${emailClean}:${ip}`;
+        const limitCheck = await isRateLimited(limitKey, 10, 900000); // 15 mins window
+
+        if (!limitCheck.success) {
+            const minutesLeft = Math.ceil(((limitCheck.resetTime?.getTime() || 0) - Date.now()) / 60000);
+            return { 
+                success: false, 
+                error: `Too many verification attempts. Try again after ${minutesLeft} minute(s).` 
+            };
+        }
+
         // Try 'signup' first for new users
         let { error: verifyError } = await supabase.auth.verifyOtp({
             email,
