@@ -398,6 +398,23 @@ export default function EngineerDetailPage({ params }: PageProps) {
     }, [fetchTransaction]);
 
     useEffect(() => {
+        if (transaction) {
+            const isBuildingPermit = transaction.type?.code?.startsWith("BUILDING_PERMIT") ?? false;
+            if (isBuildingPermit) {
+                if (transaction.status === "FOR_REQUESTING" || transaction.status === "FOR_REVISION") {
+                    router.replace(`/admin/engineer/${id}/evaluation`);
+                } else if (transaction.status === "FOR_INSPECTION") {
+                    router.replace(`/admin/engineer/${id}/inspection`);
+                } else if (transaction.status === "FOR_REINSPECTION") {
+                    router.replace(`/admin/engineer/${id}/reinspection`);
+                } else if (transaction.status === "EVALUATED" || transaction.status === "PAID") {
+                    router.replace(`/admin/engineer/${id}/fees`);
+                }
+            }
+        }
+    }, [transaction, router, id]);
+
+    useEffect(() => {
         if (!eCopyFile) {
             setECopyPreview(null);
             return;
@@ -739,10 +756,10 @@ export default function EngineerDetailPage({ params }: PageProps) {
             { id: "FOR_REVISION", label: "REVISION REQ." }
         ];
     } else if (status === "FOR_REINSPECTION") {
-        steps = [
-            { id: "FOR_INSPECTION", label: "INSPECTION" },
-            { id: "FOR_REINSPECTION", label: "RE-INSPECTION" }
-        ];
+        const inspectionIdx = steps.findIndex(s => s.id === "FOR_INSPECTION");
+        if (inspectionIdx !== -1) {
+            steps.splice(inspectionIdx + 1, 0, { id: "FOR_REINSPECTION", label: "RE-INSPECTION" });
+        }
     } else if (status.includes("RETURN") || status.includes("REFUND") || status === "DISPUTE_REJECTED") {
         const disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");
         steps.push({ id: status, label: disputeLabel });
@@ -1656,151 +1673,9 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
                             </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* BUILDING PERMIT SPECIFIC BLOCKS */}
-                            {isBuildingPermit && (
-                                <div className="space-y-8">
-                                    {/* Q&A Block */}
-                                    {(transaction.status !== "FOR_INSPECTION" || showPreviousPhases) && (
-                                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                                <div>
-                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                        Application <span className="text-primary">Details</span>
-                                    </h2>
-                                    <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
-                                        Building Permit Questionnaire
-                                    </p>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Description of Work</label>
-                                        <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">
-                                            {additional?.descriptionOfWork || "--"}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Occupancy Use</label>
-                                        <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">
-                                            {additional?.occupancyUse || "--"}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 md:col-span-2">
-                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Estimated Cost</label>
-                                        <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary min-h-[48px]">
-                                            ₱{Number(additional?.estimatedCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            )}
-
-                                    {/* Inspection Details Block */}
-                            {transaction.status === "FOR_INSPECTION" && additional?.inspectionSchedule && (
-                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-purple-500/20 dark:border-purple-500/10 space-y-8 animate-in fade-in duration-300 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-bl-[100px] pointer-events-none" />
-                                    <div>
-                                        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-purple-600 dark:text-purple-400 leading-none">
-                                            Site <span className="text-[#1e293b] dark:text-white">Inspection</span>
-                                        </h2>
-                                        <p className="text-[9px] font-black uppercase text-purple-400 dark:text-purple-500 tracking-[0.2em] italic mt-2">
-                                            Engineer's Scheduled Visit
-                                        </p>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Inspection Type</label>
-                                            <div className="h-12 flex items-center px-5 bg-purple-50 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/10 rounded-xl font-bold text-sm text-purple-900 dark:text-purple-100">
-                                                {additional.inspectionSchedule.type || "--"}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Date & Time</label>
-                                            <div className="h-12 flex items-center px-5 bg-purple-50 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/10 rounded-xl font-bold text-sm text-purple-900 dark:text-purple-100">
-                                                {additional.inspectionSchedule.date} @ {additional.inspectionSchedule.time}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Assigned Inspector</label>
-                                            <div className="h-12 flex items-center px-5 bg-purple-50 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/10 rounded-xl font-bold text-sm text-purple-900 dark:text-purple-100">
-                                                {additional.inspectionSchedule.inspectorName || "--"}
-                                            </div>
-                                        </div>
-                                        {additional.inspectionSchedule.notes && (
-                                            <div className="space-y-2 md:col-span-3">
-                                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Engineer's Notes / Instructions</label>
-                                                <div className="p-5 bg-purple-50 dark:bg-purple-500/5 border border-purple-100 dark:border-purple-500/10 rounded-xl font-medium italic text-sm text-purple-800 dark:text-purple-200 min-h-[48px]">
-                                                    "{additional.inspectionSchedule.notes}"
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                                {/* Images Block */}
-                                {(transaction.status !== "FOR_INSPECTION" || showPreviousPhases) && (
-                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Submitted Requirements</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {[
-                                        { url: additional?.documents?.newIdFile || resident?.idFileUrl, label: "Applicant Valid ID" },
-                                        { url: additional?.documents?.tctFile, label: "TCT / Land Title" },
-                                        ...[
-                                            "Barangay Clearance/Certification",
-                                            "Tax Declaration",
-                                            "Land Title (if any)",
-                                            "Community Tax Certificate",
-                                            "Latest Tax Receipts",
-                                            "Electrical & Sanitary Permit",
-                                            "Adjoining Owners Confirmation",
-                                            "Locational Clearance",
-                                            "2 Affidavits",
-                                            "Affidavit of Consent",
-                                            "Affidavit of Adjoining Owners",
-                                            "Signed & Sealed Plans",
-                                            "Fire Safety Clearance"
-                                        ].map((label, idx) => ({ url: additional?.documents?.[`req_${idx}`], label })),
-                                        ...[
-                                            "1. Building Permit",
-                                            "2. Electrical Permit",
-                                            "3. Plumbing Permit",
-                                            "4. Sanitary Permit",
-                                            "5. Excavation & Ground Preparation Permit",
-                                            "6. Fencing Permit (if any)",
-                                            "7. Affidavit Form",
-                                            "8. Scaffolding Permit",
-                                            "9. Mechanical Permit"
-                                        ].map((label, idx) => ({ url: additional?.documents?.[`permit_${idx}`], label }))
-                                    ].filter(doc => doc.url).map((doc, i) => (
-                                        <Dialog key={i}>
-                                            <DialogTrigger asChild>
-                                                <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
-                                                    {/* Guarded Image */}
-                                                    <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-                                                            <ZoomIn className="w-5 h-5 text-white" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="absolute bottom-2 left-2 right-2 z-10">
-                                                        <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
-                                                            {doc.label}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </DialogTrigger>
-                                            <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                        </Dialog>
-                                    ))}
-                                </div>
-                            </div>
-                            )}
+                        )}
+                                      {/* BUILDING PERMIT SPECIFIC BLOCKS */}
+                    {/* Building permit renders on dedicated sub-pages via redirection */}
                         </div>
                     )}
 

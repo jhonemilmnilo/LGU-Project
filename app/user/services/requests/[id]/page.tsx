@@ -461,7 +461,12 @@ export default function RequestHubPage() {
             case "FOR_CLAIM":
                 return { label: "FOR CLAIM", color: "bg-blue-600 text-white border-blue-600", icon: Clock };
             case "EVALUATED":
+                if (request?.type?.code?.startsWith("BUILDING_PERMIT") && !request?.fiscalSnapshot) {
+                    return { label: "AWAITING TREASURY ASSESSMENT", color: "bg-amber-500 text-white border-amber-500", icon: Clock };
+                }
                 return { label: "EVALUATED", color: "bg-primary text-white border-primary", icon: DollarSign };
+            case "UNPAID":
+                return { label: "UNPAID", color: "bg-amber-500 text-white border-amber-500", icon: Clock };
             case "PAID":
                 return { label: "PAID", color: "bg-primary text-white border-primary", icon: Clock };
             case "FOR_PICKING":
@@ -492,9 +497,10 @@ export default function RequestHubPage() {
     const additionalData = request?.additionalData || {};
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
-    const isActionable = request?.status === "EVALUATED" && !request.paymentType;
     const typeCode = request?.type?.code || "";
+    const isActionable = ["EVALUATED", "UNPAID"].includes(request?.status || "") && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot);
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
+    const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
@@ -704,7 +710,7 @@ export default function RequestHubPage() {
                                             <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed">Evaluation complete. Secure your issuance below.</p>
                                         </div>
                                         <div className="space-y-4 md:space-y-5">
-                                            {isBusinessPermit && computation?.lineItems && computation.lineItems.length > 0 ? (
+                                            {(isBusinessPermit || isBuildingPermit) && computation?.lineItems && computation.lineItems.length > 0 ? (
                                                 computation.lineItems.map((item: any, idx: number) => (
                                                     <div key={idx} className="flex justify-between items-end pb-3 border-b border-white/5">
                                                         <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">{item.label}</span>
