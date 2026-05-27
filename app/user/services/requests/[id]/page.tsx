@@ -324,10 +324,7 @@ export default function RequestHubPage() {
             toast.error("Please upload proof of payment.");
             return;
         }
-        if ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !gcashReferenceNo.trim()) {
-            toast.error("Please enter the GCash/Transfer Reference Number.");
-            return;
-        }
+        // Reference number is optional, removed validation
 
         setIsFinalizing(true);
         try {
@@ -459,6 +456,8 @@ export default function RequestHubPage() {
                 return { label: "UNDER INSPECTION", color: "bg-blue-600 text-white border-blue-600", icon: Search };
             case "FOR_PROCESSING":
                 return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
+            case "FOR_REINSPECTION":
+                return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
             case "FOR_CLAIM":
                 return { label: "FOR CLAIM", color: "bg-blue-600 text-white border-blue-600", icon: Clock };
             case "EVALUATED":
@@ -500,7 +499,7 @@ export default function RequestHubPage() {
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
     const remainingRevisions = request ? Math.max(0, 3 - (request.revisionCount || 0)) : 3;
-    const isPermitNewReleasedOrDelivered = request?.type?.code === "BUSINESS_PERMIT_NEW" &&
+    const isPermitNewReleasedOrDelivered = isBusinessPermit &&
         ["RELEASED", "DELIVERED"].includes(request?.status) &&
         !!request?.businessPermit?.permitNumber;
 
@@ -652,24 +651,29 @@ export default function RequestHubPage() {
                                             {statusConfig?.label}
                                         </Badge>
                                         {isPermitNewReleasedOrDelivered ? (
-                                            <div className="flex items-center gap-1.5 text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-80">
-                                                <span>Permit No: {request.businessPermit.permitNumber}</span>
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(request.businessPermit.permitNumber);
-                                                        setCopied(true);
-                                                        toast.success("Permit number copied to clipboard!");
-                                                        setTimeout(() => setCopied(false), 2000);
-                                                    }}
-                                                    className="p-0.5 hover:text-primary transition-all duration-200 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-white/5 active:scale-90"
-                                                    title="Copy Permit Number"
-                                                >
-                                                    {copied ? (
-                                                        <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500 animate-in zoom-in duration-200" />
-                                                    ) : (
-                                                        <Copy className="w-3 h-3 md:w-3.5 md:h-3.5 transition-transform duration-200" />
-                                                    )}
-                                                </button>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-80">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span>Permit No: {request.businessPermit.permitNumber}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(request.businessPermit.permitNumber);
+                                                            setCopied(true);
+                                                            toast.success("Permit number copied to clipboard!");
+                                                            setTimeout(() => setCopied(false), 2000);
+                                                        }}
+                                                        className="p-0.5 hover:text-primary transition-all duration-200 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-white/5 active:scale-90"
+                                                        title="Copy Permit Number"
+                                                    >
+                                                        {copied ? (
+                                                            <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-emerald-500 animate-in zoom-in duration-200" />
+                                                        ) : (
+                                                            <Copy className="w-3 h-3 md:w-3.5 md:h-3.5 transition-transform duration-200" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                {additionalData.stickerNumber && (
+                                                    <span className="text-primary font-extrabold bg-primary/10 px-2 py-0.5 rounded-full">Sticker No: {additionalData.stickerNumber}</span>
+                                                )}
                                             </div>
                                         ) : (
                                             <span className="text-[8px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-60">ID: {request.id.slice(-8).toUpperCase()}</span>
@@ -759,7 +763,7 @@ export default function RequestHubPage() {
                                             ].map(opt => (
                                                 <button key={opt.id} onClick={() => {
                                                     setLocalFulfillment(opt.id as any);
-                                                    if (opt.id === "PICK_UP") setLocalPayment("CASH");
+                                                    if (opt.id === "PICK_UP") setLocalPayment("E_PAYMENT");
                                                     else setLocalPayment("E_PAYMENT");
                                                 }} className={cn("flex flex-col items-center gap-3 md:gap-4 p-5 md:p-8 rounded-2xl md:rounded-[2rem] border-2 transition-all relative group text-center active:scale-95", localFulfillment === opt.id ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
                                                     <opt.icon className="w-6 h-6 md:w-8 md:h-8" />
@@ -828,14 +832,10 @@ export default function RequestHubPage() {
                                             <h3 className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Payment</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                            {(localFulfillment === "PICK_UP" ? [
-                                                { id: "CASH", label: "Over-the-Counter Cash", icon: Wallet },
+                                            {[
                                                 { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
                                                 { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
-                                            ] : [
-                                                { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
-                                                { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
-                                            ]).map(opt => (
+                                            ].map(opt => (
                                                 <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all group relative active:scale-95 text-left", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
                                                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/5 text-slate-400")}><opt.icon className="w-5 h-5" /></div>
                                                     <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest italic leading-tight">{opt.label}</span>
@@ -875,7 +875,7 @@ export default function RequestHubPage() {
                                                 <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/[0.02] rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
                                                     <div className="flex items-center gap-3">
                                                         <Hash className="w-3.5 h-3.5 text-primary" />
-                                                        <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Transaction Reference Number</Label>
+                                                        <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Transaction Reference Number (Optional)</Label>
                                                     </div>
                                                     <Input
                                                         type="text"
@@ -913,7 +913,14 @@ export default function RequestHubPage() {
                                     <div className="pt-8 border-t border-slate-100 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
                                         <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-5 h-5" /></div><div className="text-left leading-none"><p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 italic">Assessment Verified</p><p className="text-[8px] font-bold text-slate-400 uppercase italic mt-1">Official Registry Ready</p></div></div>
                                         <Button onClick={handleFinalize} disabled={isFinalizing || ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile)} className="w-full md:w-auto h-14 md:h-16 px-12 bg-primary hover:opacity-90 text-white rounded-xl md:rounded-2xl shadow-xl shadow-primary/20 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: themeColor }}>
-                                            {isFinalizing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Save"}
+                                            {isFinalizing ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    <span>Submitting...</span>
+                                                </div>
+                                            ) : (
+                                                "Submit"
+                                            )}
                                         </Button>
                                     </div>
                                 </div>

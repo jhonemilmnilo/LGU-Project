@@ -1772,7 +1772,10 @@ export default function BusinessPermitWizardPage() {
                         className="bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 text-[10px] md:text-xs rounded-xl md:rounded-2xl px-8 md:px-12 h-10 md:h-14 group transition-all duration-300 active:scale-95 font-black uppercase tracking-widest italic"
                     >
                         {submitting ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            <div className="flex items-center">
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                Submitting...
+                            </div>
                         ) : (
                             <div className="flex items-center">
                                 {currentStep === "SUBMIT" ? (revisionId ? "Resubmit" : "Finalize Submission") : "Next Phase"}

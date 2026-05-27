@@ -144,7 +144,7 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
             >
                 <div
                     className="relative w-full h-full flex items-center justify-center"
-                    style={{ 
+                    style={{
                         transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotate}deg)`,
                         transition: isDragging ? 'none' : 'transform 0.3s ease-out'
                     }}
@@ -223,8 +223,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const rawUserRole = (session?.user as any)?.role;
     const userDepartment = (session?.user as any)?.department;
     // Map BPLO Admin to behave exactly like ADMIN_AIDE for Treasury pages
-    const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment === "BPLO";
+    const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment?.toUpperCase() === "BPLO";
     const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
+    // Treasury Staff can only upload OR; Permit No., Sticker No., and Waybill are BPLO Admin only
+    const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
     const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -232,6 +234,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [remarks, setRemarks] = useState("");
     const remarksRef = useRef<HTMLTextAreaElement>(null);
     const [ctcNumber, setCtcNumber] = useState("");
+    const [stickerNumber, setStickerNumber] = useState("");
     const [isRejecting, setIsRejecting] = useState(false);
     const [isRequestingRevision, setIsRequestingRevision] = useState(false);
     const [deliveryFee, setDeliveryFee] = useState(0);
@@ -319,7 +322,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isNaN(d.getTime())) return "N/A";
         return format(d, "MMM d, yyyy");
     };
-    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && transaction?.status !== "FOR_INSPECTION";
+    // RETURN_REQUESTED and REFUND_REQUESTED are also excluded so BPLO Admin can action disputes on Business Permits
+    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED"].includes(transaction?.status || "");
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -446,18 +450,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         }
         setActionLoading(true);
         try {
-            // Strict Validation: E-Copy is REQUIRED for initial processing
-            const eCopyRequired = transaction?.status === "FOR_PROCESSING" ||
-                (transaction?.status === "PAID" && (transaction?.fulfillmentType === "E_COPY" || transaction?.fulfillmentType === "DELIVERY"));
-
-            if (eCopyRequired && !eCopyFile && !transaction.eCopyUrl) {
-                toast.error("Digital E-Copy is required before proceeding.");
-                setActionLoading(false);
-                return;
-            }
-
             // Strict Validation for Business Permit: OR attachment is also required!
-            if (isBusinessPermit && eCopyRequired && !orFile && !transaction.orUrl) {
+            const isInitialRelease = transaction?.status === "FOR_PROCESSING" ||
+                (transaction?.status === "PAID" && (transaction?.fulfillmentType === "E_COPY" || transaction?.fulfillmentType === "DELIVERY"));
+            if (isBusinessPermit && isInitialRelease && !orFile && !transaction.orUrl) {
                 toast.error("Official Receipt (OR) copy is required for Business Permits before proceeding.");
                 setActionLoading(false);
                 return;
@@ -481,22 +477,25 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl, orUrl);
+            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl, orUrl, stickerNumber);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
                     ? "Ready for Picking"
                     : status === "FOR_CLAIM"
                         ? "Marked as Ready for Claiming"
-                        : "Document Released";
+                        : status === "FOR_REINSPECTION"
+                            ? "Successfully sent to BPLO for Re-Inspection"
+                            : "Document Released";
                 toast.success(message);
                 setECopyFile(null);
                 setOrFile(null);
+                setStickerNumber("");
                 router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, backUrl]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, backUrl]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -681,20 +680,40 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ? (additional.businessType === "NEW" ? "Capital Investment" : "Declared Gross Sales")
         : "Declared Gross";
 
-    const baseSteps = [
-        { id: "FOR_REQUESTING", label: "EVALUATION" },
-        { id: "FOR_INSPECTION", label: "INSPECTION" },
-        { id: "PAID", label: "PAID" },
-        { id: "FOR_PROCESSING", label: "PROCESSING" },
-        {
-            id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
-            label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
-        },
-        {
-            id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
-            label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
-        },
-    ];
+    const baseSteps = (() => {
+        if (isBusinessPermit) {
+            return [
+                { id: "FOR_INSPECTION", label: "INSPECTION" },
+                { id: "FOR_REQUESTING", label: "EVALUATION" },
+                { id: "EVALUATED", label: "ASSESSMENT" },
+                { id: "PAID", label: "PAID" },
+                { id: "FOR_PROCESSING", label: "PROCESSING" },
+                { id: "FOR_REINSPECTION", label: "PROCESS" },
+                {
+                    id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
+                    label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
+                },
+                {
+                    id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
+                    label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
+                }
+            ];
+        }
+        return [
+            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "EVALUATED", label: "ASSESSMENT" },
+            { id: "PAID", label: "PAID" },
+            { id: "FOR_PROCESSING", label: "PROCESSING" },
+            {
+                id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
+                label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
+            },
+            {
+                id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
+                label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
+            }
+        ];
+    })();
 
     // Logic to add terminal or dispute steps
     let steps = [...baseSteps];
@@ -710,7 +729,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "FOR_REVISION", label: "REVISION REQ." }
         ];
-    } else if (status === "FOR_REINSPECTION") {
+    } else if (status === "FOR_REINSPECTION" && !isBusinessPermit) {
         steps = [
             { id: "FOR_INSPECTION", label: "INSPECTION" },
             { id: "FOR_REINSPECTION", label: "RE-INSPECTION" }
@@ -736,9 +755,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return true;
     });
 
-    const getEffectiveStatus = (s: string) => {
-        return s;
-    };
+    const getEffectiveStatus = (s: string) => s;
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     // Build evidence documents list for the Evidence Vault UI
@@ -888,11 +905,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             } catch {
                 // ignore parsing errors
             }
-            
+
             // --- ID & Document Uploads for Civil Registry Request/Registration ---
             const idFront = additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl;
             const idBack = additional.validIdBack || additional.idBackUrl || resident.idBackUrl;
-            
+
             if (idFront && !docs.find(d => d.url === idFront)) {
                 docs.push({ url: idFront, label: "Government ID (Front)" });
             }
@@ -992,454 +1009,454 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                     {/* MAIN ASSESSMENT CARD */}
                     {!isBuildingPermit && !(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
-                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
 
-                        {/* IDENTIFIER */}
-                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
-                            <div className="space-y-4">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
-                                            {transaction.type.requiresBusinessName 
-                                                ? "Registered Business Name" 
-                                                : "Primary Applicant Profile"}
-                                        </span>
-                                        {transaction.revisionCount > 0 ? (
-                                            <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
-                                                Revision Count: {transaction.revisionCount}
-                                            </Badge>
-                                        ) : (
-                                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
-                                                First Submission
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center justify-between gap-4">
-                                        <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                            {transaction.type.requiresBusinessName
-                                                ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
-                                                : `${resident.firstName} ${resident.lastName}`}
-                                        </h1>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* TOP METRICS GRID */}
-                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
-                            <div className="grid grid-cols-3 gap-6">
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
-                                    <div className="flex flex-col gap-1">
-                                        <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
-                                    <p className={cn(
-                                        "font-black italic tracking-tighter dark:text-slate-200 leading-none",
-                                        (transaction.paymentType?.length || 0) > 12 ? "text-xl" : "text-2xl"
-                                    )}>
-                                        {transaction.paymentType?.replace(/_/g, " ") || "--"}
-                                    </p>
-                                </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
-                                    <p className="text-2xl font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* INCOME SOURCE */}
-                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && additional.incomeSource && (
-                            <div className="border-t border-dashed border-slate-100 dark:border-white/5 pt-6 space-y-3">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                    Primary Source of Income
-                                </span>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-2xl flex items-center">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black italic text-base select-none">
-                                            {additional.incomeSource.substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <p className="text-base font-black italic uppercase tracking-tight text-slate-800 dark:text-white leading-tight">
-                                                {(() => {
-                                                    if (additional.incomeSource === "PROFESSION") return "Profession";
-                                                    if (additional.incomeSource === "BUSINESS") return "Business";
-                                                    if (additional.incomeSource === "PROPERTY") return "Real Property";
-                                                    return additional.incomeSource;
-                                                })()}
-                                            </p>
-                                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
-                                                Declared for Tax Computation
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* COMPUTATION BREAKDOWN */}
-                        {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
-                            <div className={cn("space-y-6", additional.incomeSource ? "pt-0 !mt-6" : "pt-6")}>
-<h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                     {isBusinessPermit ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
-                                 </h3>
+                            {/* IDENTIFIER */}
+                            {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
                                 <div className="space-y-4">
-                                    {isBusinessPermit ? (
-                                        (transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
-                                            <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
-                                                {feeLineItems.map((item, idx) => (
-                                                    <div key={idx} className="flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                                        <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
-                                                            {String(idx + 1).padStart(2, '0')}
-                                                        </span>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Fee Description"
-                                                            value={item.label}
-                                                            onChange={(e) => updateFeeLineItem(idx, 'label', e.target.value)}
-                                                            className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
-                                                        />
-                                                        <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
-                                                            <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
-                                                            <input
-                                                                type="number"
-                                                                placeholder="0.00"
-                                                                value={item.amount}
-                                                                onChange={(e) => updateFeeLineItem(idx, 'amount', e.target.value)}
-                                                                className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                            />
-                                                        </div>
-                                                        {feeLineItems.length > 1 ? (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => removeFeeLineItem(idx)}
-                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                        ) : (
-                                                            <div className="w-8 h-8 shrink-0" />
-                                                        )}
-                                                    </div>
-                                                ))}
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    onClick={addFeeLineItem}
-                                                    className="h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 font-black italic text-[10px] tracking-widest gap-2 text-slate-400 hover:text-primary hover:border-primary/50 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all w-full mt-1"
-                                                >
-                                                    <Plus className="w-3.5 h-3.5" /> ADD FEE LINE ITEM
-                                                </Button>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
+                                                {transaction.type.requiresBusinessName
+                                                    ? "Registered Business Name"
+                                                    : "Primary Applicant Profile"}
+                                            </span>
+                                            {transaction.revisionCount > 0 ? (
+                                                <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                                    Revision Count: {transaction.revisionCount}
+                                                </Badge>
+                                            ) : (
+                                                <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                                    First Submission
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                                {transaction.type.requiresBusinessName
+                                                    ? (transaction.businessName || additional.businessName || "UNNAMED ENTITY")
+                                                    : `${resident.firstName} ${resident.lastName}`}
+                                            </h1>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TOP METRICS GRID */}
+                            {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
+                                <div className="grid grid-cols-3 gap-6">
+                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
+                                        <p className={cn(
+                                            "font-black italic tracking-tighter dark:text-slate-200 leading-none",
+                                            (transaction.paymentType?.length || 0) > 12 ? "text-xl" : "text-2xl"
+                                        )}>
+                                            {transaction.paymentType?.replace(/_/g, " ") || "--"}
+                                        </p>
+                                    </div>
+                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                        <p className="text-2xl font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* INCOME SOURCE */}
+                            {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && additional.incomeSource && (
+                                <div className="border-t border-dashed border-slate-100 dark:border-white/5 pt-6 space-y-3">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                        Primary Source of Income
+                                    </span>
+                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-2xl flex items-center">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black italic text-base select-none">
+                                                {additional.incomeSource.substring(0, 2).toUpperCase()}
                                             </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {(calcResult as any).lineItems && (calcResult as any).lineItems.length > 0 ? (
-                                                    (calcResult as any).lineItems.map((item: any, idx: number) => (
-                                                        <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                            <span>{item.label}</span>
-                                                            <span className="dark:text-slate-200">₱{(Number(item.amount) || 0).toFixed(2)}</span>
+                                            <div>
+                                                <p className="text-base font-black italic uppercase tracking-tight text-slate-800 dark:text-white leading-tight">
+                                                    {(() => {
+                                                        if (additional.incomeSource === "PROFESSION") return "Profession";
+                                                        if (additional.incomeSource === "BUSINESS") return "Business";
+                                                        if (additional.incomeSource === "PROPERTY") return "Real Property";
+                                                        return additional.incomeSource;
+                                                    })()}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                                                    Declared for Tax Computation
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* COMPUTATION BREAKDOWN */}
+                            {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
+                                <div className={cn("space-y-6", additional.incomeSource ? "pt-0 !mt-6" : "pt-6")}>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                        {isBusinessPermit ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {isBusinessPermit ? (
+                                            (transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
+                                                <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
+                                                    {feeLineItems.map((item, idx) => (
+                                                        <div key={idx} className="flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                                            <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
+                                                                {String(idx + 1).padStart(2, '0')}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Fee Description"
+                                                                value={item.label}
+                                                                onChange={(e) => updateFeeLineItem(idx, 'label', e.target.value)}
+                                                                className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
+                                                            />
+                                                            <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
+                                                                <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="0.00"
+                                                                    value={item.amount}
+                                                                    onChange={(e) => updateFeeLineItem(idx, 'amount', e.target.value)}
+                                                                    className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                />
+                                                            </div>
+                                                            {feeLineItems.length > 1 ? (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => removeFeeLineItem(idx)}
+                                                                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            ) : (
+                                                                <div className="w-8 h-8 shrink-0" />
+                                                            )}
                                                         </div>
-                                                    ))
+                                                    ))}
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        onClick={addFeeLineItem}
+                                                        className="h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 font-black italic text-[10px] tracking-widest gap-2 text-slate-400 hover:text-primary hover:border-primary/50 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all w-full mt-1"
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5" /> ADD FEE LINE ITEM
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {(calcResult as any).lineItems && (calcResult as any).lineItems.length > 0 ? (
+                                                        (calcResult as any).lineItems.map((item: any, idx: number) => (
+                                                            <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                                <span>{item.label}</span>
+                                                                <span className="dark:text-slate-200">₱{(Number(item.amount) || 0).toFixed(2)}</span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                            <span>Base Mayors Permit Fee</span>
+                                                            <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        ) : (
+                                            <>
+                                                {!isLCR && (
+                                                    <>
+                                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                            <span>Basic Community Tax</span>
+                                                            <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                            <span>Additional Tax (₱1.00 per ₱1,000 gross)</span>
+                                                            <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                        {calcResult.penalty > 0 && (
+                                            <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
+                                                <span>Penalty Charge</span>
+                                                <span>₱{calcResult.penalty.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {transaction.fulfillmentType === "DELIVERY" && (
+                                            <div className="flex justify-between items-center pt-2 gap-4">
+                                                <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-black text-primary">₱</span>
+                                                    <span className="text-xs font-black dark:text-white italic">
+                                                        {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {isLCR && (
+                                            <div className="flex justify-between items-center pt-2 gap-4">
+                                                <div>
+                                                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Miscellaneous Fee</span>
+                                                    <p className="text-[10px] text-slate-400 italic">
+                                                        {(additional.registrationType || "").toUpperCase() === "LATE"
+                                                            ? "Late registration surcharge"
+                                                            : "Standard registration — no surcharge"}
+                                                    </p>
+                                                </div>
+                                                {(additional.registrationType || "").toUpperCase() === "LATE" ? (
+                                                    <span className="text-sm font-black text-amber-600 italic">₱300.00</span>
                                                 ) : (
-                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                        <span>Base Mayors Permit Fee</span>
-                                                        <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
-                                                    </div>
+                                                    <span className="text-sm font-black text-emerald-600 italic">FREE</span>
                                                 )}
                                             </div>
-                                        )
-                                    ) : (
-                                        <>
-                                            {!isLCR && (
-                                                <>
-                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                        <span>Basic Community Tax</span>
-                                                        <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                        <span>Additional Tax (₱1.00 per ₱1,000 gross)</span>
-                                                        <span className="dark:text-slate-200">₱{calcResult.additionalTax.toFixed(2)}</span>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </>
-                                    )}
-                                    {calcResult.penalty > 0 && (
-                                        <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
-                                            <span>Penalty Charge</span>
-                                            <span>₱{calcResult.penalty.toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                    {transaction.fulfillmentType === "DELIVERY" && (
-                                        <div className="flex justify-between items-center pt-2 gap-4">
-                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-black text-primary">₱</span>
-                                                <span className="text-xs font-black dark:text-white italic">
-                                                    {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {isLCR && (
-                                        <div className="flex justify-between items-center pt-2 gap-4">
-                                            <div>
-                                                <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Miscellaneous Fee</span>
-                                                <p className="text-[10px] text-slate-400 italic">
-                                                    {(additional.registrationType || "").toUpperCase() === "LATE"
-                                                        ? "Late registration surcharge"
-                                                        : "Standard registration — no surcharge"}
-                                                </p>
-                                            </div>
-                                            {(additional.registrationType || "").toUpperCase() === "LATE" ? (
-                                                <span className="text-sm font-black text-amber-600 italic">₱300.00</span>
-                                            ) : (
-                                                <span className="text-sm font-black text-emerald-600 italic">FREE</span>
-                                            )}
-                                        </div>
-                                    )}
+                                        )}
 
-                                    <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
-                                        <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
-                                        <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                                            ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </span>
+                                        <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
+                                            <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
+                                            <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
+                                                ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* LCR SPECIFIC DETAILS */}
-                        {isLCR && (
-                            <div className="space-y-8 pt-8 border-t border-dotted border-slate-300 dark:border-white/10">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-blue-500 rounded-xl text-white shadow-lg shadow-blue-500/20">
-                                        <FileText className="w-5 h-5" />
+                            {/* LCR SPECIFIC DETAILS */}
+                            {isLCR && (
+                                <div className="space-y-8 pt-8 border-t border-dotted border-slate-300 dark:border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-blue-500 rounded-xl text-white shadow-lg shadow-blue-500/20">
+                                            <FileText className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
+                                            {isDeath ? "Death Registry Record Data" : isMarriage ? "Marriage Registry Record Data" : "Birth Registry Record Data"}
+                                        </h3>
                                     </div>
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
-                                        {isDeath ? "Death Registry Record Data" : isMarriage ? "Marriage Registry Record Data" : "Birth Registry Record Data"}
-                                    </h3>
-                                </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    {/* Column 1: Primary Subject details */}
-                                    <div className="space-y-6">
-                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">
-                                            {isDeath ? "Deceased / Event Info" : isMarriage ? "Contracting Parties / Marriage Info" : "Subject / Document Info"}
-                                        </h4>
-                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-5">
-                                            {/* Deceased/Subject Name */}
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                    {isMarriage ? "Contracting Couple" : isDeath ? "Deceased Full Name" : "Subject Name"}
-                                                </span>
-                                                <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                    {isDeath 
-                                                        ? (transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A") 
-                                                        : isMarriage
-                                                        ? (transaction.marriageRegistration?.businessName || 
-                                                           (transaction.marriageLicenseApplication 
-                                                                ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}` 
-                                                                : additional.subjectName || "N/A"))
-                                                        : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A")}
-                                                </p>
-                                            </div>
-
-                                            {/* Event Date & Registry No */}
-                                            <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                        {/* Column 1: Primary Subject details */}
+                                        <div className="space-y-6">
+                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">
+                                                {isDeath ? "Deceased / Event Info" : isMarriage ? "Contracting Parties / Marriage Info" : "Subject / Document Info"}
+                                            </h4>
+                                            <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-5">
+                                                {/* Deceased/Subject Name */}
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                        {isDeath ? "Date of Death" : isMarriage ? "Date of Marriage" : "Event Date"}
+                                                        {isMarriage ? "Contracting Couple" : isDeath ? "Deceased Full Name" : "Subject Name"}
                                                     </span>
-                                                    <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                        {isDeath 
-                                                            ? safeFormatDate(transaction.deathRegistration?.dateOfEvent || additional.dateOfDeath || additional.dateOfEvent)
-                                                            : isMarriage 
-                                                            ? safeFormatDate(additional.dateOfMarriage || additional.dateOfEvent || transaction.marriageLicenseApplication?.dateIssued)
-                                                            : safeFormatDate(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent)}
-                                                    </p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Registry No.</span>
-                                                    <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                        {isDeath 
-                                                            ? (transaction.deathRegistration?.registryNumber || "PENDING")
+                                                    <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                        {isDeath
+                                                            ? (transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A")
                                                             : isMarriage
-                                                            ? (transaction.marriageRegistration?.ctcNumber || transaction.marriageLicenseApplication?.registryNumber || "PENDING")
-                                                            : (transaction.birthCertificateRegistry?.registryNumber || transaction.birthCertificateRequest?.registryNumber || "PENDING")}
+                                                                ? (transaction.marriageRegistration?.businessName ||
+                                                                    (transaction.marriageLicenseApplication
+                                                                        ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}`
+                                                                        : additional.subjectName || "N/A"))
+                                                                : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A")}
                                                     </p>
                                                 </div>
-                                            </div>
 
-                                            {/* Extra Fields specifically for Death */}
-                                            {isDeath && (
-                                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                {/* Event Date & Registry No */}
+                                                <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-1">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Cause of Death</span>
-                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                            {additional.causeOfDeath || "N/A"}
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                            {isDeath ? "Date of Death" : isMarriage ? "Date of Marriage" : "Event Date"}
+                                                        </span>
+                                                        <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
+                                                            {isDeath
+                                                                ? safeFormatDate(transaction.deathRegistration?.dateOfEvent || additional.dateOfDeath || additional.dateOfEvent)
+                                                                : isMarriage
+                                                                    ? safeFormatDate(additional.dateOfMarriage || additional.dateOfEvent || transaction.marriageLicenseApplication?.dateIssued)
+                                                                    : safeFormatDate(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent)}
                                                         </p>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Death</span>
-                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                            {transaction.deathRegistration?.placeOfEvent || additional.placeOfDeath || "N/A"}
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Registry No.</span>
+                                                        <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
+                                                            {isDeath
+                                                                ? (transaction.deathRegistration?.registryNumber || "PENDING")
+                                                                : isMarriage
+                                                                    ? (transaction.marriageRegistration?.ctcNumber || transaction.marriageLicenseApplication?.registryNumber || "PENDING")
+                                                                    : (transaction.birthCertificateRegistry?.registryNumber || transaction.birthCertificateRequest?.registryNumber || "PENDING")}
                                                         </p>
                                                     </div>
                                                 </div>
-                                            )}
 
-                                            {/* Extra Fields specifically for Marriage */}
-                                            {isMarriage && (
-                                                <div className="space-y-1 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Marriage</span>
-                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {additional.placeOfMarriage || "N/A"}
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            {/* Issued By info */}
-                                            {(transaction.deathRegistration?.issuedBy || 
-                                              transaction.birthCertificateRegistry?.issuedBy || 
-                                              transaction.birthCertificateRequest?.issuedBy || 
-                                              transaction.marriageRegistration?.issuedBy ||
-                                              transaction.marriageLicenseApplication?.issuedBy ||
-                                              additional.issuedBy) && (
-                                                <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-4">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Issued By</span>
-                                                    <p className="text-md font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {isDeath 
-                                                            ? (transaction.deathRegistration?.issuedBy || additional.issuedBy)
-                                                            : isMarriage
-                                                            ? (transaction.marriageRegistration?.issuedBy || transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy)
-                                                            : (transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy)}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Column 2: Secondary parties details */}
-                                    <div className="space-y-6">
-                                        {isDeath ? (
-                                            <>
-                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Informant & Parental Dossier</h4>
-                                                <div className="space-y-4">
-                                                    {/* Informant Details */}
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Informant Profile</span>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div>
-                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Name</span>
-                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                    {additional.informantFirstName ? `${additional.informantFirstName} ${additional.informantLastName}` : "N/A"}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Relationship</span>
-                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                    {additional.relationship || "N/A"}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="pt-2 border-t border-slate-100 dark:border-white/5">
-                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400">Contact Number</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                {additional.contactNumber || "N/A"}
+                                                {/* Extra Fields specifically for Death */}
+                                                {isDeath && (
+                                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                        <div className="space-y-1">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Cause of Death</span>
+                                                            <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                {additional.causeOfDeath || "N/A"}
                                                             </p>
                                                         </div>
-                                                    </div>
-
-                                                    {/* Parents */}
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Parental Matrix</span>
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div>
-                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Father</span>
-                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                    {additional.fathersName || additional.fatherName || "N/A"}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Mother</span>
-                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                    {additional.mothersName || additional.motherName || "N/A"}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </>
-                                        ) : isMarriage ? (
-                                            <>
-                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Applicants Dossier</h4>
-                                                <div className="space-y-4">
-                                                    {/* Applicant 1 */}
-                                                    {(additional.applicant1 || transaction.marriageLicenseApplication) && (
-                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
-                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 1 (Groom/Spouse)</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
-                                                                {additional.applicant1?.fullName || transaction.marriageLicenseApplication?.app1FullName}
+                                                        <div className="space-y-1">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Death</span>
+                                                            <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                {transaction.deathRegistration?.placeOfEvent || additional.placeOfDeath || "N/A"}
                                                             </p>
-                                                            <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
-                                                                <span>DOB: {safeFormatDate(additional.applicant1?.birthDate || transaction.marriageLicenseApplication?.app1BirthDate)}</span>
-                                                                <span>Citizenship: {additional.applicant1?.citizenship || transaction.marriageLicenseApplication?.app1Citizenship || "N/A"}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Applicant 2 */}
-                                                    {(additional.applicant2 || transaction.marriageLicenseApplication) && (
-                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
-                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 2 (Bride/Spouse)</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
-                                                                {additional.applicant2?.fullName || transaction.marriageLicenseApplication?.app2FullName}
-                                                            </p>
-                                                            <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
-                                                                <span>DOB: {safeFormatDate(additional.applicant2?.birthDate || transaction.marriageLicenseApplication?.app2BirthDate)}</span>
-                                                                <span>Citizenship: {additional.applicant2?.citizenship || transaction.marriageLicenseApplication?.app2Citizenship || "N/A"}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {/* Birth Details */}
-                                                {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
-                                                    <div className="space-y-6">
-                                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Matrix</h4>
-                                                        <div className="space-y-4">
-                                                            {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
-                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Father</span>
-                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                                        {transaction.birthCertificateRegistry?.fatherName || additional.fatherName}
-                                                                    </p>
-                                                                </div>
-                                                            )}
-                                                            {(additional.motherName || transaction.birthCertificateRegistry?.motherName) && (
-                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Mother</span>
-                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                                        {transaction.birthCertificateRegistry?.motherName || additional.motherName}
-                                                                    </p>
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
-                                            </>
-                                        )}
+
+                                                {/* Extra Fields specifically for Marriage */}
+                                                {isMarriage && (
+                                                    <div className="space-y-1 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Marriage</span>
+                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            {additional.placeOfMarriage || "N/A"}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {/* Issued By info */}
+                                                {(transaction.deathRegistration?.issuedBy ||
+                                                    transaction.birthCertificateRegistry?.issuedBy ||
+                                                    transaction.birthCertificateRequest?.issuedBy ||
+                                                    transaction.marriageRegistration?.issuedBy ||
+                                                    transaction.marriageLicenseApplication?.issuedBy ||
+                                                    additional.issuedBy) && (
+                                                        <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-4">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Issued By</span>
+                                                            <p className="text-md font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                {isDeath
+                                                                    ? (transaction.deathRegistration?.issuedBy || additional.issuedBy)
+                                                                    : isMarriage
+                                                                        ? (transaction.marriageRegistration?.issuedBy || transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy)
+                                                                        : (transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy)}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        </div>
+
+                                        {/* Column 2: Secondary parties details */}
+                                        <div className="space-y-6">
+                                            {isDeath ? (
+                                                <>
+                                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Informant & Parental Dossier</h4>
+                                                    <div className="space-y-4">
+                                                        {/* Informant Details */}
+                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
+                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Informant Profile</span>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div>
+                                                                    <span className="text-[8px] uppercase tracking-wider text-slate-400">Name</span>
+                                                                    <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                        {additional.informantFirstName ? `${additional.informantFirstName} ${additional.informantLastName}` : "N/A"}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[8px] uppercase tracking-wider text-slate-400">Relationship</span>
+                                                                    <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                        {additional.relationship || "N/A"}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="pt-2 border-t border-slate-100 dark:border-white/5">
+                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Contact Number</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                    {additional.contactNumber || "N/A"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Parents */}
+                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
+                                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Parental Matrix</span>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Father</span>
+                                                                    <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                        {additional.fathersName || additional.fatherName || "N/A"}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Mother</span>
+                                                                    <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
+                                                                        {additional.mothersName || additional.motherName || "N/A"}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : isMarriage ? (
+                                                <>
+                                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Applicants Dossier</h4>
+                                                    <div className="space-y-4">
+                                                        {/* Applicant 1 */}
+                                                        {(additional.applicant1 || transaction.marriageLicenseApplication) && (
+                                                            <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
+                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 1 (Groom/Spouse)</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
+                                                                    {additional.applicant1?.fullName || transaction.marriageLicenseApplication?.app1FullName}
+                                                                </p>
+                                                                <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
+                                                                    <span>DOB: {safeFormatDate(additional.applicant1?.birthDate || transaction.marriageLicenseApplication?.app1BirthDate)}</span>
+                                                                    <span>Citizenship: {additional.applicant1?.citizenship || transaction.marriageLicenseApplication?.app1Citizenship || "N/A"}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Applicant 2 */}
+                                                        {(additional.applicant2 || transaction.marriageLicenseApplication) && (
+                                                            <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
+                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 2 (Bride/Spouse)</span>
+                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
+                                                                    {additional.applicant2?.fullName || transaction.marriageLicenseApplication?.app2FullName}
+                                                                </p>
+                                                                <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
+                                                                    <span>DOB: {safeFormatDate(additional.applicant2?.birthDate || transaction.marriageLicenseApplication?.app2BirthDate)}</span>
+                                                                    <span>Citizenship: {additional.applicant2?.citizenship || transaction.marriageLicenseApplication?.app2Citizenship || "N/A"}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {/* Birth Details */}
+                                                    {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
+                                                        <div className="space-y-6">
+                                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Matrix</h4>
+                                                            <div className="space-y-4">
+                                                                {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
+                                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Father</span>
+                                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                            {transaction.birthCertificateRegistry?.fatherName || additional.fatherName}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                {(additional.motherName || transaction.birthCertificateRegistry?.motherName) && (
+                                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Mother</span>
+                                                                        <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                                            {transaction.birthCertificateRegistry?.motherName || additional.motherName}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
                     )}
 
                     {/* TOGGLE PREVIOUS PHASES FOR INSPECTION */}
@@ -1781,48 +1798,48 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
                         {!isBuildingPermit && (
-                        <div className={cn(
-                            "bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6 transition-all duration-500",
-                            isRequirementsAlone && "md:col-span-2"
-                        )}>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                {evidenceDocs.filter(doc => doc && doc.url).map((doc, i) => (
-                                    <Dialog key={i}>
-                                        <DialogTrigger asChild>
-                                            <div className={cn(
-                                                "group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in transition-all duration-500",
-                                                isRequirementsAlone ? "aspect-[4/3]" : "aspect-video"
-                                            )}>
-                                                {doc.url ? (
-                                                    <>
-                                                        <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                            <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-                                                                <ZoomIn className="w-5 h-5 text-white" />
+                            <div className={cn(
+                                "bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6 transition-all duration-500",
+                                isRequirementsAlone && "md:col-span-2"
+                            )}>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 rounded-lg"><FileText className="text-primary w-4 h-4" /></div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {evidenceDocs.filter(doc => doc && doc.url).map((doc, i) => (
+                                        <Dialog key={i}>
+                                            <DialogTrigger asChild>
+                                                <div className={cn(
+                                                    "group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in transition-all duration-500",
+                                                    isRequirementsAlone ? "aspect-[4/3]" : "aspect-video"
+                                                )}>
+                                                    {doc.url ? (
+                                                        <>
+                                                            <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                                    <ZoomIn className="w-5 h-5 text-white" />
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="absolute bottom-2 left-2 right-2 z-10">
-                                                            <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
-                                                                {doc.label}
-                                                            </span>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <Camera className="w-6 h-6 text-slate-200 dark:text-slate-700" />
-                                                )}
-                                            </div>
-                                        </DialogTrigger>
-                                        {doc.url && (
-                                            <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                        )}
-                                    </Dialog>
-                                ))}
+                                                            <div className="absolute bottom-2 left-2 right-2 z-10">
+                                                                <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
+                                                                    {doc.label}
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <Camera className="w-6 h-6 text-slate-200 dark:text-slate-700" />
+                                                    )}
+                                                </div>
+                                            </DialogTrigger>
+                                            {doc.url && (
+                                                <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                                            )}
+                                        </Dialog>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
                         )}
 
                         {/* Verification Vault: Payment & Delivery */}
@@ -2014,9 +2031,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         </div>
                     </div>
 
-                    {/* DIGITAL ISSUANCE (E-COPY) - Visible in FOR_PROCESSING, FOR_CLAIM (if not yet recorded), or for PAID digital deliveries */}
+                    {/* DIGITAL ISSUANCE (E-COPY) - Visible in FOR_PROCESSING, FOR_REINSPECTION, FOR_CLAIM (if not yet recorded), or for PAID digital deliveries */}
                     {(
                         transaction.status === "FOR_PROCESSING" ||
+                        transaction.status === "FOR_REINSPECTION" ||
                         (transaction.status === "FOR_CLAIM" &&
                             !(transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH") &&
                             !transaction.eCopyUrl
@@ -2030,10 +2048,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic block">
                                     {isBusinessPermit ? "Registry & Official Receipt Protocol" : "Digital Record Protocol"}
                                 </span>
-                                
+
                                 <div className={cn("grid gap-6", isBusinessPermit ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
                                     {/* E-Copy Upload Block */}
-                                    <div className="relative flex flex-col gap-2">
+                                    {!(isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) && (
+                                        <div className="relative flex flex-col gap-2">
                                         {isBusinessPermit && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">1. Digital E-Copy Permit</span>}
                                         {transaction.status !== "RELEASED" && !isReadOnlyAide && (
                                             <input type="file" accept=".pdf,image/*" onChange={(e) => setECopyFile(e.target.files?.[0] || null)} className="hidden" id="main-ecopy-upload" />
@@ -2129,11 +2148,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </label>
                                         )}
                                     </div>
+                                    )}
 
                                     {/* OR / Official Receipt Upload Block (Only for Business Permits) */}
                                     {isBusinessPermit && (
-                                        <div className="relative flex flex-col gap-2 animate-in fade-in-50 duration-500">
-                                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">2. Official Receipt (OR)</span>
+                                        <div className={cn("relative flex flex-col gap-2 animate-in fade-in-50 duration-500", ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "col-span-1 md:col-span-2" : "")}>
+                                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                                {["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Official Receipt (OR)" : "2. Official Receipt (OR)"}
+                                            </span>
                                             {transaction.status !== "RELEASED" && !isReadOnlyAide && (
                                                 <input type="file" accept=".pdf,image/*" onChange={(e) => setOrFile(e.target.files?.[0] || null)} className="hidden" id="main-or-upload" />
                                             )}
@@ -2143,7 +2165,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     href={transaction.orUrl || "#"}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex flex-col items-center justify-center rounded-3xl border-2 border-emerald-500/30 bg-emerald-500/5 transition-all h-48 border-solid overflow-hidden group relative"
+                                                    className={cn("flex flex-col items-center justify-center rounded-3xl border-2 border-emerald-500/30 bg-emerald-500/5 transition-all border-solid overflow-hidden group relative", ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "h-32" : "h-48")}
                                                 >
                                                     {transaction.orUrl && (transaction.orUrl.toLowerCase().endsWith(".jpg") || transaction.orUrl.toLowerCase().endsWith(".png") || transaction.orUrl.toLowerCase().endsWith(".jpeg") || transaction.orUrl.includes("image")) ? (
                                                         <Image
@@ -2167,7 +2189,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 </a>
                                             ) : (
                                                 <label htmlFor={isReadOnlyAide ? undefined : "main-or-upload"} className={cn(
-                                                    "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-48 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                                    "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
+                                                    ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "h-32" : "h-48",
                                                     isReadOnlyAide ? "border-slate-100 dark:border-white/5 cursor-not-allowed" : (orFile || transaction.orUrl ? "border-emerald-500/30 bg-emerald-500/5 shadow-inner cursor-pointer" : "border-slate-100 dark:border-white/5 hover:border-emerald-500/30 cursor-pointer")
                                                 )}>
                                                     {(orPreview || transaction.orUrl) ? (
@@ -2210,7 +2233,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     ) : (
                                                         <>
                                                             <div className={cn(
-                                                                "p-4 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all duration-500 scale-110",
+                                                                "rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all duration-500",
+                                                                transaction.status === "FOR_PROCESSING" ? "p-2.5 scale-90" : "p-4 scale-110",
                                                                 !isReadOnlyAide && "group-hover:bg-emerald-500 group-hover:text-white"
                                                             )}>
                                                                 <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -2254,77 +2278,22 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
                                             {actionLoading ? "Processing..." : "Evaluate / Issue Record"}
                                         </Button>
-                                        <div className="flex gap-2 w-full">
-                                            <Dialog open={isRequestingRevision} onOpenChange={(open) => { setIsRequestingRevision(open); if (!open) setRemarks(""); }}>
-                                                <DialogTrigger asChild>
-                                                    <Button
-                                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
-                                                    >
-                                                        Request Revision
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
-                                                    <DialogHeader className="space-y-3">
-                                                        <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                            Request <span className="text-amber-500">Revision</span>
-                                                        </DialogTitle>
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Return to Citizen for Corrections</p>
-                                                    </DialogHeader>
-                                                    <div className="space-y-6 py-6">
-                                                        <div className="space-y-3">
-                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Missing Documents / Corrections Needed <span className="text-red-500">*</span></Label>
-                                                            <Textarea
-                                                                ref={remarksRef}
-                                                                placeholder="State missing documents or corrections needed..."
-                                                                value={remarks}
-                                                                onChange={(e) => setRemarks(e.target.value)}
-                                                                className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
-                                                                required
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <Button onClick={() => { if (!remarks.trim()) { toast.error("Reason is required"); return; } handleRequestRevision(); }} disabled={actionLoading || !remarks.trim()} className="w-full h-14 bg-amber-500 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all hover:bg-amber-600">
-                                                        {actionLoading ? "Processing..." : "Confirm Revision Request"}
-                                                    </Button>
-                                                </DialogContent>
-                                            </Dialog>
-                                            
-                                            <Dialog open={isRejecting} onOpenChange={(open) => { setIsRejecting(open); if (!open) setRemarks(""); }}>
-                                                <DialogTrigger asChild>
-                                                    <Button
-                                                        onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                                                    >
-                                                        Decline
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
-                                                    <DialogHeader className="space-y-3">
-                                                        <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                            Decline <span className="text-red-600">Request</span>
-                                                        </DialogTitle>
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Official Rejection Protocol</p>
-                                                    </DialogHeader>
-                                                    <div className="space-y-6 py-6">
-                                                        <div className="space-y-3">
-                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Decline <span className="text-red-500">*</span></Label>
-                                                            <Textarea
-                                                                ref={remarksRef}
-                                                                placeholder="Reason for decline..."
-                                                                value={remarks}
-                                                                onChange={(e) => setRemarks(e.target.value)}
-                                                                className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
-                                                                required
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <Button onClick={() => { if (!remarks.trim()) { toast.error("Reason is required"); return; } handleReject(); }} disabled={actionLoading || !remarks.trim()} className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all hover:bg-red-700">
-                                                        {actionLoading ? "Processing..." : "Confirm Decline"}
-                                                    </Button>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
+                                        {!(isBusinessPermit && transaction.status === "FOR_REQUESTING") && (
+                                            <div className="flex gap-2 w-full">
+                                                <Button
+                                                    onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                    className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                                                >
+                                                    Request Revision
+                                                </Button>
+                                                <Button
+                                                    onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                    className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                >
+                                                    Decline
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 {/* 1. EVALUATION PHASE: Strictly Read-Only (Resident is choosing fulfillment/paying) */}
@@ -2354,13 +2323,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 )}
 
                                 {/* 2. VERIFICATION & RELEASE PHASE: Active Actions enabled here */}
-                                {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
+                                {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
                                         {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
                                         {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") &&
                                             transaction.fulfillmentType !== "E_COPY" &&
                                             !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) &&
                                             !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") &&
+                                            !(isBusinessPermit && transaction.status === "FOR_REINSPECTION") &&
                                             transaction.status !== "FOR_PICKING" && (
                                                 <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                                     <Button
@@ -2374,7 +2344,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             )}
 
                                         {/* Gated CTC Entry: Locked for processed digital/delivery flows or if already recorded (e.g. after a Return) */}
-                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING" || transaction.cedula?.ctcNumber || transaction.businessPermit?.permitNumber)) ? (
+                                        {((transaction.status === "FOR_CLAIM" || transaction.status === "FOR_PICKING" || transaction.cedula?.ctcNumber || (transaction.businessPermit?.permitNumber && transaction.status !== "FOR_REINSPECTION"))) ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-6 rounded-3xl border-2 border-emerald-100 dark:border-emerald-500/20 text-center space-y-2 animate-in zoom-in-95">
                                                 <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
                                                     <BadgeCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -2397,7 +2367,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     ))
                                                 ) && (
                                                     isBusinessPermit
-                                                        ? ((!eCopyFile && !transaction.eCopyUrl) || (!orFile && !transaction.orUrl))
+                                                        ? (transaction.status === "FOR_PROCESSING" ? (!orFile && !transaction.orUrl) : ((!eCopyFile && !transaction.eCopyUrl) || (!orFile && !transaction.orUrl)))
                                                         : (!eCopyFile && !transaction.eCopyUrl)
                                                 ) && (
                                                     <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
@@ -2405,28 +2375,44 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500" />
                                                         </div>
                                                         <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">
-                                                            {isBusinessPermit ? "E-Copy & OR Required" : "Digital Copy Required"}
+                                                            {isBusinessPermit ? (transaction.status === "FOR_PROCESSING" ? "Official Receipt (OR) Required" : "E-Copy & OR Required") : "Digital Copy Required"}
                                                         </p>
                                                         <p className="text-[11px] font-bold text-amber-900/60 dark:text-amber-500/60 leading-relaxed">
-                                                            {isBusinessPermit 
-                                                                ? "Please attach both the Digital Permit and the Official Receipt (OR) to enable document processing." 
+                                                            {isBusinessPermit
+                                                                ? (transaction.status === "FOR_PROCESSING" ? "Please attach the Official Receipt (OR) copy to enable document processing." : "Please attach both the Digital Permit and the Official Receipt (OR) to enable document processing.")
                                                                 : "Please attach the Digital Record to enable document processing."}
                                                         </p>
                                                     </div>
                                                 )}
 
-                                                {/* Always show CTC Input for these phases (Hidden for Business Permits unless it is a new business permit) */}
-                                                {(!isBusinessPermit || transaction.type.code === "BUSINESS_PERMIT_NEW") && (
-                                                    <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
-                                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
-                                                            {isBusinessPermit ? "License Business Permit No." : "Registry Serial Entry (CTC No.)"}
-                                                        </Label>
-                                                        <Input
-                                                            value={ctcNumber}
-                                                            onChange={(e) => setCtcNumber(e.target.value)}
-                                                            placeholder={isBusinessPermit ? "ENTER BUSINESS PERMIT NO..." : "ENTER CTC NUMBER..."}
-                                                            className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
-                                                        />
+                                                {/* Always show CTC Input for these phases (Hidden for Business Permits unless it is active reinspection/release) */}
+                                                {(!isBusinessPermit || (isBusinessPermit && transaction.status !== "FOR_PROCESSING" && !isTreasuryStaff)) && (
+                                                    <div className="space-y-4">
+                                                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
+                                                            <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
+                                                                {isBusinessPermit ? "License Business Permit No." : "Registry Serial Entry (CTC No.)"}
+                                                            </Label>
+                                                            <Input
+                                                                value={ctcNumber}
+                                                                onChange={(e) => setCtcNumber(e.target.value)}
+                                                                placeholder={isBusinessPermit ? "ENTER BUSINESS PERMIT NO..." : "ENTER CTC NUMBER..."}
+                                                                className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
+                                                            />
+                                                        </div>
+
+                                                        {isBusinessPermit && transaction.status === "FOR_REINSPECTION" && (
+                                                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3 animate-in fade-in-50 duration-500">
+                                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
+                                                                    Sticker Number
+                                                                </Label>
+                                                                <Input
+                                                                    value={stickerNumber}
+                                                                    onChange={(e) => setStickerNumber(e.target.value)}
+                                                                    placeholder="ENTER STICKER NUMBER..."
+                                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -2434,7 +2420,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                         <div className="space-y-3 pt-2">
                                             {/* WAYBILL GENERATION: Required for Delivery Dispatch */}
-                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID" || transaction.status === "FOR_PICKING") && (
+                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID" || transaction.status === "FOR_PICKING" || (isBusinessPermit && transaction.status === "FOR_REINSPECTION")) && (isBPLOAdmin || !isBusinessPermit) && (
                                                 <Button
                                                     onClick={handlePrintWaybill}
                                                     variant="outline"
@@ -2452,30 +2438,37 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             actionLoading ||
                                                             // Requirement: CTC needed for initial processing (only for non-Business Permits)
                                                             (!isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
-                                                            // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows
-                                                            ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
+                                                            // Requirement: Business Permit serial, sticker and ecopy needed during RE-INSPECTION
+                                                            (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
+                                                            (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                            (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
+                                                            // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows (Bypassed in FOR_PROCESSING and PAID for Business Permit)
+                                                            (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION", "PAID"].includes(transaction.status)) && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
                                                             // Requirement: OR copy also needed for Business Permits in initial processing phases
                                                             (isBusinessPermit && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !orFile && !transaction.orUrl)
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
-                                                        {actionLoading ? "Processing..." : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
+                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                                     </Button>
 
-                                                    <Button
-                                                        onClick={() => setIsRejecting(true)}
-                                                        className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                                                    >
-                                                        Decline Registry Process
-                                                    </Button>
+                                                    {(!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
+                                                        <Button
+                                                            onClick={() => setIsRejecting(true)}
+                                                            className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                        >
+                                                            Decline Registry Process
+                                                        </Button>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* DISPUTE RESOLUTION ACTIONS */}
+                                {/* DISPUTE RESOLUTION ACTIONS — BPLO Admin Only */}
                                 {(transaction.status === "RETURN_REQUESTED" || transaction.status === "REFUND_REQUESTED") && (
+                                    isBPLOAdmin ? (
                                     <div className="space-y-3 animate-in slide-in-from-bottom-4">
                                         <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 text-center space-y-1 mb-4">
                                             <p className="text-[10px] font-black uppercase text-orange-600 dark:text-orange-500 italic">Review Action Required</p>
@@ -2490,14 +2483,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 variant="outline"
                                                 className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all mb-2"
                                             >
-                                                Generate & Print Waybill
+                                                Generate &amp; Print Waybill
                                             </Button>
                                         )}
 
                                         <div className="grid grid-cols-2 gap-3">
                                             <Dialog open={disputeModalOpen && disputeAction === 'APPROVE'} onOpenChange={(open) => { setDisputeModalOpen(open); setDisputeAction('APPROVE'); setRemarks(''); }}>
                                                 <DialogTrigger asChild>
-                                                    <Button 
+                                                    <Button
                                                         style={{ backgroundColor: themeColor }}
                                                         className="h-14 rounded-2xl text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg transition-all active:scale-95 hover:opacity-90"
                                                     >
@@ -2522,9 +2515,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <Button 
-                                                        onClick={handleResolveDispute} 
-                                                        disabled={isResolvingDispute} 
+                                                    <Button
+                                                        onClick={handleResolveDispute}
+                                                        disabled={isResolvingDispute}
                                                         style={{ backgroundColor: themeColor }}
                                                         className="w-full h-14 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl active:scale-95 transition-all hover:opacity-90"
                                                     >
@@ -2564,6 +2557,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </Dialog>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="p-8 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-center space-y-3 animate-in zoom-in-95">
+                                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                <AlertCircle className="w-6 h-6 text-orange-500" />
+                                            </div>
+                                            <p className="text-[10px] font-black uppercase text-orange-500 italic">BPLO Admin Action Required</p>
+                                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight italic">
+                                                This dispute is under review by <span className="text-primary font-black">BPLO Admin</span>. No action is required from Treasury Staff.
+                                            </p>
+                                        </div>
+                                    )
                                 )}
 
                                 {transaction.status === "RELEASED" && (
