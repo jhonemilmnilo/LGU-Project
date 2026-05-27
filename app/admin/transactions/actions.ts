@@ -18,6 +18,29 @@ async function getSession() {
 }
 
 /**
+ * Asserts that a valid logged-in session exists and returns the user object.
+ * Throws an error if unauthorized.
+ */
+async function assertSessionUser() {
+    const session = await getSession();
+    if (!session?.user?.id) {
+        throw new Error("Unauthorized");
+    }
+    return session.user;
+}
+
+/**
+ * Asserts that the user possesses one of the allowed roles.
+ * Throws a Forbidden error if access is denied.
+ */
+function assertUserRoles(user: any, allowedRoles: string[]) {
+    if (!user?.role || !allowedRoles.includes(user.role)) {
+        throw new Error("Forbidden: Access Denied");
+    }
+}
+
+
+/**
  * Fetches the current logged -in user's resident profile
  */
 export async function getCurrentUserResident() {
@@ -605,6 +628,8 @@ export async function submitBirthRegistration(formData: FormData) {
 
 export async function searchCivilRegistryRecords(type: string, query: string) {
     try {
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE"]);
         if (type === "BIRTH") {
             const records = await prisma.birthCertificateRegistry.findMany({
                 where: {
@@ -618,16 +643,16 @@ export async function searchCivilRegistryRecords(type: string, query: string) {
             return { success: true, data: records };
         }
         return { success: true, data: [] };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Search LCR records error:", error);
-        return { success: false, error: "Failed to search records" };
+        return { success: false, error: error?.message || "Failed to search records" };
     }
 }
 
 export async function getAllResidents() {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE"]);
 
         const residents = await prisma.resident.findMany({
             where: { registrationStatus: "APPROVED" },
@@ -635,17 +660,15 @@ export async function getAllResidents() {
         });
 
         return { success: true, data: residents };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Get all residents error:", error);
-        return { success: false, error: "Failed to fetch residents" };
+        return { success: false, error: error?.message || "Failed to fetch residents" };
     }
 }
 
 export async function submitBusinessPermitTransaction(formData: FormData) {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
-
+        const user = await assertSessionUser();
 
         // Validate required fields before parsing to avoid runtime exceptions and provide helpful feedback
         const missing: string[] = [];
@@ -665,13 +688,12 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
         const additionalData = JSON.parse(additionalDataRaw as string);
         const revisionId = formData.get("revisionId") as string | null;
-
         // Strike penalty check
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
             select: { rejectionCount: true }
         });
-        if (user && user.rejectionCount >= 3) {
+        if (dbUser && dbUser.rejectionCount >= 3) {
             return { success: false, error: "Submission blocked: Account suspended due to 3 rejection strikes. Please apply onsite at the Municipal Hall." };
         }
 
@@ -776,6 +798,8 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
 
 export async function uploadECopyAction(formData: FormData) {
     try {
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE", "ENGINEER"]);
         const file = formData.get("file") as File;
         if (!file) return { success: false, error: "No file provided" };
 
@@ -985,6 +1009,7 @@ export async function updateBarangayLogistics(id: string, data: { deliveryFee: n
  */
 export async function getSystemSettingAction(key: string, defaultValue: string = "") {
     try {
+        await assertSessionUser();
         const setting = await prisma.systemSetting.findUnique({
             where: { key }
         });
@@ -2684,12 +2709,11 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
 
 export async function getLatestSuccessfulBusinessPermit() {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+        const user = await assertSessionUser();
 
         const transaction = await prisma.transaction.findFirst({
             where: {
-                userId: session.user.id,
+                userId: user.id,
                 status: {
                     in: ["DELIVERED", "RELEASED"]
                 },
@@ -2714,18 +2738,17 @@ export async function getLatestSuccessfulBusinessPermit() {
         return { success: true, data: transaction };
     } catch (error: any) {
         console.error("Get latest successful permit error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error?.message || "Failed to fetch permit" };
     }
 }
 
 export async function getAllSuccessfulBusinessPermits() {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+        const user = await assertSessionUser();
 
         const transactions = await prisma.transaction.findMany({
             where: {
-                userId: session.user.id,
+                userId: user.id,
                 status: {
                     in: ["DELIVERED", "RELEASED"]
                 },
@@ -2747,21 +2770,17 @@ export async function getAllSuccessfulBusinessPermits() {
         return { success: true, data: transactions };
     } catch (error: any) {
         console.error("Get all successful permits error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error?.message || "Failed to fetch permits" };
     }
 }
-
 
 /**
  * Fetch all Building Permit transactions for Engineer Hub
  */
 export async function getEngineerTransactions(status?: string) {
     try {
-        const session = await getSession();
-        const user = session?.user as any;
-        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
-            return { success: false, error: "Forbidden" };
-        }
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ENGINEER", "ADMIN"]);
 
         const where: any = {
             type: { code: { startsWith: "BUILDING_PERMIT" } }
@@ -2790,9 +2809,9 @@ export async function getEngineerTransactions(status?: string) {
         });
 
         return { success: true, data: transactions as any[] };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch engineer transactions error:", error);
-        return { success: false, error: "Failed to fetch transactions" };
+        return { success: false, error: error?.message || "Failed to fetch transactions" };
     }
 }
 
@@ -2801,6 +2820,8 @@ export async function getEngineerTransactions(status?: string) {
  */
 export async function getEngineerPendingCount() {
     try {
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ENGINEER", "ADMIN"]);
 
         const count = await prisma.transaction.count({
             where: {
@@ -2809,9 +2830,9 @@ export async function getEngineerPendingCount() {
             }
         });
         return { success: true, count };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch engineer pending count error:", error);
-        return { success: false, count: 0 };
+        return { success: false, error: error?.message || "Failed to fetch pending count", count: 0 };
     }
 }
 
@@ -2820,11 +2841,8 @@ export async function getEngineerPendingCount() {
  */
 export async function getEngineerStatusCounts() {
     try {
-        const session = await getSession();
-        const user = session?.user as any;
-        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
-            return { success: false, error: "Forbidden", data: {} };
-        }
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ENGINEER", "ADMIN"]);
 
         const where: any = {
             type: { code: { startsWith: "BUILDING_PERMIT" } },
@@ -2851,8 +2869,8 @@ export async function getEngineerStatusCounts() {
         counts["CANCELLED"] = cancelledCount;
 
         return { success: true, data: counts };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch engineer status counts error:", error);
-        return { success: false, error: "Failed to fetch counts", data: {} };
+        return { success: false, error: error?.message || "Failed to fetch counts", data: {} };
     }
 }
