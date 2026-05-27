@@ -76,3 +76,16 @@ export async function finalizePasswordChange(email: string, newPassword: string)
         return { success: false, error: "Failed to update password" };
     }
 }
+
+export async function checkEmailExists(email: string) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email: email.trim().toLowerCase() },
+            select: { id: true }
+        });
+        return { success: true, exists: !!user };
+    } catch (error) {
+        console.error("checkEmailExists Error:", error);
+        return { success: false, error: "Failed to check email" };
+    }
+}

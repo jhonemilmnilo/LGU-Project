@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
 import Image from "next/image";
 import {
     CheckCircle, XCircle, X, User, MapPin, Phone,
     Briefcase, Shield, Heart, Users, FileText, AlertTriangle,
     Clock, BadgeCheck, RotateCw, RefreshCw, ZoomIn, ZoomOut
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { approveResident, rejectResident } from "@/app/admin/actions/registration-approval";
 import type { Resident } from "../providers/ResidentProvider";
 
 interface ResidentReviewModalProps {
@@ -49,11 +46,7 @@ const Field = ({ label, value }: { label: string, value: string | null | undefin
     );
 };
 
-export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange, themeColor = "#2563eb" }: ResidentReviewModalProps) {
-    const [isRejecting, setIsRejecting] = useState(false);
-    const [remarks, setRemarks] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-
+export function ResidentReviewModal({ resident, isOpen, onClose }: ResidentReviewModalProps) {
     // Zoom, Rotation, and Drag Lightbox state
     const [zoomedImage, setZoomedImage] = useState<{ src: string; label: string } | null>(null);
     const [rotation, setRotation] = useState(0);
@@ -118,48 +111,6 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
     }, [zoomedImage]);
 
     if (!isOpen || !resident) return null;
-
-    const handleApprove = async () => {
-        setIsLoading(true);
-        try {
-            const result = await approveResident(resident.id);
-            if (result.success) {
-                toast.success(`${resident.firstName} ${resident.lastName} has been approved.`);
-                onStatusChange(resident.id, "APPROVED");
-                onClose();
-            } else {
-                toast.error(result.error || "Failed to approve.");
-            }
-        } catch {
-            toast.error("An unexpected error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleReject = async () => {
-        if (!remarks.trim() || remarks.trim().length < 10) {
-            toast.error("Please provide a rejection reason of at least 10 characters.");
-            return;
-        }
-        setIsLoading(true);
-        try {
-            const result = await rejectResident(resident.id, remarks);
-            if (result.success) {
-                toast.success(`Rejection notice sent to ${resident.email || "the resident"}.`);
-                onStatusChange(resident.id, "REJECTED", remarks);
-                onClose();
-                setRemarks("");
-                setIsRejecting(false);
-            } else {
-                toast.error(result.error || "Failed to reject.");
-            }
-        } catch {
-            toast.error("An unexpected error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const statusConfig = {
         PENDING: { label: "Pending Review", color: "text-amber-600", bg: "bg-amber-50 border-amber-200", icon: Clock },
@@ -355,72 +306,15 @@ export function ResidentReviewModal({ resident, isOpen, onClose, onStatusChange,
                         </div>
                     )}
 
-                    {/* Rejection Form */}
-                    {isRejecting && (
-                        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl p-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-red-500" />
-                                <h4 className="text-sm font-black uppercase tracking-wider text-red-600">Rejection Reason</h4>
-                            </div>
-                            <p className="text-xs text-red-500 font-medium">
-                                This message will be emailed to the resident at <strong>{resident.email || "their registered email"}</strong>.
-                            </p>
-                            <textarea
-                                id="rejection-remarks"
-                                value={remarks}
-                                onChange={(e) => setRemarks(e.target.value)}
-                                placeholder="Provide a clear reason for rejection (minimum 10 characters)..."
-                                rows={4}
-                                className="w-full text-sm p-3 rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-[#0f1117] text-slate-800 dark:text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-red-400 placeholder:text-slate-400"
-                            />
-                            <div className="flex justify-end gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => { setIsRejecting(false); setRemarks(""); }}
-                                    className="rounded-xl"
-                                    disabled={isLoading}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    onClick={handleReject}
-                                    disabled={isLoading || remarks.trim().length < 10}
-                                    className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold"
-                                >
-                                    {isLoading ? "Sending..." : "Confirm Rejection"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+
                 </div>
 
-                {/* Footer with Action Buttons */}
-                {resident.registrationStatus === "PENDING" && !isRejecting && (
-                    <div className="p-6 border-t border-slate-100 dark:border-[#2a3040] flex items-center justify-between gap-3 flex-shrink-0 bg-slate-50/50 dark:bg-[#1a1f2e]/50">
-                        <p className="text-xs text-slate-500 font-medium">
-                            Review all information carefully before approving.
-                        </p>
-                        <div className="flex items-center gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsRejecting(true)}
-                                className="rounded-xl border-red-200 dark:border-red-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold gap-2"
-                                disabled={isLoading}
-                            >
-                                <XCircle className="w-4 h-4" />
-                                Reject
-                            </Button>
-                            <Button
-                                onClick={handleApprove}
-                                disabled={isLoading}
-                                className="rounded-xl text-white font-bold gap-2 shadow-lg"
-                                style={{ backgroundColor: themeColor }}
-                            >
-                                <CheckCircle className="w-4 h-4" />
-                                {isLoading ? "Processing..." : "Approve"}
-                            </Button>
+                {/* Footer with guidance notice (Approve/Reject actions moved strictly to Resident Approvals module) */}
+                {resident.registrationStatus === "PENDING" && (
+                    <div className="p-6 border-t border-slate-100 dark:border-[#2a3040] flex items-center justify-center gap-3 flex-shrink-0 bg-slate-50/50 dark:bg-[#1a1f2e]/50 text-center">
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold italic text-xs uppercase tracking-tight">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />
+                            <span>Pending registration approval is strictly restricted to the <span className="text-primary not-italic font-black">Resident Approvals</span> module.</span>
                         </div>
                     </div>
                 )}

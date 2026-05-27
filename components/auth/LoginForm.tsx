@@ -3,7 +3,7 @@
 import * as React from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Eye, EyeOff, Mail, Lock, ShieldAlert, Timer } from "lucide-react";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { AuthTransitionContext } from "@/components/shared/AuthLayout";
+import { checkEmailExists } from "@/app/auth/actions";
 
 const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -30,7 +31,7 @@ interface LockoutState {
     cooldownUntil: number | null;
 }
 
-const STORAGE_KEY = "emapandan_login_lockout";
+const STORAGE_KEY = "emapandan_login_lockout_by_email";
 const DEFAULT_STATE: LockoutState = {
     phase: 1,
     attemptsLeft: 3,
@@ -61,39 +62,58 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
         },
     });
 
-    // Load lockout state from localStorage on component mount
-    React.useEffect(() => {
-        if (typeof window !== "undefined") {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                try {
-                    const parsed = JSON.parse(stored) as LockoutState;
-                    if (
-                        [1, 2, 3].includes(parsed.phase) &&
-                        typeof parsed.attemptsLeft === "number"
-                    ) {
-                        setLockout(parsed);
+    const emailValue = useWatch({
+        control: form.control,
+        name: "email",
+        defaultValue: "",
+    });
 
-                        if (parsed.cooldownUntil) {
-                            const remaining = Math.ceil((parsed.cooldownUntil - Date.now()) / 1000);
-                            if (remaining > 0) {
-                                setTimeLeft(remaining);
-                            } else {
-                                // Cooldown expired while away
-                                const updated = { ...parsed, cooldownUntil: null };
-                                setLockout(updated);
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-                            }
+    // Load and sync lockout state based on the typed email dynamically
+    React.useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const normalizedEmail = emailValue.trim().toLowerCase();
+        if (!normalizedEmail) {
+            setLockout(DEFAULT_STATE);
+            setTimeLeft(0);
+            return;
+        }
+
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                const map = JSON.parse(stored) as { [email: string]: LockoutState };
+                const emailLockout = map[normalizedEmail];
+                if (emailLockout) {
+                    if (emailLockout.cooldownUntil) {
+                        const remaining = Math.ceil((emailLockout.cooldownUntil - Date.now()) / 1000);
+                        if (remaining > 0) {
+                            setLockout(emailLockout);
+                            setTimeLeft(remaining);
+                            return;
+                        } else {
+                            // Cooldown expired
+                            const updated = { ...emailLockout, cooldownUntil: null };
+                            const newMap = { ...map, [normalizedEmail]: updated };
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(newMap));
+                            setLockout(updated);
+                            setTimeLeft(0);
+                            return;
                         }
                     }
-                } catch (e) {
-                    console.error("Error parsing lockout state:", e);
+                    setLockout(emailLockout);
+                    setTimeLeft(0);
+                    return;
                 }
+            } catch (e) {
+                console.error("Error parsing lockout map:", e);
             }
         }
-    }, []);
+        setLockout(DEFAULT_STATE);
+        setTimeLeft(0);
+    }, [emailValue]);
 
-    // Timer countdown for active lockout
+    // Timer countdown for active lockout of the current email
     React.useEffect(() => {
         if (!lockout.cooldownUntil) {
             setTimeLeft(0);
@@ -109,9 +129,23 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                     cooldownUntil: null,
                 };
                 setLockout(updated);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
                 setTimeLeft(0);
                 toast.success("Cooldown complete. You can now try to sign in again!");
+
+                // Update in localStorage map
+                const normalizedEmail = emailValue.trim().toLowerCase();
+                if (normalizedEmail) {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    let map: { [email: string]: LockoutState } = {};
+                    if (stored) {
+                        try {
+                            map = JSON.parse(stored) || {};
+                        } catch {}
+                    }
+                    map[normalizedEmail] = updated;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+                }
+
                 clearInterval(interval);
             } else {
                 setTimeLeft(remaining);
@@ -119,9 +153,12 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [lockout.cooldownUntil, lockout]);
+    }, [lockout.cooldownUntil, lockout, emailValue]);
 
-    const handleFailedAttempt = React.useCallback(() => {
+    const handleFailedAttempt = React.useCallback((email: string) => {
+        if (!email) return;
+        const normalizedEmail = email.trim().toLowerCase();
+
         let nextPhase = lockout.phase;
         let nextAttempts = lockout.attemptsLeft - 1;
         let nextCooldown: number | null = null;
@@ -132,17 +169,17 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 nextCooldown = Date.now() + 3 * 60 * 1000; // 3 mins
                 nextPhase = 2;
                 nextAttempts = 2;
-                toast.error("Too many failed attempts! Form is locked for 3 minutes.");
+                toast.error("Too many failed attempts! Account is locked for 3 minutes.");
             } else if (lockout.phase === 2) {
                 nextCooldown = Date.now() + 5 * 60 * 1000; // 5 mins
                 nextPhase = 3;
                 nextAttempts = 1;
-                toast.error("Too many failed attempts! Form is locked for 5 minutes.");
+                toast.error("Too many failed attempts! Account is locked for 5 minutes.");
             } else {
                 nextCooldown = Date.now() + 10 * 60 * 1000; // 10 mins
                 nextPhase = 1;
                 nextAttempts = 3;
-                toast.error("Too many failed attempts! Form is locked for 10 minutes.");
+                toast.error("Too many failed attempts! Account is locked for 10 minutes.");
             }
         } else {
             toast.error(`Invalid credentials. You have ${nextAttempts} attempt${nextAttempts > 1 ? "s" : ""} left.`);
@@ -155,15 +192,38 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
         };
 
         setLockout(newState);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+
+        // Save to global map in localStorage
+        const stored = localStorage.getItem(STORAGE_KEY);
+        let map: { [email: string]: LockoutState } = {};
+        if (stored) {
+            try {
+                map = JSON.parse(stored) || {};
+            } catch {}
+        }
+        map[normalizedEmail] = newState;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
     }, [lockout]);
 
-    const handleSuccessAttempt = React.useCallback(() => {
+    const handleSuccessAttempt = React.useCallback((email: string) => {
+        if (!email) return;
+        const normalizedEmail = email.trim().toLowerCase();
+
         setLockout(DEFAULT_STATE);
-        localStorage.removeItem(STORAGE_KEY);
+
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                const map = JSON.parse(stored) || {};
+                delete map[normalizedEmail];
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+            } catch {}
+        }
     }, []);
 
     const onSubmit = React.useCallback(async (data: LoginFormValues) => {
+        const normalizedEmail = data.email.trim().toLowerCase();
+
         if (lockout.cooldownUntil && Date.now() < lockout.cooldownUntil) {
             toast.error("Security cooldown active. Please wait.");
             return;
@@ -177,7 +237,12 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
             });
 
             if (result?.error) {
-                handleFailedAttempt();
+                const emailCheck = await checkEmailExists(normalizedEmail);
+                if (emailCheck.success && emailCheck.exists) {
+                    handleFailedAttempt(normalizedEmail);
+                } else {
+                    toast.error("Invalid credentials.");
+                }
                 return;
             }
 
@@ -186,7 +251,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
             const session = await response.json();
 
             if (session && session.user) {
-                handleSuccessAttempt();
+                handleSuccessAttempt(normalizedEmail);
                 const { role, isPasswordChanged } = session.user;
 
                 // Check if user needs to change password
@@ -231,6 +296,9 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
         toast.success("Password changed! Redirecting...");
     };
 
+    const [isEmailFocused, setIsEmailFocused] = React.useState(false);
+    const [isPasswordFocused, setIsPasswordFocused] = React.useState(false);
+
     return (
         <>
             <div className="space-y-6 md:space-y-8">
@@ -273,14 +341,24 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                     <div className="space-y-2">
                         <Label htmlFor="login-email" className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Email Address</Label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-4 h-4 w-4 text-slate-400 dark:text-slate-600" />
+                            <Mail 
+                                className="absolute left-3 top-4 h-4 w-4 transition-colors duration-200" 
+                                style={{ color: isEmailFocused ? themeColor : undefined }}
+                            />
                             <Input
                                 id="login-email"
                                 type="email"
                                 placeholder="name@example.com"
-                                className="pl-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="pl-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus-visible:ring-0 focus-visible:ring-offset-0"
+                                style={{ 
+                                    borderColor: isEmailFocused ? themeColor : undefined,
+                                    boxShadow: isEmailFocused ? `0 0 0 1px ${themeColor}` : undefined 
+                                }}
+                                onFocus={() => setIsEmailFocused(true)}
+                                {...form.register("email", {
+                                    onBlur: () => setIsEmailFocused(false)
+                                })}
                                 disabled={timeLeft > 0 || form.formState.isSubmitting}
-                                {...form.register("email")}
                             />
                         </div>
                         {form.formState.errors.email && (
@@ -295,25 +373,37 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                             <Label htmlFor="login-password" className="text-slate-700 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest">Password</Label>
                             <Link
                                 href="/auth/forgot-password"
-                                className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-colors"
+                                className="text-[10px] font-black uppercase tracking-widest hover:opacity-80 transition-colors"
+                                style={{ color: themeColor }}
                             >
                                 Forgot password?
                             </Link>
                         </div>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-4 h-4 w-4 text-slate-400 dark:text-slate-600" />
+                            <Lock 
+                                className="absolute left-3 top-4 h-4 w-4 transition-colors duration-200" 
+                                style={{ color: isPasswordFocused ? themeColor : undefined }}
+                            />
                             <Input
                                 id="login-password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
-                                className="pl-10 pr-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+                                className="pl-10 pr-10 h-12 bg-white dark:bg-black/20 border-slate-300 dark:border-white/10 text-slate-900 dark:text-white shadow-sm transition-all focus-visible:ring-0 focus-visible:ring-offset-0"
+                                style={{ 
+                                    borderColor: isPasswordFocused ? themeColor : undefined,
+                                    boxShadow: isPasswordFocused ? `0 0 0 1px ${themeColor}` : undefined 
+                                }}
+                                onFocus={() => setIsPasswordFocused(true)}
+                                {...form.register("password", {
+                                    onBlur: () => setIsPasswordFocused(false)
+                                })}
                                 disabled={timeLeft > 0 || form.formState.isSubmitting}
-                                {...form.register("password")}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-4 opacity-40 hover:opacity-100 focus:outline-none"
+                                className="absolute right-3 top-4 opacity-40 hover:opacity-100 focus:outline-none transition-colors"
+                                style={{ color: isPasswordFocused || showPassword ? themeColor : undefined, opacity: isPasswordFocused || showPassword ? 1 : undefined }}
                                 disabled={timeLeft > 0}
                             >
                                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -363,6 +453,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 onOpenChange={setShowChangeModal}
                 email={userEmail}
                 onSuccess={handlePasswordChangeSuccess}
+                themeColor={themeColor}
             />
         </>
     );
