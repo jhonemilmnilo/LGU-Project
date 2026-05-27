@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
     getTreasuryTransactions,
     getPendingTreasuryCount,
-    getTreasuryStatusCounts,
     getTransactionTypes
 } from "@/app/admin/transactions/actions";
 import {
@@ -25,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const STATUS_TABS = [
@@ -70,6 +69,8 @@ function getResidentSnapshot(tx: any): any {
 
 export default function TreasuryDashboard() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const categoryParam = searchParams.get("category");
     const { data: session } = useSession();
     const userRole = (session?.user as any)?.role;
     const userDepartment = (session?.user as any)?.department;
@@ -98,11 +99,20 @@ export default function TreasuryDashboard() {
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
     const [sortBy, setSortBy] = useState<"date" | "service">("date");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [serviceFilter, setServiceFilter] = useState<string | null>(null);
     const [serviceSearch, setServiceSearch] = useState("");
+
+    // Listen to query param category filter changes
+    useEffect(() => {
+        if (categoryParam) {
+            setSortBy("service");
+            setServiceFilter(categoryParam === "ALL" ? null : categoryParam);
+        } else {
+            setServiceFilter(null);
+        }
+    }, [categoryParam]);
 
     // Memoize the filtered list of services based on the search query for optimal performance
     const filteredServices = useMemo(() => {
@@ -152,33 +162,9 @@ export default function TreasuryDashboard() {
         }
     }, [status]);
 
-    // Fetch all status counts on mount and when transactions change
-    const fetchStatusCounts = useCallback(async () => {
-        try {
-            const res = await getTreasuryStatusCounts();
-            if (res.success && res.data) {
-                setStatusCounts(res.data);
-            }
-        } catch {
-            // Silently fail — counts are non-critical
-        }
-    }, []);
-
     useEffect(() => {
         fetchTransactions();
     }, [fetchTransactions]);
-
-    useEffect(() => {
-        fetchStatusCounts();
-    }, [fetchStatusCounts]);
-
-    // Refresh counts when status changes (after data is fetched)
-    useEffect(() => {
-        if (!loading) {
-            fetchStatusCounts();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loading]);
 
     // Reset serviceFilter and page when status changes to prevent lingering filter states across empty pages
     useEffect(() => {
@@ -203,7 +189,8 @@ export default function TreasuryDashboard() {
             tx.id.toLowerCase().includes(search.toLowerCase()) ||
             refId.includes(searchUpper);
 
-        const matchesService = !serviceFilter || tx.type?.name === serviceFilter;
+        // Direct category matching based on database category field
+        const matchesService = !serviceFilter || tx.type?.category === serviceFilter;
 
         return matchesSearch && matchesService;
     });
@@ -318,12 +305,9 @@ export default function TreasuryDashboard() {
                                         </SelectTrigger>
                                         <SelectContent className="bg-white dark:bg-[#151b2b]">
                                             {filteredTabs.map(tab => {
-                                                const count = tab.value === "ALL"
-                                                    ? Object.values(statusCounts).reduce((a, b) => a + b, 0)
-                                                    : (statusCounts[tab.value] || 0);
                                                 return (
                                                     <SelectItem key={tab.value} value={tab.value} className="text-sm">
-                                                        {tab.label}{count ? ` (${count})` : ""}
+                                                        {tab.label}
                                                     </SelectItem>
                                                 );
                                             })}

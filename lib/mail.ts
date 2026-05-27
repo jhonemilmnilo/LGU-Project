@@ -1,19 +1,20 @@
 import nodemailer from "nodemailer";
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET";
     to: string;
     name: string;
     remarks?: string | null;
     transactionId?: string;
     amount?: number;
+    resetLink?: string;
 }
 
 /**
  * Centered Email Utility for LGU Mapandan
  * Reuses existing Gmail SMTP configuration from .env
  */
-export async function sendEmail({ type, to, name, remarks, transactionId, amount }: SendEmailProps) {
+export async function sendEmail({ type, to, name, remarks, transactionId, amount, resetLink }: SendEmailProps) {
     const emailUser = process.env.EMAIL_USER;
     const emailPass = process.env.EMAIL_PASS;
 
@@ -341,6 +342,41 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "PASSWORD_RESET") {
+        subject = `Password Reset Request - LGU ${municipalityName}`;
+        const primaryIndigo = "#6366f1";
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryIndigo}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">🔑</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Password Reset</h1>
+                    <p style="color: #64748b; font-size: 13px; margin: 8px 0 0 0;">LGU ${municipalityName} Resident Portal</p>
+                </div>
+
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We received a request to reset the password for your account. Click the button below to set a new password.</p>
+
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="${resetLink || '#'}" style="display: inline-block; background: ${primaryIndigo}; color: white; text-decoration: none; padding: 16px 40px; border-radius: 14px; font-size: 15px; font-weight: 800; letter-spacing: -0.01em; box-shadow: 0 10px 30px rgba(99,102,241,0.3);">Reset My Password</a>
+                </div>
+
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 20px; margin: 32px 0;">
+                    <p style="color: #92400e; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 6px 0; letter-spacing: 0.05em;">⏱ Important: Link expires in 15 minutes</p>
+                    <p style="color: #78350f; font-size: 13px; margin: 0; line-height: 1.5;">If you did not request a password reset, you can safely ignore this email. Your password will not be changed.</p>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 32px;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0 0 6px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">If the button doesn't work, copy this link:</p>
+                    <p style="color: ${primaryIndigo}; font-size: 12px; margin: 0; word-break: break-all; font-family: monospace;">${resetLink || ''}</p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Resident Services Portal • Security Notification</p>
             </div>
         </div>`;
     } else if (type === "DISPUTE_REJECTED") {

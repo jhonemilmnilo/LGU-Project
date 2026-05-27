@@ -383,6 +383,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
     const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
+    const isBusinessPermitRenewal = isBusinessPermit && (
+        transaction?.type?.code === "BUSINESS_PERMIT_RENEW" ||
+        (transaction?.additionalData as any)?.businessType === "RENEWAL" ||
+        (transaction?.additionalData as any)?.businessType === "RENEW"
+    );
     const isBuildingPermit = transaction?.type?.code?.startsWith("BUILDING_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const typeCode = (transaction?.type?.code || "").toUpperCase();
@@ -2642,22 +2647,52 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 {/* Always show CTC Input for these phases (Hidden for Business Permits unless it is active reinspection/release) */}
                                                 {(!isBusinessPermit || (isBusinessPermit && transaction.status !== "FOR_PROCESSING" && !isTreasuryStaff)) && (
                                                     <div className="space-y-4">
-                                                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
-                                                            <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
-                                                                {isBusinessPermit ? "License Business Permit No." : "Registry Serial Entry (CTC No.)"}
-                                                            </Label>
-                                                            <Input
-                                                                value={ctcNumber}
-                                                                onChange={(e) => setCtcNumber(e.target.value)}
-                                                                placeholder={isBusinessPermit ? "ENTER BUSINESS PERMIT NO..." : "ENTER CTC NUMBER..."}
-                                                                className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
-                                                            />
-                                                        </div>
+                                                        {/* For Renewal: show info badge with auto-carried permit number instead of input */}
+                                                        {isBusinessPermit && isBusinessPermitRenewal ? (
+                                                            <div className="bg-emerald-50 dark:bg-emerald-500/5 p-5 rounded-3xl border-2 border-emerald-200 dark:border-emerald-500/20 space-y-2 animate-in fade-in-50 duration-300">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                                                                        <Check className="w-3 h-3 text-white" />
+                                                                    </div>
+                                                                    <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest italic">
+                                                                        Permit No. Auto-Carried (Renewal)
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs font-bold text-emerald-900/60 dark:text-emerald-300/60 leading-relaxed">
+                                                                    The existing permit number <span className="font-mono font-black text-emerald-700 dark:text-emerald-300">{additional?.permitNumber || additional?.existingPermitNumber || "—"}</span> will automatically carry over as the renewed permit number. No input needed.
+                                                                </p>
+                                                            </div>
+                                                        ) : !isBusinessPermit ? (
+                                                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
+                                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
+                                                                    Registry Serial Entry (CTC No.)
+                                                                </Label>
+                                                                <Input
+                                                                    value={ctcNumber}
+                                                                    onChange={(e) => setCtcNumber(e.target.value)}
+                                                                    placeholder="ENTER CTC NUMBER..."
+                                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            // For NEW Business Permit: admin must enter the permit number
+                                                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
+                                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
+                                                                    License Business Permit No.
+                                                                </Label>
+                                                                <Input
+                                                                    value={ctcNumber}
+                                                                    onChange={(e) => setCtcNumber(e.target.value)}
+                                                                    placeholder="ENTER BUSINESS PERMIT NO..."
+                                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
+                                                                />
+                                                            </div>
+                                                        )}
 
                                                         {isBusinessPermit && transaction.status === "FOR_REINSPECTION" && (
                                                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3 animate-in fade-in-50 duration-500">
                                                                 <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
-                                                                    Sticker Number
+                                                                    Sticker Number <span className="text-rose-500 ml-0.5">*</span>
                                                                 </Label>
                                                                 <Input
                                                                     value={stickerNumber}
@@ -2692,9 +2727,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             actionLoading ||
                                                             // Requirement: CTC needed for initial processing (only for non-Business Permits)
                                                             (!isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
-                                                            // Requirement: Business Permit serial, sticker and ecopy needed during RE-INSPECTION
-                                                            (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
-                                                            (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                            // Requirement: For Business Permit RENEWAL reinspection - only sticker number required (permit no. is auto-carried)
+                                                            // Requirement: For Business Permit NEW reinspection - both permit number and sticker are required
+                                                            (isBusinessPermit && isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                            (isBusinessPermit && !isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
+                                                            (isBusinessPermit && !isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
                                                             (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
                                                             // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows (Bypassed in FOR_PROCESSING and PAID for Business Permit)
                                                             (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION", "PAID"].includes(transaction.status)) && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||

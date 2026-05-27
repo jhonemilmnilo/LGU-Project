@@ -54,6 +54,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { CancelRequestModal } from "@/components/shared/CancelRequestModal";
 
 // Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
 function formatPHDate(date: string | Date): string {
@@ -107,8 +108,8 @@ export default function RequestHubPage() {
     const [copied, setCopied] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isFinalizing, setIsFinalizing] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isCancelling, setIsCancelling] = useState(false);
+    const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
     const [isDisputing, setIsDisputing] = useState(false);
     const [isResubmitting, setIsResubmitting] = useState(false);
     const [revisionFiles, setRevisionFiles] = useState<{ [key: string]: File | null }>({});
@@ -357,15 +358,13 @@ export default function RequestHubPage() {
         }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleCancel = async () => {
-        if (!window.confirm("Are you sure you want to cancel this request?")) return;
-
+        setCancelConfirmOpen(false);
         setIsCancelling(true);
         try {
             const res = await cancelTransaction(id);
             if (res.success) {
-                toast.success("Request cancelled.");
+                toast.success("Request cancelled successfully.");
                 window.location.reload();
             } else {
                 toast.error(res.error || "Failed to cancel");
@@ -940,7 +939,31 @@ export default function RequestHubPage() {
                                 <TabsTrigger value="logistics" className="flex-1 md:flex-none rounded-xl md:rounded-[1rem] px-5 md:px-10 py-3 md:py-0 h-full font-black text-[8px] md:text-[10px] uppercase tracking-widest italic data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Logistics</TabsTrigger>
                             </TabsList>
 
-                            <TabsContent value="overview" className="mt-0 space-y-8 md:space-y-12">
+                            <TabsContent value="overview" className="mt-0 space-y-3 md:space-y-4">
+                                {(((isBusinessPermit && request.status === "FOR_INSPECTION") || (isCedula && request.status === "FOR_REQUESTING")) && !request.isCancelled) && (
+                                    <div className="w-full flex justify-end animate-in fade-in duration-300">
+                                        <button
+                                            id="cancel-request-btn"
+                                            onClick={() => setCancelConfirmOpen(true)}
+                                            disabled={isCancelling}
+                                            className="w-full md:w-auto px-10 h-12 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-red-600/10"
+                                        >
+                                            {isCancelling ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <span>Cancel Request</span>
+                                            )}
+                                        </button>
+                                        <CancelRequestModal
+                                            isOpen={cancelConfirmOpen}
+                                            onOpenChange={setCancelConfirmOpen}
+                                            onConfirm={handleCancel}
+                                            isCancelling={isCancelling}
+                                            serviceName={isBusinessPermit ? "Business Permit" : "Cedula"}
+                                        />
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10 items-start">
                                     <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-xl rounded-2xl md:rounded-3xl lg:col-span-2 relative overflow-hidden h-fit">
                                         <div className="absolute top-0 right-0 p-8 opacity-5"><FileText className="w-32 h-32" /></div>

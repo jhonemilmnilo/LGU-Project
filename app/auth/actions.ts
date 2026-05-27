@@ -3,10 +3,27 @@
 import prisma from "@/lib/db/prisma";
 import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { revalidatePath } from "next/cache";
+import { isRateLimited, getClientIp } from "@/lib/rate-limit";
+import { sendEmail } from "@/lib/mail";
 
 export async function sendOTP(email: string) {
     try {
+        const ip = await getClientIp();
+        const emailClean = email.trim().toLowerCase();
+        // Rate limit: Max 3 OTP requests per hour per email + IP
+        const limitKey = `otp:send:${emailClean}:${ip}`;
+        const limitCheck = await isRateLimited(limitKey, 3, 3600000); // 1 hour window
+
+        if (!limitCheck.success) {
+            const minutesLeft = Math.ceil(((limitCheck.resetTime?.getTime() || 0) - Date.now()) / 60000);
+            return { 
+                success: false, 
+                error: `Too many OTP requests. Please try again after ${minutesLeft} minute(s).` 
+            };
+        }
+
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
@@ -28,6 +45,20 @@ export async function sendOTP(email: string) {
 
 export async function verifyOTPOnly(email: string, otp: string) {
     try {
+        const ip = await getClientIp();
+        const emailClean = email.trim().toLowerCase();
+        // Rate limit: Max 10 verification attempts per 15 mins per email + IP
+        const limitKey = `otp:verify:${emailClean}:${ip}`;
+        const limitCheck = await isRateLimited(limitKey, 10, 900000); // 15 mins window
+
+        if (!limitCheck.success) {
+            const minutesLeft = Math.ceil(((limitCheck.resetTime?.getTime() || 0) - Date.now()) / 60000);
+            return { 
+                success: false, 
+                error: `Too many verification attempts. Try again after ${minutesLeft} minute(s).` 
+            };
+        }
+
         // Try 'signup' first for new users
         let { error: verifyError } = await supabase.auth.verifyOtp({
             email,
@@ -76,3 +107,134 @@ export async function finalizePasswordChange(email: string, newPassword: string)
         return { success: false, error: "Failed to update password" };
     }
 }
+
+export async function checkEmailExists(email: string) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email: email.trim().toLowerCase() },
+            select: { id: true }
+        });
+        return { success: true, exists: !!user };
+    } catch (error) {
+        console.error("checkEmailExists Error:", error);
+        return { success: false, error: "Failed to check email" };
+    }
+}
+
+/**
+ * Requests a password reset for the given email.
+ * Anti-enumeration: Always returns success regardless if email exists.
+ */
+export async function requestPasswordReset(email: string) {
+    try {
+        const ip = await getClientIp();
+        const emailClean = email.trim().toLowerCase();
+
+        // Rate limit: max 3 reset requests per hour per IP+email
+        const limitKey = `reset:${emailClean}:${ip}`;
+        const limitCheck = await isRateLimited(limitKey, 3, 3600000);
+        if (!limitCheck.success) {
+            const minutesLeft = Math.ceil(((limitCheck.resetTime?.getTime() || 0) - Date.now()) / 60000);
+            return {
+                success: false,
+                error: `Too many reset requests. Try again after ${minutesLeft} minute(s).`,
+            };
+        }
+
+        // Find user — silently return success if not found (anti-enumeration)
+        const user = await prisma.user.findUnique({
+            where: { email: emailClean },
+            select: { id: true, name: true, email: true },
+        });
+
+        if (!user || !user.email) {
+            // Do NOT reveal if the email doesn't exist
+            return { success: true };
+        }
+
+        // Delete any previous unused tokens for this email
+        await prisma.passwordResetToken.deleteMany({ where: { email: emailClean } });
+
+        // Generate cryptographically secure token (256-bit entropy)
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        await prisma.passwordResetToken.create({
+            data: { token, email: emailClean, expiresAt },
+        });
+
+        // Build the reset URL
+        const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
+
+        // Send the email
+        await sendEmail({
+            type: "PASSWORD_RESET",
+            to: user.email,
+            name: user.name || "User",
+            resetLink,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("requestPasswordReset Error:", error);
+        return { success: false, error: "An error occurred. Please try again." };
+    }
+}
+
+/**
+ * Validates a password reset token without consuming it.
+ * Used for server-side page rendering.
+ */
+export async function validateResetToken(token: string) {
+    try {
+        if (!token || token.length !== 64) {
+            return { valid: false, error: "Invalid reset link." };
+        }
+
+        const record = await prisma.passwordResetToken.findUnique({ where: { token } });
+
+        if (!record) return { valid: false, error: "Invalid or expired reset link." };
+        if (record.usedAt) return { valid: false, error: "This reset link has already been used." };
+        if (record.expiresAt < new Date()) return { valid: false, error: "This reset link has expired. Please request a new one." };
+
+        return { valid: true, email: record.email };
+    } catch (error) {
+        console.error("validateResetToken Error:", error);
+        return { valid: false, error: "An error occurred. Please try again." };
+    }
+}
+
+/**
+ * Resets the user's password using a valid token.
+ */
+export async function resetPassword(token: string, newPassword: string) {
+    try {
+        // Re-validate token
+        const validation = await validateResetToken(token);
+        if (!validation.valid || !validation.email) {
+            return { success: false, error: validation.error };
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        await prisma.user.update({
+            where: { email: validation.email },
+            data: { password: hashedPassword, isPasswordChanged: true },
+        });
+
+        // Mark token as used and clean up
+        await prisma.passwordResetToken.updateMany({
+            where: { token },
+            data: { usedAt: new Date() },
+        });
+        await prisma.passwordResetToken.deleteMany({ where: { token } });
+
+        return { success: true };
+    } catch (error) {
+        console.error("resetPassword Error:", error);
+        return { success: false, error: "Failed to reset password. Please try again." };
+    }
+}
+

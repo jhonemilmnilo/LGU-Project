@@ -50,15 +50,19 @@ interface ChangePasswordModalProps {
     onOpenChange: (open: boolean) => void;
     email: string;
     onSuccess: () => void;
+    themeColor?: string;
 }
 
 type Step = 'identity' | 'otp' | 'password';
 
-export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: ChangePasswordModalProps) {
+export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess, themeColor = "#2563eb" }: ChangePasswordModalProps) {
     const [step, setStep] = React.useState<Step>('identity');
     const [isLoading, setIsLoading] = React.useState(false);
     const [showPassword, setShowPassword] = React.useState(false);
-    const [timeLeft, setTimeLeft] = React.useState(60);
+    const [timeLeft, setTimeLeft] = React.useState(120);
+    const [isOtpFocused, setIsOtpFocused] = React.useState(false);
+    const [isPassFocused, setIsPassFocused] = React.useState(false);
+    const [isConfirmFocused, setIsConfirmFocused] = React.useState(false);
 
     const form = useForm<SetupValues>({
         resolver: zodResolver(setupSchema),
@@ -95,7 +99,7 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
     React.useEffect(() => {
         if (!isOpen) {
             setStep('identity');
-            setTimeLeft(60);
+            setTimeLeft(120);
             form.reset({
                 otp: "",
                 password: "",
@@ -120,7 +124,7 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
             if (result.success) {
                 toast.success(isResend ? "Code resent successfully" : "Verification code sent");
                 setStep('otp');
-                setTimeLeft(60);
+                setTimeLeft(120);
             } else {
                 toast.error(result.error || "Failed to send code.");
             }
@@ -172,7 +176,7 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[380px] w-[calc(100%-2rem)] p-0 overflow-hidden bg-background dark:bg-[#0B0E14] border-none rounded-[32px] shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[100]">
+            <DialogContent className="max-w-[380px] w-[calc(100%-2rem)] p-0 overflow-hidden bg-background dark:bg-[#0B0E14] border-none rounded-[32px] shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-[150]">
                 
                 <AnimatePresence mode="wait">
                     {step === 'identity' && (
@@ -184,8 +188,11 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                             className="p-8 pt-10 pb-8"
                         >
                             <DialogHeader className="mb-8 text-center space-y-4">
-                                <div className="mx-auto w-16 h-16 bg-sky-50 dark:bg-sky-500/10 rounded-full flex items-center justify-center border border-sky-100 dark:border-sky-500/20 shadow-sm transition-transform hover:scale-105">
-                                    <Mail className="w-8 h-8 text-sky-500" />
+                                <div 
+                                    className="mx-auto w-16 h-16 rounded-full flex items-center justify-center border shadow-sm transition-transform hover:scale-105"
+                                    style={{ backgroundColor: `${themeColor}10`, borderColor: `${themeColor}20` }}
+                                >
+                                    <Mail className="w-8 h-8" style={{ color: themeColor }} />
                                 </div>
                                 <div className="space-y-2">
                                     <DialogTitle className="text-2xl font-bold text-foreground">
@@ -197,9 +204,12 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                                 </div>
                             </DialogHeader>
 
-                            <div className="bg-muted/30 border border-border p-4 rounded-xl mb-8 flex items-center gap-3 group transition-all hover:border-sky-500/30">
+                            <div 
+                                className="bg-muted/30 border border-border p-4 rounded-xl mb-8 flex items-center gap-3 group transition-all"
+                                style={{ transitionProperty: "border-color" }}
+                            >
                                 <div className="w-10 h-10 bg-background dark:bg-slate-900 rounded-lg flex items-center justify-center border border-border shadow-sm">
-                                    <ShieldCheck className="w-5 h-5 text-muted-foreground group-hover:text-sky-500 transition-colors" />
+                                    <ShieldCheck className="w-5 h-5" style={{ color: themeColor }} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Email Address</p>
@@ -207,10 +217,11 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                                 </div>
                             </div>
 
-                            <Button
+                             <Button
                                 onClick={() => handleSendOTP(false)}
                                 disabled={isLoading}
-                                className="w-full bg-blue-600 text-white hover:bg-blue-700 h-11 font-bold shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all rounded-xl text-base"
+                                className="w-full text-white h-11 font-bold shadow-lg active:scale-[0.98] transition-all rounded-xl text-base hover:opacity-90"
+                                style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
                             >
                                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                     <span className="flex items-center gap-2">
@@ -230,8 +241,11 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                             className="p-8 pt-10 pb-8"
                         >
                             <DialogHeader className="mb-8 text-center space-y-4">
-                                <div className="mx-auto w-16 h-16 bg-sky-50 dark:bg-sky-500/10 rounded-full flex items-center justify-center border border-sky-100 dark:border-sky-500/20 shadow-sm">
-                                    <Mail className="w-8 h-8 text-sky-500" />
+                                <div 
+                                    className="mx-auto w-16 h-16 rounded-full flex items-center justify-center border shadow-sm"
+                                    style={{ backgroundColor: `${themeColor}10`, borderColor: `${themeColor}20` }}
+                                >
+                                    <Mail className="w-8 h-8" style={{ color: themeColor }} />
                                 </div>
                                 <div className="space-y-2">
                                     <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">Verify your email</DialogTitle>
@@ -244,17 +258,25 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                             <div className="space-y-6">
                                 <div className="relative">
                                     <Input
-                                        {...form.register("otp")}
                                         placeholder="000 000"
                                         maxLength={6}
-                                        className="h-14 w-full text-center text-3xl font-bold tracking-[0.4em] rounded-xl bg-muted/20 border-border shadow-inner text-foreground focus:ring-sky-500/20 focus:bg-background transition-all"
+                                        className="h-14 w-full text-center text-3xl font-bold tracking-[0.4em] rounded-xl bg-muted/20 border-border shadow-inner text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus:bg-background transition-all"
+                                        style={{
+                                            borderColor: isOtpFocused ? themeColor : undefined,
+                                            boxShadow: isOtpFocused ? `0 0 0 1px ${themeColor}` : undefined
+                                        }}
+                                        onFocus={() => setIsOtpFocused(true)}
+                                        {...form.register("otp", {
+                                            onBlur: () => setIsOtpFocused(false)
+                                        })}
                                     />
                                 </div>
 
-                                <Button
+                                 <Button
                                     onClick={handleVerifyOTP}
                                     disabled={isLoading}
-                                    className="w-full bg-blue-600 text-white hover:bg-blue-700 h-11 font-bold shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all rounded-xl text-base"
+                                    className="w-full text-white h-11 font-bold shadow-lg active:scale-[0.98] transition-all rounded-xl text-base hover:opacity-90"
+                                    style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
                                 >
                                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                         <span className="flex items-center gap-2">
@@ -265,19 +287,19 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
 
                                 <div className="flex flex-col items-center gap-6">
                                     <div className="flex gap-4">
-                                        <div className="text-center group">
-                                            <div className="bg-muted dark:bg-slate-900/50 w-16 h-12 rounded-xl flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-2xl group-hover:bg-sky-50 dark:group-hover:bg-sky-900/30 transition-colors shadow-sm">{formatTimer(timeLeft).mins}</div>
+                                         <div className="text-center group">
+                                            <div className="bg-muted dark:bg-slate-900/50 w-16 h-12 rounded-xl flex items-center justify-center font-bold text-2xl group-hover:bg-muted/70 transition-colors shadow-sm" style={{ color: themeColor }}>{formatTimer(timeLeft).mins}</div>
                                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 block">Minutes</span>
                                         </div>
-                                        <span className="text-sky-600 dark:text-sky-400 font-bold text-3xl self-start mt-1.5">:</span>
+                                        <span className="font-bold text-3xl self-start mt-1.5" style={{ color: themeColor }}>:</span>
                                         <div className="text-center group">
-                                            <div className="bg-muted dark:bg-slate-900/50 w-16 h-12 rounded-xl flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-2xl group-hover:bg-sky-50 dark:group-hover:bg-sky-900/30 transition-colors shadow-sm">{formatTimer(timeLeft).secs}</div>
+                                            <div className="bg-muted dark:bg-slate-900/50 w-16 h-12 rounded-xl flex items-center justify-center font-bold text-2xl group-hover:bg-muted/70 transition-colors shadow-sm" style={{ color: themeColor }}>{formatTimer(timeLeft).secs}</div>
                                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 block">Seconds</span>
                                         </div>
                                     </div>
                                     
                                     <p className="text-base font-medium text-muted-foreground">
-                                        Didn&apos;t receive code? <button onClick={() => handleSendOTP(true)} disabled={isLoading} className={`font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer disabled:opacity-50`}>Resend code</button>
+                                        Didn&apos;t receive code? <button onClick={() => handleSendOTP(true)} disabled={isLoading || timeLeft > 60} className="font-bold hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200" style={{ color: themeColor }}>Resend code {timeLeft > 60 && `(${timeLeft - 60}s)`}</button>
                                     </p>
                                 </div>
                             </div>
@@ -306,15 +328,23 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                                         <Label className="text-[13px] font-bold text-muted-foreground ml-1">New Password</Label>
                                         <div className="relative group">
                                             <Input
-                                                {...form.register("password")}
                                                 type={showPassword ? "text" : "password"}
                                                 placeholder="••••••••"
-                                                className="h-11 px-4 rounded-xl bg-muted/20 border-border text-foreground focus:border-blue-600 focus:bg-background transition-all shadow-sm text-base"
+                                                className="h-11 px-4 rounded-xl bg-muted/20 border-border text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus:bg-background transition-all shadow-sm text-base"
+                                                style={{
+                                                    borderColor: isPassFocused ? themeColor : undefined,
+                                                    boxShadow: isPassFocused ? `0 0 0 1px ${themeColor}` : undefined
+                                                }}
+                                                onFocus={() => setIsPassFocused(true)}
+                                                {...form.register("password", {
+                                                    onBlur: () => setIsPassFocused(false)
+                                                })}
                                             />
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowPassword(!showPassword)}
                                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                style={{ color: isPassFocused || showPassword ? themeColor : undefined }}
                                             >
                                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -325,10 +355,17 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                                         <Label className="text-[13px] font-bold text-muted-foreground ml-1">Confirm Password</Label>
                                         <div className="relative group">
                                             <Input
-                                                {...form.register("confirmPassword")}
                                                 type="password"
                                                 placeholder="••••••••"
-                                                className="h-11 px-4 rounded-xl bg-muted/20 border-border text-foreground focus:border-blue-600 focus:bg-background transition-all shadow-sm text-base"
+                                                className="h-11 px-4 rounded-xl bg-muted/20 border-border text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus:bg-background transition-all shadow-sm text-base"
+                                                style={{
+                                                    borderColor: isConfirmFocused ? themeColor : undefined,
+                                                    boxShadow: isConfirmFocused ? `0 0 0 1px ${themeColor}` : undefined
+                                                }}
+                                                onFocus={() => setIsConfirmFocused(true)}
+                                                {...form.register("confirmPassword", {
+                                                    onBlur: () => setIsConfirmFocused(false)
+                                                })}
                                             />
                                         </div>
                                         {form.formState.errors.confirmPassword && (
@@ -361,10 +398,11 @@ export function ChangePasswordModal({ isOpen, onOpenChange, email, onSuccess }: 
                                 </div>
 
                                 <div className="pt-2">
-                                    <Button
+                                     <Button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-500 h-11 font-bold shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all rounded-xl text-base relative overflow-hidden"
+                                        className="w-full text-white h-11 font-bold shadow-xl active:scale-[0.98] transition-all rounded-xl text-base relative overflow-hidden hover:opacity-90"
+                                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
                                         {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Update Password"}
