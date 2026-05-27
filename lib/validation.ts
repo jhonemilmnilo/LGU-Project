@@ -69,3 +69,21 @@ export const ctcNumberSchema = z.string().max(50).transform(sanitizeString);
 
 export const fulfillmentTypeSchema = z.enum(["PICK_UP", "DELIVERY", "E_COPY"]);
 export const paymentTypeSchema = z.enum(["CASH", "GCASH", "CASH_ON_DELIVERY"]);
+
+// Forgot Password schemas
+export const ForgotPasswordSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
+});
+
+export const ResetPasswordSchema = z.object({
+    password: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[A-Z]/, "Must contain at least 1 uppercase letter")
+        .regex(/[0-9]/, "Must contain at least 1 number"),
+    confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
