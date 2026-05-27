@@ -9,6 +9,7 @@ import { calculateBusinessPermit } from "@/lib/business-permit";
 
 import { sendEmail } from "@/lib/mail";
 import { uploadFile } from "@/lib/storage";
+import { sanitizeString, sanitizeObject, sanitizeUrl } from "@/lib/validation";
 
 const isUserAdminAide = (u: any) => u?.role === "ADMIN_AIDE" || (u?.role === "ADMIN" && u?.department?.toUpperCase() === "BPLO");
 
@@ -16,6 +17,29 @@ const isUserAdminAide = (u: any) => u?.role === "ADMIN_AIDE" || (u?.role === "AD
 async function getSession() {
     return await getServerSession(authOptions);
 }
+
+/**
+ * Asserts that a valid logged-in session exists and returns the user object.
+ * Throws an error if unauthorized.
+ */
+async function assertSessionUser() {
+    const session = await getSession();
+    if (!session?.user?.id) {
+        throw new Error("Unauthorized");
+    }
+    return session.user;
+}
+
+/**
+ * Asserts that the user possesses one of the allowed roles.
+ * Throws a Forbidden error if access is denied.
+ */
+function assertUserRoles(user: any, allowedRoles: string[]) {
+    if (!user?.role || !allowedRoles.includes(user.role)) {
+        throw new Error("Forbidden: Access Denied");
+    }
+}
+
 
 /**
  * Fetches the current logged -in user's resident profile
@@ -425,8 +449,8 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
-        const typeId = formData.get("typeId") as string;
-        const registryType = formData.get("registryType") as string;
+        const typeId = sanitizeString(formData.get("typeId") as string);
+        const registryType = sanitizeString(formData.get("registryType") as string);
         const residentSnapshotRaw = formData.get("residentSnapshot");
         const additionalDataRaw = formData.get("additionalData");
 
@@ -434,8 +458,8 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
             return { success: false, error: "Missing required transaction data" };
         }
 
-        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
-        const additionalData = JSON.parse(additionalDataRaw as string);
+        const residentSnapshot = sanitizeObject(JSON.parse(residentSnapshotRaw as string));
+        const additionalData = sanitizeObject(JSON.parse(additionalDataRaw as string));
 
         console.log(`Processing ${registryType} transaction for user ${session.user.id}`);
 
@@ -533,9 +557,9 @@ export async function submitBirthRegistration(formData: FormData) {
             return { success: false, error: "Missing required fields", missingFields: missing };
         }
 
-        const typeId = typeIdRaw as string;
-        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
-        const additionalData = JSON.parse(additionalDataRaw as string);
+        const typeId = sanitizeString(typeIdRaw as string);
+        const residentSnapshot = sanitizeObject(JSON.parse(residentSnapshotRaw as string));
+        const additionalData = sanitizeObject(JSON.parse(additionalDataRaw as string));
 
         // File uploads
         const files: Record<string, string | null> = {};
@@ -605,6 +629,8 @@ export async function submitBirthRegistration(formData: FormData) {
 
 export async function searchCivilRegistryRecords(type: string, query: string) {
     try {
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE"]);
         if (type === "BIRTH") {
             const records = await prisma.birthCertificateRegistry.findMany({
                 where: {
@@ -618,16 +644,16 @@ export async function searchCivilRegistryRecords(type: string, query: string) {
             return { success: true, data: records };
         }
         return { success: true, data: [] };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Search LCR records error:", error);
-        return { success: false, error: "Failed to search records" };
+        return { success: false, error: error?.message || "Failed to search records" };
     }
 }
 
 export async function getAllResidents() {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE"]);
 
         const residents = await prisma.resident.findMany({
             where: { registrationStatus: "APPROVED" },
@@ -635,17 +661,15 @@ export async function getAllResidents() {
         });
 
         return { success: true, data: residents };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Get all residents error:", error);
-        return { success: false, error: "Failed to fetch residents" };
+        return { success: false, error: error?.message || "Failed to fetch residents" };
     }
 }
 
 export async function submitBusinessPermitTransaction(formData: FormData) {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
-
+        const user = await assertSessionUser();
 
         // Validate required fields before parsing to avoid runtime exceptions and provide helpful feedback
         const missing: string[] = [];
@@ -661,17 +685,16 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
             return { success: false, error: "Missing required fields", missingFields: missing };
         }
 
-        const typeId = typeIdRaw as string;
-        const residentSnapshot = JSON.parse(residentSnapshotRaw as string);
-        const additionalData = JSON.parse(additionalDataRaw as string);
-        const revisionId = formData.get("revisionId") as string | null;
-
+        const typeId = sanitizeString(typeIdRaw as string);
+        const residentSnapshot = sanitizeObject(JSON.parse(residentSnapshotRaw as string));
+        const additionalData = sanitizeObject(JSON.parse(additionalDataRaw as string));
+        const revisionId = formData.get("revisionId") ? sanitizeString(formData.get("revisionId") as string) : null;
         // Strike penalty check
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
             select: { rejectionCount: true }
         });
-        if (user && user.rejectionCount >= 3) {
+        if (dbUser && dbUser.rejectionCount >= 3) {
             return { success: false, error: "Submission blocked: Account suspended due to 3 rejection strikes. Please apply onsite at the Municipal Hall." };
         }
 
@@ -720,7 +743,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         };
 
         const txData = {
-            userId: session.user.id,
+            userId: user.id,
             typeId,
             status: "FOR_INSPECTION",
             fulfillmentType: additionalData.fulfillmentType || null,
@@ -745,7 +768,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
                 }),
             // 2. Update permanent resident snapshot profile
             prisma.resident.update({
-                where: { userId: session.user.id },
+                where: { userId: user.id },
                 data: {
                     firstName: residentSnapshot.firstName,
                     middleName: residentSnapshot.middleName,
@@ -776,6 +799,8 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
 
 export async function uploadECopyAction(formData: FormData) {
     try {
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE", "ENGINEER"]);
         const file = formData.get("file") as File;
         if (!file) return { success: false, error: "No file provided" };
 
@@ -985,6 +1010,7 @@ export async function updateBarangayLogistics(id: string, data: { deliveryFee: n
  */
 export async function getSystemSettingAction(key: string, defaultValue: string = "") {
     try {
+        await assertSessionUser();
         const setting = await prisma.systemSetting.findUnique({
             where: { key }
         });
@@ -1003,7 +1029,7 @@ export async function submitTransaction(formData: FormData) {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
-        const typeId = formData.get("typeId") as string;
+        const typeId = sanitizeString(formData.get("typeId") as string);
         const transactionType = await prisma.transactionType.findUnique({
             where: { id: typeId }
         });
@@ -1011,13 +1037,13 @@ export async function submitTransaction(formData: FormData) {
         const initialStatus = isBusinessPermit ? "FOR_INSPECTION" : "FOR_REQUESTING";
 
         // Snapshots and Data
-        const residentSnapshot = JSON.parse(formData.get("residentSnapshot") as string);
-        const additionalData = JSON.parse(formData.get("additionalData") as string);
+        const residentSnapshot = sanitizeObject(JSON.parse(formData.get("residentSnapshot") as string));
+        const additionalData = sanitizeObject(JSON.parse(formData.get("additionalData") as string));
 
         // Files
         const idFile = formData.get("idFile") as File;
         const proofFile = formData.get("proofFile") as File;
-        const existingIdUrl = formData.get("existingIdUrl") as string;
+        const existingIdUrl = sanitizeUrl(formData.get("existingIdUrl") as string);
 
         let idUrl = await processFileUpload(idFile, "ids");
         if (!idUrl && existingIdUrl) idUrl = existingIdUrl;
@@ -1086,6 +1112,13 @@ export async function submitTransaction(formData: FormData) {
  */
 export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string, bpFeeLineItems?: { label: string; amount: number }[]) {
     try {
+        const sanitizedId = sanitizeString(id);
+        const sanitizedAdminNotes = adminNotes ? sanitizeString(adminNotes) : undefined;
+        const sanitizedBpFeeLineItems = bpFeeLineItems ? bpFeeLineItems.map(item => ({
+            label: sanitizeString(item.label),
+            amount: Number(item.amount)
+        })) : undefined;
+
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
         const user = session?.user as any;
@@ -1094,7 +1127,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         }
 
         const transaction = await prisma.transaction.findUnique({
-            where: { id },
+            where: { id: sanitizedId },
             include: { type: true, user: true }
         });
 
@@ -1166,8 +1199,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     deliveryFee: 0,
                     totalAmount: 0
                 };
-            } else if (bpFeeLineItems && bpFeeLineItems.length > 0) {
-                const itemsSum = bpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+            } else if (sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
+                const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
                 const deliveryFee = transaction.fulfillmentType === "DELIVERY"
                     ? (deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || 0)
                     : 0;
@@ -1247,23 +1280,23 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
 
         const updatedTransaction = await prisma.transaction.update({
-            where: { id },
+            where: { id: sanitizedId },
             data: {
                 status: newStatus,
                 totalAmount: result!.totalAmount, // This is the Base Tax + Penalty
                 processedBy: user.id,
-                rejectionRemarks: adminNotes,
+                rejectionRemarks: sanitizedAdminNotes,
                 fiscalSnapshot: {
                     basicTax: result!.basicTax,
                     additionalTax: result!.additionalTax,
                     penaltyCharge: result!.penalty,
                     deliveryFee: result!.deliveryFee, // Persist delivery fee here
                     totalAmount: result!.totalAmount,
-                    ...(isBusinessPermit && bpFeeLineItems ? { lineItems: bpFeeLineItems } : {})
+                    ...(isBusinessPermit && sanitizedBpFeeLineItems ? { lineItems: sanitizedBpFeeLineItems } : {})
                 }
             } as any,
             include: { user: true }
-        }) as any;
+        }) as any; 
 
         // Trigger email notification for payment
         if (updatedTransaction.user?.email && newStatus === "EVALUATED") {
@@ -1272,9 +1305,9 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 type: "FOR_PAYMENT",
                 to: updatedTransaction.user.email,
                 name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
-                transactionId: id.slice(-8).toUpperCase(),
+                transactionId: sanitizedId.slice(-8).toUpperCase(),
                 amount: result!.totalAmount,
-                remarks: adminNotes
+                remarks: sanitizedAdminNotes
             });
         }
 
@@ -1296,16 +1329,16 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
-        const transactionId = formData.get("transactionId") as string;
-        const fulfillmentType = formData.get("fulfillmentType") as "PICK_UP" | "DELIVERY" | "E_COPY";
-        const paymentType = formData.get("paymentType") as string;
-        const gcashReferenceNo = formData.get("gcashReferenceNo") as string;
+        const transactionId = sanitizeString(formData.get("transactionId") as string);
+        const fulfillmentType = sanitizeString(formData.get("fulfillmentType") as string) as "PICK_UP" | "DELIVERY" | "E_COPY";
+        const paymentType = sanitizeString(formData.get("paymentType") as string);
+        const gcashReferenceNo = formData.get("gcashReferenceNo") ? sanitizeString(formData.get("gcashReferenceNo") as string) : "";
 
         // Delivery Details
-        const deliveryAddress = formData.get("deliveryAddress") ? JSON.parse(formData.get("deliveryAddress") as string) : null;
+        const deliveryAddress = formData.get("deliveryAddress") ? sanitizeObject(JSON.parse(formData.get("deliveryAddress") as string)) : null;
         const deliveryLat = formData.get("deliveryLat") ? Number(formData.get("deliveryLat")) : null;
         const deliveryLng = formData.get("deliveryLng") ? Number(formData.get("deliveryLng")) : null;
-        const deliveryLandmark = formData.get("deliveryLandmark") as string;
+        const deliveryLandmark = formData.get("deliveryLandmark") ? sanitizeString(formData.get("deliveryLandmark") as string) : "";
 
         // Payment Proof File
         const paymentFile = formData.get("paymentFile") as File;
@@ -1389,6 +1422,9 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
  */
 export async function confirmTransactionPayment(id: string, referenceNo?: string) {
     try {
+        const sanitizedId = sanitizeString(id);
+        const sanitizedReferenceNo = referenceNo ? sanitizeString(referenceNo) : undefined;
+
         const session = await getSession();
         const user = session?.user as any;
         if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
@@ -1396,7 +1432,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         }
 
         const transaction = await prisma.transaction.findUnique({
-            where: { id },
+            where: { id: sanitizedId },
             include: { type: true }
         });
 
@@ -1414,12 +1450,12 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
 
         // Only update paymentReference if a new one is provided.
         // Otherwise, keep the existing proof-of-payment URL.
-        if (referenceNo) {
-            transactionData.paymentReference = referenceNo;
+        if (sanitizedReferenceNo) {
+            transactionData.paymentReference = sanitizedReferenceNo;
         }
 
         const updatedTransaction = await prisma.transaction.update({
-            where: { id },
+            where: { id: sanitizedId },
             data: transactionData
         });
 
@@ -1436,6 +1472,12 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
  */
 export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string, orUrl?: string, stickerNumber?: string) {
     try {
+        id = sanitizeString(id);
+        ctcNumber = sanitizeString(ctcNumber);
+        eCopyUrl = eCopyUrl ? sanitizeUrl(eCopyUrl) : undefined;
+        orUrl = orUrl ? sanitizeUrl(orUrl) : undefined;
+        stickerNumber = stickerNumber ? sanitizeString(stickerNumber) : undefined;
+
         const session = await getSession();
         const user = session?.user as any;
         if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
@@ -2074,6 +2116,9 @@ export async function getTreasuryStatusCounts() {
  */
 export async function rejectTransaction(id: string, remarks: string) {
     try {
+        id = sanitizeString(id);
+        remarks = sanitizeString(remarks);
+
         const session = await getSession();
         const user = session?.user as any;
         if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
@@ -2180,6 +2225,9 @@ export async function rejectTransaction(id: string, remarks: string) {
  */
 export async function sendForRevision(id: string, remarks: string) {
     try {
+        id = sanitizeString(id);
+        remarks = sanitizeString(remarks);
+
         const session = await getSession();
         const user = session?.user as any;
         if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
@@ -2306,6 +2354,7 @@ export async function sendForRevision(id: string, remarks: string) {
  */
 export async function resubmitTransaction(id: string, formData: FormData) {
     try {
+        id = sanitizeString(id);
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
@@ -2336,7 +2385,7 @@ export async function resubmitTransaction(id: string, formData: FormData) {
         let residentSnapshot = tx.residentSnapshot;
         if (residentSnapshotStr) {
             try {
-                residentSnapshot = JSON.parse(residentSnapshotStr);
+                residentSnapshot = sanitizeObject(JSON.parse(residentSnapshotStr));
             } catch (e) {
                 console.error("Failed to parse resident snapshot during resubmit:", e);
             }
@@ -2357,7 +2406,10 @@ export async function resubmitTransaction(id: string, formData: FormData) {
             for (const f of fields) {
                 if (formData.has(f)) {
                     const val = formData.get(f) as string;
-                    if (val) additionalData[f] = isNaN(Number(val)) ? val : Number(val);
+                    if (val) {
+                        const cleanVal = sanitizeString(val);
+                        additionalData[f] = isNaN(Number(cleanVal)) ? cleanVal : Number(cleanVal);
+                    }
                 }
             }
         } else if (isCedula) {
@@ -2371,7 +2423,7 @@ export async function resubmitTransaction(id: string, formData: FormData) {
                 if (formData.has(f)) {
                     const val = formData.get(f) as string;
                     if (val) {
-                        const cleanVal = val.replace(/,/g, ""); // Strip out commas from gross income if any
+                        const cleanVal = sanitizeString(val).replace(/,/g, ""); // Strip out commas from gross income if any
                         additionalData[f] = isNaN(Number(cleanVal)) ? cleanVal : Number(cleanVal);
                     }
                 }
@@ -2385,8 +2437,8 @@ export async function resubmitTransaction(id: string, formData: FormData) {
         const transaction = await prisma.transaction.update({
             where: { id },
             data: {
-                additionalData: additionalData,
-                residentSnapshot: residentSnapshot as any,
+                additionalData: sanitizeObject(additionalData),
+                residentSnapshot: residentSnapshot ? sanitizeObject(residentSnapshot as any) : null,
                 status: "FOR_REQUESTING",
                 rejectionRemarks: null
             }
@@ -2432,6 +2484,7 @@ export async function getUserTransactions() {
  */
 export async function handoverTransaction(transactionId: string) {
     try {
+        transactionId = sanitizeString(transactionId);
         const session = await getSession();
         const user = session?.user as any;
 
@@ -2483,6 +2536,9 @@ export async function handoverTransaction(transactionId: string) {
  */
 export async function deliverTransaction(transactionId: string, podUrl: string) {
     try {
+        transactionId = sanitizeString(transactionId);
+        podUrl = sanitizeUrl(podUrl);
+
         const session = await getSession();
         const user = session?.user as any;
 
@@ -2513,6 +2569,7 @@ export async function deliverTransaction(transactionId: string, podUrl: string) 
  */
 export async function cancelTransaction(id: string) {
     try {
+        id = sanitizeString(id);
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
@@ -2563,9 +2620,9 @@ export async function requestReturnOrRefund(formData: FormData) {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
-        const id = formData.get("id") as string;
-        const type = formData.get("type") as "RETURN" | "REFUND";
-        const reason = formData.get("reason") as string;
+        const id = sanitizeString(formData.get("id") as string);
+        const type = sanitizeString(formData.get("type") as string) as "RETURN" | "REFUND";
+        const reason = sanitizeString(formData.get("reason") as string);
         const proofFile = formData.get("proofFile") as File;
 
         const tx = await prisma.transaction.findUnique({
@@ -2611,6 +2668,9 @@ export async function requestReturnOrRefund(formData: FormData) {
  */
 export async function resolveDispute(transactionId: string, action: 'APPROVE' | 'REJECT', remarks: string) {
     try {
+        transactionId = sanitizeString(transactionId);
+        remarks = sanitizeString(remarks);
+
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
 
@@ -2684,12 +2744,11 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
 
 export async function getLatestSuccessfulBusinessPermit() {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+        const user = await assertSessionUser();
 
         const transaction = await prisma.transaction.findFirst({
             where: {
-                userId: session.user.id,
+                userId: user.id,
                 status: {
                     in: ["DELIVERED", "RELEASED"]
                 },
@@ -2714,18 +2773,17 @@ export async function getLatestSuccessfulBusinessPermit() {
         return { success: true, data: transaction };
     } catch (error: any) {
         console.error("Get latest successful permit error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error?.message || "Failed to fetch permit" };
     }
 }
 
 export async function getAllSuccessfulBusinessPermits() {
     try {
-        const session = await getSession();
-        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+        const user = await assertSessionUser();
 
         const transactions = await prisma.transaction.findMany({
             where: {
-                userId: session.user.id,
+                userId: user.id,
                 status: {
                     in: ["DELIVERED", "RELEASED"]
                 },
@@ -2747,21 +2805,17 @@ export async function getAllSuccessfulBusinessPermits() {
         return { success: true, data: transactions };
     } catch (error: any) {
         console.error("Get all successful permits error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error?.message || "Failed to fetch permits" };
     }
 }
-
 
 /**
  * Fetch all Building Permit transactions for Engineer Hub
  */
 export async function getEngineerTransactions(status?: string) {
     try {
-        const session = await getSession();
-        const user = session?.user as any;
-        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
-            return { success: false, error: "Forbidden" };
-        }
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ENGINEER", "ADMIN"]);
 
         const where: any = {
             type: { code: { startsWith: "BUILDING_PERMIT" } }
@@ -2790,9 +2844,9 @@ export async function getEngineerTransactions(status?: string) {
         });
 
         return { success: true, data: transactions as any[] };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch engineer transactions error:", error);
-        return { success: false, error: "Failed to fetch transactions" };
+        return { success: false, error: error?.message || "Failed to fetch transactions" };
     }
 }
 
@@ -2801,6 +2855,8 @@ export async function getEngineerTransactions(status?: string) {
  */
 export async function getEngineerPendingCount() {
     try {
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ENGINEER", "ADMIN"]);
 
         const count = await prisma.transaction.count({
             where: {
@@ -2809,9 +2865,9 @@ export async function getEngineerPendingCount() {
             }
         });
         return { success: true, count };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch engineer pending count error:", error);
-        return { success: false, count: 0 };
+        return { success: false, error: error?.message || "Failed to fetch pending count", count: 0 };
     }
 }
 
@@ -2820,11 +2876,8 @@ export async function getEngineerPendingCount() {
  */
 export async function getEngineerStatusCounts() {
     try {
-        const session = await getSession();
-        const user = session?.user as any;
-        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
-            return { success: false, error: "Forbidden", data: {} };
-        }
+        const user = await assertSessionUser();
+        assertUserRoles(user, ["ENGINEER", "ADMIN"]);
 
         const where: any = {
             type: { code: { startsWith: "BUILDING_PERMIT" } },
@@ -2851,8 +2904,8 @@ export async function getEngineerStatusCounts() {
         counts["CANCELLED"] = cancelledCount;
 
         return { success: true, data: counts };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch engineer status counts error:", error);
-        return { success: false, error: "Failed to fetch counts", data: {} };
+        return { success: false, error: error?.message || "Failed to fetch counts", data: {} };
     }
 }
