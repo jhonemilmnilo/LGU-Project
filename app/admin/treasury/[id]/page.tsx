@@ -222,8 +222,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const rawUserRole = (session?.user as any)?.role;
     const userDepartment = (session?.user as any)?.department;
     // Map BPLO Admin to behave exactly like ADMIN_AIDE for Treasury pages
-    const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment === "BPLO";
+    const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment?.toUpperCase() === "BPLO";
     const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
+    // Treasury Staff can only upload OR; Permit No., Sticker No., and Waybill are BPLO Admin only
+    const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
     const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -285,7 +287,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isNaN(d.getTime())) return "N/A";
         return format(d, "MMM d, yyyy");
     };
-    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(transaction?.status || "");
+    // RETURN_REQUESTED and REFUND_REQUESTED are also excluded so BPLO Admin can action disputes on Business Permits
+    const isReadOnlyAide = userRole === "ADMIN_AIDE" && isBusinessPermit && !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED"].includes(transaction?.status || "");
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -644,14 +647,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const baseSteps = (() => {
         if (isBusinessPermit) {
-            const isPickUp = transaction.fulfillmentType === "PICK_UP";
             return [
                 { id: "FOR_INSPECTION", label: "INSPECTION" },
                 { id: "FOR_REQUESTING", label: "EVALUATION" },
                 { id: "EVALUATED", label: "ASSESSMENT" },
                 { id: "PAID", label: "PAID" },
                 { id: "FOR_PROCESSING", label: "PROCESSING" },
-                ...(isPickUp ? [{ id: "FOR_REINSPECTION", label: "RE-INSPECTION" }] : []),
+                { id: "FOR_REINSPECTION", label: "PROCESS" },
                 {
                     id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
                     label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
@@ -718,9 +720,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return true;
     });
 
-    const getEffectiveStatus = (s: string) => {
-        return s;
-    };
+    const getEffectiveStatus = (s: string) => s;
     const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     // Build evidence documents list for the Evidence Vault UI
@@ -1953,7 +1953,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                 <div className={cn("grid gap-6", isBusinessPermit ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
                                     {/* E-Copy Upload Block */}
-                                    {!(isBusinessPermit && transaction.status === "FOR_PROCESSING") && (
+                                    {!(isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) && (
                                         <div className="relative flex flex-col gap-2">
                                         {isBusinessPermit && <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">1. Digital E-Copy Permit</span>}
                                         {transaction.status !== "RELEASED" && !isReadOnlyAide && (
@@ -2054,9 +2054,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                     {/* OR / Official Receipt Upload Block (Only for Business Permits) */}
                                     {isBusinessPermit && (
-                                        <div className={cn("relative flex flex-col gap-2 animate-in fade-in-50 duration-500", transaction.status === "FOR_PROCESSING" ? "col-span-1 md:col-span-2" : "")}>
+                                        <div className={cn("relative flex flex-col gap-2 animate-in fade-in-50 duration-500", ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "col-span-1 md:col-span-2" : "")}>
                                             <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                                                {transaction.status === "FOR_PROCESSING" ? "Official Receipt (OR)" : "2. Official Receipt (OR)"}
+                                                {["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Official Receipt (OR)" : "2. Official Receipt (OR)"}
                                             </span>
                                             {transaction.status !== "RELEASED" && !isReadOnlyAide && (
                                                 <input type="file" accept=".pdf,image/*" onChange={(e) => setOrFile(e.target.files?.[0] || null)} className="hidden" id="main-or-upload" />
@@ -2067,7 +2067,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     href={transaction.orUrl || "#"}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className={cn("flex flex-col items-center justify-center rounded-3xl border-2 border-emerald-500/30 bg-emerald-500/5 transition-all border-solid overflow-hidden group relative", transaction.status === "FOR_PROCESSING" ? "h-32" : "h-48")}
+                                                    className={cn("flex flex-col items-center justify-center rounded-3xl border-2 border-emerald-500/30 bg-emerald-500/5 transition-all border-solid overflow-hidden group relative", ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "h-32" : "h-48")}
                                                 >
                                                     {transaction.orUrl && (transaction.orUrl.toLowerCase().endsWith(".jpg") || transaction.orUrl.toLowerCase().endsWith(".png") || transaction.orUrl.toLowerCase().endsWith(".jpeg") || transaction.orUrl.includes("image")) ? (
                                                         <Image
@@ -2092,7 +2092,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             ) : (
                                                 <label htmlFor={isReadOnlyAide ? undefined : "main-or-upload"} className={cn(
                                                     "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group",
-                                                    transaction.status === "FOR_PROCESSING" ? "h-32" : "h-48",
+                                                    ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "h-32" : "h-48",
                                                     isReadOnlyAide ? "border-slate-100 dark:border-white/5 cursor-not-allowed" : (orFile || transaction.orUrl ? "border-emerald-500/30 bg-emerald-500/5 shadow-inner cursor-pointer" : "border-slate-100 dark:border-white/5 hover:border-emerald-500/30 cursor-pointer")
                                                 )}>
                                                     {(orPreview || transaction.orUrl) ? (
@@ -2232,6 +2232,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             transaction.fulfillmentType !== "E_COPY" &&
                                             !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) &&
                                             !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") &&
+                                            !(isBusinessPermit && transaction.status === "FOR_REINSPECTION") &&
                                             transaction.status !== "FOR_PICKING" && (
                                                 <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                                     <Button
@@ -2286,8 +2287,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     </div>
                                                 )}
 
-                                                {/* Always show CTC Input for these phases (Hidden for Business Permits unless it is a new business permit) */}
-                                                {(!isBusinessPermit || (transaction.type.code === "BUSINESS_PERMIT_NEW" && transaction.status !== "FOR_PROCESSING") || transaction.status === "FOR_REINSPECTION") && (
+                                                {/* Always show CTC Input for these phases (Hidden for Business Permits unless it is active reinspection/release) */}
+                                                {(!isBusinessPermit || (isBusinessPermit && transaction.status !== "FOR_PROCESSING" && !isTreasuryStaff)) && (
                                                     <div className="space-y-4">
                                                         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
                                                             <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
@@ -2321,7 +2322,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
                                         <div className="space-y-3 pt-2">
                                             {/* WAYBILL GENERATION: Required for Delivery Dispatch */}
-                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID" || transaction.status === "FOR_PICKING") && (
+                                            {transaction.fulfillmentType === "DELIVERY" && (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID" || transaction.status === "FOR_PICKING" || (isBusinessPermit && transaction.status === "FOR_REINSPECTION")) && (isBPLOAdmin || !isBusinessPermit) && (
                                                 <Button
                                                     onClick={handlePrintWaybill}
                                                     variant="outline"
@@ -2343,17 +2344,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
                                                             (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
                                                             (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
-                                                            // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows (Bypassed in FOR_PROCESSING for Business Permit)
-                                                            (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
+                                                            // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows (Bypassed in FOR_PROCESSING and PAID for Business Permit)
+                                                            (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION", "PAID"].includes(transaction.status)) && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
                                                             // Requirement: OR copy also needed for Business Permits in initial processing phases
                                                             (isBusinessPermit && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !orFile && !transaction.orUrl)
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
-                                                        {actionLoading ? "Submitting..." : (transaction.status === "FOR_PROCESSING" && isBusinessPermit) ? "Proceed to BPLO" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? "Mark Ready for Claiming" : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
+                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                                     </Button>
 
-                                                    {!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) && (
+                                                    {(!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
                                                         <Button
                                                             onClick={() => setIsRejecting(true)}
                                                             className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
@@ -2367,8 +2368,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
 
-                                {/* DISPUTE RESOLUTION ACTIONS */}
+                                {/* DISPUTE RESOLUTION ACTIONS — BPLO Admin Only */}
                                 {(transaction.status === "RETURN_REQUESTED" || transaction.status === "REFUND_REQUESTED") && (
+                                    isBPLOAdmin ? (
                                     <div className="space-y-3 animate-in slide-in-from-bottom-4">
                                         <div className="p-6 rounded-3xl bg-orange-500/10 border border-orange-500/20 text-center space-y-1 mb-4">
                                             <p className="text-[10px] font-black uppercase text-orange-600 dark:text-orange-500 italic">Review Action Required</p>
@@ -2383,7 +2385,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 variant="outline"
                                                 className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all mb-2"
                                             >
-                                                Generate & Print Waybill
+                                                Generate &amp; Print Waybill
                                             </Button>
                                         )}
 
@@ -2457,6 +2459,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </Dialog>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="p-8 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-center space-y-3 animate-in zoom-in-95">
+                                            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                <AlertCircle className="w-6 h-6 text-orange-500" />
+                                            </div>
+                                            <p className="text-[10px] font-black uppercase text-orange-500 italic">BPLO Admin Action Required</p>
+                                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight italic">
+                                                This dispute is under review by <span className="text-primary font-black">BPLO Admin</span>. No action is required from Treasury Staff.
+                                            </p>
+                                        </div>
+                                    )
                                 )}
 
                                 {transaction.status === "RELEASED" && (

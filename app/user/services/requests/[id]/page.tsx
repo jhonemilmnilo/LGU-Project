@@ -456,6 +456,8 @@ export default function RequestHubPage() {
                 return { label: "UNDER INSPECTION", color: "bg-blue-600 text-white border-blue-600", icon: Search };
             case "FOR_PROCESSING":
                 return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
+            case "FOR_REINSPECTION":
+                return { label: "PROCESSING", color: "bg-primary text-white border-primary", icon: Activity };
             case "FOR_CLAIM":
                 return { label: "FOR CLAIM", color: "bg-blue-600 text-white border-blue-600", icon: Clock };
             case "EVALUATED":

@@ -64,10 +64,11 @@ export default function TreasuryDashboard() {
 
     const filteredTabs = useMemo(() => {
         if (isAdminAide) {
-            return STATUS_TABS.filter(tab => ["ALL", "FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED", "REJECTED"].includes(tab.value));
+            // BPLO Admin sees: inspection, reinspection, claiming, picking, return/refund/dispute resolution tabs
+            return STATUS_TABS.filter(tab => ["ALL", "FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RELEASED", "DELIVERED", "REJECTED"].includes(tab.value));
         }
-        // Treasury Staff and other roles should not see the Inspection, Re-inspection, Claiming or Picking for Business Permits as they are processed exclusively by BPLO Admin
-        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(tab.value));
+        // Treasury Staff should not see BPLO-exclusive phases nor any Return/Refund/Dispute statuses
+        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED"].includes(tab.value));
     }, [isAdminAide]);
 
     const [status, setStatus] = useState("ALL");

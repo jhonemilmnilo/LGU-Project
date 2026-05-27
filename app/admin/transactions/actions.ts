@@ -1463,8 +1463,10 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
 
-        if (isBusinessPermit && user.role === "TREASURY_STAFF") {
-            return { success: false, error: "Forbidden: Treasury Staff cannot process or release Business Permits. This must be handled by BPLO Admin." };
+        // Treasury Staff can ONLY trigger the initial "Ready for Reinspection" transition (PAID/FOR_PROCESSING → FOR_REINSPECTION).
+        // FOR_REINSPECTION and all subsequent phases (FOR_PICKING, FOR_CLAIM, RELEASED) are BPLO Admin territory.
+        if (isBusinessPermit && user.role === "TREASURY_STAFF" && !["PAID", "FOR_PROCESSING"].includes(transaction.status as any)) {
+            return { success: false, error: "Forbidden: Treasury Staff can only mark Business Permits as Ready for Reinspection. Further processing must be handled by BPLO Admin." };
         }
 
         if (isBusinessPermit && isUserAdminAide(user) && !["FOR_INSPECTION", "FOR_PROCESSING", "PAID", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status as any)) {
@@ -1508,7 +1510,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         // Determine target status: FOR_PICKING for Delivery, FOR_CLAIM for Pickup prepare, else RELEASED
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
-        const targetStatus = (isBusinessPermit && (transaction.status as any) === "FOR_PROCESSING")
+        const targetStatus = (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status as any))
             ? "FOR_REINSPECTION"
             : isInitialRelease
                 ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
@@ -1877,7 +1879,7 @@ export async function getTreasuryTransactions(status?: string) {
                 code: { startsWith: "BUSINESS_PERMIT" }
             };
             if (!status || status === "ALL") {
-                where.status = { in: ["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED", "REJECTED"] };
+                where.status = { in: ["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED", "RELEASED", "DELIVERED", "REJECTED"] };
             } else {
                 where.status = status;
             }
@@ -1895,14 +1897,20 @@ export async function getTreasuryTransactions(status?: string) {
             }
         }
 
-        // TREASURY_STAFF should not see Business Permits in pre-screening, processing, reinspection, picking/claiming, delivery/release, or rejection stages
+        // TREASURY_STAFF should not see Business Permits in pre-screening/processing/release stages,
+        // and should NEVER see any RETURN/REFUND/DISPUTE transactions (exclusively handled by BPLO Admin)
         if (user.role === "TREASURY_STAFF") {
-            where.NOT = {
-                AND: [
-                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "RELEASED", "REJECTED"] } }
-                ]
-            };
+            where.NOT = [
+                {
+                    AND: [
+                        { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                        { status: { in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "RELEASED", "REJECTED"] } }
+                    ]
+                },
+                {
+                    status: { in: ["RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED"] as any }
+                }
+            ];
         }
 
         const transactions = await prisma.transaction.findMany({
@@ -2605,6 +2613,13 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
     try {
         const session = await getSession();
         if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const user = session.user as any;
+        // Only BPLO Admin (ADMIN with BPLO dept) or ADMIN_AIDE can resolve disputes
+        const isBPLOAdmin = user.role === "ADMIN" && user.department?.toUpperCase() === "BPLO";
+        if (user.role === "TREASURY_STAFF" || (!isBPLOAdmin && !isUserAdminAide(user) && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only BPLO Admin can resolve Return/Refund disputes." };
+        }
 
         const tx = await prisma.transaction.findUnique({
             where: { id: transactionId },
