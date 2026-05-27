@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db/prisma";
+import { isRateLimited, getClientIp } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
@@ -16,6 +17,20 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Please enter an email and password");
+                }
+
+                const ip = await getClientIp();
+                const emailClean = credentials.email.trim().toLowerCase();
+                const limitKey = `login:fail:${emailClean}:${ip}`;
+
+                // 1. Peek if they are already locked out (Max 5 failed logins per 15 minutes)
+                const existingLimit = await prisma.rateLimit.findUnique({
+                    where: { key: limitKey }
+                });
+                const now = new Date();
+                if (existingLimit && existingLimit.attempts >= 5 && existingLimit.expiresAt > now) {
+                    const minutesLeft = Math.ceil((existingLimit.expiresAt.getTime() - now.getTime()) / 60000);
+                    throw new Error(`Too many failed login attempts. Try again in ${minutesLeft} minute(s).`);
                 }
 
                 const user = await prisma.user.findUnique({
@@ -32,8 +47,14 @@ export const authOptions: NextAuthOptions = {
                 );
 
                 if (!isPasswordCorrect) {
+                    // Increment failed login attempt
+                    await isRateLimited(limitKey, 5, 900000); // 15 mins window
                     throw new Error("Invalid password");
                 }
+
+                // Clean/Reset failed attempts upon successful login
+                // Using deleteMany() instead of delete() — safe even if no record exists
+                await prisma.rateLimit.deleteMany({ where: { key: limitKey } });
 
                 // Block login if user is not verified (but allow ADMIN)
                 if (user.role === "USER" && !user.isEmailVerified) {
