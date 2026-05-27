@@ -761,6 +761,7 @@ model BusinessPermit {
   businessArea       Float?      // In square meters
   
   documentUrl        String?     // Link to official generated E-Permit PDF
+  stickerNumber      String?     // BPLO physical permit sticker registration
   issuedBy           String      // BPLO / Treasury Approver Name
   verificationId     String      @unique @default(cuid()) // Secure hash for verification QR Code
 }

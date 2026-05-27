@@ -75,6 +75,7 @@ export default function UserServiceRequestsPage() {
             case "EVALUATED": return { color: "text-white", bg: "bg-[var(--primary-theme)]", border: "border-transparent", icon: DollarSign, label: "EVALUATED", opacity: 0.9 };
             case "PAID": return { color: "text-white", bg: "bg-emerald-500", border: "border-transparent", icon: CheckCircle2, label: "PAID", opacity: 1 };
             case "FOR_PROCESSING": return { color: "text-white", bg: "bg-blue-500", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };
+            case "FOR_REINSPECTION": return { color: "text-white", bg: "bg-blue-500", border: "border-transparent", icon: Activity, label: "PROCESSING", opacity: 1 };
             case "FOR_PICKING": return { color: "text-white", bg: "bg-amber-500", border: "border-transparent", icon: Package, label: "FOR PICKING", opacity: 1 };
             case "FOR_CLAIM": return { color: "text-white", bg: "bg-amber-500", border: "border-transparent", icon: UserCheck, label: "FOR CLAIMING", opacity: 1 };
             case "IN_ROUTE": return { color: "text-white", bg: "bg-indigo-500", border: "border-transparent", icon: Truck, label: "IN ROUTE", opacity: 1 };

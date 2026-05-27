@@ -64,18 +64,19 @@ export default function TreasuryDashboard() {
 
     const filteredTabs = useMemo(() => {
         if (isAdminAide) {
-            return STATUS_TABS.filter(tab => tab.value === "FOR_INSPECTION");
+            // BPLO Admin sees: inspection, reinspection, claiming, picking, return/refund/dispute resolution tabs
+            return STATUS_TABS.filter(tab => ["ALL", "FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RELEASED", "DELIVERED", "REJECTED"].includes(tab.value));
         }
-        // Treasury Staff and other roles should not see the Inspection tab as it is processed exclusively by Admin Aide
-        return STATUS_TABS.filter(tab => tab.value !== "FOR_INSPECTION");
+        // Treasury Staff should not see BPLO-exclusive phases nor any Return/Refund/Dispute statuses
+        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED"].includes(tab.value));
     }, [isAdminAide]);
 
     const [status, setStatus] = useState("ALL");
 
-    // Default status tab to FOR_INSPECTION for ADMIN_AIDE
+    // Default status tab to ALL for ADMIN_AIDE since they now handle multiple states
     useEffect(() => {
         if (isAdminAide) {
-            setStatus("FOR_INSPECTION");
+            setStatus("ALL");
         }
     }, [isAdminAide]);
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -103,7 +104,11 @@ export default function TreasuryDashboard() {
             try {
                 const res = await getTransactionTypes();
                 if (res.success && res.data) {
-                    const names = res.data.map(t => t.name).filter(Boolean);
+                    let filtered = res.data;
+                    if (isAdminAide) {
+                        filtered = res.data.filter((t: any) => t.code?.startsWith("BUSINESS_PERMIT"));
+                    }
+                    const names = filtered.map((t: any) => t.name).filter(Boolean);
                     setAllServices(names);
                 }
             } catch (err) {
@@ -111,7 +116,7 @@ export default function TreasuryDashboard() {
             }
         }
         fetchServices();
-    }, []);
+    }, [isAdminAide]);
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
