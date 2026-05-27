@@ -263,15 +263,15 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
 
                 // Normal redirect based on role
                 const performRedirect = () => {
-                    if (role === "ADMIN" || role === "CONTENT_ADMIN") {
-                        router.push("/admin/dashboard");
-                    } else if (role === "USER") {
+                    if (role === "USER") {
                         router.push("/");
+                        toast.success("Logged in successfully");
                     } else {
-                        router.push("/");
+                        router.push("/auth/portal-select");
                     }
-                    toast.success("Logged in successfully");
                 };
+
+
 
                 if (triggerLeave) {
                     triggerLeave(performRedirect);
