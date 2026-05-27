@@ -55,6 +55,19 @@ function formatDateTime(date: string | Date): { date: string; time: string } {
     };
 }
 
+// Helper: Safely parse residentSnapshot which might be stringified JSON
+function getResidentSnapshot(tx: any): any {
+    if (!tx.residentSnapshot) return {};
+    if (typeof tx.residentSnapshot === 'string') {
+        try {
+            return JSON.parse(tx.residentSnapshot);
+        } catch {
+            return {};
+        }
+    }
+    return tx.residentSnapshot;
+}
+
 export default function TreasuryDashboard() {
     const router = useRouter();
     const { data: session } = useSession();
@@ -176,7 +189,8 @@ export default function TreasuryDashboard() {
     }, [search, status, itemsPerPage]);
 
     const filteredTransactions = transactions.filter(tx => {
-        const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
+        const rs = getResidentSnapshot(tx);
+        const name = `${rs.firstName || ''} ${rs.lastName || ''}`.trim().toLowerCase();
         const refId = tx.id.slice(-8).toUpperCase();
         const searchUpper = search.toUpperCase();
 
@@ -375,6 +389,179 @@ export default function TreasuryDashboard() {
                                                             : "⇅"
                                                         }
                                                     </span>
+                                                </button>
+
+                                                {/* Dropdown Filter Trigger */}
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button className={cn(
+                                                            "flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide border transition-all duration-200 focus:outline-none cursor-pointer",
+                                                            serviceFilter
+                                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-900/60"
+                                                                : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/50"
+                                                        )}>
+                                                            <span>{serviceFilter ? `Category: ${serviceFilter}` : "Filter"}</span>
+                                                            <ChevronDown className="w-3 h-3 text-slate-500" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="w-64 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-[#2a3040] shadow-xl rounded-xl p-1.5 z-50">
+                                                        <DropdownMenuLabel className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 py-1.5 uppercase tracking-wider">
+                                                            Select Category
+                                                        </DropdownMenuLabel>
+                                                        <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                                                        <DropdownMenuItem
+                                                            onClick={() => setServiceFilter(null)}
+                                                            className={cn(
+                                                                "rounded-lg px-2.5 py-2 text-xs font-bold cursor-pointer transition-colors leading-none",
+                                                                !serviceFilter 
+                                                                    ? "bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400" 
+                                                                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                            )}
+                                                        >
+                                                            All Categories
+                                                        </DropdownMenuItem>
+                                                        {uniqueServices.map(srv => (
+                                                            <DropdownMenuItem
+                                                                key={srv}
+                                                                onClick={() => {
+                                                                    setSortBy("service");
+                                                                    setServiceFilter(srv);
+                                                                }}
+                                                                className={cn(
+                                                                    "rounded-lg px-2.5 py-2 text-xs font-bold cursor-pointer transition-colors leading-none mt-0.5",
+                                                                    serviceFilter === srv 
+                                                                        ? "bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400" 
+                                                                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                                )}
+                                                            >
+                                                                {srv}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
+                                        <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
+                                        <TableHead 
+                                            className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors py-5"
+                                            onClick={handleDateHeaderClick}
+                                        >
+                                            <div className="flex items-center gap-1.5 group">
+                                                <span>Date</span>
+                                                <span className={cn(
+                                                    "transition-colors duration-200 font-black text-[10px]",
+                                                    sortBy === "date" 
+                                                        ? "text-blue-600 dark:text-blue-400 font-bold" 
+                                                        : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400"
+                                                )}>
+                                                    {sortBy === "date" 
+                                                        ? (sortDirection === "asc" ? "▲" : "▼") 
+                                                        : "⇅"
+                                                    }
+                                                </span>
+                                            </div>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading ? (
+                                        Array(5).fill(0).map((_, i) => (
+                                            <TableRow key={i} className="animate-pulse">
+                                                <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : paginatedTransactions.length > 0 ? (
+                                        paginatedTransactions.map((tx, index) => (
+                                            <TableRow 
+                                                key={tx.id} 
+                                                onClick={() => router.push(`/admin/treasury/${tx.id}`)}
+                                                className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
+                                            >
+                                                <TableCell className="py-4">
+                                                    <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
+                                                            {tx.type?.requiresBusinessName
+                                                                ? (tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY")
+                                                                : (() => {
+                                                                    const rs = getResidentSnapshot(tx);
+                                                                    return `${rs.firstName || 'Unknown'} ${rs.lastName || 'Applicant'}`;
+                                                                })()}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
+                                                            {tx.type?.requiresBusinessName ? "Business Entity" : "Registered Resident"}
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">
+                                                        {tx.type?.name}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">{tx.fulfillmentType}</span>
+                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="font-bold text-slate-900 dark:text-white">
+                                                        {tx.totalAmount > 0 ? `₱${tx.totalAmount.toLocaleString()}` : "–"}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className={cn(
+                                                        "text-[10px] font-black uppercase italic tracking-wider",
+                                                        tx.isCancelled ? "text-red-600" : ({
+                                                            "FOR_REQUESTING": "text-amber-600",
+                                                            "FOR_REVISION": "text-amber-600",
+                                                            "EVALUATED": "text-blue-600",
+                                                            "FOR_CLAIM": "text-indigo-600",
+                                                            "FOR_PICKING": "text-pink-600",
+                                                            "IN_ROUTE": "text-orange-600",
+                                                            "DELIVERED": "text-teal-600",
+                                                            "FOR_PROCESSING": "text-sky-600",
+                                                            "PAID": "text-emerald-600",
+                                                            "RELEASED": "text-slate-600",
+                                                            "REJECTED": "text-red-600",
+                                                            "RETURN_REQUESTED": "text-orange-500",
+                                                            "REFUND_REQUESTED": "text-orange-500",
+                                                            "RETURNED": "text-slate-500",
+                                                            "REFUNDED": "text-slate-500",
+                                                            "DISPUTE_REJECTED": "text-red-700",
+                                                        } as Record<string, string>)[tx.status] || "text-slate-500"
+                                                    )}>
+                                                        {tx.isCancelled ? "CANCELLED" : tx.status?.replace(/_/g, " ")}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                                {/* Always show transaction update date and time */}
+                                                                {(() => {
+                                                                    const source = tx.updatedAt;
+                                                                    const f = formatDateTime(source);
+                                                                    return (
+                                                                        <>
+                                                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{f.date}</span>
+                                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{f.time}</span>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="h-[400px] text-center">
+                                                <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
+                                                    <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
+                                                    <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>
+                                                    <p className="mt-2">Try adjusting your filters or search term.</p>
                                                 </div>
                                             </TableHead>
                                         </TableRow>

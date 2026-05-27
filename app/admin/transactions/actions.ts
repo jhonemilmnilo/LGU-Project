@@ -2098,9 +2098,11 @@ export async function rejectTransaction(id: string, remarks: string) {
                 }
             });
 
+            const activeRejectedTransactions = rejectedTransactions;
+
             // Group and find the maximum rejection count in any single category
             const categoryCounts: Record<string, number> = {};
-            for (const rTx of rejectedTransactions) {
+            for (const rTx of activeRejectedTransactions) {
                 const category = rTx.type.category || "General";
                 categoryCounts[category] = (categoryCounts[category] || 0) + 1;
             }
@@ -2774,7 +2776,7 @@ export async function getEngineerPendingCount() {
         const count = await prisma.transaction.count({
             where: {
                 type: { code: { startsWith: "BUILDING_PERMIT" } },
-                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any }
+                status: { in: ["FOR_REQUESTING", "FOR_INSPECTION", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any }
             }
         });
         return { success: true, count };
@@ -2825,3 +2827,162 @@ export async function getEngineerStatusCounts() {
         return { success: false, error: "Failed to fetch counts", data: {} };
     }
 }
+
+/**
+ * Schedule Building Permit Inspection
+ */
+export async function scheduleBuildingInspection(id: string, details: any) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ENGINEER") {
+            return { success: false, error: "Forbidden: Only Engineers can schedule inspections" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true, user: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        if (!transaction.type.code.startsWith("BUILDING_PERMIT")) {
+            return { success: false, error: "Not a Building Permit transaction" };
+        }
+
+        const existingAdditionalData = (transaction.additionalData as any) || {};
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "FOR_INSPECTION", // Move to inspection phase
+                additionalData: {
+                    ...existingAdditionalData,
+                    inspectionSchedule: details
+                },
+                processedBy: user.id,
+                updatedAt: new Date()
+            },
+            include: { type: true, user: true }
+        });
+
+        // Optionally send an email notification about the inspection
+        if (transaction.user?.email) {
+            const resident = transaction.residentSnapshot as any;
+            await sendEmail({
+                type: "NOTIFICATION",
+                to: transaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : transaction.user.name || "Resident",
+                subject: "Building Permit Inspection Scheduled",
+                text: `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been scheduled for inspection on ${details.date} at ${details.time}.\n\nInspector: ${details.inspectorName}\nType: ${details.type}\nNotes: ${details.notes || 'None'}\n\nPlease ensure someone is available on-site.`,
+                html: `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been scheduled for inspection on <b>${details.date}</b> at <b>${details.time}</b>.</p><p><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}<br/><b>Notes:</b> ${details.notes || 'None'}</p><p>Please ensure someone is available on-site.</p>`
+            } as any);
+        }
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Schedule inspection error:", error);
+        return { success: false, error: "Failed to schedule inspection" };
+    }
+}
+
+/**
+ * Mark Building Permit for Re-inspection
+ */
+export async function markForReinspection(id: string, reason: string, details?: any) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ENGINEER") {
+            return { success: false, error: "Forbidden: Only Engineers can re-inspect" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true, user: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const additionalData = (transaction.additionalData as any) || {};
+        const count = (additionalData.reinspectionCount || 0) + 1;
+        
+        const history = additionalData.reinspectionHistory || [];
+        const newHistory = [...history, { date: new Date().toISOString(), reason, count }];
+
+        let newStatus = "FOR_REINSPECTION";
+        let rejectionRemarks = null;
+
+        if (count >= 4) {
+            newStatus = "REJECTED";
+            rejectionRemarks = `Automatically rejected after 4 re-inspection attempts. Final Reason: ${reason}`;
+        }
+
+        let newAdditionalData = {
+            ...additionalData,
+            reinspectionCount: count,
+            reinspectionHistory: newHistory
+        };
+
+        if (details && count < 4) {
+            newAdditionalData.inspectionSchedule = {
+                type: details.type,
+                date: details.date,
+                time: details.time,
+                inspectorName: details.inspectorName,
+                notes: `Re-inspection Reason: ${reason}`
+            };
+        }
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: newStatus as any,
+                rejectionRemarks,
+                additionalData: newAdditionalData,
+                processedBy: user.id,
+                updatedAt: new Date()
+            },
+            include: { type: true, user: true }
+        });
+
+        // Email notification
+        if (transaction.user?.email) {
+            const resident = transaction.residentSnapshot as any;
+            let textMsg = "";
+            let htmlMsg = "";
+            
+            if (count >= 4) {
+                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been rejected after exceeding the maximum number of re-inspections.\n\nReason: ${reason}`;
+                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been <b>rejected</b> after exceeding the maximum number of re-inspections.</p><p><b>Reason:</b> ${reason}</p>`;
+            } else {
+                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires re-inspection.\n\nReason: ${reason}\n\nThis is attempt ${count} out of 3.`;
+                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires <b>re-inspection</b>.</p><p><b>Reason:</b> ${reason}</p><p><i>This is attempt ${count} out of 3.</i></p>`;
+                
+                if (details) {
+                    textMsg += `\n\nRe-inspection Schedule:\nDate: ${details.date}\nTime: ${details.time}\nInspector: ${details.inspectorName}\nType: ${details.type}`;
+                    htmlMsg += `<br/><br/><h4>Re-inspection Schedule:</h4><p><b>Date:</b> ${details.date}<br/><b>Time:</b> ${details.time}<br/><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}</p>`;
+                }
+            }
+
+            await sendEmail({
+                type: "NOTIFICATION",
+                to: transaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : transaction.user.name || "Resident",
+                subject: count >= 4 ? "Building Permit Application Rejected" : "Building Permit Requires Re-inspection",
+                text: textMsg,
+                html: htmlMsg
+            } as any);
+        }
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Mark for re-inspection error:", error);
+        return { success: false, error: "Failed to mark for re-inspection" };
+    }
+}
+

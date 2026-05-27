@@ -2251,9 +2251,130 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             <>
                                 {((transaction.status === "FOR_REQUESTING" || transaction.status === "FOR_INSPECTION")) && (
                                     <div className="space-y-3">
-                                        <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                            {actionLoading ? "Processing..." : "Evaluate / Issue Record"}
-                                        </Button>
+                                        {userRole === "ENGINEER" ? (
+                                            transaction.status === "FOR_REQUESTING" ? (
+                                                <Dialog open={isSchedulingInspection} onOpenChange={setIsSchedulingInspection}>
+                                                    <DialogTrigger asChild>
+                                                        <Button disabled={actionLoading} className="w-full h-16 rounded-2xl bg-[#006A2E] text-white font-black italic uppercase tracking-widest text-xs hover:bg-[#005224] transition-all shadow-xl shadow-green-900/20 active:scale-95">
+                                                            {actionLoading ? "Processing..." : "Schedule Inspection"}
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-2xl bg-[#f8e7eb] dark:bg-slate-900 border-none rounded-[1.5rem] shadow-2xl p-0 overflow-hidden">
+                                                        <DialogTitle className="sr-only">Schedule Site Inspection</DialogTitle>
+                                                        <div className="bg-white dark:bg-slate-950 p-6 m-4 rounded-[1.5rem] shadow-sm border border-slate-100 dark:border-white/5 space-y-6">
+                                                        {/* Header */}
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="space-y-1">
+                                                                <h2 className="text-xl font-bold text-[#0c4a6e] dark:text-blue-400 flex items-center gap-2">
+                                                                    <AlertCircle className="w-5 h-5" />
+                                                                    Pending Inspection Scheduling
+                                                                </h2>
+                                                            </div>
+                                                            <div className="bg-blue-50 text-blue-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase">
+                                                                1 application pending
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Applicant Info */}
+                                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-4 rounded-2xl flex items-center justify-between">
+                                                            <div>
+                                                                <p className="font-black text-slate-800 dark:text-slate-200 text-lg uppercase tracking-wider">
+                                                                    {additional?.firstName && additional?.lastName ? `${additional.firstName} ${additional.lastName}` : (transaction.residentSnapshot?.firstName ? `${transaction.residentSnapshot.firstName} ${transaction.residentSnapshot.lastName}` : 'N/A')}
+                                                                </p>
+                                                                <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+                                                                    # Ref: {id.slice(-8).toUpperCase()} | 📅 Submitted: {safeFormatDate(transaction.createdAt)}
+                                                                </p>
+                                                            </div>
+                                                            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 rounded-md font-bold uppercase text-[9px] px-3 py-1 border-none">
+                                                                Awaiting Inspection
+                                                            </Badge>
+                                                        </div>
+
+                                                        {/* Form */}
+                                                        <div className="space-y-4">
+                                                            <h3 className="font-bold text-[#0c4a6e] dark:text-blue-400">Schedule Site Inspection</h3>
+                                                            
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspection Type:</Label>
+                                                                <select
+                                                                    className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e] dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-blue-500"
+                                                                    value={inspectionType}
+                                                                    onChange={(e) => setInspectionType(e.target.value)}
+                                                                >
+                                                                    <option value="Structural Inspection">Structural Inspection</option>
+                                                                    <option value="Electrical Inspection">Electrical Inspection</option>
+                                                                    <option value="Sanitary/Plumbing Inspection">Sanitary/Plumbing Inspection</option>
+                                                                    <option value="Complete Site Inspection">Complete Site Inspection</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Date:</Label>
+                                                                <Input 
+                                                                    type="date" 
+                                                                    value={inspectionDate}
+                                                                    onChange={(e) => setInspectionDate(e.target.value)}
+                                                                    className="h-12 rounded-xl text-slate-700 font-medium"
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Time:</Label>
+                                                                <Input 
+                                                                    type="time" 
+                                                                    value={inspectionTime}
+                                                                    onChange={(e) => setInspectionTime(e.target.value)}
+                                                                    className="h-12 rounded-xl text-slate-700 font-medium"
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspector Name:</Label>
+                                                                <Input 
+                                                                    placeholder="Engr. Santos"
+                                                                    value={inspectorName}
+                                                                    onChange={(e) => setInspectorName(e.target.value)}
+                                                                    className="h-12 rounded-xl text-slate-700 font-medium"
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Notes (optional):</Label>
+                                                                <Textarea 
+                                                                    placeholder="Please ensure all documents are available on-site..."
+                                                                    value={inspectionNotes}
+                                                                    onChange={(e) => setInspectionNotes(e.target.value)}
+                                                                    className="min-h-[80px] rounded-xl text-slate-700 font-medium"
+                                                                />
+                                                            </div>
+
+                                                            <Button 
+                                                                onClick={handleScheduleInspection} 
+                                                                disabled={actionLoading} 
+                                                                className="h-12 bg-[#0c4a6e] hover:bg-[#082f49] text-white rounded-xl px-6 flex items-center gap-2"
+                                                            >
+                                                                <AlertCircle className="w-4 h-4" />
+                                                                {actionLoading ? "Scheduling..." : "Schedule Inspection"}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="py-4 bg-white/50 dark:bg-slate-950/50 flex flex-wrap items-center justify-center gap-6 text-[10px] text-slate-500 font-medium px-6">
+                                                        <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Based on Mapandan Citizen's Charter • PD 1096 • RA 11032</span>
+                                                        <span className="flex items-center gap-1"><BadgeCheck className="w-3 h-3" /> RA 10173 Data Privacy Act Compliant</span>
+                                                        <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> LGU Mapandan, Pangasinan</span>
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
+                                            ) : (
+                                                <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
+                                                    {actionLoading ? "Processing..." : "Evaluate / Issue Record"}
+                                                </Button>
+                                            )
+                                        ) : (
+                                            <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
+                                                {actionLoading ? "Processing..." : "Evaluate / Issue Record"}
+                                            </Button>
+                                        )}
                                         <div className="flex gap-2 w-full">
                                             <Dialog open={isRequestingRevision} onOpenChange={(open) => { setIsRequestingRevision(open); if (!open) setRemarks(""); }}>
                                                 <DialogTrigger asChild>

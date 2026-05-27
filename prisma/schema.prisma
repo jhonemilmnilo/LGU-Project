@@ -322,7 +322,6 @@ model Resident {
   officialPosition      String?
   dateReceived          DateTime?
   imageUrl              String?
-  registeredAt          DateTime          @default(now())
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   facialRecognition     Json?
@@ -604,6 +603,9 @@ model Transaction {
   totalAmount       Float             @default(0)
   fiscalSnapshot    Json?             // { basicTax, additionalTax, penaltyCharge, totalAmount }
   
+  // Tracking limits
+  revisionCount     Int               @default(0)
+  
   // Specific Context
   businessName      String?           // For Juridical requests
   eCopyUrl          String?           // Link to generated digital file
@@ -635,7 +637,6 @@ model Transaction {
   marriageLicenseApplication MarriageLicenseApplication? // One-to-one link for marriage license applications
   
   isCancelled       Boolean           @default(false)
-  revisionCount     Int               @default(0)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }
