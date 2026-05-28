@@ -1134,6 +1134,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const isBusinessPermit = transaction.type.code.startsWith("BUSINESS_PERMIT");
+        const isBuildingPermit = transaction.type.code.startsWith("BUILDING_PERMIT");
         const isLCR = transaction.type.code.startsWith("LCR_");
 
         // ADMIN_AIDE can only evaluate Business Permits in FOR_INSPECTION status
@@ -1147,8 +1148,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         }
         const isCedula = transaction.type.code.includes("CEDULA");
 
-        // Allow Cedula, Business Permit, and Civil Registry (LCR) transactions to be evaluated here.
-        if (!isCedula && !isBusinessPermit && !isLCR) {
+        // Allow Cedula, Business Permit, Civil Registry (LCR), and Building Permit transactions to be evaluated here.
+        if (!isCedula && !isBusinessPermit && !isLCR && !isBuildingPermit) {
             return { success: false, error: "Unsupported transaction type" };
         }
 
@@ -1190,8 +1191,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             totalAmount: 0
         };
 
-        if (isBusinessPermit) {
-            if (isUserAdminAide(user)) {
+        if (isBusinessPermit || isBuildingPermit) {
+            if (isUserAdminAide(user) && isBusinessPermit) {
                 result = {
                     basicTax: 0,
                     additionalTax: 0,
@@ -1212,7 +1213,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     deliveryFee: deliveryFee,
                     totalAmount: total
                 };
-            } else {
+            } else if (isBusinessPermit) {
                 const cap = Number(additionalData.capitalInvestment || 0);
                 const sales = Number(additionalData.grossSales || 0);
                 const bploCalc = calculateBusinessPermit({
@@ -1353,7 +1354,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
             return { success: false, error: "Transaction not found" };
         }
 
-        if (transaction.status !== "EVALUATED") {
+        if (transaction.status !== "EVALUATED" && transaction.status !== "UNPAID") {
             return { success: false, error: "Transaction is not in evaluation phase" };
         }
 
@@ -1381,7 +1382,10 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         // - All PICK_UP go to FOR_PROCESSING
         // - DELIVERY with CASH_ON_DELIVERY also goes to FOR_PROCESSING
         const isForProcessing = fulfillmentType === "PICK_UP" || (fulfillmentType === "DELIVERY" && paymentType === "CASH_ON_DELIVERY");
-        const newStatus = isForProcessing ? "FOR_PROCESSING" : "PAID";
+        let newStatus = isForProcessing ? "FOR_PROCESSING" : "PAID";
+        if (paymentType === "E_PAYMENT" || paymentType === "BANK_TRANSFER") {
+            newStatus = "UNPAID";
+        }
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id: transactionId },
@@ -2254,9 +2258,11 @@ export async function rejectTransaction(id: string, remarks: string) {
                 }
             });
 
+            const activeRejectedTransactions = rejectedTransactions;
+
             // Group and find the maximum rejection count in any single category
             const categoryCounts: Record<string, number> = {};
-            for (const rTx of rejectedTransactions) {
+            for (const rTx of activeRejectedTransactions) {
                 const category = rTx.type.category || "General";
                 categoryCounts[category] = (categoryCounts[category] || 0) + 1;
             }
@@ -2948,7 +2954,7 @@ export async function getEngineerPendingCount() {
         const count = await prisma.transaction.count({
             where: {
                 type: { code: { startsWith: "BUILDING_PERMIT" } },
-                status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any }
+                status: { in: ["FOR_REQUESTING", "FOR_INSPECTION", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any }
             }
         });
         return { success: true, count };
@@ -2998,38 +3004,550 @@ export async function getEngineerStatusCounts() {
 }
 
 /**
- * Create logistics configuration for a new Barangay node
+ * Schedule Building Permit Inspection
  */
-export async function createBarangayLogistics(name: string, data: { deliveryFee: number, isLogisticsActive: boolean, estimatedDeliveryDays: number }) {
+export async function scheduleBuildingInspection(id: string, details: any) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || user.role !== "ADMIN") {
-            return { success: false, error: "Forbidden" };
+        if (!user || user.role !== "ENGINEER") {
+            return { success: false, error: "Forbidden: Only Engineers can schedule inspections" };
         }
 
-        const existing = await prisma.barangayInfo.findUnique({
-            where: { name }
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true, user: true }
         });
 
-        if (existing) {
-            return { success: false, error: "Barangay node already exists" };
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        if (!transaction.type.code.startsWith("BUILDING_PERMIT")) {
+            return { success: false, error: "Not a Building Permit transaction" };
         }
 
-        const created = await prisma.barangayInfo.create({
+        const existingAdditionalData = (transaction.additionalData as any) || {};
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
             data: {
-                name,
-                deliveryFee: data.deliveryFee,
-                isLogisticsActive: data.isLogisticsActive,
-                estimatedDeliveryDays: data.estimatedDeliveryDays
+                status: "FOR_INSPECTION", // Move to inspection phase
+                additionalData: {
+                    ...existingAdditionalData,
+                    inspectionSchedule: details
+                },
+                processedBy: user.id,
+                updatedAt: new Date()
+            },
+            include: { type: true, user: true }
+        });
+
+        // Optionally send an email notification about the inspection
+        if (transaction.user?.email) {
+            const resident = transaction.residentSnapshot as any;
+            await sendEmail({
+                type: "NOTIFICATION",
+                to: transaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : transaction.user.name || "Resident",
+                subject: "Building Permit Inspection Scheduled",
+                text: `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been scheduled for inspection on ${details.date} at ${details.time}.\n\nInspector: ${details.inspectorName}\nType: ${details.type}\nNotes: ${details.notes || 'None'}\n\nPlease ensure someone is available on-site.`,
+                html: `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been scheduled for inspection on <b>${details.date}</b> at <b>${details.time}</b>.</p><p><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}<br/><b>Notes:</b> ${details.notes || 'None'}</p><p>Please ensure someone is available on-site.</p>`
+            } as any);
+        }
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Schedule inspection error:", error);
+        return { success: false, error: "Failed to schedule inspection" };
+    }
+}
+
+/**
+ * Mark Building Permit for Re-inspection
+ */
+export async function markForReinspection(id: string, reason: string, details?: any) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ENGINEER") {
+            return { success: false, error: "Forbidden: Only Engineers can re-inspect" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { type: true, user: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const additionalData = (transaction.additionalData as any) || {};
+        const count = (additionalData.reinspectionCount || 0) + 1;
+        
+        const history = additionalData.reinspectionHistory || [];
+        const newHistory = [...history];
+        
+        // Archive the original site inspection schedule before it gets overwritten
+        if ((!additionalData.reinspectionCount || additionalData.reinspectionCount === 0) && additionalData.inspectionSchedule) {
+            newHistory.push({
+                isOriginal: true,
+                date: additionalData.inspectionSchedule.date,
+                time: additionalData.inspectionSchedule.time,
+                type: additionalData.inspectionSchedule.type || "Initial Inspection",
+                inspectorName: additionalData.inspectionSchedule.inspectorName,
+                notes: additionalData.inspectionSchedule.notes || "",
+                reason: "Initial Site Inspection",
+                count: 0
+            });
+        }
+        
+        newHistory.push({ date: new Date().toISOString(), reason, count });
+
+        let newStatus = "FOR_REINSPECTION";
+        let rejectionRemarks = null;
+
+        if (count >= 4) {
+            newStatus = "REJECTED";
+            rejectionRemarks = `Automatically rejected after 4 re-inspection attempts. Final Reason: ${reason}`;
+        }
+
+        const newAdditionalData = {
+            ...additionalData,
+            reinspectionCount: count,
+            reinspectionHistory: newHistory
+        };
+
+        if (details && count < 4) {
+            newAdditionalData.inspectionSchedule = {
+                type: details.type,
+                date: details.date,
+                time: details.time,
+                inspectorName: details.inspectorName,
+                notes: `Re-inspection Reason: ${reason}`
+            };
+        }
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: newStatus as any,
+                rejectionRemarks,
+                additionalData: newAdditionalData,
+                processedBy: user.id,
+                updatedAt: new Date()
+            },
+            include: { type: true, user: true }
+        });
+
+        // Email notification
+        if (transaction.user?.email) {
+            const resident = transaction.residentSnapshot as any;
+            let textMsg = "";
+            let htmlMsg = "";
+            
+            if (count >= 4) {
+                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been rejected after exceeding the maximum number of re-inspections.\n\nReason: ${reason}`;
+                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been <b>rejected</b> after exceeding the maximum number of re-inspections.</p><p><b>Reason:</b> ${reason}</p>`;
+            } else {
+                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires re-inspection.\n\nReason: ${reason}\n\nThis is attempt ${count} out of 3.`;
+                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires <b>re-inspection</b>.</p><p><b>Reason:</b> ${reason}</p><p><i>This is attempt ${count} out of 3.</i></p>`;
+                
+                if (details) {
+                    textMsg += `\n\nRe-inspection Schedule:\nDate: ${details.date}\nTime: ${details.time}\nInspector: ${details.inspectorName}\nType: ${details.type}`;
+                    htmlMsg += `<br/><br/><h4>Re-inspection Schedule:</h4><p><b>Date:</b> ${details.date}<br/><b>Time:</b> ${details.time}<br/><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}</p>`;
+                }
+            }
+
+            await sendEmail({
+                type: "NOTIFICATION",
+                to: transaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : transaction.user.name || "Resident",
+                subject: count >= 4 ? "Building Permit Application Rejected" : "Building Permit Requires Re-inspection",
+                text: textMsg,
+                html: htmlMsg
+            } as any);
+        }
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Mark for re-inspection error:", error);
+        return { success: false, error: "Failed to mark for re-inspection" };
+    }
+}
+
+export async function endorseBuildingPermitFees(
+    id: string,
+    fees: {
+        buildingPermitFee: number;
+        electricalPermitFee: number;
+        sanitaryPermitFee: number;
+        municipalCharges: number;
+    }
+) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Engineers or Admins can endorse fees." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        
+        // Update with the fee assessment
+        const updatedAdditionalData = {
+            ...currentAdditionalData,
+            feeAssessment: {
+                buildingPermitFee: Number(fees.buildingPermitFee || 0),
+                electricalPermitFee: Number(fees.electricalPermitFee || 0),
+                sanitaryPermitFee: Number(fees.sanitaryPermitFee || 0),
+                municipalCharges: Number(fees.municipalCharges || 0),
+                endorsed: true,
+                endorsedAt: new Date()
+            }
+        };
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: updatedAdditionalData
             }
         });
 
-        revalidatePath("/admin/logistics");
-        return { success: true, data: created };
-    } catch (error: any) {
-        console.error("Error creating logistics:", error);
-        return { success: false, error: error?.message || "Failed to create barangay logistics node" };
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Endorse building permit fees error:", error);
+        return { success: false, error: "Failed to endorse fees" };
     }
 }
+
+export async function approveBuildingPermit(id: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Engineers or Admins can approve building permits." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+        if (transaction.status !== "PAID") {
+            return { success: false, error: "Forbidden: Can only approve paid permits." };
+        }
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "FOR_PROCESSING",
+                updatedAt: new Date()
+            }
+        });
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Approve building permit error:", error);
+        return { success: false, error: "Failed to approve building permit" };
+    }
+}
+
+export async function addAdditionalBuildingPermitFee(
+    id: string,
+    newFee: { label: string; amount: number }
+) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Treasury Staff or Admins can add additional fees." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const feeAssessment = currentAdditionalData.feeAssessment || {};
+        const currentAdditionalFees = feeAssessment.additionalFees || [];
+
+        const updatedAdditionalFees = [
+            ...currentAdditionalFees,
+            {
+                label: newFee.label,
+                amount: Number(newFee.amount || 0),
+                addedAt: new Date()
+            }
+        ];
+
+        const updatedAdditionalData = {
+            ...currentAdditionalData,
+            feeAssessment: {
+                ...feeAssessment,
+                additionalFees: updatedAdditionalFees
+            }
+        };
+
+        const baseTotal = 
+            Number(feeAssessment.buildingPermitFee || 0) +
+            Number(feeAssessment.electricalPermitFee || 0) +
+            Number(feeAssessment.sanitaryPermitFee || 0) +
+            Number(feeAssessment.municipalCharges || 0);
+        
+        const additionalTotal = updatedAdditionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
+        const finalTotal = baseTotal + additionalTotal;
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: updatedAdditionalData,
+                totalAmount: finalTotal
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Add additional fee error:", error);
+        return { success: false, error: "Failed to add additional fee" };
+    }
+}
+
+export async function removeAdditionalBuildingPermitFee(
+    id: string,
+    index: number
+) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Treasury Staff or Admins can manage fees." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const feeAssessment = currentAdditionalData.feeAssessment || {};
+        const currentAdditionalFees = [...(feeAssessment.additionalFees || [])];
+
+        if (index >= 0 && index < currentAdditionalFees.length) {
+            currentAdditionalFees.splice(index, 1);
+        }
+
+        const updatedAdditionalData = {
+            ...currentAdditionalData,
+            feeAssessment: {
+                ...feeAssessment,
+                additionalFees: currentAdditionalFees
+            }
+        };
+
+        const baseTotal = 
+            Number(feeAssessment.buildingPermitFee || 0) +
+            Number(feeAssessment.electricalPermitFee || 0) +
+            Number(feeAssessment.sanitaryPermitFee || 0) +
+            Number(feeAssessment.municipalCharges || 0);
+        
+        const additionalTotal = currentAdditionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
+        const finalTotal = baseTotal + additionalTotal;
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: updatedAdditionalData,
+                totalAmount: finalTotal
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Remove additional fee error:", error);
+        return { success: false, error: "Failed to remove additional fee" };
+    }
+}
+
+export async function approveAndSendBuildingPermitBilling(id: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Treasury Staff or Admins can approve billing." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const feeAssessment = currentAdditionalData.feeAssessment || {};
+        
+        const baseTotal = 
+            Number(feeAssessment.buildingPermitFee || 0) +
+            Number(feeAssessment.electricalPermitFee || 0) +
+            Number(feeAssessment.sanitaryPermitFee || 0) +
+            Number(feeAssessment.municipalCharges || 0);
+        
+        const additionalFees = feeAssessment.additionalFees || [];
+        const additionalTotal = additionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
+        const finalTotal = baseTotal + additionalTotal;
+
+        const lineItems = [
+            { label: "Building Permit Fee", amount: Number(feeAssessment.buildingPermitFee || 0) },
+            { label: "Electrical Permit Fee", amount: Number(feeAssessment.electricalPermitFee || 0) },
+            { label: "Sanitary Permit Fee", amount: Number(feeAssessment.sanitaryPermitFee || 0) },
+            { label: "Other Applicable Municipal Charges", amount: Number(feeAssessment.municipalCharges || 0) },
+            ...additionalFees.map((f: any) => ({ label: f.label, amount: Number(f.amount || 0) }))
+        ];
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "UNPAID",
+                totalAmount: finalTotal,
+                fiscalSnapshot: {
+                    basicTax: baseTotal,
+                    additionalTax: additionalTotal,
+                    penaltyCharge: 0,
+                    totalAmount: finalTotal,
+                    lineItems: lineItems
+                }
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        revalidatePath("/admin/engineer");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Approve building permit billing error:", error);
+        return { success: false, error: "Failed to approve billing" };
+    }
+}
+
+export async function saveBfpClearanceProofAction(id: string, bfpClearanceUrl: string) {
+    try {
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const updatedAdditionalData = {
+            ...currentAdditionalData,
+            bfpClearanceUrl
+        };
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: updatedAdditionalData
+            }
+        });
+
+        revalidatePath("/user/services/building-permit");
+        revalidatePath(`/admin/engineer/${id}/fees`);
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Save BFP Clearance proof error:", error);
+        return { success: false, error: "Failed to save BFP Clearance proof" };
+    }
+}
+
+export async function submitBuildingPermitAction(id: string, eCopyUrl: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Engineers or Admins can submit building permits." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+        if (transaction.status !== "FOR_PROCESSING") {
+            return { success: false, error: "Forbidden: Can only submit permits in FOR_PROCESSING phase." };
+        }
+
+        // Determine final status based on fulfillmentType
+        // If PICK_UP -> FOR_CLAIM
+        // If DELIVERY -> FOR_PICKING
+        // Default to FOR_CLAIM if unspecified
+        const nextStatus = transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM";
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: nextStatus,
+                eCopyUrl: eCopyUrl,
+                updatedAt: new Date()
+            }
+        });
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services/building-permit");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Submit building permit error:", error);
+        return { success: false, error: "Failed to submit building permit" };
+    }
+}
+
+export async function declinePaymentProofAction(id: string, reason: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Treasury Staff or Admins can decline payments." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                status: "UNPAID",
+                rejectionRemarks: reason,
+                paymentReference: null, // Clear rejected payment reference so they can upload a new one
+                updatedAt: new Date()
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services/building-permit");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Decline payment proof error:", error);
+        return { success: false, error: "Failed to decline payment proof" };
+    }
+}
+
+
+
 

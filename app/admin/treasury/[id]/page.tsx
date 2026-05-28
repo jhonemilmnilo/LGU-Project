@@ -22,7 +22,8 @@ import {
     Ban,
     Hash,
     Trash2,
-    Plus
+    Plus,
+    Coins
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -30,12 +31,17 @@ import {
     evaluateCedulaTransaction,
     confirmTransactionPayment,
     releaseCedula,
-    rejectTransaction,
-    sendForRevision,
+    // rejectTransaction,
+    // sendForRevision,
     uploadECopyAction,
     getSystemSettingAction,
     getDeliveryFeeByBarangay,
-    resolveDispute
+    resolveDispute,
+    // scheduleBuildingInspection,
+    addAdditionalBuildingPermitFee,
+    removeAdditionalBuildingPermitFee,
+    approveAndSendBuildingPermitBilling,
+    declinePaymentProofAction
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -247,11 +253,116 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         word2: "Express",
         logo: ""
     });
+    const [additionalFeeLabel, setAdditionalFeeLabel] = useState("");
+    const [additionalFeeAmount, setAdditionalFeeAmount] = useState("");
+    const [showAdditionalFeeForm, setShowAdditionalFeeForm] = useState(false);
+
+    const handleAddAdditionalFee = async () => {
+        if (!additionalFeeLabel.trim()) {
+            toast.error("Please specify a fee type / description.");
+            return;
+        }
+        if (!additionalFeeAmount || Number(additionalFeeAmount) <= 0) {
+            toast.error("Please specify a valid fee amount.");
+            return;
+        }
+
+        setActionLoading(true);
+        try {
+            const res = await addAdditionalBuildingPermitFee(id, {
+                label: additionalFeeLabel.trim(),
+                amount: Number(additionalFeeAmount)
+            });
+
+            if (res.success) {
+                toast.success("Additional fee added successfully!");
+                setAdditionalFeeLabel("");
+                setAdditionalFeeAmount("");
+                setShowAdditionalFeeForm(false);
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to add additional fee");
+            }
+        } catch {
+            toast.error("An error occurred while adding fee");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleRemoveAdditionalFee = async (index: number) => {
+        setActionLoading(true);
+        try {
+            const res = await removeAdditionalBuildingPermitFee(id, index);
+            if (res.success) {
+                toast.success("Additional fee removed successfully!");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to remove fee");
+            }
+        } catch {
+            toast.error("An error occurred while removing fee");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+    const handleApproveBilling = async () => {
+        setActionLoading(true);
+        try {
+            const res = await approveAndSendBuildingPermitBilling(id);
+            if (res.success) {
+                toast.success("Billing approved and sent to citizen successfully!");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to approve billing");
+            }
+        } catch {
+            toast.error("An error occurred while approving billing");
+        } finally {
+            setActionLoading(false);
+        }
+    };
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [_showAdditionalDebug, _setShowAdditionalDebug] = useState(false);
     const [isResolvingDispute, setIsResolvingDispute] = useState(false);
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
+    const [showPreviousPhases, setShowPreviousPhases] = useState(false);
+    
+    /*
+    // Schedule Inspection Form State
+    const [isSchedulingInspection, setIsSchedulingInspection] = useState(false);
+    const [inspectionType, setInspectionType] = useState("Structural Inspection");
+    const [inspectionDate, setInspectionDate] = useState("");
+    const [inspectionTime, setInspectionTime] = useState("");
+    const [inspectorName, setInspectorName] = useState("");
+    const [inspectionNotes, setInspectionNotes] = useState("");
+
+    const handleScheduleInspection = async () => {
+        if (!inspectionDate || !inspectionTime || !inspectorName) {
+            toast.error("Please fill in all required fields (Date, Time, Inspector Name)");
+            return;
+        }
+
+        setActionLoading(true);
+        const res = await scheduleBuildingInspection(id, {
+            type: inspectionType,
+            date: inspectionDate,
+            time: inspectionTime,
+            inspectorName: inspectorName,
+            notes: inspectionNotes
+        });
+
+        if (res.success) {
+            toast.success("Inspection scheduled successfully!");
+            setTransaction((prev: any) => ({ ...prev, ...res.data }));
+            setIsSchedulingInspection(false);
+        } else {
+            toast.error(res.error || "Failed to schedule inspection");
+        }
+        setActionLoading(false);
+    };
+    */
 
     const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string }[]>([
         { label: "Mayor's Permit Fee", amount: "" }
@@ -302,6 +413,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 const tx = res.data;
                 setTransaction(tx);
+
+                // Pre-populate feeLineItems for building permit if assessed by engineer
+                if (tx && tx.type?.code?.startsWith("BUILDING_PERMIT")) {
+                    const assessed = tx.additionalData?.feeAssessment;
+                    if (assessed && assessed.endorsed) {
+                        setFeeLineItems([
+                            { label: "Building Permit Fee", amount: String(assessed.buildingPermitFee || 0) },
+                            { label: "Electrical Permit Fee", amount: String(assessed.electricalPermitFee || 0) },
+                            { label: "Sanitary Permit Fee", amount: String(assessed.sanitaryPermitFee || 0) },
+                            { label: "Other Applicable Municipal Charges", amount: String(assessed.municipalCharges || 0) }
+                        ]);
+                    }
+                }
 
                 // Smart Delivery Fee Pre-fill Logic
                 if (tx && tx.fulfillmentType === "DELIVERY") {
@@ -393,6 +517,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return () => URL.revokeObjectURL(url);
     }, [orFile]);
 
+    /*
     const handleReject = async () => {
         if (!remarks) { toast.error("Remarks required"); return; }
         setActionLoading(true);
@@ -418,6 +543,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
+    */
 
     const handleRelease = useCallback(async () => {
 
@@ -569,7 +695,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         : null;
 
     const calcResult = (() => {
-        if (fiscal && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) {
+        if (fiscal && !(isBusinessPermit && transaction.status === "FOR_REQUESTING") && !(isBuildingPermit && transaction.status === "EVALUATED")) {
             return {
                 basicTax: fiscal.basicTax,
                 additionalTax: fiscal.additionalTax,
@@ -580,8 +706,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             };
         }
 
-        if (isBusinessPermit) {
-            if (transaction.status === "FOR_REQUESTING") {
+        if (isBusinessPermit || isBuildingPermit) {
+            if (transaction.status === "FOR_REQUESTING" || (isBuildingPermit && transaction.status === "EVALUATED" && !fiscal)) {
                 const itemsSum = feeLineItems.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
                 const dFee = transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0;
                 return {
@@ -735,7 +861,21 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     });
 
     const getEffectiveStatus = (s: string) => s;
-    const currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
+    let currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
+
+    if (isBuildingPermit) {
+        steps = [
+            { id: "EVALUATION", label: "EVALUATION" },
+            { id: "ASSESSMENT", label: "ASSESSMENT" },
+            { id: "PAYMENT_HISTORY", label: "PAYMENT HISTORY" }
+        ];
+        const getBuildingStepIndex = (status: string) => {
+            if (status === "EVALUATED") return 0; // EVALUATION
+            if (status === "UNPAID" || status === "PAID") return 1; // ASSESSMENT
+            return 2; // PAYMENT HISTORY (FOR_PROCESSING, FOR_CLAIM, RELEASED)
+        };
+        currentStepIdx = getBuildingStepIndex(transaction.status);
+    }
 
     // Build evidence documents list for the Evidence Vault UI
     const evidenceDocs: { url?: string | null; label: string }[] = (() => {
@@ -956,6 +1096,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         } finally { setActionLoading(false); }
     };
 
+    const handleDeclinePaymentProof = async () => {
+        if (!remarks) { toast.error("Please specify a reason for declining the payment proof."); return; }
+        setActionLoading(true);
+        try {
+            const res = await declinePaymentProofAction(transaction.id, remarks);
+            if (res.success) {
+                toast.success("Payment proof declined successfully.");
+                setRemarks("");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to decline payment proof");
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handlePrintWaybill = () => {
         window.print();
     };
@@ -1079,11 +1236,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             {!(userRole === "ADMIN_AIDE" && isBusinessPermit) && (
                                 <div className={cn("space-y-6", additional.incomeSource ? "pt-0 !mt-6" : "pt-6")}>
                                     <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                        {isBusinessPermit ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
+                                        {(isBusinessPermit || isBuildingPermit) ? "Fee Assessment Breakdown" : "Tax Computation Breakdown"}
                                     </h3>
                                     <div className="space-y-4">
-                                        {isBusinessPermit ? (
-                                            (transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
+                                        {(isBusinessPermit || isBuildingPermit) ? (
+                                            ((transaction.status === "FOR_REQUESTING" || (isBuildingPermit && transaction.status === "EVALUATED" && !fiscal)) && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
                                                 <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
                                                     {feeLineItems.map((item, idx) => (
                                                         <div key={idx} className="flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
@@ -1438,7 +1595,21 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         </div>
                     )}
 
+                    {/* TOGGLE PREVIOUS PHASES FOR INSPECTION */}
+                    {transaction.status === "FOR_INSPECTION" && (
+                        <div className="flex justify-end mb-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowPreviousPhases(!showPreviousPhases)}
+                                className="border-dashed bg-slate-50 dark:bg-slate-900 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 text-xs uppercase font-bold tracking-widest"
+                            >
+                                {showPreviousPhases ? "Hide Previous Phase Data" : "View Previous Phase Data (Profile & Forms)"}
+                            </Button>
+                        </div>
+                    )}
+
                     {/* INLINE IDENTITY DOSSIER */}
+                    {(transaction.status !== "FOR_INSPECTION" || showPreviousPhases) && (
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-6">
                             <div>
@@ -1610,8 +1781,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     </div>
                                 </div>
                             </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* BUILDING PERMIT SPECIFIC BLOCKS */}
                     {isBuildingPermit && (
@@ -1648,69 +1820,153 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                 </div>
                             </div>
 
-                            {/* Images Block */}
+                            {/* FEES SET BY ENGINEER */}
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Submitted Requirements</span>
+                                <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-primary/10 rounded-lg">
+                                            <Coins className="text-primary w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                                Endorsed Fees Set by Engineer
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Add Fee Button */}
+                                    {!showAdditionalFeeForm && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && transaction.status === "EVALUATED" && (
+                                        <Button
+                                            onClick={() => setShowAdditionalFeeForm(true)}
+                                            size="sm"
+                                            className="h-9 gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" /> Add Additional Fee
+                                        </Button>
+                                    )}
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {[
-                                        { url: additional?.documents?.newIdFile || resident?.idFileUrl, label: "Applicant Valid ID" },
-                                        { url: additional?.documents?.tctFile, label: "TCT / Land Title" },
-                                        ...[
-                                            "Barangay Clearance/Certification",
-                                            "Tax Declaration",
-                                            "Land Title (if any)",
-                                            "Community Tax Certificate",
-                                            "Latest Tax Receipts",
-                                            "Electrical & Sanitary Permit",
-                                            "Adjoining Owners Confirmation",
-                                            "Locational Clearance",
-                                            "2 Affidavits",
-                                            "Affidavit of Consent",
-                                            "Affidavit of Adjoining Owners",
-                                            "Signed & Sealed Plans",
-                                            "Fire Safety Clearance"
-                                        ].map((label, idx) => ({ url: additional?.documents?.[`req_${idx}`], label })),
-                                        ...[
-                                            "1. Building Permit",
-                                            "2. Electrical Permit",
-                                            "3. Plumbing Permit",
-                                            "4. Sanitary Permit",
-                                            "5. Excavation & Ground Preparation Permit",
-                                            "6. Fencing Permit (if any)",
-                                            "7. Affidavit Form",
-                                            "8. Scaffolding Permit",
-                                            "9. Mechanical Permit"
-                                        ].map((label, idx) => ({ url: additional?.documents?.[`permit_${idx}`], label }))
-                                    ].filter(doc => doc.url).map((doc, i) => (
-                                        <Dialog key={i}>
-                                            <DialogTrigger asChild>
-                                                <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
-                                                    {/* Guarded Image */}
-                                                    <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-                                                            <ZoomIn className="w-5 h-5 text-white" />
-                                                        </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Building Permit Fee</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            ₱{Number(transaction.additionalData?.feeAssessment?.buildingPermitFee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Electrical Permit Fee</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            ₱{Number(transaction.additionalData?.feeAssessment?.electricalPermitFee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Sanitary Permit Fee</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            ₱{Number(transaction.additionalData?.feeAssessment?.sanitaryPermitFee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Other Applicable Municipal Charges</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            ₱{Number(transaction.additionalData?.feeAssessment?.municipalCharges || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+
+                                {/* ADDITIONAL TREASURY FEES LIST */}
+                                {transaction.additionalData?.feeAssessment?.additionalFees && transaction.additionalData.feeAssessment.additionalFees.length > 0 && (
+                                    <div className="space-y-4 pt-6 border-t border-dashed border-slate-100 dark:border-white/5">
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary italic">
+                                            Additional Treasury Charges
+                                        </span>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {transaction.additionalData.feeAssessment.additionalFees.map((fee: any, idx: number) => (
+                                                <div key={idx} className="space-y-2 relative group">
+                                                    <div className="flex justify-between items-center ml-1">
+                                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{fee.label}</label>
+                                                        {transaction.status === "EVALUATED" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
+                                                            <button
+                                                                onClick={() => handleRemoveAdditionalFee(idx)}
+                                                                disabled={actionLoading}
+                                                                className="text-xs font-black text-red-500/60 hover:text-red-500 transition-colors uppercase tracking-wider text-[8px]"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                    <div className="absolute bottom-2 left-2 right-2 z-10">
-                                                        <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
-                                                            {doc.label}
-                                                        </span>
+                                                    <div className="h-12 flex items-center px-5 bg-amber-500/5 border border-amber-500/10 rounded-xl font-black text-sm text-amber-500">
+                                                        ₱{Number(fee.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                     </div>
                                                 </div>
-                                            </DialogTrigger>
-                                            <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                        </Dialog>
-                                    ))}
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ADD ADDITIONAL FEE INLINE FORM */}
+                                {showAdditionalFeeForm && (
+                                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 space-y-4 animate-in slide-in-from-top-4 duration-300">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary italic">Create New Additional Charge</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">Fee Type / Description</Label>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="e.g., Penalty, Zoning Fee, Convenience Charge..."
+                                                    value={additionalFeeLabel}
+                                                    onChange={(e) => setAdditionalFeeLabel(e.target.value)}
+                                                    className="h-11 rounded-xl text-slate-800 font-bold dark:text-slate-100"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">Amount (₱)</Label>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="0.00"
+                                                    value={additionalFeeAmount}
+                                                    onChange={(e) => setAdditionalFeeAmount(e.target.value)}
+                                                    className="h-11 rounded-xl text-slate-800 font-black dark:text-slate-100"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 justify-end pt-2">
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => setShowAdditionalFeeForm(false)}
+                                                className="h-9 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider text-slate-400"
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                onClick={handleAddAdditionalFee}
+                                                disabled={actionLoading}
+                                                className="h-9 px-4 rounded-xl bg-primary text-white font-black italic uppercase tracking-wider text-[10px] shadow-lg shadow-primary/20"
+                                            >
+                                                Save Additional Charge
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TOTAL AMOUNT BLOCK */}
+                                <div className="pt-6 border-t border-dashed border-slate-100 dark:border-white/5 flex justify-between items-center">
+                                    <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Endorsed Amount</span>
+                                    <span className="text-xl font-black italic text-primary">
+                                        ₱{Number(
+                                            (transaction.additionalData?.feeAssessment?.buildingPermitFee || 0) +
+                                            (transaction.additionalData?.feeAssessment?.electricalPermitFee || 0) +
+                                            (transaction.additionalData?.feeAssessment?.sanitaryPermitFee || 0) +
+                                            (transaction.additionalData?.feeAssessment?.municipalCharges || 0) +
+                                            (transaction.additionalData?.feeAssessment?.additionalFees || []).reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0)
+                                        ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* IDENTITY & AUTHENTICATION */}
+
+                        {/* IDENTITY & AUTHENTICATION */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                         {/* Evidence Vault */}
                         {!isBuildingPermit && (
@@ -2187,12 +2443,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     </p>
                                 </div>
                             </div>
-                        ) : !isRejecting && !isRequestingRevision ? (
+                        ) : (
                             <>
-                                {(((transaction.status === "FOR_REQUESTING" && (!isBusinessPermit || userRole === "TREASURY_STAFF" || userRole === "ADMIN"))) || (transaction.status === "FOR_INSPECTION" && isBusinessPermit && (userRole === "ADMIN_AIDE" || userRole === "ADMIN"))) && (
+                                {((transaction.status === "FOR_REQUESTING" || transaction.status === "FOR_INSPECTION")) && (
                                     <div className="space-y-3">
                                         <Button onClick={handleEvaluate} disabled={actionLoading} className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20">
-                                            {actionLoading ? "Processing..." : "Confirm Assessment"}
+                                            {actionLoading ? "Processing..." : "Evaluate / Issue Record"}
                                         </Button>
                                         {!(isBusinessPermit && transaction.status === "FOR_REQUESTING") && (
                                             <div className="flex gap-2 w-full">
@@ -2212,17 +2468,117 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                         )}
                                     </div>
                                 )}
-                                {/* 1. EVALUATION PHASE: Strictly Read-Only (Resident is choosing fulfillment/paying) */}
+                                {/* 1. EVALUATION PHASE */}
                                 {transaction.status === "EVALUATED" && (
-                                    <div className="bg-blue-50 dark:bg-blue-500/5 p-8 rounded-[2.5rem] border-2 border-blue-100 dark:border-blue-500/20 text-center space-y-4 animate-in zoom-in-95">
-                                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
-                                            <span className="text-2xl animate-pulse">⏳</span>
+                                    isBuildingPermit ? (
+                                        <div className="space-y-3">
+                                            <Button 
+                                                onClick={handleApproveBilling} 
+                                                disabled={actionLoading} 
+                                                className="w-full h-16 rounded-2xl bg-emerald-600 text-white font-black italic uppercase tracking-widest text-xs hover:bg-emerald-700 active:scale-95 transition-all shadow-xl shadow-green-950/20"
+                                            >
+                                                {actionLoading ? "Processing..." : "Approve & Send Billing to Citizen"}
+                                            </Button>
+                                            <div className="flex gap-2 w-full">
+                                                <Button
+                                                    onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                    className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                                                >
+                                                    Request Revision
+                                                </Button>
+                                                <Button
+                                                    onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                    className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                >
+                                                    Decline
+                                                </Button>
+                                            </div>
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-500 italic">Financial Protocol Active</p>
-                                            <p className="text-[11px] font-bold text-blue-900/60 dark:text-blue-400/60 leading-relaxed uppercase tracking-tight">Read-Only Mode: Waiting for Citizen to finalize fulfillment & upload payment proof.</p>
+                                    ) : (
+                                        <div className="bg-blue-50 dark:bg-blue-500/5 p-8 rounded-[2.5rem] border-2 border-blue-100 dark:border-blue-500/20 text-center space-y-4 animate-in zoom-in-95">
+                                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                <span className="text-2xl animate-pulse">⏳</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-500 italic">Financial Protocol Active</p>
+                                                <p className="text-[11px] font-bold text-blue-900/60 dark:text-blue-400/60 leading-relaxed uppercase tracking-tight">Read-Only Mode: Waiting for Citizen to finalize fulfillment & upload payment proof.</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )
+                                )}
+
+                                {/* Awaiting Citizen Payment (UNPAID phase) */}
+                                {transaction.status === "UNPAID" && (
+                                    isBuildingPermit ? (
+                                        <div className="space-y-4">
+                                            <div className="p-6 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 text-center space-y-2">
+                                                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+                                                    <Coins className="w-5 h-5" />
+                                                </div>
+                                                <p className="text-[10px] font-black uppercase text-primary italic">Verification Protocol Active</p>
+                                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-tight leading-relaxed uppercase italic">
+                                                    Review the uploaded payment receipt on the left. Click Approve to finalize payment or Decline to reject proof.
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Button
+                                                    onClick={handleConfirmPayment}
+                                                    disabled={actionLoading}
+                                                    className="w-full h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-xl shadow-green-950/20 active:scale-95 border-none"
+                                                >
+                                                    {actionLoading ? "Processing..." : "Approve Payment (Move to PAID)"}
+                                                </Button>
+
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full h-12 rounded-xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95"
+                                                        >
+                                                            <Ban className="w-4 h-4 mr-2" /> Decline Payment Proof
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                                        <DialogHeader className="space-y-3">
+                                                            <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                                Decline <span className="text-red-500">Payment</span>
+                                                            </DialogTitle>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Decline Payment Proof Receipt</p>
+                                                        </DialogHeader>
+                                                        <div className="space-y-6 py-6">
+                                                            <div className="space-y-3">
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
+                                                                <Textarea
+                                                                    placeholder="e.g. Reference number mismatch, receipt image blurry..."
+                                                                    value={remarks}
+                                                                    onChange={(e) => setRemarks(e.target.value)}
+                                                                    className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            onClick={handleDeclinePaymentProof}
+                                                            disabled={actionLoading || !remarks}
+                                                            className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+                                                        >
+                                                            {actionLoading ? "Processing..." : "Decline Payment Proof"}
+                                                        </Button>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-blue-50 dark:bg-blue-500/5 p-8 rounded-[2.5rem] border-2 border-blue-100 dark:border-blue-500/20 text-center space-y-4 animate-in zoom-in-95">
+                                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
+                                                <span className="text-2xl animate-pulse">⏳</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-500 italic">Financial Protocol Active</p>
+                                                <p className="text-[11px] font-bold text-blue-900/60 dark:text-blue-400/60 leading-relaxed uppercase tracking-tight">Read-Only Mode: Waiting for Citizen to finalize fulfillment & upload payment proof.</p>
+                                            </div>
+                                        </div>
+                                    )
                                 )}
 
                                 {/* 1.5 REVISION PHASE: Awaiting Citizen Action */}
@@ -2530,22 +2886,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
                             </>
-                        ) : isRejecting ? (
-                            <div className="bg-red-50 dark:bg-red-500/5 p-6 rounded-[2.5rem] border-2 border-red-100 dark:border-red-500/20 space-y-4 animate-in slide-in-from-right-4">
-                                <Textarea ref={remarksRef} placeholder="Reason for decline..." value={remarks} onChange={(e) => setRemarks(e.target.value)} className="min-h-[100px] rounded-2xl border-none focus:ring-0 bg-white dark:bg-slate-900 font-bold p-6 text-sm italic dark:text-white" />
-                                <div className="flex gap-2">
-                                    <Button onClick={() => handleReject()} disabled={actionLoading} className="flex-1 h-12 bg-red-600 text-white font-black italic uppercase text-[9px] rounded-xl hover:bg-red-700">Decline Request</Button>
-                                    <Button variant="outline" onClick={() => setIsRejecting(false)} className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-[9px] dark:border-white/5 dark:text-white">Cancel</Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-amber-50 dark:bg-amber-500/5 p-6 rounded-[2.5rem] border-2 border-amber-100 dark:border-amber-500/20 space-y-4 animate-in slide-in-from-right-4">
-                                <Textarea ref={remarksRef} placeholder="State missing documents or corrections needed..." value={remarks} onChange={(e) => setRemarks(e.target.value)} className="min-h-[100px] rounded-2xl border-none focus:ring-0 bg-white dark:bg-slate-900 font-bold p-6 text-sm italic dark:text-white" />
-                                <div className="flex gap-2">
-                                    <Button onClick={() => handleRequestRevision()} disabled={actionLoading} className="flex-1 h-12 bg-amber-500 text-white font-black italic uppercase text-[9px] rounded-xl hover:bg-amber-600">Send for Revision</Button>
-                                    <Button variant="outline" onClick={() => setIsRequestingRevision(false)} className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-[9px] dark:border-white/5 dark:text-white">Cancel</Button>
-                                </div>
-                            </div>
                         )}
                     </div>
                 </div>

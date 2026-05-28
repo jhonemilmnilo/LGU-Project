@@ -1,0 +1,608 @@
+"use client";
+
+import React, { useState, useRef, useEffect, use, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+import { isValidUrl } from "@/utils/image";
+import {
+    ArrowLeft,
+    ZoomIn,
+    ZoomOut,
+    RotateCw,
+    RefreshCcw,
+    Camera,
+    AlertCircle,
+    BadgeCheck
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+    getTransactionById,
+    rejectTransaction,
+    sendForRevision,
+    scheduleBuildingInspection,
+    getSystemSettingAction
+} from "@/app/admin/transactions/actions";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog";
+
+interface PageProps {
+    params: Promise<{ id: string }>;
+}
+
+function LightboxView({ src, alt, label }: { src: string; alt: string; label: string }) {
+    const [scale, setScale] = useState(1);
+    const [rotate, setRotate] = useState(0);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    const handleWheel = (e: React.WheelEvent) => {
+        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+        setScale(prev => Math.min(Math.max(prev + delta, 0.5), 5));
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({
+            x: e.clientX - position.x,
+            y: e.clientY - position.y
+        });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const reset = () => {
+        setScale(1);
+        setRotate(0);
+        setPosition({ x: 0, y: 0 });
+    };
+
+    return (
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col items-center justify-center gap-6 outline-none">
+            <DialogHeader className="sr-only">
+                <DialogTitle>{label}</DialogTitle>
+            </DialogHeader>
+
+            <div
+                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing select-none"
+                onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+            >
+                <div
+                    className="relative w-full h-full flex items-center justify-center"
+                    style={{ 
+                        transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotate}deg)`,
+                        transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+                    }}
+                >
+                    <Image
+                        src={isValidUrl(src) ? src : "/placeholder.png"}
+                        alt={alt}
+                        fill
+                        className="object-contain"
+                        priority
+                        draggable={false}
+                    />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-6 py-3 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl animate-in slide-in-from-bottom-4">
+                <div className="flex items-center gap-1 pr-4 border-r border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white italic whitespace-nowrap">{label}</p>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                        onClick={() => setScale(s => Math.max(s - 0.2, 0.5))}
+                    >
+                        <ZoomOut className="w-4 h-4" />
+                    </Button>
+                    <div className="w-12 text-center text-[10px] font-black text-white/50 italic">
+                        {Math.round(scale * 100)}%
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                        onClick={() => setScale(s => Math.min(s + 0.2, 5))}
+                    >
+                        <ZoomIn className="w-4 h-4" />
+                    </Button>
+                </div>
+
+                <div className="w-px h-4 bg-white/10 mx-2" />
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                    onClick={() => setRotate(r => (r + 90) % 360)}
+                    title="Rotate 90°"
+                >
+                    <RotateCw className="w-4 h-4" />
+                </Button>
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                    onClick={reset}
+                    title="Reset View"
+                >
+                    <RefreshCcw className="w-4 h-4" />
+                </Button>
+            </div>
+            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan Active</p>
+        </DialogContent>
+    );
+}
+
+export default function BuildingPermitEvaluationPage({ params }: PageProps) {
+    const { id } = use(params);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const isForcedView = searchParams.get("view") === "true";
+    const { data: session } = useSession();
+    const userRole = (session?.user as any)?.role;
+    const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
+
+    const [transaction, setTransaction] = useState<any>(null);
+    const isViewOnly = isForcedView || (transaction && transaction.status !== "FOR_REQUESTING" && transaction.status !== "FOR_REVISION");
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [remarks, setRemarks] = useState("");
+    const remarksRef = useRef<HTMLTextAreaElement>(null);
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [isRequestingRevision, setIsRequestingRevision] = useState(false);
+    const [themeColor, setThemeColor] = useState<string>("#2563eb");
+
+    // Schedule Inspection Form State
+    const [isSchedulingInspection, setIsSchedulingInspection] = useState(false);
+    const [inspectionType, setInspectionType] = useState("Structural Inspection");
+    const [inspectionDate, setInspectionDate] = useState("");
+    const [inspectionTime, setInspectionTime] = useState("");
+    const [inspectorName, setInspectorName] = useState("");
+    const [inspectionNotes, setInspectionNotes] = useState("");
+
+    const fetchTransaction = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await getTransactionById(id);
+            if (res.success && res.data) {
+                setTransaction(res.data);
+            } else {
+                toast.error(res.error || "Failed to load transaction");
+            }
+        } catch {
+            toast.error("An error occurred while fetching details");
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        fetchTransaction();
+        getSystemSettingAction("theme_color", "#2563eb").then(res => {
+            if (res.success && res.data) setThemeColor(res.data);
+        });
+    }, [fetchTransaction]);
+
+    const handleScheduleInspection = async () => {
+        if (!inspectionDate || !inspectionTime || !inspectorName) {
+            toast.error("Please fill in all required fields (Date, Time, Inspector Name)");
+            return;
+        }
+
+        setActionLoading(true);
+        const res = await scheduleBuildingInspection(id, {
+            type: inspectionType,
+            date: inspectionDate,
+            time: inspectionTime,
+            inspectorName: inspectorName,
+            notes: inspectionNotes
+        });
+
+        if (res.success) {
+            toast.success("Inspection scheduled successfully!");
+            router.push(backUrl);
+        } else {
+            toast.error(res.error || "Failed to schedule inspection");
+        }
+        setActionLoading(false);
+    };
+
+    const handleReject = async () => {
+        if (!remarks) { toast.error("Remarks required"); return; }
+        setActionLoading(true);
+        try {
+            const res = await rejectTransaction(id, remarks);
+            if (res.success) {
+                toast.success("Rejected successfully");
+                router.push(backUrl);
+            } else {
+                toast.error(res.error || "Failed");
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleRequestRevision = async () => {
+        if (!remarks) { toast.error("Remarks required"); return; }
+        setActionLoading(true);
+        try {
+            const res = await sendForRevision(id, remarks);
+            if (res.success) {
+                toast.success("Sent back for revision");
+                router.push(backUrl);
+            } else {
+                toast.error(res.error || "Failed");
+            }
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] flex flex-col items-center justify-center gap-4">
+                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!transaction) return <div className="p-20 text-center dark:text-white">Protocol Error: Transaction Inaccessible</div>;
+
+    const additional = transaction.additionalData || {};
+    const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
+
+    const renderRequirementsGrid = () => (
+        <div className="grid grid-cols-2 gap-4">
+            {[
+                { url: additional?.documents?.newIdFile || resident?.idFileUrl, label: "Applicant Valid ID" },
+                { url: additional?.documents?.tctFile, label: "TCT / Land Title" },
+                ...[
+                    "Barangay Clearance/Certification",
+                    "Tax Declaration",
+                    "Land Title (if any)",
+                    "Community Tax Certificate",
+                    "Latest Tax Receipts",
+                    "Electrical & Sanitary Permit",
+                    "Adjoining Owners Confirmation",
+                    "Locational Clearance",
+                    "2 Affidavits",
+                    "Affidavit of Consent",
+                    "Affidavit of Adjoining Owners",
+                    "Signed & Sealed Plans",
+                    "Fire Safety Clearance"
+                ].map((label, idx) => ({ url: additional?.documents?.[`req_${idx}`], label })),
+                ...[
+                    "1. Building Permit",
+                    "2. Electrical Permit",
+                    "3. Plumbing Permit",
+                    "4. Sanitary Permit",
+                    "5. Excavation & Ground Preparation Permit",
+                    "6. Fencing Permit (if any)",
+                    "7. Affidavit Form",
+                    "8. Scaffolding Permit",
+                    "9. Mechanical Permit"
+                ].map((label, idx) => ({ url: additional?.documents?.[`permit_${idx}`], label }))
+            ].filter(doc => doc.url).map((doc, i) => (
+                <Dialog key={i}>
+                    <DialogTrigger asChild>
+                        <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
+                            <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                    <ZoomIn className="w-5 h-5 text-white" />
+                                </div>
+                            </div>
+                            <div className="absolute bottom-2 left-2 right-2 z-10">
+                                <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
+                                    {doc.label}
+                                </span>
+                            </div>
+                        </div>
+                    </DialogTrigger>
+                    <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                </Dialog>
+            ))}
+        </div>
+    );
+
+    const steps = [
+        { id: "FOR_REQUESTING", label: "EVALUATION" },
+        { id: "FOR_INSPECTION", label: "INSPECTION" },
+        { id: "FOR_REINSPECTION", label: "RE-INSPECTION" },
+        { id: "EVALUATED", label: "FEE ASSESSMENT" }
+    ];
+    const getStepIndex = (status: string) => {
+        if (status === "FOR_REQUESTING" || status === "FOR_REVISION") return 0;
+        if (status === "FOR_INSPECTION") return 1;
+        if (status === "FOR_REINSPECTION") return 2;
+        if (status === "EVALUATED") return 3;
+        return 4; // PAID, FOR_PROCESSING, FOR_CLAIM, RELEASED
+    };
+    const currentStepIdx = getStepIndex(transaction.status);
+
+    return (
+        <div
+            className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
+            style={{ "--theme_color": themeColor, "--primary-theme": themeColor } as React.CSSProperties}
+        >
+            <header className="h-16 px-8 flex items-center justify-between border-b border-transparent dark:border-white/5">
+                <Link href={backUrl}>
+                    <Button variant="ghost" className="gap-2 text-slate-400 dark:text-slate-500 font-bold hover:text-primary">
+                        <ArrowLeft className="w-4 h-4" /> BACK TO DASHBOARD
+                    </Button>
+                </Link>
+                <Badge variant="outline" className="font-black italic uppercase tracking-widest text-[10px] border-primary/20 text-primary bg-primary/5 px-4 py-1">
+                    Evaluation Portal Active
+                </Badge>
+            </header>
+
+            <main className="max-w-[1400px] mx-auto px-8 grid grid-cols-12 gap-8 mt-4">
+                {isViewOnly && (
+                    <div className="col-span-12 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-6 rounded-[1.5rem] flex items-center justify-between shadow-sm animate-in fade-in duration-300">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest italic flex items-center gap-2">📜 Archival Phase View Mode</p>
+                            <p className="text-[11px] font-medium opacity-90">You are reviewing the historical Evaluation phase record in read-only mode.</p>
+                        </div>
+                        <Button onClick={() => router.push(`/admin/engineer/${id}`)} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase h-10 px-4 rounded-xl active:scale-95 transition-all border-none">
+                            Return to Active Phase
+                        </Button>
+                    </div>
+                )}
+
+                {/* Left Column: Details */}
+                <div className="col-span-12 lg:col-span-8 space-y-8">
+                    {/* Header Banner */}
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-500/20 dark:border-emerald-500/10 rounded-[2rem] p-8 flex items-center justify-between shadow-sm relative overflow-hidden">
+                        <div className="space-y-2 relative z-10">
+                            <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-[0.2em] italic">Phase 1: Initial Assessment</span>
+                            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">BUILDING PERMIT EVALUATION</h2>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Verify the applicant&apos;s architectural details and plans, then schedule the mandatory site inspection.</p>
+                        </div>
+                        <div className="text-5xl font-black italic text-emerald-500/20 select-none hidden md:block">EVALUATION</div>
+                    </div>
+
+                    {/* Profile */}
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-500">
+                        <div>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                Resident <span className="text-primary">Identity Profile</span>
+                            </h2>
+                            <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">Verified Citizen Data Dossier</p>
+                        </div>
+                        <div className="grid grid-cols-12 gap-6">
+                            <div className="col-span-12 md:col-span-4 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">First Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm">{resident?.firstName || "--"}</div>
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Middle Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm">{resident?.middleName || "--"}</div>
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Last Name</label>
+                                <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm">{resident?.lastName || "--"}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Card 1: Application Details */}
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8">
+                        <div>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                Application <span className="text-primary">Details</span>
+                            </h2>
+                            <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">Building Permit Questionnaire</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Description of Work</label>
+                                <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">{additional?.descriptionOfWork || "--"}</div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Occupancy Use</label>
+                                <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 min-h-[48px]">{additional?.occupancyUse || "--"}</div>
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Estimated Cost</label>
+                                <div className="p-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary min-h-[48px]">₱{Number(additional?.estimatedCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Card 2: Requirements Plans & Submissions */}
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Submitted Requirements</span>
+                        </div>
+                        {renderRequirementsGrid()}
+                    </div>
+                </div>
+
+                {/* Right Column: Workflow Tracking & Executive Actions */}
+                <div className="col-span-12 lg:col-span-4 space-y-8">
+                    <div className="bg-[#151b28] rounded-[2rem] p-8 border border-white/5 space-y-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Workflow Tracking</h3>
+                        <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/10">
+                            {(() => {
+                                const handleStepClick = (stepId: string) => {
+                                    if (stepId === "FOR_REQUESTING") {
+                                        router.push(`/admin/engineer/${id}/evaluation?view=true`);
+                                    } else if (stepId === "FOR_INSPECTION") {
+                                        router.push(`/admin/engineer/${id}/inspection?view=true`);
+                                    } else if (stepId === "FOR_REINSPECTION") {
+                                        router.push(`/admin/engineer/${id}/reinspection?view=true`);
+                                    } else if (stepId === "EVALUATED") {
+                                        router.push(`/admin/engineer/${id}/fees?view=true`);
+                                    }
+                                };
+                                return steps.map((step, idx) => {
+                                    const isCompleted = idx < currentStepIdx;
+                                    const isActive = idx === currentStepIdx;
+                                    return (
+                                        <div 
+                                            key={step.id} 
+                                            onClick={() => { if (isCompleted) handleStepClick(step.id); }}
+                                            className={`relative flex items-center justify-between group ${
+                                                isCompleted ? "cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-xl transition-all" : ""
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className={`absolute left-[-29px] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                    isCompleted ? "bg-[#006A2E] border-[#006A2E] text-white shadow-lg shadow-green-500/20" :
+                                                    isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
+                                                    "bg-slate-900 border-white/10 text-slate-500"
+                                                }`}>
+                                                    {isCompleted ? <BadgeCheck className="w-3.5 h-3.5" /> : <span className="text-[10px] font-black">{idx + 1}</span>}
+                                                </div>
+                                                <div>
+                                                    <p className={`text-xs font-black uppercase tracking-widest italic transition-colors ${isActive ? "text-white" : "text-slate-400"}`}>{step.label}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+                    </div>
+ 
+                    {/* Executive Actions */}
+                    <div className="space-y-4">
+                        {!isViewOnly && userRole === "ENGINEER" && (
+                            <div className="space-y-3">
+                                <Dialog open={isSchedulingInspection} onOpenChange={setIsSchedulingInspection}>
+                                    <DialogTrigger asChild>
+                                        <Button disabled={actionLoading} className="w-full h-16 rounded-2xl bg-[#006A2E] text-white font-black italic uppercase tracking-widest text-xs hover:bg-[#005224] transition-all shadow-xl shadow-green-900/20 active:scale-95">
+                                            {actionLoading ? "Processing..." : "Schedule Inspection"}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl bg-[#f8e7eb] dark:bg-slate-900 border-none rounded-[1.5rem] shadow-2xl p-0 overflow-hidden">
+                                        <DialogTitle className="sr-only">Schedule Site Inspection</DialogTitle>
+                                        <div className="bg-white dark:bg-slate-950 p-6 m-4 rounded-[1.5rem] shadow-sm border border-slate-100 dark:border-white/5 space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <h2 className="text-xl font-bold text-[#0c4a6e] dark:text-blue-400 flex items-center gap-2">
+                                                    <AlertCircle className="w-5 h-5" /> Pending Inspection Scheduling
+                                                </h2>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspection Type:</Label>
+                                                    <select
+                                                        className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e] dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-blue-500"
+                                                        value={inspectionType}
+                                                        onChange={(e) => setInspectionType(e.target.value)}
+                                                    >
+                                                        <option value="Structural Inspection">Structural Inspection</option>
+                                                        <option value="Electrical Inspection">Electrical Inspection</option>
+                                                        <option value="Sanitary/Plumbing Inspection">Sanitary/Plumbing Inspection</option>
+                                                        <option value="Complete Site Inspection">Complete Site Inspection</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Date:</Label>
+                                                    <Input type="date" value={inspectionDate} onChange={(e) => setInspectionDate(e.target.value)} className="h-12 rounded-xl text-slate-700 font-medium" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Time:</Label>
+                                                    <Input type="time" value={inspectionTime} onChange={(e) => setInspectionTime(e.target.value)} className="h-12 rounded-xl text-slate-700 font-medium" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspector Name:</Label>
+                                                    <Input placeholder="Engr. Santos" value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} className="h-12 rounded-xl text-slate-700 font-medium" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Notes (optional):</Label>
+                                                    <Textarea placeholder="Instructions..." value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} className="min-h-[80px] rounded-xl text-slate-700 font-medium" />
+                                                </div>
+                                                <Button onClick={handleScheduleInspection} disabled={actionLoading} className="h-12 bg-[#0c4a6e] hover:bg-[#082f49] text-white rounded-xl px-6 flex items-center gap-2">
+                                                    {actionLoading ? "Scheduling..." : "Schedule Inspection"}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+
+                                <div className="flex gap-2 w-full">
+                                    <Dialog open={isRequestingRevision} onOpenChange={(open) => { setIsRequestingRevision(open); if (!open) setRemarks(""); }}>
+                                        <DialogTrigger asChild>
+                                            <Button onClick={() => { setIsRequestingRevision(true); setRemarks(""); }} className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95">
+                                                Request Revision
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                            <DialogHeader className="space-y-3">
+                                                <DialogTitle className="text-3xl font-black italic uppercase text-slate-900 dark:text-white leading-none">Request <span className="text-amber-500">Revision</span></DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-6 py-6">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400">Corrections Needed *</Label>
+                                                <Textarea ref={remarksRef} value={remarks} onChange={(e) => setRemarks(e.target.value)} className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold p-6 text-sm" required />
+                                            </div>
+                                            <Button onClick={handleRequestRevision} disabled={actionLoading || !remarks.trim()} className="w-full h-14 bg-amber-500 text-white font-black italic uppercase text-[11px] rounded-2xl">
+                                                Confirm Revision Request
+                                            </Button>
+                                        </DialogContent>
+                                    </Dialog>
+
+                                    <Dialog open={isRejecting} onOpenChange={(open) => { setIsRejecting(open); if (!open) setRemarks(""); }}>
+                                        <DialogTrigger asChild>
+                                            <Button onClick={() => { setIsRejecting(true); setRemarks(""); }} className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95">
+                                                Decline
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                            <DialogHeader className="space-y-3">
+                                                <DialogTitle className="text-3xl font-black italic uppercase text-slate-900 dark:text-white leading-none">Decline <span className="text-red-600">Request</span></DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-6 py-6">
+                                                <Label className="text-[10px] font-black uppercase text-slate-400">Reason for Decline *</Label>
+                                                <Textarea ref={remarksRef} value={remarks} onChange={(e) => setRemarks(e.target.value)} className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold p-6 text-sm" required />
+                                            </div>
+                                            <Button onClick={handleReject} disabled={actionLoading || !remarks.trim()} className="w-full h-14 bg-red-600 text-white font-black italic uppercase text-[11px] rounded-2xl">
+                                                Confirm Decline
+                                            </Button>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}
