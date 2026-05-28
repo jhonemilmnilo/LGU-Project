@@ -110,7 +110,7 @@ export function AddHouseholdModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
+                            <div className="p-2 bg-primary rounded-lg">
                                 <Home className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -135,7 +135,7 @@ export function AddHouseholdModal() {
                                 {/* Family details */}
                                 <div className="space-y-2 md:col-span-2">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1">
-                                        <UserCheck className="w-4 h-4 text-blue-500" />
+                                        <UserCheck className="w-4 h-4 text-primary" />
                                         Head of the Family / Primary Contact <span className="text-red-500">*</span>
                                     </Label>
                                     <HeadSearch 
@@ -143,7 +143,7 @@ export function AddHouseholdModal() {
                                         defaultValue={headName}
                                     />
                                     <p className="text-[10px] text-slate-500 italic mt-1 uppercase tracking-wider font-bold">
-                                        Selected ID: <span className="text-blue-500">{headId || "None"}</span>
+                                        Selected ID: <span className="text-primary">{headId || "None"}</span>
                                     </p>
                                 </div>
 
@@ -183,7 +183,7 @@ export function AddHouseholdModal() {
                                 <div className="space-y-4 md:col-span-2 p-6 bg-slate-100/50 dark:bg-[#1a1f2e] rounded-3xl border-2 border-dashed border-slate-200 dark:border-[#2a3040] transition-all duration-500">
                                     <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#2a3040]">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/20">
+                                            <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/20">
                                                 <MapPin className="w-4 h-4 text-white" />
                                             </div>
                                             <div>
@@ -206,7 +206,7 @@ export function AddHouseholdModal() {
                                                 variant="default"
                                                 size="sm"
                                                 onClick={() => setIsPickingLocation(!isPickingLocation)}
-                                                className={`h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg transition-all ${isPickingLocation ? 'bg-red-500' : 'bg-blue-600'}`}
+                                                className={`h-9 px-4 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg transition-all ${isPickingLocation ? 'bg-red-500' : 'bg-primary'}`}
                                             >
                                                 {isPickingLocation ? "Close Map" : "Pinpoint"}
                                             </Button>
@@ -302,11 +302,11 @@ export function AddHouseholdModal() {
                             Cancel
                         </Button>
                         <Button
-                            type="submit"
-                            form="householdForm"
-                            disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-blue-500/30 rounded-xl transition-all hover:scale-105 active:scale-95"
-                        >
+                                    type="submit"
+                                    form="householdForm"
+                                    disabled={loading}
+                                    className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-primary/30 rounded-xl transition-all hover:scale-105 active:scale-95"
+                                >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Syncing...</>
                             ) : (

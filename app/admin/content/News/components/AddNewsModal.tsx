@@ -35,7 +35,7 @@ export function AddNewsModal() {
             if (editingData.imageUrl && !imagePreview?.startsWith("data:")) {
                 setImagePreview(editingData.imageUrl);
             }
-            
+
             // Handle editing existing category
             if (editingData.category) {
                 if (categories.includes(editingData.category)) {
@@ -82,7 +82,7 @@ export function AddNewsModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-10 pb-6 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-4 mb-1">
-                            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--theme_color)' }}>
                                 <Newspaper className="w-7 h-7 text-white" />
                             </div>
                             <div>
@@ -129,8 +129,8 @@ export function AddNewsModal() {
                                                         exit={{ opacity: 0, x: 10 }}
                                                         transition={{ duration: 0.2 }}
                                                     >
-                                                        <Select 
-                                                            name="category_trigger" 
+                                                        <Select
+                                                            name="category_trigger"
                                                             value={selectedCategory}
                                                             onValueChange={(val) => {
                                                                 setSelectedCategory(val);
@@ -162,7 +162,11 @@ export function AddNewsModal() {
                                                             value={otherCategory}
                                                             onChange={(e) => setOtherCategory(e.target.value)}
                                                             placeholder="Specify Category..."
-                                                            className="h-14 bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 focus:ring-2 focus:ring-primary/20 rounded-xl font-bold italic pr-12"
+                                                            className="h-14 rounded-xl font-bold italic pr-12"
+                                                            style={{
+                                                                backgroundColor: 'var(--theme_color)',
+                                                                borderColor: 'var(--theme_color)'
+                                                            }}
                                                         />
                                                         <Button
                                                             type="button"
@@ -180,16 +184,16 @@ export function AddNewsModal() {
                                                     </motion.div>
                                                 )}
                                             </AnimatePresence>
-                                            <input 
-                                                type="hidden" 
-                                                name="category" 
-                                                value={selectedCategory === "Other" ? otherCategory : selectedCategory} 
+                                            <input
+                                                type="hidden"
+                                                name="category"
+                                                value={selectedCategory === "Other" ? otherCategory : selectedCategory}
                                             />
                                             {(currentBarangay || editingData?.barangay) && (
-                                                <input 
-                                                    type="hidden" 
-                                                    name="barangay" 
-                                                    value={editingData?.barangay || currentBarangay || ""} 
+                                                <input
+                                                    type="hidden"
+                                                    name="barangay"
+                                                    value={editingData?.barangay || currentBarangay || ""}
                                                 />
                                             )}
                                         </div>
@@ -285,9 +289,9 @@ export function AddNewsModal() {
                                             )}
                                         </div>
                                     </div>
-                                    
-                                    <div className="p-6 bg-primary/10 dark:bg-primary/10 rounded-2xl border border-primary/10 dark:border-blue-900/20">
-                                        <p className="text-[10px] font-medium italic text-primary dark:text-primary">
+
+                                    <div className="p-6 rounded-2xl" style={{ backgroundColor: 'var(--theme_color)', borderColor: 'var(--theme_color)' }}>
+                                        <p className="text-[10px] font-medium italic" style={{ color: 'var(--theme_color)' }}>
                                             Tip: Use high-quality landscape photos (16:9) to make the news article stand out on the main landing page.
                                         </p>
                                     </div>
@@ -309,7 +313,8 @@ export function AddNewsModal() {
                             type="submit"
                             form="newsForm"
                             disabled={loading}
-                            className="h-14 px-12 bg-primary hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1"
+                            className="h-14 px-12 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-xl transition-all hover:-translate-y-1"
+                            style={{ backgroundColor: 'var(--theme_color)' }}
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>
