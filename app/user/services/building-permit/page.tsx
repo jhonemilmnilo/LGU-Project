@@ -31,7 +31,8 @@ import {
   Building,
   Scale,
   Hourglass,
-  Receipt
+  Receipt,
+  Check
 } from "lucide-react";
 
 import {
@@ -61,8 +62,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getCurrentUserResident, cancelTransaction } from "@/app/admin/transactions/actions";
-import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits } from "./actions";
+import { getCurrentUserResident, cancelTransaction, uploadECopyAction, saveBfpClearanceProofAction } from "@/app/admin/transactions/actions";
+import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits, resubmitBuildingPermit } from "./actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -79,11 +80,15 @@ const STEPS = [
 export default function BuildingPermitPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState("GUIDE");
+  const [hasReadGuide, setHasReadGuide] = useState(false);
   const [existingApplications, setExistingApplications] = useState<any[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [residentData, setResidentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRevision, setIsRevision] = useState(false);
+
+  const isEditable = !selectedApplication || isRevision;
 
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [idChoice, setIdChoice] = useState<"PROFILE" | "UPLOAD">("PROFILE");
@@ -99,11 +104,17 @@ export default function BuildingPermitPage() {
   });
 
   const requirementsProgress = selectedApplication
-    ? Object.keys(selectedApplication.additionalData?.documents || {}).filter(k => k.startsWith("req_")).length
+    ? new Set([
+        ...Object.keys(selectedApplication.additionalData?.documents || {}).filter(k => k.startsWith("req_")),
+        ...Object.keys(uploadedRequirements).map(k => `req_${k}`)
+      ]).size
     : Object.keys(uploadedRequirements).length;
 
   const permitsProgress = selectedApplication
-    ? Object.keys(selectedApplication.additionalData?.documents || {}).filter(k => k.startsWith("permit_")).length
+    ? new Set([
+        ...Object.keys(selectedApplication.additionalData?.documents || {}).filter(k => k.startsWith("permit_")),
+        ...Object.keys(uploadedPermits).map(k => `permit_${k}`)
+      ]).size
     : Object.keys(uploadedPermits).length;
 
   const totalUploaded = requirementsProgress + permitsProgress;
@@ -184,6 +195,35 @@ export default function BuildingPermitPage() {
       }
     }
   }, [selectedApplication]);
+
+  const handleUploadBfpClearance = async (file: File | null) => {
+    if (!file || !selectedApplication) return;
+    const toastId = toast.loading("Uploading BFP Clearance Proof...");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await uploadECopyAction(formData);
+      if (uploadRes.success && uploadRes.data) {
+        const fileUrl = uploadRes.data as string;
+        const updateRes = await saveBfpClearanceProofAction(selectedApplication.id, fileUrl);
+        if (updateRes.success) {
+          toast.success("BFP Clearance Proof uploaded successfully!", { id: toastId });
+          const res = await getExistingBuildingPermits();
+          if (res.success && res.data) {
+            setExistingApplications(res.data);
+            const updated = res.data.find((a: any) => a.id === selectedApplication.id);
+            if (updated) setSelectedApplication(updated);
+          }
+        } else {
+          toast.error(updateRes.error || "Failed to save clearance proof", { id: toastId });
+        }
+      } else {
+        toast.error(uploadRes.error || "Upload failed", { id: toastId });
+      }
+    } catch {
+      toast.error("An error occurred during upload", { id: toastId });
+    }
+  };
 
   const requirements = [
     {
@@ -431,12 +471,12 @@ export default function BuildingPermitPage() {
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(uploadedRequirements).length < 13) {
-      toast.warning("Please upload ALL 13 required documents.");
+    if (requirementsProgress < 13) {
+      toast.warning("Please ensure ALL 13 required documents are provided.");
       return;
     }
-    if (Object.keys(uploadedPermits).length < 9) {
-      toast.warning("Please upload ALL 9 required permits.");
+    if (permitsProgress < 9) {
+      toast.warning("Please ensure ALL 9 required permits are provided.");
       return;
     }
     if (!signatureData) {
@@ -464,9 +504,17 @@ export default function BuildingPermitPage() {
         data.append(`permit_${idx}`, file);
       });
 
-      const result = await submitBuildingPermit(data);
+      let result;
+      if (isRevision && selectedApplication) {
+        result = await resubmitBuildingPermit(selectedApplication.id, data);
+      } else {
+        result = await submitBuildingPermit(data);
+      }
+      
       if (result.success) {
-        await saveTransactionSignature(result.transactionId!, signatureData);
+        if (!isRevision) {
+          await saveTransactionSignature(result.transactionId!, signatureData);
+        }
         // Fetch the updated data so the application becomes read-only and back button works
         const permitsRes = await getExistingBuildingPermits();
         if (permitsRes.success) {
@@ -584,6 +632,14 @@ export default function BuildingPermitPage() {
                   key={app.id || idx} 
                   onClick={() => {
                     setSelectedApplication(app);
+                    setFormData({
+                       descriptionOfWork: app.additionalData?.descriptionOfWork || "",
+                       occupancyUse: app.additionalData?.occupancyUse || "Residential (Single Family)",
+                       estimatedCost: app.additionalData?.estimatedCost || "",
+                       newIdFile: null,
+                       tctFile: null
+                    });
+                    setIsRevision(false);
                     setCurrentStep("EVALUATION");
                   }}
                   className="bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10 transition-all group"
@@ -684,10 +740,18 @@ export default function BuildingPermitPage() {
         {/* Requirements Guide Content */}
         <div className="space-y-3 md:space-y-4 text-center mb-8">
             <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight">Requirements <span className="text-primary italic">Guide</span></h2>
-            <p className="text-slate-500 font-medium italic text-xs md:text-lg uppercase tracking-widest max-w-2xl mx-auto">Click each requirement to see detailed step-by-step instructions.</p>
+            <p className="text-slate-500 font-medium italic text-xs md:text-lg uppercase tracking-widest max-w-2xl mx-auto">Review each requirement to see detailed step-by-step instructions.</p>
         </div>
 
-        <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2 md:pr-4 custom-scrollbar">
+        <div 
+          className="space-y-6 max-h-[600px] overflow-y-auto pr-2 md:pr-4 custom-scrollbar"
+          onScroll={(e) => {
+            const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+            if (Math.ceil(scrollTop + clientHeight) >= scrollHeight - 5) {
+              setHasReadGuide(true);
+            }
+          }}
+        >
           {requirements.map((req) => (
             <div 
               key={req.id} 
@@ -777,11 +841,17 @@ export default function BuildingPermitPage() {
             </button>
           )}
           <button 
+            disabled={!hasReadGuide}
             onClick={() => {
               setCurrentStep("PROFILE");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            className="bg-primary text-white hover:bg-primary/90 px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all shadow-xl shadow-primary/20 w-full md:w-auto ml-auto"
+            className={cn(
+              "px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all w-full md:w-auto ml-auto",
+              hasReadGuide
+                ? "bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/20"
+                : "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-white/10 dark:text-slate-400"
+            )}
           >
             Proceed to Profile & Purpose
             <span className="text-xl leading-none">→</span>
@@ -860,7 +930,7 @@ export default function BuildingPermitPage() {
                     <Book className="w-5 h-5 text-primary" />
                     <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter text-lg md:text-xl italic">Government ID</h3>
                   </div>
-                  {selectedApplication ? (
+                  {!isEditable ? (
                     <div>
                       {selectedApplication.additionalData?.documents?.newIdFile ? (
                         <div className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm">
@@ -997,13 +1067,13 @@ export default function BuildingPermitPage() {
                         className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px]"
                         value={formData.descriptionOfWork}
                         onChange={e => setFormData({...formData, descriptionOfWork: e.target.value})}
-                        disabled={!!selectedApplication}
+                        disabled={!isEditable}
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">b. Certified true copy of the TCT covering a lot on which the proposed work is to be done</label>
-                      {selectedApplication ? (
+                      {!isEditable ? (
                         <div className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm">
                           {(() => {
                             const url = selectedApplication.additionalData?.documents?.tctFile;
@@ -1039,10 +1109,14 @@ export default function BuildingPermitPage() {
                             <div className="w-full h-full absolute inset-0 opacity-60">
                               <img src={URL.createObjectURL(formData.tctFile)} alt="Preview" className="w-full h-full object-contain" />
                             </div>
+                          ) : isRevision && !formData.tctFile && selectedApplication?.additionalData?.documents?.tctFile && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(selectedApplication.additionalData.documents.tctFile) ? (
+                            <div className="w-full h-full absolute inset-0 opacity-60">
+                              <img src={selectedApplication.additionalData.documents.tctFile} alt="Preview" className="w-full h-full object-contain" />
+                            </div>
                           ) : null}
                           <Upload className="w-8 h-8 text-slate-400 mb-2 z-10" />
                           <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10">
-                            {formData.tctFile ? formData.tctFile.name : "Click to upload certified true copy of TCT (PDF/JPG/PNG)"}
+                            {formData.tctFile ? formData.tctFile.name : (isRevision && selectedApplication?.additionalData?.documents?.tctFile ? "Click to replace uploaded TCT" : "Click to upload certified true copy of TCT (PDF/JPG/PNG)")}
                           </p>
                           <input 
                             type="file" 
@@ -1068,7 +1142,7 @@ export default function BuildingPermitPage() {
                       <Select 
                         value={formData.occupancyUse}
                         onValueChange={value => setFormData({...formData, occupancyUse: value})}
-                        disabled={!!selectedApplication}
+                        disabled={!isEditable}
                       >
                         <SelectTrigger className="w-full h-auto bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer">
                           <SelectValue placeholder="Select occupancy use" />
@@ -1097,7 +1171,7 @@ export default function BuildingPermitPage() {
                           className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 pl-10 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                           value={formData.estimatedCost}
                           onChange={e => setFormData({...formData, estimatedCost: e.target.value})}
-                          disabled={!!selectedApplication}
+                          disabled={!isEditable}
                         />
                       </div>
                     </div>
@@ -1200,7 +1274,8 @@ export default function BuildingPermitPage() {
               {(activeDocTab === "REQUIREMENTS" ? documentRequirementsList : permitTypesList).map((docName, idx) => {
                 const key = activeDocTab === "REQUIREMENTS" ? `req_${idx}` : `permit_${idx}`;
                 const fileUrl = selectedApplication?.additionalData?.documents?.[key];
-                const isUploaded = selectedApplication ? !!fileUrl : (activeDocTab === "REQUIREMENTS" ? !!uploadedRequirements[idx] : !!uploadedPermits[idx]);
+                const newlyUploaded = activeDocTab === "REQUIREMENTS" ? !!uploadedRequirements[idx] : !!uploadedPermits[idx];
+                const isUploaded = !isEditable ? !!fileUrl : (!!fileUrl || newlyUploaded);
                 return (
                   <div key={idx} className="bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm hover:border-primary/30 transition-all group">
                     <div className="flex justify-between items-start mb-4">
@@ -1218,7 +1293,7 @@ export default function BuildingPermitPage() {
                       )}
                     </div>
 
-                    {selectedApplication ? (
+                    {!isEditable ? (
                       <div className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[140px] shadow-sm">
                         {fileUrl ? (
                           (() => {
@@ -1252,7 +1327,7 @@ export default function BuildingPermitPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="bg-slate-50 dark:bg-black/20 rounded-xl border border-dashed border-slate-300 dark:border-white/20 p-6 flex flex-col items-center justify-center text-center relative hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer group-hover:border-primary/40 overflow-hidden">
+                      <div className="bg-slate-50 dark:bg-black/20 rounded-xl border border-dashed border-slate-300 dark:border-white/20 p-6 flex flex-col items-center justify-center text-center relative hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer group-hover:border-primary/40 overflow-hidden min-h-[140px]">
                         {(() => {
                           const file = activeDocTab === "REQUIREMENTS" ? uploadedRequirements[idx] : uploadedPermits[idx];
                           if (file && file.type.startsWith("image/")) {
@@ -1261,12 +1336,18 @@ export default function BuildingPermitPage() {
                                 <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-contain" />
                               </div>
                             );
+                          } else if (isRevision && !file && fileUrl && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(fileUrl)) {
+                            return (
+                              <div className="w-full h-full absolute inset-0 opacity-50">
+                                <img src={fileUrl} alt="Preview" className="w-full h-full object-contain" />
+                              </div>
+                            );
                           }
                           return null;
                         })()}
                         <UploadCloud className="w-6 h-6 text-slate-400 mb-2 group-hover:text-primary transition-colors z-10" />
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400 z-10">
-                          {(activeDocTab === "REQUIREMENTS" ? uploadedRequirements[idx] : uploadedPermits[idx])?.name || "Click to upload (JPG/PNG/PDF)"}
+                          {(activeDocTab === "REQUIREMENTS" ? uploadedRequirements[idx] : uploadedPermits[idx])?.name || (isRevision && fileUrl ? "Click to replace uploaded file" : "Click to upload (JPG/PNG/PDF)")}
                         </p>
                         <input 
                           type="file" 
@@ -1324,7 +1405,7 @@ export default function BuildingPermitPage() {
                 <PenTool className="w-5 h-5 text-primary" />
                 Digital Signature for Application
               </h2>
-              {selectedApplication ? (
+              {!isEditable ? (
                 <div className="space-y-4">
                   <p className="text-sm text-slate-500">Your digital signature was recorded with this application submission:</p>
                   {selectedApplication.additionalData?.signature ? (
@@ -1338,6 +1419,14 @@ export default function BuildingPermitPage() {
               ) : (
                 <>
                   <p className="text-sm text-slate-500 mb-6">Please sign to acknowledge that all information provided is true and correct.</p>
+                  {isRevision && signatureData && (
+                    <div className="mb-4">
+                      <p className="text-xs text-emerald-600 font-bold mb-2">Previous Signature (You can resign below to update):</p>
+                      <div className="border border-slate-200 dark:border-white/10 rounded-xl p-4 bg-white max-w-md">
+                        <img src={signatureData} alt="Digital Signature" className="max-h-32 object-contain mx-auto" />
+                      </div>
+                    </div>
+                  )}
                   <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white">
                      <SignaturePad 
                        onSave={(dataUrl) => {
@@ -1366,7 +1455,7 @@ export default function BuildingPermitPage() {
               >
                 ← Back to Profile
               </button>
-              {selectedApplication ? (
+              {!isEditable ? (
                 <button 
                   onClick={() => {
                     setCurrentStep("EVALUATION");
@@ -1383,7 +1472,7 @@ export default function BuildingPermitPage() {
                   disabled={isSubmitting}
                   className="bg-emerald-500 text-white hover:bg-emerald-600 px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all shadow-xl shadow-emerald-500/20 w-full md:w-auto disabled:opacity-70"
                 >
-                  {isSubmitting ? "Submitting..." : "Submit to Engineering for Review"}
+                  {isSubmitting ? "Submitting..." : (isRevision ? "Resubmit Application" : "Submit to Engineering for Review")}
                   {!isSubmitting && <span className="text-xl leading-none">→</span>}
                 </button>
               )}
@@ -1423,26 +1512,107 @@ export default function BuildingPermitPage() {
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="font-bold text-slate-700 dark:text-slate-300">Engineering Department Review</h3>
-                  <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5" />
+                  <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 flex flex-col gap-4">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                          <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800 dark:text-white text-sm">
+                            {selectedApplication?.status === "FOR_INSPECTION" 
+                              ? "Scheduled for Site Inspection" 
+                              : selectedApplication?.status === "FOR_REINSPECTION"
+                                ? "Scheduled for Site Re-inspection"
+                                : "Documents Under Review"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {selectedApplication?.status === "FOR_INSPECTION" 
+                              ? "Your application is scheduled for an upcoming site inspection." 
+                              : selectedApplication?.status === "FOR_REINSPECTION"
+                                ? "Your application requires a site re-inspection. Please see the scheduled date below."
+                                : "Your documents are being reviewed by the Engineering Department"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-slate-800 dark:text-white text-sm">Documents Under Review</p>
-                        <p className="text-xs text-slate-500">Your documents are being reviewed by the Engineering Department</p>
-                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shrink-0",
+                        selectedApplication?.isCancelled || selectedApplication?.status === "REJECTED"
+                          ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-500"
+                          : selectedApplication?.status === "APPROVED" || selectedApplication?.status === "EVALUATED" 
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500" 
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500"
+                      )}>
+                        {selectedApplication?.isCancelled ? "Cancelled" : selectedApplication ? selectedApplication.status.replace(/_/g, ' ') : "Pending Review"}
+                      </span>
                     </div>
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shrink-0",
-                      selectedApplication?.isCancelled
-                        ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-500"
-                        : selectedApplication?.status === "APPROVED" || selectedApplication?.status === "EVALUATED" 
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500" 
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500"
-                    )}>
-                      {selectedApplication?.isCancelled ? "Cancelled" : selectedApplication ? selectedApplication.status.replace(/_/g, ' ') : "Pending Review"}
-                    </span>
+
+                    {selectedApplication && (selectedApplication.status === "REJECTED" || selectedApplication.status === "FOR_REVISION") && selectedApplication.rejectionRemarks && (
+                        <div className="p-4 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-xl text-red-800 dark:text-red-400 text-sm">
+                            <p className="font-bold uppercase tracking-widest text-[10px] mb-1">
+                              {selectedApplication.status === "REJECTED" ? "Reason for Rejection" : "Revision Remarks"}
+                            </p>
+                            <p className="whitespace-pre-wrap font-medium">{selectedApplication.rejectionRemarks}</p>
+                        </div>
+                    )}
+
+                    {(selectedApplication?.status === "FOR_INSPECTION" || selectedApplication?.status === "FOR_REINSPECTION") && selectedApplication?.additionalData?.inspectionSchedule && (
+                        <div className="p-5 bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20 rounded-2xl space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">
+                                {selectedApplication.status === "FOR_REINSPECTION" ? "Re-Inspection Details" : "Inspection Details"}
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4 text-xs text-purple-800 dark:text-purple-300 font-bold">
+                                <div>
+                                    <span className="text-purple-400 dark:text-purple-500 block text-[9px] uppercase tracking-wider mb-0.5">Date & Time</span>
+                                    {selectedApplication.additionalData.inspectionSchedule.date} at {selectedApplication.additionalData.inspectionSchedule.time}
+                                </div>
+                                <div>
+                                    <span className="text-purple-400 dark:text-purple-500 block text-[9px] uppercase tracking-wider mb-0.5">Inspector</span>
+                                    {selectedApplication.additionalData.inspectionSchedule.inspectorName}
+                                </div>
+                                <div className="col-span-2">
+                                    <span className="text-purple-400 dark:text-purple-500 block text-[9px] uppercase tracking-wider mb-0.5">Type</span>
+                                    {selectedApplication.additionalData.inspectionSchedule.type}
+                                </div>
+                                {selectedApplication.additionalData.inspectionSchedule.notes && (
+                                    <div className="col-span-2 mt-2 pt-3 border-t border-purple-200 dark:border-purple-500/20">
+                                        <span className="text-purple-400 dark:text-purple-500 block text-[9px] uppercase tracking-wider mb-1">Notes / Reason for Re-inspection</span>
+                                        <p className="italic text-purple-700 dark:text-purple-300 font-medium">"{selectedApplication.additionalData.inspectionSchedule.notes}"</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Previous Schedules / Re-inspection History (User side) */}
+                            {selectedApplication.additionalData?.reinspectionHistory && selectedApplication.additionalData.reinspectionHistory.length > 0 && (
+                                <div className="pt-4 border-t border-dashed border-purple-200 dark:border-purple-500/20 space-y-3">
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-purple-400 dark:text-purple-500 block">Previous Schedules & History</span>
+                                    <div className="space-y-2">
+                                        {selectedApplication.additionalData.reinspectionHistory.map((h: any, idx: number) => {
+                                            const isOrig = h.count === 0 || h.isOriginal === true;
+                                            return (
+                                                <div key={idx} className="p-3 bg-white/50 dark:bg-black/20 border border-purple-200/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-medium text-purple-800 dark:text-purple-300">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "px-2 py-0.5 rounded text-[9px] font-black italic",
+                                                            isOrig ? "bg-purple-200 text-purple-800 dark:bg-purple-500/30 dark:text-purple-300" : "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400"
+                                                        )}>
+                                                            {isOrig ? "Orig" : `#${h.count}`}
+                                                        </span>
+                                                        <span>
+                                                            {isOrig ? "Original Inspection Schedule" : "Re-inspection Requested"}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-left sm:text-right text-[10px] text-slate-500">
+                                                        {isOrig ? `${h.date} @ ${h.time}` : (h.date ? new Date(h.date).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A")}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                   </div>
                 </div>
 
@@ -1450,24 +1620,71 @@ export default function BuildingPermitPage() {
                   <h3 className="font-bold text-slate-700 dark:text-slate-300">Endorsement Status</h3>
                   <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5" />
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        selectedApplication?.status === "EVALUATED"
+                          ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500"
+                          : ["UNPAID", "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(selectedApplication?.status || "")
+                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500"
+                            : "bg-amber-100 dark:bg-amber-500/20 text-amber-500"
+                      )}>
+                        {["EVALUATED", "UNPAID", "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(selectedApplication?.status || "") ? (
+                          <Check className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <Clock className="w-5 h-5 text-amber-500" />
+                        )}
                       </div>
                       <div>
                         <p className="font-bold text-slate-800 dark:text-white text-sm">Endorsement to Treasury</p>
-                        <p className="text-xs text-slate-500">Awaiting Engineering approval</p>
+                        <p className="text-xs text-slate-500">
+                          {["EVALUATED", "UNPAID", "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(selectedApplication?.status || "")
+                            ? "Endorsed successfully to Treasury"
+                            : "Awaiting Engineering approval"}
+                        </p>
                       </div>
                     </div>
                     <span className={cn(
                       "text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shrink-0",
-                      selectedApplication?.isCancelled
+                      selectedApplication?.isCancelled || selectedApplication?.status === "REJECTED"
                         ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-500"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500"
+                        : selectedApplication?.status === "UNPAID"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500"
+                          : ["EVALUATED", "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(selectedApplication?.status || "")
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500"
                     )}>
-                      {selectedApplication?.isCancelled ? "Cancelled" : "Pending"}
+                      {selectedApplication?.isCancelled 
+                        ? "Cancelled" 
+                        : selectedApplication?.status === "REJECTED" 
+                          ? "Rejected" 
+                          : selectedApplication?.status === "UNPAID"
+                            ? "Unpaid"
+                            : ["EVALUATED", "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(selectedApplication?.status || "")
+                              ? "Endorsed" 
+                              : "Pending"}
                     </span>
                   </div>
                 </div>
+
+                {selectedApplication?.fiscalSnapshot && (selectedApplication.fiscalSnapshot as any).lineItems && (
+                  <div className="mt-8 p-6 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-4 animate-in fade-in-50 duration-500">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Endorsed Fees Summary</span>
+                    <div className="space-y-2">
+                      {(selectedApplication.fiscalSnapshot as any).lineItems.map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-400">
+                          <span>{item.label}</span>
+                          <span className="font-mono">₱{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-4 border-t border-dashed border-slate-200 dark:border-white/10 flex justify-between items-center">
+                      <span className="text-xs font-black uppercase text-slate-800 dark:text-white">Total Amount Due</span>
+                      <span className="text-lg font-black text-primary font-mono">
+                        ₱{Number((selectedApplication.fiscalSnapshot as any).totalAmount || selectedApplication.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1499,17 +1716,34 @@ export default function BuildingPermitPage() {
                  </button>
                )}
 
-               {!(selectedApplication?.isCancelled || selectedApplication?.status === "CANCELLED") && (
+               {/* Edit for Revision Button */}
+               {selectedApplication && selectedApplication.status === "FOR_REVISION" && !selectedApplication.isCancelled && (
                  <button 
                    onClick={() => {
-                     setCurrentStep("TREASURY");
+                     setIsRevision(true);
+                     setCurrentStep("PROFILE");
                      window.scrollTo({ top: 0, behavior: "smooth" });
                    }}
-                   className="px-8 py-3 bg-emerald-500 text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2"
+                   className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white border border-amber-500 hover:border-transparent rounded-full text-xs font-bold transition-all shadow-xl shadow-amber-500/20"
                  >
-                   Next: Treasury & Zoning →
+                   Edit and Resubmit Application
                  </button>
                )}
+
+               {!(selectedApplication?.isCancelled || selectedApplication?.status === "CANCELLED") && (
+                  <button 
+                    disabled={["FOR_REQUESTING", "FOR_INSPECTION", "FOR_REINSPECTION", "EVALUATED"].includes(selectedApplication?.status || "")}
+                    onClick={() => {
+                      setCurrentStep("TREASURY");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="px-8 py-3 bg-emerald-500 text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
+                  >
+                    {["FOR_REQUESTING", "FOR_INSPECTION", "FOR_REINSPECTION", "EVALUATED"].includes(selectedApplication?.status || "")
+                      ? "Awaiting Treasury Billing"
+                      : "Next: Treasury & Zoning →"}
+                  </button>
+                )}
             </div>
 
             <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
@@ -1552,21 +1786,91 @@ export default function BuildingPermitPage() {
                   <h3 className="font-bold text-slate-800 dark:text-white text-lg">Payment Processing</h3>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-amber-100 dark:border-amber-500/10">
-                  <div className="flex items-center gap-3 text-amber-700 dark:text-amber-500">
-                    <Hourglass className="w-5 h-5" />
-                    <span className="font-bold text-sm">Status: Pending Payment</span>
+                {selectedApplication?.fiscalSnapshot && (selectedApplication.fiscalSnapshot as any).lineItems && (
+                  <div className="mb-6 p-6 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-4">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Endorsed Fees Summary</span>
+                    <div className="space-y-2">
+                      {(selectedApplication.fiscalSnapshot as any).lineItems.map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-400">
+                          <span>{item.label}</span>
+                          <span className="font-mono">₱{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-4 border-t border-dashed border-slate-200 dark:border-white/10 flex justify-between items-center">
+                      <span className="text-xs font-black uppercase text-slate-800 dark:text-white">Total Amount Due</span>
+                      <span className="text-lg font-black text-primary font-mono">
+                        ₱{Number((selectedApplication.fiscalSnapshot as any).totalAmount || selectedApplication.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
-                  
-                  <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all w-full md:w-auto justify-center">
-                    <UploadCloud className="w-4 h-4" /> Upload Receipt
-                  </button>
-                </div>
+                )}
 
-                <div className="mt-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 text-amber-700 dark:text-amber-500 text-xs font-medium px-4 py-3 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p>Please proceed to the LGU Mapandan Treasury Office to pay the required fees. After payment, upload your official receipt here. Receipt verification takes 24 hours.</p>
-                </div>
+                {selectedApplication?.status === "UNPAID" ? (
+                  <>
+                    <div className="bg-amber-50 dark:bg-amber-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-amber-100 dark:border-amber-500/10">
+                      <div className="flex items-center gap-3 text-amber-700 dark:text-amber-500">
+                        <Hourglass className="w-5 h-5 animate-pulse" />
+                        <span className="font-bold text-sm">Status: Pending Payment</span>
+                      </div>
+                      
+                      <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all w-full md:w-auto justify-center">
+                        <UploadCloud className="w-4 h-4" /> Upload Receipt
+                      </button>
+                    </div>
+
+                    <div className="mt-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 text-amber-700 dark:text-amber-500 text-xs font-medium px-4 py-3 rounded-lg flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <p>Please proceed to the LGU Mapandan Treasury Office to pay the required fees. After payment, upload your official receipt here. Receipt verification takes 24 hours.</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-emerald-100 dark:border-emerald-500/10">
+                      <div className="flex items-center gap-3 text-emerald-700 dark:text-emerald-500">
+                        <Check className="w-5 h-5 text-emerald-500" />
+                        <span className="font-bold text-sm">Status: Paid (Receipt Submitted)</span>
+                      </div>
+                    </div>
+
+                    {/* BFP Fire Safety Clearance Upload Container */}
+                    <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/10 space-y-4 animate-in fade-in-50 duration-500">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-purple-700 dark:text-purple-400">
+                          <Flame className="w-5 h-5 animate-pulse" />
+                          <h4 className="font-black text-sm uppercase tracking-wider italic">BFP Fire Safety Clearance</h4>
+                        </div>
+                        {selectedApplication?.additionalData?.bfpClearanceUrl ? (
+                          <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Uploaded</span>
+                        ) : (
+                          <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20 animate-pulse">Required</span>
+                        )}
+                      </div>
+
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Please upload your official Fire Safety Clearance certificate issued by the Bureau of Fire Protection (BFP). The Engineering Department will review this document to process and approve your permit.
+                      </p>
+
+                      {selectedApplication?.additionalData?.bfpClearanceUrl ? (
+                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm">
+                          <img src={selectedApplication.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <label className="relative cursor-pointer bg-white text-slate-900 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+                              Change File
+                              <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center gap-2 aspect-[21/6] rounded-xl border-2 border-dashed border-purple-500/20 hover:border-purple-500/40 bg-purple-500/[0.02] cursor-pointer group transition-all">
+                          <UploadCloud className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-purple-400 italic">Attach BFP Clearance Certificate</span>
+                          <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1582,11 +1886,15 @@ export default function BuildingPermitPage() {
                </button>
 
                <button 
+                 disabled={
+                   selectedApplication?.status === "UNPAID" ||
+                   (selectedApplication?.status === "PAID" && !selectedApplication?.additionalData?.bfpClearanceUrl)
+                 }
                  onClick={() => {
                     setCurrentStep("SUBMIT");
                     window.scrollTo({ top: 0, behavior: "smooth" });
                  }}
-                 className="px-8 py-3 bg-emerald-500 text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2"
+                 className="px-8 py-3 bg-emerald-500 text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-600"
                >
                  Next: Submission →
                </button>

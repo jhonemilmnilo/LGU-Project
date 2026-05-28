@@ -89,7 +89,7 @@ export async function submitBuildingPermit(formData: FormData) {
         userId: userId,
         typeId: type.id,
         status: "FOR_REQUESTING",
-        residentSnapshot: resident ? JSON.stringify(resident) : "{}",
+        residentSnapshot: resident ? (resident as any) : {},
         additionalData: additionalData,
         totalAmount: type.baseFee || 1000,
       }
@@ -163,5 +163,84 @@ export async function getExistingBuildingPermits() {
   } catch (error) {
     console.error("Error fetching existing permits:", error);
     return { success: false, data: [] };
+  }
+}
+
+export async function resubmitBuildingPermit(transactionId: string, formData: FormData) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const userId = session.user.id;
+
+    // Fetch the existing transaction
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId, userId: userId }
+    });
+
+    if (!transaction || transaction.status !== "FOR_REVISION") {
+      return { success: false, error: "Invalid transaction for resubmission" };
+    }
+
+    const additionalData = transaction.additionalData as any || { documents: {} };
+    if (!additionalData.documents) {
+      additionalData.documents = {};
+    }
+
+    // Extract basic form data
+    const descriptionOfWork = formData.get("descriptionOfWork") as string;
+    const occupancyUse = formData.get("occupancyUse") as string;
+    const estimatedCost = formData.get("estimatedCost") as string;
+
+    if (descriptionOfWork) additionalData.descriptionOfWork = descriptionOfWork;
+    if (occupancyUse) additionalData.occupancyUse = occupancyUse;
+    if (estimatedCost) additionalData.estimatedCost = estimatedCost;
+
+    // Helper to upload and store URL
+    const processFile = async (key: string, folder: string) => {
+      const file = formData.get(key) as File;
+      if (file && file.size > 0) {
+        const timestamp = Date.now();
+        const path = `building-permits/${userId}/${folder}/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const url = await uploadFile(file, path);
+        if (url) {
+          additionalData.documents[key] = url;
+        }
+      }
+    };
+
+    // Upload ID and TCT if they exist
+    await processFile("newIdFile", "ids");
+    await processFile("tctFile", "tct");
+
+    // Loop through requirements and permits
+    for (const [key, value] of Array.from(formData.entries())) {
+      if ((key.startsWith("req_") || key.startsWith("permit_")) && value instanceof File && value.size > 0) {
+         await processFile(key, key.startsWith("req_") ? "requirements" : "permits");
+      }
+    }
+
+    // Get current resident data for snapshot update
+    const resident = await prisma.resident.findFirst({
+      where: { userId: userId }
+    });
+
+    const updatedTransaction = await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        status: "FOR_REQUESTING",
+        rejectionRemarks: null,
+        residentSnapshot: resident ? (resident as any) : {},
+        additionalData: additionalData,
+      }
+    });
+
+    revalidatePath("/user/transactions");
+    return { success: true, transactionId: updatedTransaction.id };
+
+  } catch (error) {
+    console.error("Building Permit Resubmission Error:", error);
+    return { success: false, error: "Failed to resubmit building permit application." };
   }
 }

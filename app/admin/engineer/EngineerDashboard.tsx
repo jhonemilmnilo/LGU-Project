@@ -31,12 +31,13 @@ const STATUS_TABS = [
     { value: "ALL", label: "All", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
     { value: "FOR_REQUESTING", label: "Evaluation", color: "text-amber-600", activeColor: "bg-amber-500 text-white" },
     { value: "FOR_REVISION", label: "For Revision", color: "text-amber-600", activeColor: "bg-amber-600 text-white" },
+    { value: "FOR_INSPECTION", label: "For Inspection", color: "text-purple-600", activeColor: "bg-purple-500 text-white" },
     { value: "FOR_PROCESSING", label: "Processing", color: "text-sky-600", activeColor: "bg-sky-500 text-white" },
     { value: "FOR_CLAIM", label: "For Claim", color: "text-indigo-600", activeColor: "bg-indigo-500 text-white" },
     { value: "PAID", label: "Paid", color: "text-emerald-600", activeColor: "bg-emerald-500 text-white" },
-    { value: "RELEASED", label: "Released", color: "text-slate-600", activeColor: "bg-slate-700 text-white" },
-    { value: "REJECTED", label: "Rejected", color: "text-red-500", activeColor: "bg-red-500 text-white" },
-    { value: "CANCELLED", label: "Cancelled", color: "text-red-400", activeColor: "bg-red-600 text-white" },
+    { value: "RELEASED", label: "Released", color: "text-blue-600", activeColor: "bg-blue-500 text-white" },
+    { value: "REJECTED", label: "Rejected", color: "text-red-600", activeColor: "bg-red-500 text-white" },
+    { value: "CANCELLED", label: "Cancelled", color: "text-slate-600", activeColor: "bg-slate-500 text-white" }
 ];
 
 // Helper: format exact date & time
@@ -46,6 +47,19 @@ function formatDateTime(date: string | Date): { date: string; time: string } {
         date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
         time: d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true }),
     };
+}
+
+// Helper: Safely parse residentSnapshot which might be stringified JSON
+function getResidentSnapshot(tx: any): any {
+    if (!tx.residentSnapshot) return {};
+    if (typeof tx.residentSnapshot === 'string') {
+        try {
+            return JSON.parse(tx.residentSnapshot);
+        } catch {
+            return {};
+        }
+    }
+    return tx.residentSnapshot;
 }
 
 export default function EngineerDashboard() {
@@ -117,7 +131,8 @@ export default function EngineerDashboard() {
     }, [search, status, itemsPerPage]);
 
     const filteredTransactions = transactions.filter(tx => {
-        const name = `${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`.toLowerCase();
+        const rs = getResidentSnapshot(tx);
+        const name = `${rs.firstName || ''} ${rs.lastName || ''}`.trim().toLowerCase();
         const refId = tx.id.slice(-8).toUpperCase();
         const searchUpper = search.toUpperCase();
         
@@ -262,7 +277,10 @@ export default function EngineerDashboard() {
                                             <TableCell>
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
-                                                        {`${tx.residentSnapshot?.firstName} ${tx.residentSnapshot?.lastName}`}
+                                                        {(() => {
+                                                            const rs = getResidentSnapshot(tx);
+                                                            return `${rs.firstName || 'Unknown'} ${rs.lastName || 'Applicant'}`;
+                                                        })()}
                                                     </span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
                                                         Registered Resident
