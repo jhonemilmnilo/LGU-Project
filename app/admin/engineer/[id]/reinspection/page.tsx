@@ -4,14 +4,8 @@ import React, { useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
-import { isValidUrl } from "@/utils/image";
 import {
     ArrowLeft,
-    ZoomIn,
-    ZoomOut,
-    RotateCw,
-    RefreshCcw,
     BadgeCheck,
     Check
 } from "lucide-react";
