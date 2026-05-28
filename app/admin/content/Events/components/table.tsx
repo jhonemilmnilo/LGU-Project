@@ -97,7 +97,7 @@ export function EventsTable() {
                                         </div>
                                         <div>
                                             <p className="text-base font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{event.title}</p>
-                                            <Badge variant="secondary" className="mt-1 font-bold text-[10px] uppercase bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 border-none rounded">
+                                            <Badge variant="secondary" className="mt-1 font-bold text-[10px] uppercase bg-primary/10 dark:bg-primary/40 text-primary dark:text-blue-300 border-none rounded">
                                                 {event.category}
                                             </Badge>
                                         </div>
@@ -115,7 +115,7 @@ export function EventsTable() {
                                 </TableCell>
                                 <TableCell className="py-4">
                                     <div className="flex items-start space-x-2">
-                                        <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                        <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                                         <div>
                                             <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{event.venueName}</p>
                                             <p className="text-xs text-slate-500 font-medium">{event.address}</p>
@@ -134,7 +134,7 @@ export function EventsTable() {
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 group-hover:bg-white dark:group-hover:bg-white/10 transition-colors shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-white/10">
-                                                <MoreHorizontal className="h-5 w-5 text-slate-500 group-hover:text-blue-500 transition-colors" />
+                                                <MoreHorizontal className="h-5 w-5 text-slate-500 group-hover:text-primary transition-colors" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="w-56 overflow-hidden bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-xl p-1.5 ring-1 ring-slate-200 dark:ring-white/5">
@@ -143,7 +143,7 @@ export function EventsTable() {
                                                     setEditingData(event);
                                                     setIsAddModalOpen(true);
                                                 }}
-                                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-bold transition-all duration-200"
+                                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 dark:hover:bg-primary/20 text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-bold transition-all duration-200"
                                             >
                                                 <Edit className="w-4 h-4" /> Edit Details
                                             </DropdownMenuItem>
@@ -160,7 +160,7 @@ export function EventsTable() {
                                             {event.googleMapsUrl && (
                                                 <DropdownMenuItem
                                                     onClick={() => window.open(event.googleMapsUrl as string, "_blank")}
-                                                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-bold transition-all duration-200"
+                                                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 dark:hover:bg-primary/20 text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-bold transition-all duration-200"
                                                 >
                                                     <Map className="w-4 h-4" /> View on Map
                                                 </DropdownMenuItem>

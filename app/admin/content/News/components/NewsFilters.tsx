@@ -42,7 +42,7 @@ export function NewsFilters() {
                             placeholder="Find articles, press releases..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-600 rounded-xl font-bold italic"
+                            className="pl-10 h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-primary rounded-xl font-bold italic"
                         />
                     </div>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -66,11 +66,11 @@ export function NewsFilters() {
                             onValueChange={handleBarangayChange}
                         >
                             <SelectTrigger className="w-[180px] h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic">
-                                <MapPin className="w-4 h-4 mr-2 text-blue-600" />
+                                <MapPin className="w-4 h-4 mr-2 text-primary" />
                                 <SelectValue placeholder="Barangay" />
                             </SelectTrigger>
                             <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                                <SelectItem value="All" className="font-bold italic text-blue-600">All Locations</SelectItem>
+                                <SelectItem value="All" className="font-bold italic text-primary">All Locations</SelectItem>
                                 {activeBarangays.map(b => (
                                     <SelectItem key={b} value={b} className="font-bold italic">{b}</SelectItem>
                                 ))}
@@ -80,7 +80,7 @@ export function NewsFilters() {
                 </div>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full sm:w-auto h-12 bg-blue-600 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] px-8 rounded-xl transition-all shadow-xl shadow-blue-500/20 flex items-center gap-2"
+                    className="w-full sm:w-auto h-12 bg-primary hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] px-8 rounded-xl transition-all shadow-xl shadow-primary/20 flex items-center gap-2"
                 >
                     <Plus className="w-4 h-4" />
                     Publish Article

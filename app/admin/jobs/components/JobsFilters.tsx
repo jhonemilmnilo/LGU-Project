@@ -45,7 +45,7 @@ export function JobsFilters() {
                             placeholder="Search job titles..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500"
+                            className="pl-9 h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-primary"
                         />
                     </div>
                     <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
@@ -81,7 +81,7 @@ export function JobsFilters() {
                 </div>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full sm:w-auto h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 px-6 rounded-xl transition-all hover:-translate-y-0.5"
+                    className="w-full sm:w-auto h-11 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 px-6 rounded-xl transition-all hover:-translate-y-0.5"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Post New Job

@@ -78,7 +78,7 @@ export function AccommodationTable() {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.name}</p>
+                                            <p className="font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-primary dark:group-hover:text-primary transition-colors">{item.name}</p>
                                             <div className="flex items-center text-slate-500 dark:text-slate-400 text-xs mt-1">
                                                 <MapPin className="w-3 h-3 mr-1" />
                                                 <span className="truncate max-w-[180px]">{item.address}</span>
@@ -87,7 +87,7 @@ export function AccommodationTable() {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className="bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30 rounded-lg py-1 px-3">
+                                    <Badge variant="outline" className="bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary border-primary/20 dark:border-primary/30 rounded-lg py-1 px-3">
                                         {item.type || "Other"}
                                     </Badge>
                                 </TableCell>
@@ -146,7 +146,7 @@ export function AccommodationTable() {
                                                     className="text-slate-700 dark:text-slate-300 focus:bg-slate-100 dark:focus:bg-[#2a3040] focus:text-slate-900 dark:focus:text-white cursor-pointer rounded-md mx-1 my-1 flex items-center"
                                                     onClick={() => window.open(item.websiteUrl as string, "_blank")}
                                                 >
-                                                    <Globe className="w-4 h-4 mr-2 text-blue-500" /> Visit Website
+                                                    <Globe className="w-4 h-4 mr-2 text-primary" /> Visit Website
                                                 </DropdownMenuItem>
                                             )}
 
@@ -158,7 +158,7 @@ export function AccommodationTable() {
                                                         window.open(url, "_blank");
                                                     }}
                                                 >
-                                                    <MapIcon className="w-4 h-4 mr-2 text-blue-500" /> View on Map
+                                                    <MapIcon className="w-4 h-4 mr-2 text-primary" /> View on Map
                                                 </DropdownMenuItem>
                                             )}
 

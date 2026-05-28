@@ -101,7 +101,7 @@ export function ProjectsTable() {
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-primary/10/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell>
                                 <div className="flex items-center space-x-4">
                                     <div className="h-14 w-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
@@ -122,7 +122,7 @@ export function ProjectsTable() {
                                             {item.title}
                                         </span>
                                         <div className="flex items-center text-xs text-slate-500">
-                                            <span className="font-medium text-blue-600 dark:text-blue-400 mr-2">{item.category}</span>
+                                            <span className="font-medium text-primary dark:text-primary mr-2">{item.category}</span>
                                         </div>
                                         <div className="flex items-center text-xs text-slate-500">
                                             <MapPin className="w-3 h-3 mr-1" />
@@ -139,7 +139,7 @@ export function ProjectsTable() {
                                     </div>
                                     <div className="w-[140px] h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                                            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
                                             style={{ width: `${item.progress}%` }}
                                         />
                                     </div>
@@ -169,7 +169,7 @@ export function ProjectsTable() {
                                     checked={item.isPublished}
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isPublished)}
                                     disabled={togglingId === item.id}
-                                    className="data-[state=checked]:bg-blue-600"
+                                    className="data-[state=checked]:bg-primary"
                                 />
                             </TableCell>
                             <TableCell className="text-right">
@@ -181,7 +181,7 @@ export function ProjectsTable() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
-                                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/50"
+                                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-blue-900/50"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>

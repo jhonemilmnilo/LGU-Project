@@ -16,7 +16,7 @@ export function AccommodationFilters() {
                     placeholder="Search by name, address or type..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-xl"
+                    className="pl-10 h-11 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] focus-visible:ring-primary rounded-xl"
                 />
             </div>
 
@@ -26,7 +26,7 @@ export function AccommodationFilters() {
                 </Button>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 px-6 rounded-xl flex-1 sm:flex-none"
+                    className="h-11 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 px-6 rounded-xl flex-1 sm:flex-none"
                 >
                     <Plus className="w-4 h-4 mr-2" /> Add New Accommodation
                 </Button>

@@ -84,7 +84,7 @@ export function NewsTable() {
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-primary/10/30 dark:hover:bg-blue-900/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell className="pl-8">
                                 <div className="w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                                     {item.imageUrl ? (
@@ -97,7 +97,7 @@ export function NewsTable() {
                             </TableCell>
                             <TableCell className="py-5">
                                 <div className="flex flex-col space-y-1.5">
-                                    <span className="text-slate-900 dark:text-white font-black uppercase italic tracking-tight leading-tight group-hover:text-blue-600 transition-colors">
+                                    <span className="text-slate-900 dark:text-white font-black uppercase italic tracking-tight leading-tight group-hover:text-primary transition-colors">
                                         {item.title}
                                     </span>
                                     <span className="text-[11px] text-slate-500 font-medium italic line-clamp-1 max-w-[300px]">
@@ -112,13 +112,13 @@ export function NewsTable() {
                             </TableCell>
                             <TableCell>
                                 <div className="flex items-center text-slate-500 dark:text-slate-400 text-[11px] font-medium italic">
-                                    <User className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                                    <User className="w-3.5 h-3.5 mr-2 text-primary" />
                                     {item.author || "Admin"}
                                 </div>
                             </TableCell>
                             <TableCell>
                                 <div className="flex items-center text-slate-500 dark:text-slate-400 text-[11px] font-medium italic">
-                                    <Calendar className="w-3.5 h-3.5 mr-2 text-blue-500" />
+                                    <Calendar className="w-3.5 h-3.5 mr-2 text-primary" />
                                     {format(new Date(item.publishDate), "MMM d, yyyy")}
                                 </div>
                             </TableCell>
@@ -127,7 +127,7 @@ export function NewsTable() {
                                     checked={item.isPublished}
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isPublished)}
                                     disabled={togglingId === item.id}
-                                    className="data-[state=checked]:bg-blue-600"
+                                    className="data-[state=checked]:bg-primary"
                                 />
                             </TableCell>
                             <TableCell className="text-right pr-8">
@@ -139,7 +139,7 @@ export function NewsTable() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
-                                                    className="h-9 w-9 rounded-xl text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-transparent hover:border-blue-200 transition-all"
+                                                    className="h-9 w-9 rounded-xl text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/40 border border-transparent hover:border-primary/20 transition-all"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>

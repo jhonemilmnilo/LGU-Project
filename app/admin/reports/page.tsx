@@ -26,7 +26,7 @@ export default async function AdminReportsPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-6 bg-white dark:bg-[#1e2330] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
+                <div className="p-6 bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center">
                             <BarChart3 className="w-6 h-6 text-slate-500" />
@@ -38,7 +38,7 @@ export default async function AdminReportsPage() {
                     </div>
                 </div>
 
-                <div className="p-6 bg-white dark:bg-[#1e2330] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
+                <div className="p-6 bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center">
                             <Clock className="w-6 h-6 text-amber-500" />
@@ -50,7 +50,7 @@ export default async function AdminReportsPage() {
                     </div>
                 </div>
 
-                <div className="p-6 bg-white dark:bg-[#1e2330] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
+                <div className="p-6 bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center">
                             <AlertTriangle className="w-6 h-6 text-blue-500" />
@@ -62,7 +62,7 @@ export default async function AdminReportsPage() {
                     </div>
                 </div>
 
-                <div className="p-6 bg-white dark:bg-[#1e2330] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
+                <div className="p-6 bg-white dark:bg-[#151b2b] rounded-3xl border border-slate-200 dark:border-[#2a3040] shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center">
                             <CheckCircle2 className="w-6 h-6 text-emerald-500" />
@@ -76,9 +76,13 @@ export default async function AdminReportsPage() {
             </div>
 
             {/* Reports Table Component */}
-            <div className="bg-white dark:bg-[#1e2330] rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] p-6 shadow-sm overflow-hidden">
+            <div 
+                style={{ boxShadow: '0 25px 50px -12px color-mix(in srgb, var(--primary-theme) 10%, transparent)' }}
+                className="bg-white dark:bg-[#151b2b] rounded-[2.5rem] border border-slate-200 dark:border-[#2a3040] p-6 shadow-sm overflow-hidden"
+            >
                 <ReportsTable initialReports={reports} />
             </div>
         </div>
     );
 }
+

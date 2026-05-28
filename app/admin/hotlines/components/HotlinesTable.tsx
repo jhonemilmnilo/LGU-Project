@@ -79,7 +79,7 @@ export function HotlinesTable() {
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-primary/10/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell className="font-medium">
                                 <div className="flex flex-col space-y-1">
                                     <span className="text-slate-900 dark:text-white font-bold leading-tight">{item.name}</span>
@@ -117,7 +117,7 @@ export function HotlinesTable() {
                                     checked={item.isActive}
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isActive)}
                                     disabled={togglingId === item.id}
-                                    className="data-[state=checked]:bg-blue-600"
+                                    className="data-[state=checked]:bg-primary"
                                 />
                             </TableCell>
                             <TableCell className="text-right">
@@ -129,7 +129,7 @@ export function HotlinesTable() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
-                                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/50"
+                                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-blue-900/50"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>

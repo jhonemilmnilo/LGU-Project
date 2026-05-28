@@ -2649,3 +2649,30 @@ export async function deleteUser(userId: string) {
         return { success: false, error: error.message || "Failed to delete user account" };
     }
 }
+
+/**
+ * Create a support report from the Admin panel
+ */
+export async function createReportAdmin(userId: string, category: string, description: string, address?: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user) return { success: false, error: "Unauthorized" };
+
+        const newReport = await prisma.report.create({
+            data: {
+                userId,
+                category,
+                description,
+                status: "PENDING",
+                address: address || null,
+            }
+        });
+
+        revalidatePath("/admin/reports");
+        return { success: true, report: newReport };
+    } catch (error: any) {
+        console.error("Failed to create report:", error);
+        return { success: false, error: error.message || "Failed to file report" };
+    }
+}
+

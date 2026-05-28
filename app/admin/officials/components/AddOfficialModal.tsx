@@ -107,7 +107,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                     <Label className="text-slate-700 dark:text-slate-300 font-bold block text-center">Portrait Photo</Label>
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="group relative w-48 h-64 mx-auto rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center shadow-sm"
+                        className="group relative w-48 h-64 mx-auto rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center shadow-sm"
                     >
                         {imagePreview ? (
                             <>
@@ -132,7 +132,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                                 </Button>
                             </>
                         ) : (
-                            <div className="flex flex-col items-center text-slate-400 group-hover:text-blue-500 transition-colors p-4 text-center">
+                            <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors p-4 text-center">
                                 <ImageIcon className="w-10 h-10 mb-2" />
                                 <p className="text-xs font-bold uppercase tracking-wide">Upload Portrait</p>
                             </div>
@@ -173,7 +173,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                             required
                             defaultValue={editingData?.name}
                             placeholder="e.g. Hon. Juan Dela Cruz"
-                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
+                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
                         />
                     </div>
 
@@ -204,7 +204,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                     {!isBrgyAdmin && category !== "LGU" && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                             <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                <MapPin className="w-4 h-4 mr-1 text-blue-500" /> Target Barangay (Area)
+                                <MapPin className="w-4 h-4 mr-1 text-primary" /> Target Barangay (Area)
                             </Label>
                             <Select value={barangay} onValueChange={setBarangay}>
                                 <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic">
@@ -233,7 +233,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                         </div>
                         <div className="space-y-2">
                             <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                <Mail className="w-3.5 h-3.5 mr-1 text-blue-500" /> Professional Email
+                                <Mail className="w-3.5 h-3.5 mr-1 text-primary" /> Professional Email
                             </Label>
                             <Input
                                 name="email"
@@ -321,8 +321,8 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                     <div className="pt-6 border-t border-slate-100 dark:border-white/5">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                    <Globe className="w-4 h-4 text-blue-500" />
+                                <div className="p-1.5 bg-primary/10 rounded-lg">
+                                    <Globe className="w-4 h-4 text-primary" />
                                 </div>
                                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Social & Profile Links</h3>
                             </div>
@@ -330,7 +330,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                                 type="button" 
                                 onClick={addLink}
                                 variant="outline"
-                                className="h-8 px-3 border-blue-200 text-blue-600 hover:bg-blue-50 font-bold rounded-lg flex items-center gap-2 text-[10px] uppercase tracking-tighter"
+                                className="h-8 px-3 border-primary/20 text-primary hover:bg-primary/10 font-bold rounded-lg flex items-center gap-2 text-[10px] uppercase tracking-tighter"
                             >
                                 <Plus className="w-3 h-3" /> Add Link
                             </Button>
@@ -406,7 +406,7 @@ export function AddOfficialModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
+                            <div className="p-2 bg-primary rounded-lg">
                                 <Users className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -442,7 +442,7 @@ export function AddOfficialModal() {
                             type="submit"
                             form="officialForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>

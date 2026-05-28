@@ -41,7 +41,7 @@ export function AddDiningModal() {
                     {/* Header */}
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/20">
+                            <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/20">
                                 <Store className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -165,8 +165,8 @@ export function AddDiningModal() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                                    <UploadCloud className="w-6 h-6 text-blue-600 dark:text-blue-500" />
+                                                <div className="w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                                    <UploadCloud className="w-6 h-6 text-primary dark:text-primary" />
                                                 </div>
                                                 <p className="text-slate-900 dark:text-slate-200 font-medium text-sm mb-1">Click to upload or drag and drop</p>
                                                 <p className="text-slate-500 dark:text-slate-500 text-xs">PNG, JPG or WEBP</p>
@@ -208,7 +208,7 @@ export function AddDiningModal() {
                             type="submit"
                             form="diningForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {loading ? (
                                 "Saving..."

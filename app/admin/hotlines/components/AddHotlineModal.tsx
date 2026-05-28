@@ -28,7 +28,7 @@ export function AddHotlineModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
+                            <div className="p-2 bg-primary rounded-lg">
                                 <Phone className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -53,7 +53,7 @@ export function AddHotlineModal() {
                                             required
                                             defaultValue={editingData?.name || ""}
                                             placeholder="e.g. Mapandan Police Station"
-                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
+                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
                                         />
                                     </div>
                                     <div className="space-y-2 col-span-2 sm:col-span-1">
@@ -135,7 +135,7 @@ export function AddHotlineModal() {
                             type="submit"
                             form="hotlineForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>

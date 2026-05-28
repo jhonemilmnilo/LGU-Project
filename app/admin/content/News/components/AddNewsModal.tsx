@@ -82,7 +82,7 @@ export function AddNewsModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-10 pb-6 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-4 mb-1">
-                            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
                                 <Newspaper className="w-7 h-7 text-white" />
                             </div>
                             <div>
@@ -101,7 +101,7 @@ export function AddNewsModal() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Left Column: Article Logic */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-blue-600">
+                                    <div className="flex items-center space-x-2 text-primary">
                                         <Info className="w-4 h-4" />
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Article Information</h3>
                                     </div>
@@ -113,7 +113,7 @@ export function AddNewsModal() {
                                             required
                                             defaultValue={editingData?.title || ""}
                                             placeholder="e.g. Mapandan Suspends Classes During Typhoon"
-                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20 rounded-xl font-bold italic"
                                         />
                                     </div>
 
@@ -162,7 +162,7 @@ export function AddNewsModal() {
                                                             value={otherCategory}
                                                             onChange={(e) => setOtherCategory(e.target.value)}
                                                             placeholder="Specify Category..."
-                                                            className="h-14 bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 focus:ring-2 focus:ring-blue-500/20 rounded-xl font-bold italic pr-12"
+                                                            className="h-14 bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 focus:ring-2 focus:ring-primary/20 rounded-xl font-bold italic pr-12"
                                                         />
                                                         <Button
                                                             type="button"
@@ -172,7 +172,7 @@ export function AddNewsModal() {
                                                                 setSelectedCategory("Local News");
                                                                 setOtherCategory("");
                                                             }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
                                                             title="Back to Dropdown"
                                                         >
                                                             <X className="w-4 h-4" />
@@ -224,14 +224,14 @@ export function AddNewsModal() {
                                             required
                                             defaultValue={editingData?.content || ""}
                                             placeholder="Write the full news story here..."
-                                            className="min-h-[200px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-2xl p-5 font-medium italic resize-none"
+                                            className="min-h-[200px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20 rounded-2xl p-5 font-medium italic resize-none"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Right Column: Media */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-blue-600">
+                                    <div className="flex items-center space-x-2 text-primary">
                                         <ImageIcon className="w-4 h-4" />
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Featured Image</h3>
                                     </div>
@@ -239,7 +239,7 @@ export function AddNewsModal() {
                                     <div className="space-y-2">
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="group relative h-80 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-600 dark:hover:border-blue-500 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center p-2"
+                                            className="group relative h-80 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary dark:hover:border-primary bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center p-2"
                                         >
                                             {imagePreview ? (
                                                 <>
@@ -264,7 +264,7 @@ export function AddNewsModal() {
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-blue-600 transition-colors">
+                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors">
                                                     <div className="w-16 h-16 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
                                                         <ImageIcon className="w-8 h-8" />
                                                     </div>
@@ -286,8 +286,8 @@ export function AddNewsModal() {
                                         </div>
                                     </div>
                                     
-                                    <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/20">
-                                        <p className="text-[10px] font-medium italic text-blue-700 dark:text-blue-400">
+                                    <div className="p-6 bg-primary/10 dark:bg-primary/10 rounded-2xl border border-primary/10 dark:border-blue-900/20">
+                                        <p className="text-[10px] font-medium italic text-primary dark:text-primary">
                                             Tip: Use high-quality landscape photos (16:9) to make the news article stand out on the main landing page.
                                         </p>
                                     </div>
@@ -309,7 +309,7 @@ export function AddNewsModal() {
                             type="submit"
                             form="newsForm"
                             disabled={loading}
-                            className="h-14 px-12 bg-blue-600 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-xl shadow-blue-500/20 transition-all hover:-translate-y-1"
+                            className="h-14 px-12 bg-primary hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1"
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>

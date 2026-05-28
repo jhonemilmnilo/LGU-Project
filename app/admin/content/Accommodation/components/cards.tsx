@@ -17,8 +17,8 @@ export function AccommodationCards() {
             title: "Total Accommodations",
             value: total,
             icon: Building2,
-            color: "text-blue-600 dark:text-blue-400",
-            bg: "bg-blue-50 dark:bg-blue-500/10",
+            color: "text-primary dark:text-primary",
+            bg: "bg-primary/10 dark:bg-primary/10",
         },
         {
             title: "Published Listings",

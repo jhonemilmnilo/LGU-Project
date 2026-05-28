@@ -66,7 +66,7 @@ export function DiningTable() {
                             >
                                 <TableCell className="font-semibold text-slate-900 dark:text-slate-100 py-5 pl-6">
                                     <div className="flex flex-col">
-                                        <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-base">{item.name}</span>
+                                        <span className="group-hover:text-primary dark:group-hover:text-primary transition-colors text-base">{item.name}</span>
                                         {item.openingHours && (
                                             <span className="text-xs text-slate-500 font-normal mt-1 flex items-center">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
@@ -86,7 +86,7 @@ export function DiningTable() {
                                 </TableCell>
                                 <TableCell className="text-slate-600 dark:text-slate-400 max-w-[250px] py-5">
                                     <div className="flex items-start text-sm">
-                                        <MapPin className="w-4 h-4 mr-2 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" />
+                                        <MapPin className="w-4 h-4 mr-2 text-slate-400 group-hover:text-primary transition-colors shrink-0 mt-0.5" />
                                         <span className="truncate leading-relaxed">{item.address}</span>
                                     </div>
                                     {(item.latitude && item.longitude) && (
@@ -148,7 +148,7 @@ export function DiningTable() {
                                                         window.open(url, "_blank");
                                                     }}
                                                 >
-                                                    <MapIcon className="w-4 h-4 mr-2 text-blue-500" /> View on Map
+                                                    <MapIcon className="w-4 h-4 mr-2 text-primary" /> View on Map
                                                 </DropdownMenuItem>
                                             )}
 

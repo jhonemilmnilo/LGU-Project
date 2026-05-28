@@ -18,9 +18,9 @@ export function EventsCards() {
             label: "Total Events",
             value: totalEvents,
             icon: Calendar,
-            color: "text-blue-600",
-            bg: "bg-blue-50 dark:bg-blue-900/20",
-            borderColor: "border-blue-100 dark:border-blue-800/50"
+            color: "text-primary",
+            bg: "bg-primary/10 dark:bg-primary/20",
+            borderColor: "border-primary/10 dark:border-blue-800/50"
         },
         {
             label: "Live on Portal",
