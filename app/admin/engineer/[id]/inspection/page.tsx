@@ -41,6 +41,7 @@ interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+/*
 function LightboxView({ src, alt, label }: { src: string; alt: string; label: string }) {
     const [scale, setScale] = useState(1);
     const [rotate, setRotate] = useState(0);
@@ -166,6 +167,7 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
         </DialogContent>
     );
 }
+*/
 
 export default function BuildingPermitInspectionPage({ params }: PageProps) {
     const { id } = use(params);
