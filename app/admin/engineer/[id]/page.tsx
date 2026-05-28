@@ -2262,7 +2262,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                         </div>
                                                     </div>
                                                     <div className="py-4 bg-white/50 dark:bg-slate-950/50 flex flex-wrap items-center justify-center gap-6 text-[10px] text-slate-500 font-medium px-6">
-                                                        <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Based on Mapandan Citizen's Charter • PD 1096 • RA 11032</span>
+                                                        <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Based on Mapandan Citizen&apos;s Charter • PD 1096 • RA 11032</span>
                                                         <span className="flex items-center gap-1"><BadgeCheck className="w-3 h-3" /> RA 10173 Data Privacy Act Compliant</span>
                                                         <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" /> LGU Mapandan, Pangasinan</span>
                                                     </div>

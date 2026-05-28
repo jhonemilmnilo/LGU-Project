@@ -6,9 +6,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
     ArrowLeft,
-    AlertCircle,
     BadgeCheck,
-    Coins,
     Check,
     Upload,
     FileText,
@@ -23,8 +21,6 @@ import {
 } from "@/app/admin/transactions/actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -44,11 +40,9 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
     const [actionLoading, setActionLoading] = useState(false);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
 
-    const [eCopyFile, setECopyFile] = useState<File | null>(null);
+    const [, setECopyFile] = useState<File | null>(null);
     const [eCopyUrl, setECopyUrl] = useState<string>("");
     const [uploading, setUploading] = useState(false);
-
-    const feeAssessment = transaction?.additionalData?.feeAssessment || null;
     const isSubmitted = ["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(transaction?.status || "");
     const isViewOnly = isForcedView || isSubmitted;
 

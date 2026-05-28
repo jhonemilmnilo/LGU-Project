@@ -3024,7 +3024,7 @@ export async function markForReinspection(id: string, reason: string, details?: 
             rejectionRemarks = `Automatically rejected after 4 re-inspection attempts. Final Reason: ${reason}`;
         }
 
-        let newAdditionalData = {
+        const newAdditionalData = {
             ...additionalData,
             reinspectionCount: count,
             reinspectionHistory: newHistory

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { isValidUrl } from "@/utils/image";
-import { format } from "date-fns";
 import {
     ArrowLeft,
     ZoomIn,
@@ -15,8 +14,7 @@ import {
     RefreshCcw,
     Camera,
     AlertCircle,
-    BadgeCheck,
-    FileText
+    BadgeCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -393,7 +391,7 @@ export default function BuildingPermitEvaluationPage({ params }: PageProps) {
                         <div className="space-y-2 relative z-10">
                             <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-[0.2em] italic">Phase 1: Initial Assessment</span>
                             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">BUILDING PERMIT EVALUATION</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Verify the applicant's architectural details and plans, then schedule the mandatory site inspection.</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Verify the applicant&apos;s architectural details and plans, then schedule the mandatory site inspection.</p>
                         </div>
                         <div className="text-5xl font-black italic text-emerald-500/20 select-none hidden md:block">EVALUATION</div>
                     </div>

@@ -6,17 +6,13 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { isValidUrl } from "@/utils/image";
-import { format } from "date-fns";
 import {
     ArrowLeft,
     ZoomIn,
     ZoomOut,
     RotateCw,
     RefreshCcw,
-    Camera,
-    AlertCircle,
     BadgeCheck,
-    FileText,
     Check
 } from "lucide-react";
 import { toast } from "sonner";
@@ -304,6 +300,7 @@ export default function BuildingPermitReinspectionPage({ params }: PageProps) {
     const additional = transaction.additionalData || {};
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
 
+    /*
     const renderRequirementsGrid = () => (
         <div className="grid grid-cols-2 gap-4">
             {[
@@ -357,6 +354,7 @@ export default function BuildingPermitReinspectionPage({ params }: PageProps) {
             ))}
         </div>
     );
+    */
 
     const steps = [
         { id: "FOR_REQUESTING", label: "EVALUATION" },
@@ -452,8 +450,8 @@ export default function BuildingPermitReinspectionPage({ params }: PageProps) {
                                 </div>
                                 {additional.inspectionSchedule.notes && (
                                     <div className="space-y-2 md:col-span-3">
-                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Engineer's Instructions</label>
-                                        <div className="p-5 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 rounded-xl font-medium italic text-sm text-blue-800 dark:text-blue-200 min-h-[48px]">"{additional.inspectionSchedule.notes}"</div>
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Engineer&apos;s Instructions</label>
+                                        <div className="p-5 bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 rounded-xl font-medium italic text-sm text-blue-800 dark:text-blue-200 min-h-[48px]">&quot;{additional.inspectionSchedule.notes}&quot;</div>
                                     </div>
                                 )}
                             </div>

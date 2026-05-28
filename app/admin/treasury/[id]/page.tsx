@@ -329,6 +329,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
     const [showPreviousPhases, setShowPreviousPhases] = useState(false);
     
+    /*
     // Schedule Inspection Form State
     const [isSchedulingInspection, setIsSchedulingInspection] = useState(false);
     const [inspectionType, setInspectionType] = useState("Structural Inspection");
@@ -361,6 +362,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         }
         setActionLoading(false);
     };
+    */
 
     const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string }[]>([
         { label: "Mayor's Permit Fee", amount: "" }
@@ -506,6 +508,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return () => URL.revokeObjectURL(url);
     }, [orFile]);
 
+    /*
     const handleReject = async () => {
         if (!remarks) { toast.error("Remarks required"); return; }
         setActionLoading(true);
@@ -531,6 +534,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
+    */
 
     const handleRelease = useCallback(async () => {
 

@@ -52,7 +52,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
     const [sanitaryFee, setSanitaryFee] = useState<string>("");
     const [municipalCharges, setMunicipalCharges] = useState<string>("");
 
-    const [eCopyFile, setECopyFile] = useState<File | null>(null);
+    const [, setECopyFile] = useState<File | null>(null);
     const [eCopyUrl, setECopyUrl] = useState<string>("");
     const [uploading, setUploading] = useState(false);
 
@@ -411,6 +411,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2">The resident has uploaded their BFP Fire Safety Clearance certificate. Please verify this document before approving the permit.</p>
                             </div>
                             <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 group max-w-lg shadow-sm hover:shadow-md transition-all duration-300">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={transaction.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <a href={transaction.additionalData.bfpClearanceUrl} target="_blank" rel="noreferrer" className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
@@ -560,7 +561,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
 
                                 {["EVALUATED", "UNPAID"].includes(transaction.status) && (
                                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                                        The resident's payment is currently pending with the Treasury department. The approval action will unlock once payment is fully settled.
+                                        The resident&apos;s payment is currently pending with the Treasury department. The approval action will unlock once payment is fully settled.
                                     </p>
                                 )}
 
