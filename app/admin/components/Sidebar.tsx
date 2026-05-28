@@ -56,7 +56,12 @@ export function Sidebar({
     const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
+    const [mounted, setMounted] = React.useState(false);
     const { theme, setTheme } = useTheme();
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -431,7 +436,13 @@ export function Sidebar({
                                     className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                     title="Toggle Theme"
                                 >
-                                    {theme === "dark" ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
+                                    {!mounted ? (
+                                        <div className="w-[18px] h-[18px]" />
+                                    ) : theme === "dark" ? (
+                                        <Sun size={18} className="text-amber-400" />
+                                    ) : (
+                                        <Moon size={18} />
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => signOut({ callbackUrl: window.location.origin + "/auth/login" })}

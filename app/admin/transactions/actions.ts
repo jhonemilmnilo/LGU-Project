@@ -3548,6 +3548,43 @@ export async function declinePaymentProofAction(id: string, reason: string) {
     }
 }
 
+/**
+ * Create logistics configuration for a new Barangay node
+ */
+export async function createBarangayLogistics(name: string, data: { deliveryFee: number, isLogisticsActive: boolean, estimatedDeliveryDays: number }) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ADMIN") {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const existing = await prisma.barangayInfo.findUnique({
+            where: { name }
+        });
+
+        if (existing) {
+            return { success: false, error: "Barangay node already exists" };
+        }
+
+        const created = await prisma.barangayInfo.create({
+            data: {
+                name,
+                deliveryFee: data.deliveryFee,
+                isLogisticsActive: data.isLogisticsActive,
+                estimatedDeliveryDays: data.estimatedDeliveryDays
+            }
+        });
+
+        revalidatePath("/admin/logistics");
+        return { success: true, data: created };
+    } catch (error: any) {
+        console.error("Error creating logistics:", error);
+        return { success: false, error: error?.message || "Failed to create barangay logistics node" };
+    }
+}
+
+
 
 
 
