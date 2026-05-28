@@ -78,6 +78,15 @@ export default function TreasuryDashboard() {
 
     // Default status tab to ALL for ADMIN_AIDE since they now handle multiple states
     useEffect(() => {
+        if (!session) return;
+        const role = (session?.user as any)?.role;
+        const dept = (session?.user as any)?.department;
+        if (role === "ADMIN" && dept?.toUpperCase() === "BPLO") {
+            router.push("/admin/bplo");
+        }
+    }, [session, router]);
+
+    useEffect(() => {
         if (isAdminAide) {
             setStatus("ALL");
         }

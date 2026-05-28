@@ -130,6 +130,7 @@ export function Sidebar({
                 { href: "/admin/treasury?category=Building Permit", label: "Building Permit" },
             ]
         },
+        { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" },
         { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Treasury" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
@@ -174,8 +175,7 @@ export function Sidebar({
     if (role === "ADMIN" && department) {
         if (department.toUpperCase() === "BPLO") {
             menuItems = [
-                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-                { href: "/admin/treasury", label: "Business Permit", icon: CreditCard, category: "Treasury" }
+                { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
             ];
         } else {
             menuItems = [
@@ -186,8 +186,10 @@ export function Sidebar({
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
-    } else if (role === "TREASURY_STAFF" || role === "ADMIN_AIDE") {
+    } else if (role === "TREASURY_STAFF") {
         menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payment Settings"].includes(item.label));
+    } else if (role === "ADMIN_AIDE") {
+        menuItems = allMenuItems.filter(item => ["BPLO Permits"].includes(item.label));
     } else if (role === "ENGINEER") {
         menuItems = [{ href: "/admin/engineer", label: "Engineer Hub", icon: HardHat, category: "Engineering" }];
     }
