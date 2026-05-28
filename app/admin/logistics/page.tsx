@@ -6,8 +6,10 @@ import {
     Search, 
     Save, 
     RefreshCcw, 
-    Info
+    Info,
+    Plus
 } from "lucide-react";
+import { AddLogisticsModal } from "./components/AddLogisticsModal";
 import { 
     getAllBarangayLogistics, 
     updateBarangayLogistics,
@@ -29,6 +31,7 @@ export default function LogisticsManagementPage() {
     const [barangays, setBarangays] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [themeColor, setThemeColor] = useState("#2563eb");
+    const [isAddOpen, setIsAddOpen] = useState(false);
 
     const fetchLogistics = useCallback(async () => {
         setLoading(true);
@@ -118,6 +121,12 @@ export default function LogisticsManagementPage() {
                         className="h-12 w-12 rounded-2xl border-slate-200 dark:border-white/5 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10"
                     >
                         <RefreshCcw className={cn("w-5 h-5", loading && "animate-spin")} />
+                    </Button>
+                    <Button
+                        onClick={() => setIsAddOpen(true)}
+                        className="bg-primary hover:bg-primary/95 text-white shadow-lg shadow-primary/20 h-12 px-6 rounded-2xl font-black uppercase tracking-widest text-xs italic transition-all duration-300 hover:scale-[1.02]"
+                    >
+                        <Plus className="w-4 h-4 mr-2" /> Add Node
                     </Button>
                 </div>
             </header>
@@ -223,6 +232,15 @@ export default function LogisticsManagementPage() {
                     </div>
                 </Card>
             </div>
+
+            <AddLogisticsModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                onSuccess={() => {
+                    setIsAddOpen(false);
+                    fetchLogistics();
+                }}
+            />
         </div>
     );
 }

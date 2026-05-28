@@ -15,7 +15,7 @@ export function DiningFilters() {
                     placeholder="Search restaurants..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] text-slate-900 dark:text-white placeholder:text-slate-500 w-full focus:border-blue-500 transition-colors"
+                    className="pl-9 bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] text-slate-900 dark:text-white placeholder:text-slate-500 w-full focus:border-primary transition-colors"
                 />
             </div>
         </div>

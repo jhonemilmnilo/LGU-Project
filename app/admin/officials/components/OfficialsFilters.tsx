@@ -28,7 +28,7 @@ export function OfficialsFilters() {
                             placeholder="Search names..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-blue-500"
+                            className="pl-9 h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus-visible:ring-primary"
                         />
                     </div>
 
@@ -37,7 +37,7 @@ export function OfficialsFilters() {
                             <SelectValue placeholder="Select Area" />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                            <SelectItem value="LGU" className="font-bold italic text-blue-600">Municipal (LGU)</SelectItem>
+                            <SelectItem value="LGU" className="font-bold italic text-primary">Municipal (LGU)</SelectItem>
                             {barangays.map(b => (
                                 <SelectItem key={b} value={b} className="font-bold italic">Bgy. {b}</SelectItem>
                             ))}
@@ -70,7 +70,7 @@ export function OfficialsFilters() {
                 </div>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full sm:w-auto h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 px-6 rounded-xl transition-all hover:-translate-y-0.5"
+                    className="w-full sm:w-auto h-11 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 px-6 rounded-xl transition-all hover:-translate-y-0.5"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Official

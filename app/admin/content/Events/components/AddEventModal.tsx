@@ -153,7 +153,7 @@ export function AddEventModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
+                            <div className="p-2 bg-primary rounded-lg">
                                 <Calendar className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -172,7 +172,7 @@ export function AddEventModal() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                 {/* Left Column: Event details */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 mb-2">
+                                    <div className="flex items-center space-x-2 text-primary dark:text-primary mb-2">
                                         <Info className="w-4 h-4" />
                                         <h3 className="text-sm font-bold uppercase tracking-wider">Event Information</h3>
                                     </div>
@@ -184,7 +184,7 @@ export function AddEventModal() {
                                             required
                                             defaultValue={editingData?.title || ""}
                                             placeholder="e.g. Schedule for Coastal Clean-up"
-                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-600/20 rounded-xl font-bold italic"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20 rounded-xl font-bold italic"
                                         />
                                         {(currentBarangay || editingData?.barangay) && (
                                             <input
@@ -240,7 +240,7 @@ export function AddEventModal() {
                                                             value={otherCategory}
                                                             onChange={(e) => setOtherCategory(e.target.value)}
                                                             placeholder="Specify Category..."
-                                                            className="h-12 bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 focus:ring-2 focus:ring-blue-500/20 pr-12"
+                                                            className="h-12 bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 focus:ring-2 focus:ring-primary/20 pr-12"
                                                         />
                                                         <Button
                                                             type="button"
@@ -250,7 +250,7 @@ export function AddEventModal() {
                                                                 setSelectedCategory("Community");
                                                                 setOtherCategory("");
                                                             }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-blue-500"
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-primary"
                                                             title="Back to Dropdown"
                                                         >
                                                             <X className="w-4 h-4" />
@@ -329,7 +329,7 @@ export function AddEventModal() {
 
                                 {/* Right Column: Location & Image */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 mb-2">
+                                    <div className="flex items-center space-x-2 text-primary dark:text-primary mb-2">
                                         <MapPin className="w-4 h-4" />
                                         <h3 className="text-sm font-bold uppercase tracking-wider">Venue & Media</h3>
                                     </div>
@@ -401,7 +401,7 @@ export function AddEventModal() {
                                                 variant="outline"
                                                 size="icon"
                                                 onClick={() => window.open('https://www.google.com/maps/@16.0287,120.4022,15z', '_blank')}
-                                                className="h-12 w-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] hover:text-blue-500 shrink-0"
+                                                className="h-12 w-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] hover:text-primary shrink-0"
                                                 title="Open Google Maps to find location"
                                             >
                                                 <MapPin className="w-5 h-5" />
@@ -413,7 +413,7 @@ export function AddEventModal() {
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Image Upload</Label>
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="group relative h-40 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center"
+                                            className="group relative h-40 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center"
                                         >
                                             {imagePreview ? (
                                                 <>
@@ -438,7 +438,7 @@ export function AddEventModal() {
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-blue-500 transition-colors">
+                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors">
                                                     <ImageIcon className="w-10 h-10 mb-2" />
                                                     <p className="text-sm font-bold uppercase tracking-wide">Upload Photo</p>
                                                 </div>
@@ -475,7 +475,7 @@ export function AddEventModal() {
                             type="submit"
                             form="eventForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>

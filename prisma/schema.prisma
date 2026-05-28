@@ -342,7 +342,18 @@ model Resident {
   familyMembers         Resident[]        @relation("FamilyLink")
   household             Household?        @relation("HouseholdMembers", fields: [householdId], references: [id])
   user                  User?             @relation(fields: [userId], references: [id])
+
+  @@index([barangay])
+  @@index([registrationStatus])
+  @@index([lastName, firstName])
+  @@index([categoryId])
+  @@index([isSenior])
+  @@index([isPWD])
+  @@index([isSoloParent])
+  @@index([isDead])
+  @@index([createdAt])
 }
+
 
 model DisasterMap {
   id          String         @id @default(cuid())
@@ -418,7 +429,13 @@ model Report {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   user         User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
 }
+
 
 model AboutPage {
   id                      String   @id @default(cuid())
@@ -639,7 +656,14 @@ model Transaction {
   isCancelled       Boolean           @default(false)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([driverId])
+  @@index([status])
+  @@index([typeId])
+  @@index([createdAt])
 }
+
 
 model Cedula {
   id             String      @id @default(cuid())

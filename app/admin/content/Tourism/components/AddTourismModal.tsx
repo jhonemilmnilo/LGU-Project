@@ -55,7 +55,7 @@ export function AddTourismModal() {
             <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] p-0 gap-0 shadow-2xl rounded-2xl">
                 <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-10 border-b border-slate-200 dark:border-[#2a3040]">
                     <div className="flex items-center space-x-3 mb-1">
-                        <div className="p-2 bg-blue-600 rounded-lg">
+                        <div className="p-2 bg-primary rounded-lg">
                             <Camera className="w-5 h-5 text-white" />
                         </div>
                         <div>
@@ -73,7 +73,7 @@ export function AddTourismModal() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         {/* Left Column: Basic Info */}
                         <div className="space-y-6">
-                            <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 mb-2">
+                            <div className="flex items-center space-x-2 text-primary dark:text-primary mb-2">
                                 <Info className="w-4 h-4" />
                                 <h3 className="text-sm font-bold uppercase tracking-wider">General Information</h3>
                             </div>
@@ -85,7 +85,7 @@ export function AddTourismModal() {
                                     required
                                     defaultValue={editingData?.name || ""}
                                     placeholder="e.g. Umaguit Island Sunset"
-                                    className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
+                                    className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
 
@@ -104,7 +104,7 @@ export function AddTourismModal() {
 
                         {/* Right Column: Location & Image */}
                         <div className="space-y-6">
-                            <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 mb-2">
+                            <div className="flex items-center space-x-2 text-primary dark:text-primary mb-2">
                                 <MapPin className="w-4 h-4" />
                                 <h3 className="text-sm font-bold uppercase tracking-wider">Location & Media</h3>
                             </div>
@@ -141,7 +141,7 @@ export function AddTourismModal() {
                                     name="googleMapsUrl"
                                     defaultValue={editingData?.googleMapsUrl || ""}
                                     placeholder="https://goo.gl/maps/..."
-                                    className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
+                                    className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
                                 />
                             </div>
 
@@ -149,7 +149,7 @@ export function AddTourismModal() {
                                 <Label className="text-slate-700 dark:text-slate-300 font-bold">Image Upload</Label>
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="group relative h-48 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center"
+                                    className="group relative h-48 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center"
                                 >
                                     {imagePreview ? (
                                         <>
@@ -174,7 +174,7 @@ export function AddTourismModal() {
                                             </Button>
                                         </>
                                     ) : (
-                                        <div className="flex flex-col items-center text-slate-400 group-hover:text-blue-500 transition-colors">
+                                        <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors">
                                             <ImageIcon className="w-10 h-10 mb-2" />
                                             <p className="text-sm font-bold uppercase tracking-wide">Upload Photo</p>
                                             <p className="text-[10px]">JPG, PNG or WEBP (MAX 5MB)</p>
@@ -208,7 +208,7 @@ export function AddTourismModal() {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] order-1 sm:order-2 min-w-[160px]"
+                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] order-1 sm:order-2 min-w-[160px]"
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>

@@ -34,8 +34,8 @@ export function OfficialsCards() {
             title: "Total Council Members",
             value: totalOfficials,
             icon: Users,
-            color: "text-blue-600",
-            bg: "bg-blue-100 dark:bg-blue-900/20",
+            color: "text-primary",
+            bg: "bg-primary/10 dark:bg-primary/20",
         },
         {
             title: "Active Term",

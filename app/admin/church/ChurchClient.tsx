@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from "react";
 import {
-    Church, Download, Plus, Trash2, Calendar,
+    Download, Plus, Trash2, Calendar,
     TrendingUp, DollarSign, Clock, Users, FileText,
     MapPin, Globe, LayoutDashboard, History, CloudLightning, Pencil,
     Layers, Info
@@ -254,22 +254,15 @@ export default function ChurchClient({
             {/* Premium Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
-                        <Church size={12} className="text-blue-500" />
-                        <span className="opacity-50">/</span>
-                        <span>{info.name}</span>
-                        <span className="opacity-50">/</span>
-                        <span className="text-blue-600 dark:text-blue-400 font-bold">Management</span>
-                    </div>
                     <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic flex items-center">
                         {info.barangay ? (
                             <>
-                                <MapPin className="mr-3 text-blue-600 w-10 h-10" />
+                                <MapPin className="mr-3 w-10 h-10" style={{ color: 'var(--primary-theme)' }} />
                                 {info.barangay} Sector Records
                             </>
                         ) : (
                             <>
-                                <Globe className="mr-3 text-blue-600 w-10 h-10" />
+                                <Globe className="mr-3 w-10 h-10" style={{ color: 'var(--primary-theme)' }} />
                                 Mapandan Main Parish Hub
                             </>
                         )}
@@ -296,7 +289,7 @@ export default function ChurchClient({
                     </button>
                     <button
                         onClick={() => setIsScheduleModalOpen(true)}
-                        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black shadow-lg shadow-blue-500/30 transition-all select-none cursor-pointer uppercase text-xs"
+                        className="flex items-center space-x-2 bg-primary hover:bg-primary/90 text-white px-5 py-3 rounded-2xl font-black shadow-lg shadow-primary/30 transition-all select-none cursor-pointer uppercase text-xs"
                     >
                         <Calendar size={18} />
                         <span>Add Schedule</span>

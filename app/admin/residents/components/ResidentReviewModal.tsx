@@ -424,7 +424,7 @@ export function ResidentReviewModal({ resident, isOpen, onClose }: ResidentRevie
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 shadow-md"
                                 title="Rotate Image 90 degrees"
                             >
-                                <RotateCw className="w-3.5 h-3.5 text-blue-400" />
+                                <RotateCw className="w-3.5 h-3.5 text-primary" />
                                 Rotate 90°
                             </button>
 

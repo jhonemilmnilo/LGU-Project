@@ -1911,25 +1911,13 @@ export async function getTreasuryTransactions(status?: string) {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user))) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
             return { success: false, error: "Forbidden" };
         }
 
         const where: any = {
             type: { processorRole: "TREASURY_STAFF" }
         };
-
-        if (isUserAdminAide(user)) {
-            where.type = {
-                processorRole: "TREASURY_STAFF",
-                code: { startsWith: "BUSINESS_PERMIT" }
-            };
-            if (!status || status === "ALL") {
-                where.status = { in: ["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED", "RELEASED", "DELIVERED", "REJECTED"] };
-            } else {
-                where.status = status;
-            }
-        }
 
         if (status && status !== "ALL") {
             if (status === "CANCELLED") {
@@ -1945,19 +1933,17 @@ export async function getTreasuryTransactions(status?: string) {
 
         // TREASURY_STAFF should not see Business Permits in pre-screening/processing/release stages,
         // and should NEVER see any RETURN/REFUND/DISPUTE transactions (exclusively handled by BPLO Admin)
-        if (user.role === "TREASURY_STAFF") {
-            where.NOT = [
-                {
-                    AND: [
-                        { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                        { status: { in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "RELEASED", "REJECTED"] } }
-                    ]
-                },
-                {
-                    status: { in: ["RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED"] as any }
-                }
-            ];
-        }
+        where.NOT = [
+            {
+                AND: [
+                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                    { status: { in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "RELEASED", "REJECTED"] } }
+                ]
+            },
+            {
+                status: { in: ["RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED"] as any }
+            }
+        ];
 
         const transactions = await prisma.transaction.findMany({
             where,
@@ -1999,31 +1985,21 @@ export async function getTreasuryTransactions(status?: string) {
  */
 export async function getPendingTreasuryCount() {
     try {
-        const session = await getSession();
-        const user = session?.user as any;
+        await getSession();
 
         const where: any = {
             type: { processorRole: "TREASURY_STAFF" },
-            status: { in: ["FOR_REQUESTING", "FOR_INSPECTION", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any } // Needs evaluation or Needs release/claim/processing
+            status: { in: ["FOR_REQUESTING", "PAID", "FOR_CLAIM", "FOR_PROCESSING"] as any },
+            isCancelled: false
         };
 
-        if (isUserAdminAide(user)) {
-            where.type = {
-                processorRole: "TREASURY_STAFF",
-                code: { startsWith: "BUSINESS_PERMIT" }
-            };
-            where.status = "FOR_INSPECTION";
-        }
-
         // TREASURY_STAFF should not count Business Permits in pre-screening status
-        if (user?.role === "TREASURY_STAFF") {
-            where.NOT = {
-                AND: [
-                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_INSPECTION"] } }
-                ]
-            };
-        }
+        where.NOT = {
+            AND: [
+                { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                { status: { in: ["FOR_INSPECTION"] } }
+            ]
+        };
 
         const count = await prisma.transaction.count({
             where
@@ -2042,7 +2018,7 @@ export async function getTreasuryStatusCounts() {
     try {
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user))) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN")) {
             return { success: false, error: "Forbidden", data: {} };
         }
 
@@ -2052,22 +2028,12 @@ export async function getTreasuryStatusCounts() {
             isCancelled: false
         };
 
-        if (isUserAdminAide(user)) {
-            where.type = {
-                processorRole: "TREASURY_STAFF",
-                code: { startsWith: "BUSINESS_PERMIT" }
-            };
-            where.status = "FOR_INSPECTION";
-        }
-
-        if (user.role === "TREASURY_STAFF") {
-            where.NOT = {
-                AND: [
-                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_INSPECTION"] } }
-                ]
-            };
-        }
+        where.NOT = {
+            AND: [
+                { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                { status: { in: ["FOR_INSPECTION"] } }
+            ]
+        };
 
         const grouped = await prisma.transaction.groupBy({
             by: ["status"],
@@ -2081,22 +2047,12 @@ export async function getTreasuryStatusCounts() {
             isCancelled: true
         };
 
-        if (isUserAdminAide(user)) {
-            cancelledWhere.type = {
-                processorRole: "TREASURY_STAFF",
-                code: { startsWith: "BUSINESS_PERMIT" }
-            };
-            cancelledWhere.status = "FOR_INSPECTION";
-        }
-
-        if (user.role === "TREASURY_STAFF") {
-            cancelledWhere.NOT = {
-                AND: [
-                    { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_INSPECTION"] } }
-                ]
-            };
-        }
+        cancelledWhere.NOT = {
+            AND: [
+                { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
+                { status: { in: ["FOR_INSPECTION"] } }
+            ]
+        };
 
         const cancelledCount = await prisma.transaction.count({
             where: cancelledWhere
@@ -2114,6 +2070,137 @@ export async function getTreasuryStatusCounts() {
         return { success: false, error: "Failed to fetch counts", data: {} };
     }
 }
+
+/**
+ * Fetch all transactions relevant to BPLO (Business Permits)
+ */
+export async function getBploTransactions(status?: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ADMIN" && !isUserAdminAide(user))) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const where: any = {
+            type: { 
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            }
+        };
+
+        if (status && status !== "ALL") {
+            if (status === "CANCELLED") {
+                where.isCancelled = true;
+            } else if (status === "PAID") {
+                where.status = "PAID" as any;
+                where.isCancelled = false;
+            } else {
+                where.status = status;
+                where.isCancelled = false;
+            }
+        } else {
+            // Default statuses BPLO can handle/see
+            where.status = { 
+                in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED", "RELEASED", "DELIVERED", "REJECTED"] 
+            };
+            where.isCancelled = false;
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where,
+            include: {
+                user: true,
+                type: true,
+                cedula: true,
+                businessPermit: true
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return { success: true, data: transactions as any[] };
+    } catch (error) {
+        console.error("Fetch BPLO transactions error:", error);
+        return { success: false, error: "Failed to fetch BPLO transactions" };
+    }
+}
+
+/**
+ * Get count of transactions needing BPLO attention (Pending Inspection/Re-inspection & disputes)
+ */
+export async function getPendingBploCount() {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ADMIN" && !isUserAdminAide(user))) {
+            return { success: false, count: 0 };
+        }
+
+        const where: any = {
+            type: { 
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            },
+            status: { in: ["FOR_INSPECTION", "FOR_REINSPECTION", "RETURN_REQUESTED", "REFUND_REQUESTED"] as any },
+            isCancelled: false
+        };
+
+        const count = await prisma.transaction.count({ where });
+        return { success: true, count };
+    } catch (error) {
+        console.error("Fetch pending BPLO count error:", error);
+        return { success: false, count: 0 };
+    }
+}
+
+/**
+ * Fetch counts per status for BPLO transactions
+ */
+export async function getBploStatusCounts() {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ADMIN" && !isUserAdminAide(user))) {
+            return { success: false, error: "Forbidden", data: {} };
+        }
+
+        const where: any = {
+            type: { 
+                processorRole: "TREASURY_STAFF",
+                code: { startsWith: "BUSINESS_PERMIT" }
+            },
+            isCancelled: false
+        };
+
+        const grouped = await prisma.transaction.groupBy({
+            by: ["status"],
+            where,
+            _count: { _all: true }
+        });
+
+        const cancelledCount = await prisma.transaction.count({
+            where: {
+                type: { 
+                    processorRole: "TREASURY_STAFF",
+                    code: { startsWith: "BUSINESS_PERMIT" }
+                },
+                isCancelled: true
+            }
+        });
+
+        const counts: Record<string, number> = {};
+        for (const group of grouped) {
+            counts[group.status] = group._count?._all ?? 0;
+        }
+        counts["CANCELLED"] = cancelledCount;
+
+        return { success: true, data: counts };
+    } catch (error) {
+        console.error("Fetch BPLO status counts error:", error);
+        return { success: false, error: "Failed to fetch BPLO counts", data: {} };
+    }
+}
+
 
 /**
  * Reject a transaction (Treasury/Admin side)
@@ -3460,6 +3547,43 @@ export async function declinePaymentProofAction(id: string, reason: string) {
         return { success: false, error: "Failed to decline payment proof" };
     }
 }
+
+/**
+ * Create logistics configuration for a new Barangay node
+ */
+export async function createBarangayLogistics(name: string, data: { deliveryFee: number, isLogisticsActive: boolean, estimatedDeliveryDays: number }) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || user.role !== "ADMIN") {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const existing = await prisma.barangayInfo.findUnique({
+            where: { name }
+        });
+
+        if (existing) {
+            return { success: false, error: "Barangay node already exists" };
+        }
+
+        const created = await prisma.barangayInfo.create({
+            data: {
+                name,
+                deliveryFee: data.deliveryFee,
+                isLogisticsActive: data.isLogisticsActive,
+                estimatedDeliveryDays: data.estimatedDeliveryDays
+            }
+        });
+
+        revalidatePath("/admin/logistics");
+        return { success: true, data: created };
+    } catch (error: any) {
+        console.error("Error creating logistics:", error);
+        return { success: false, error: error?.message || "Failed to create barangay logistics node" };
+    }
+}
+
 
 
 

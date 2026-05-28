@@ -33,6 +33,8 @@ import { getMultipleSystemSettings } from "@/lib/settings";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+
 // import { ensureBusinessPermitTransactionTypes, ensureCivilRegistryTransactionTypes, ensureBuildingPermitTransactionTypes } from "@/app/admin/transactions/actions";
 
 
@@ -66,10 +68,14 @@ export default async function Home({
     const session = await getServerSession(authOptions);
     const role = (session?.user as { role?: string })?.role;
 
-    // Completely block any Admin/Content Admin from the landing page.
-    if (session && role && role !== "USER") {
+    const cookieStore = await cookies();
+    const activePortal = cookieStore.get("active_portal")?.value;
+
+    // Completely block any Admin/Content Admin from the landing page unless they chose Citizen view
+    if (session && role && role !== "USER" && activePortal !== "citizen") {
         redirect("/admin/dashboard");
     }
+
 
     // 0. Cinematic Delay - specifically for seeing the full animation as requested
     await new Promise(resolve => setTimeout(resolve, 1000));

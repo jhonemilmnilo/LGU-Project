@@ -465,6 +465,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }, [id]);
 
     useEffect(() => {
+        if (!session) return;
+        const role = (session?.user as any)?.role;
+        const dept = (session?.user as any)?.department;
+        if (role === "ADMIN" && dept?.toUpperCase() === "BPLO") {
+            router.push(`/admin/bplo/${id}`);
+        }
+    }, [session, id, router]);
+
+    useEffect(() => {
         fetchTransaction();
 
         // Fetch theme color

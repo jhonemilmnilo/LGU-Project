@@ -87,7 +87,7 @@ export function CameraCapture({ isOpen, onClose, onCapture, title = "Capture Pho
                             
                             <button 
                                 onClick={capture}
-                                className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                                className="h-16 w-16 bg-primary rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl hover:scale-105 active:scale-95 transition-all"
                             >
                                 <div className="h-12 w-12 rounded-full border-2 border-white/50" />
                             </button>

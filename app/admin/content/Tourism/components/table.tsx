@@ -79,13 +79,13 @@ export function TourismTable() {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{item.name}</p>
+                                            <p className="font-bold text-slate-900 dark:text-white text-base leading-tight group-hover:text-primary dark:group-hover:text-primary transition-colors uppercase">{item.name}</p>
                                         </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center text-slate-600 dark:text-slate-400 text-xs">
-                                        <MapPin className="w-3 h-3 mr-1.5 text-blue-500" />
+                                        <MapPin className="w-3 h-3 mr-1.5 text-primary" />
                                         <span className="truncate max-w-[200px]">{item.address}</span>
                                     </div>
                                 </TableCell>
@@ -142,7 +142,7 @@ export function TourismTable() {
                                                         window.open(url as string, "_blank");
                                                     }}
                                                 >
-                                                    <MapIcon className="w-4 h-4 mr-2 text-blue-500" /> Open in Maps
+                                                    <MapIcon className="w-4 h-4 mr-2 text-primary" /> Open in Maps
                                                 </DropdownMenuItem>
                                             )}
 

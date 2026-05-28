@@ -45,22 +45,32 @@ function LocateMeControl({ onLocationFound }: { onLocationFound: (pos: [number, 
 function AutoFitBound({ geoJson }: { geoJson: GeoJSONFeature }) {
     const map = useMap();
     useEffect(() => {
+        let timerId: NodeJS.Timeout | undefined;
         if (geoJson) {
             try {
                 const bbox = turf.bbox(geoJson as any);
                 const bounds = L.latLngBounds([bbox[1], bbox[0]], [bbox[3], bbox[2]]);
                 map.fitBounds(bounds, { padding: [0, 0] });
                 // Force an extra zoom in for a tighter view
-                setTimeout(() => {
-                    map.setZoom(map.getZoom() + 2);
+                timerId = setTimeout(() => {
+                    // Check if map is still active to avoid leaflet unmounted state errors
+                    if (map && (map as any)._loaded) {
+                        map.setZoom(map.getZoom() + 2);
+                    }
                 }, 300);
             } catch (e) {
                 console.error("Error fitting bounds", e);
             }
         }
+        return () => {
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+        };
     }, [map, geoJson]);
     return null;
 }
+
 
 
 export default function MapandanMap() {

@@ -18,6 +18,11 @@ export default async function AdminDashboard(props: { searchParams: Promise<{ ba
         redirect("/admin/treasury");
     }
 
+    // Redirect BPLO Admin directly to their permits hub
+    if (user?.role === "ADMIN" && user?.department?.toUpperCase() === "BPLO") {
+        redirect("/admin/bplo");
+    }
+
     // Redirect Engineer to their Building Permit hub
     if (user?.role === "ENGINEER") {
         redirect("/admin/engineer");

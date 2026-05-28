@@ -84,7 +84,7 @@ export function AddProjectModal() {
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-blue-600 rounded-lg">
+                            <div className="p-2 bg-primary rounded-lg">
                                 <FolderKanban className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -106,8 +106,8 @@ export function AddProjectModal() {
                                 <div
                                     className={`relative group flex justify-center items-center w-full h-48 sm:h-64 rounded-2xl border-2 border-dashed transition-all duration-200 overflow-hidden cursor-pointer
                                 ${imagePreview
-                                            ? "border-blue-500/50 bg-blue-500/5 block"
-                                            : "border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex"}`}
+                                            ? "border-primary/50 bg-primary/5 block"
+                                            : "border-slate-300 dark:border-slate-700 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 flex"}`}
                                     onClick={() => !imagePreview && fileInputRef.current?.click()}
                                 >
                                     <Input
@@ -142,8 +142,8 @@ export function AddProjectModal() {
                                         </>
                                     ) : (
                                         <div className="text-center p-6 flex flex-col items-center">
-                                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                <ImageIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                            <div className="w-12 h-12 bg-primary/10 dark:bg-primary/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                                <ImageIcon className="w-6 h-6 text-primary dark:text-primary" />
                                             </div>
                                             <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Click to upload image</p>
                                             <p className="text-xs text-slate-500">SVG, PNG, JPG or GIF (max. 5MB)</p>
@@ -163,7 +163,7 @@ export function AddProjectModal() {
                                         required
                                         defaultValue={editingData?.title ?? ""}
                                         placeholder=""
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-blue-500/20"
+                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
                                     />
                                 </div>
 
@@ -284,7 +284,7 @@ export function AddProjectModal() {
                             type="submit"
                             form="projectForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>

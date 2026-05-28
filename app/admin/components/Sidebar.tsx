@@ -56,7 +56,12 @@ export function Sidebar({
     const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
+    const [mounted, setMounted] = React.useState(false);
     const { theme, setTheme } = useTheme();
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -132,6 +137,7 @@ export function Sidebar({
                 { href: "/admin/treasury?category=Building Permit", label: "Building Permit" },
             ]
         },
+        { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" },
         { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Treasury" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
     ];
@@ -176,8 +182,7 @@ export function Sidebar({
     if (role === "ADMIN" && department) {
         if (department.toUpperCase() === "BPLO") {
             menuItems = [
-                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-                { href: "/admin/treasury", label: "Business Permit", icon: CreditCard, category: "Treasury" }
+                { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
             ];
         } else {
             menuItems = [
@@ -188,8 +193,10 @@ export function Sidebar({
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
-    } else if (role === "TREASURY_STAFF" || role === "ADMIN_AIDE") {
+    } else if (role === "TREASURY_STAFF") {
         menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payment Settings"].includes(item.label));
+    } else if (role === "ADMIN_AIDE") {
+        menuItems = allMenuItems.filter(item => ["BPLO Permits"].includes(item.label));
     } else if (role === "ENGINEER") {
         menuItems = [{ href: "/admin/engineer", label: "Engineer Hub", icon: HardHat, category: "Engineering" }];
     }
@@ -429,7 +436,13 @@ export function Sidebar({
                                     className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                     title="Toggle Theme"
                                 >
-                                    {theme === "dark" ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
+                                    {!mounted ? (
+                                        <div className="w-[18px] h-[18px]" />
+                                    ) : theme === "dark" ? (
+                                        <Sun size={18} className="text-amber-400" />
+                                    ) : (
+                                        <Moon size={18} />
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => signOut({ callbackUrl: window.location.origin + "/auth/login" })}
