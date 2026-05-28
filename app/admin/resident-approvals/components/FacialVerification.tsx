@@ -287,10 +287,10 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                 <div className="relative aspect-square flex items-center justify-center bg-black overflow-hidden group">
                     {showGuide && (
                         <div className="absolute inset-0 z-50 bg-[#0f1117] p-8 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-300">
-                            <ShieldAlert className="w-16 h-16 text-blue-500 mb-6" />
+                            <ShieldAlert className="w-16 h-16 text-primary mb-6" />
                             <h2 className="text-xl font-black italic uppercase tracking-tighter text-white mb-2">Pro-Level Scan</h2>
                             <p className="text-slate-400 text-sm font-medium mb-8 max-w-xs">Using Google&apos;s Mediapipe Elite engine for 100% accuracy.</p>
-                            <Button onClick={() => setShowGuide(false)} className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase italic">I AM READY</Button>
+                            <Button onClick={() => setShowGuide(false)} className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase italic">I AM READY</Button>
                         </div>
                     )}
 
@@ -306,22 +306,22 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                                 onUserMediaError={handleWebcamError}
                             />
                             {/* Face Guideline Oval */}
-                            <div className={`absolute inset-0 border-[10px] ${step === "COMPLETED" ? 'border-green-500/50' : 'border-blue-500/10'} pointer-events-none transition-colors duration-500`}>
+                            <div className={`absolute inset-0 border-[10px] ${step === "COMPLETED" ? 'border-green-500/50' : 'border-primary/10'} pointer-events-none transition-colors duration-500`}>
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 border-2 border-white/30 rounded-[100px]">
-                                    {step !== "COMPLETED" && <div className="absolute inset-0 border-2 border-dashed border-blue-400/50 rounded-[100px] animate-pulse" />}
+                                    {step !== "COMPLETED" && <div className="absolute inset-0 border-2 border-dashed border-primary/50 rounded-[100px] animate-pulse" />}
                                 </div>
                             </div>
                         </>
                     ) : (
                         <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
-                            <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+                            <Loader2 className="w-12 h-12 text-primary animate-spin" />
                             <p className="text-white font-bold uppercase tracking-widest text-xs animate-pulse">Igniting Mediapipe Engine...</p>
                         </div>
                     )}
 
                     {!showGuide && (
                         <div className="absolute bottom-6 left-6 right-6 p-4 bg-transparent flex flex-col items-center animate-in slide-in-from-bottom-4">
-                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1 font-mono">NEURAL STATUS: OK</span>
+                            <span className="text-[10px] font-black text-primary uppercase tracking-widest mb-1 font-mono">NEURAL STATUS: OK</span>
                             <h3 className="text-white text-lg font-black uppercase italic tracking-tighter text-center">
                                 {step === "NEUTRAL" && "Center your high-def face"}
                                 {step === "BLINK" && "Give us a snappy BLINK"}
@@ -347,7 +347,7 @@ export function FacialVerification({ isOpen, onClose, onVerified }: FacialVerifi
                     </div>
                     <div className="flex gap-3">
                         <Button variant="outline" onClick={onClose} className="flex-1 h-12 rounded-xl bg-white/5 border-white/10 text-white font-bold hover:bg-white/10">Cancel</Button>
-                        <Button onClick={resetVerification} className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Hard Reset</Button>
+                        <Button onClick={resetVerification} className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Hard Reset</Button>
                     </div>
                 </div>
             </DialogContent>
