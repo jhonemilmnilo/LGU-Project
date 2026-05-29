@@ -388,7 +388,7 @@ export async function ensureCivilRegistryTransactionTypes() {
                 baseFee: 150.00,
                 deliveryFee: 100.00,
                 isFixed: true,
-                requiredDocs: ["Valid ID of Applicant", "Proof of Relationship"],
+                requiredDocs: ["Valid ID of Applicant"],
                 formSchema: {
                     type: "CIVIL_REGISTRY",
                     registryType: "DEATH",
@@ -1735,6 +1735,36 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                                 });
                             } catch (createErr) {
                                 console.error("Failed to create BirthCertificateRequest:", createErr);
+                            }
+                        }
+                    }
+                } else if (typeCode === "LCR_DEATH") {
+                    const dcrExisting = (transaction as any).deathCertificateRequest;
+                    if (!dcrExisting && targetStatus === "RELEASED") {
+                        const src: any = additionalData || {};
+                        const subjectName = src.subjectName || src.fullName || null;
+                        const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
+                        const placeOfEvent = src.placeOfEvent || null;
+
+                        if (subjectName && dateOfEvent && placeOfEvent) {
+                            const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-DEATH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                            try {
+                                await prisma.deathCertificateRequest.create({
+                                    data: {
+                                        transactionId: id,
+                                        registryNumber: generatedRegistryNumber,
+                                        subjectName: subjectName,
+                                        dateOfEvent: dateOfEvent,
+                                        placeOfEvent: placeOfEvent,
+                                        fatherName: src.fatherName || src.father || null,
+                                        motherName: src.motherName || src.mother || null,
+                                        issuedBy: user.name || "System Administrator",
+                                        documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                        verificationId: `VER-DCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                                    }
+                                });
+                            } catch (createErr) {
+                                console.error("Failed to create DeathCertificateRequest:", createErr);
                             }
                         }
                     }
