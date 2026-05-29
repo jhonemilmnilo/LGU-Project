@@ -917,8 +917,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ];
         const getBuildingStepIndex = (status: string) => {
             if (status === "EVALUATED") return 0; // EVALUATION
-            if (status === "UNPAID" || status === "PAID") return 1; // ASSESSMENT (Includes PAID phase)
-            return 2; // PAYMENT HISTORY (FOR_PROCESSING, FOR_CLAIM, FOR_PICKING, RELEASED)
+            if (status === "UNPAID") return 1; // ASSESSMENT
+            return 3; // PAYMENT HISTORY and everything else is fully verified/checked
         };
         currentStepIdx = showPaymentHistoryOverride ? 2 : getBuildingStepIndex(transaction.status);
     }
@@ -1168,6 +1168,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) {
                 toast.success("Payment proof declined successfully.");
                 setRemarks("");
+                setIsRequestingRevision(false);
                 fetchTransaction();
             } else {
                 toast.error(res.error || "Failed to decline payment proof");

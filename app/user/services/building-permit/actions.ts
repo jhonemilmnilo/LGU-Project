@@ -264,6 +264,8 @@ export async function submitBuildingPermitPaymentProof(transactionId: string, fo
       return { success: false, error: "No file provided" };
     }
 
+    const gcashRefNo = formData.get("gcashReferenceNo") as string;
+
     const timestamp = Date.now();
     const path = `building-permits/${userId}/payments/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     const paymentProofUrl = await uploadFile(file, path);
@@ -272,12 +274,18 @@ export async function submitBuildingPermitPaymentProof(transactionId: string, fo
       return { success: false, error: "Failed to upload payment proof" };
     }
 
+    const currentAdditionalData = (transaction.additionalData as any) || {};
+
     // Clear rejection remarks if any, set payment reference
     const updatedTransaction = await prisma.transaction.update({
       where: { id: transactionId },
       data: {
         paymentReference: paymentProofUrl,
         rejectionRemarks: null, // Clear out the revision requirement!
+        additionalData: {
+          ...currentAdditionalData,
+          gcashReferenceNo: gcashRefNo || currentAdditionalData.gcashReferenceNo || null
+        },
         updatedAt: new Date()
       }
     });
@@ -288,5 +296,40 @@ export async function submitBuildingPermitPaymentProof(transactionId: string, fo
   } catch (error) {
     console.error("Payment Proof Upload Error:", error);
     return { success: false, error: "Failed to upload payment proof" };
+  }
+}
+
+export async function submitClearancesForReviewAction(transactionId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId }
+    });
+
+    if (!transaction || transaction.userId !== userId) {
+      return { success: false, error: "Transaction not found" };
+    }
+
+    const currentAdditionalData = (transaction.additionalData as any) || {};
+
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        additionalData: {
+          ...currentAdditionalData,
+          clearancesSubmitted: true
+        }
+      }
+    });
+
+    revalidatePath("/user/services/building-permit");
+    revalidatePath("/admin/engineering");
+    return { success: true };
+  } catch (error) {
+    console.error("Submit Clearances Error:", error);
+    return { success: false, error: "Failed to submit clearances" };
   }
 }

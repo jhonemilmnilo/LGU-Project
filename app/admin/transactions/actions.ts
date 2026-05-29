@@ -3394,6 +3394,7 @@ export async function reviseBuildingPermitClearancesAction(id: string, reason: s
             ...currentAdditionalData,
             bfpClearanceUrl: null,
             zoningClearanceUrl: null,
+            clearancesSubmitted: false,
             clearanceRevisionReason: reason,
             clearanceRevisionCount: nextClearanceRevisionCount
         };

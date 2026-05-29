@@ -670,6 +670,13 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
 
                                         {userRole === "ENGINEER" && (
                                             <div className="pt-2 space-y-3">
+                                                {(transaction.additionalData?.clearanceRevisionCount || 0) > 0 && (
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <Badge variant="outline" className="border-amber-500/30 text-amber-500 bg-amber-500/5 text-[9px] uppercase font-bold tracking-widest">
+                                                            Revision Count: {transaction.additionalData.clearanceRevisionCount} / 3
+                                                        </Badge>
+                                                    </div>
+                                                )}
                                                 <Button
                                                     onClick={handleApprove}
                                                     disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl || !transaction.additionalData?.zoningClearanceUrl}
@@ -683,7 +690,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                                         onClick={() => { setReasonText(""); setReviseModalOpen(true); }}
                                                         disabled={actionLoading}
                                                         variant="outline"
-                                                        className="w-full h-12 rounded-xl border-amber-500/50 text-amber-500 hover:bg-amber-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
+                                                        className="flex-1 h-12 rounded-xl border-amber-500/50 text-amber-500 hover:bg-amber-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
                                                     >
                                                         <RefreshCw className="w-3.5 h-3.5 mr-2" /> Revise Clearances
                                                     </Button>
@@ -691,7 +698,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                                         onClick={() => { setReasonText(""); setDeclineModalOpen(true); }}
                                                         disabled={actionLoading}
                                                         variant="outline"
-                                                        className="w-full h-12 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
+                                                        className="flex-1 h-12 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
                                                     >
                                                         <FileWarning className="w-3.5 h-3.5 mr-2" /> Decline Permit
                                                     </Button>

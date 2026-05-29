@@ -32,7 +32,8 @@ import {
   Scale,
   Hourglass,
   Receipt,
-  Check
+  Check,
+  Hash
 } from "lucide-react";
 
 import {
@@ -63,11 +64,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getCurrentUserResident, cancelTransaction, uploadECopyAction, saveBfpClearanceProofAction, saveZoningClearanceProofAction } from "@/app/admin/transactions/actions";
-import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits, resubmitBuildingPermit, submitBuildingPermitPaymentProof } from "./actions";
+import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits, resubmitBuildingPermit, submitBuildingPermitPaymentProof, submitClearancesForReviewAction } from "./actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const STEPS = [
@@ -92,6 +94,7 @@ export default function BuildingPermitPage() {
   const [isRevision, setIsRevision] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentPreviewUrl, setPaymentPreviewUrl] = useState<string | null>(null);
+  const [gcashReferenceNo, setGcashReferenceNo] = useState("");
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
   const isEditable = !selectedApplication || isRevision;
@@ -202,6 +205,14 @@ export default function BuildingPermitPage() {
     }
   }, [selectedApplication]);
 
+  const handleOpenPaymentModal = (application: any) => {
+    setSelectedApplication(application);
+    setPaymentFile(null);
+    setPaymentPreviewUrl(null);
+    setGcashReferenceNo(application.additionalData?.gcashReferenceNo || "");
+    setIsPaymentModalOpen(true);
+  };
+
   const handleUploadBfpClearance = async (file: File | null) => {
     if (!file || !selectedApplication) return;
     const toastId = toast.loading("Uploading BFP Clearance Proof...");
@@ -275,12 +286,16 @@ export default function BuildingPermitPage() {
     try {
       const formData = new FormData();
       formData.append("paymentFile", paymentFile);
+      if (gcashReferenceNo) {
+        formData.append("gcashReferenceNo", gcashReferenceNo.trim());
+      }
       const res = await submitBuildingPermitPaymentProof(selectedApplication.id, formData);
       if (res.success) {
         toast.success("Payment Receipt uploaded successfully! Waiting for Treasury verification.", { id: toastId });
         setIsPaymentModalOpen(false);
         setPaymentFile(null);
         setPaymentPreviewUrl(null);
+        setGcashReferenceNo("");
         
         // Refresh application data
         const appsRes = await getExistingBuildingPermits();
@@ -2020,9 +2035,17 @@ export default function BuildingPermitPage() {
                       </p>
 
                       {selectedApplication?.additionalData?.bfpClearanceUrl ? (
-                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm">
+                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm group">
                            <img src={selectedApplication.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
-                           {/* Read-only viewing once uploaded */}
+                           {selectedApplication.status === "PAID" && !selectedApplication.additionalData?.clearancesSubmitted && (
+                             <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+                               <div className="flex flex-col items-center text-white">
+                                 <UploadCloud className="w-8 h-8 mb-2" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest">Change Image</span>
+                               </div>
+                               <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
+                             </label>
+                           )}
                         </div>
                       ) : (
                         <label className="flex flex-col items-center justify-center gap-2 aspect-[21/6] rounded-xl border-2 border-dashed border-purple-500/20 hover:border-purple-500/40 bg-purple-500/[0.02] cursor-pointer group transition-all">
@@ -2052,9 +2075,17 @@ export default function BuildingPermitPage() {
                       </p>
 
                       {selectedApplication?.additionalData?.zoningClearanceUrl ? (
-                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm">
+                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm group">
                            <img src={selectedApplication.additionalData.zoningClearanceUrl} alt="Zoning Clearance" className="object-cover w-full h-full" />
-                           {/* Read-only viewing once uploaded */}
+                           {selectedApplication.status === "PAID" && !selectedApplication.additionalData?.clearancesSubmitted && (
+                             <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+                               <div className="flex flex-col items-center text-white">
+                                 <UploadCloud className="w-8 h-8 mb-2" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest">Change Image</span>
+                               </div>
+                               <input type="file" onChange={(e) => handleUploadZoningClearance(e.target.files?.[0] || null)} className="hidden" />
+                             </label>
+                           )}
                         </div>
                       ) : (
                         <label className="flex flex-col items-center justify-center gap-2 aspect-[21/6] rounded-xl border-2 border-dashed border-blue-500/20 hover:border-blue-500/40 bg-blue-500/[0.02] cursor-pointer group transition-all">
@@ -2064,6 +2095,53 @@ export default function BuildingPermitPage() {
                         </label>
                       )}
                     </div>
+
+                    {/* Submit Clearances Button */}
+                    {selectedApplication?.status === "PAID" && 
+                     selectedApplication?.additionalData?.bfpClearanceUrl && 
+                     selectedApplication?.additionalData?.zoningClearanceUrl && (
+                      <div className="pt-4 flex flex-col items-center gap-3">
+                        {selectedApplication.additionalData?.clearancesSubmitted ? (
+                          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-6 py-4 rounded-2xl w-full text-center flex items-center justify-center gap-3 animate-in zoom-in duration-300">
+                            <CheckCircle2 className="w-5 h-5" />
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-widest italic">Clearances Submitted</p>
+                              <p className="text-[10px] font-medium mt-1 text-emerald-600/70 dark:text-emerald-400/70">Wait for the Engineer to verify your documents</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            disabled={isSubmitting}
+                            onClick={async () => {
+                              setIsSubmitting(true);
+                              const toastId = toast.loading("Submitting clearances...");
+                              try {
+                                const res = await submitClearancesForReviewAction(selectedApplication.id);
+                                if (res.success) {
+                                  toast.success("Clearances submitted to Engineering!", { id: toastId });
+                                  const refreshRes = await getExistingBuildingPermits();
+                                  if (refreshRes.success && refreshRes.data) {
+                                    setExistingApplications(refreshRes.data);
+                                    const updated = refreshRes.data.find((a: any) => a.id === selectedApplication.id);
+                                    if (updated) setSelectedApplication(updated);
+                                  }
+                                } else {
+                                  toast.error(res.error || "Submission failed", { id: toastId });
+                                }
+                              } catch (e) {
+                                toast.error("An error occurred", { id: toastId });
+                              } finally {
+                                setIsSubmitting(false);
+                              }
+                            }}
+                            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <Upload className="w-4 h-4" />
+                            {isSubmitting ? "Submitting..." : "Submit Clearances for Review"}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2083,7 +2161,7 @@ export default function BuildingPermitPage() {
                <button 
                  disabled={
                    selectedApplication?.status === "UNPAID" ||
-                   (selectedApplication?.status === "PAID" && (!selectedApplication?.additionalData?.bfpClearanceUrl || !selectedApplication?.additionalData?.zoningClearanceUrl))
+                   selectedApplication?.status === "PAID"
                  }
                  onClick={() => {
                     setCurrentStep("SUBMIT");
@@ -2156,14 +2234,29 @@ export default function BuildingPermitPage() {
 
           <div className="space-y-6 py-6">
             {!paymentPreviewUrl ? (
-              <label className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl border-2 border-dashed border-emerald-500/20 hover:border-emerald-500/40 bg-emerald-500/[0.02] cursor-pointer group transition-all">
-                <UploadCloud className="w-10 h-10 text-emerald-400 group-hover:scale-110 transition-transform" />
-                <div className="text-center">
-                  <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 italic block">Select Image</span>
-                  <span className="text-[9px] text-slate-400 uppercase tracking-widest">JPG, PNG, PDF</span>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Hash className="w-3.5 h-3.5 text-primary" />
+                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Transaction Reference Number (Optional)</Label>
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="e.g. 5012 3456 78901 (GCash / Bank Transfer Ref No.)"
+                    value={gcashReferenceNo}
+                    onChange={(e) => setGcashReferenceNo(e.target.value)}
+                    className="h-10 md:h-12 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl font-bold italic text-[10px] md:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus-visible:ring-primary focus-visible:border-primary transition-all"
+                  />
                 </div>
-                <input type="file" accept="image/*,.pdf" onChange={handlePaymentFileSelect} className="hidden" />
-              </label>
+                <label className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl border-2 border-dashed border-emerald-500/20 hover:border-emerald-500/40 bg-emerald-500/[0.02] cursor-pointer group transition-all">
+                  <UploadCloud className="w-10 h-10 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center">
+                    <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 italic block">Select Image</span>
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest">JPG, PNG, PDF</span>
+                  </div>
+                  <input type="file" accept="image/*,.pdf" onChange={handlePaymentFileSelect} className="hidden" />
+                </label>
+              </div>
             ) : (
               <div className="space-y-4">
                 <div className="relative aspect-[3/4] md:aspect-square rounded-2xl overflow-hidden border-2 border-emerald-500/20 bg-slate-50 dark:bg-black/20">
