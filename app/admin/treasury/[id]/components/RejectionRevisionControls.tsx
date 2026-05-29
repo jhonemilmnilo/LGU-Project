@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import RejectionRevisionButtons from "./RejectionRevisionButtons";
 
 interface RejectionRevisionControlsProps {
     isRejecting: boolean;
@@ -34,28 +35,18 @@ export default function RejectionRevisionControls({
     return (
         <>
             {showButtons && (
-                <div className="flex gap-4 pt-4 border-t border-dashed border-slate-100 dark:border-white/5">
-                    <Button
-                        onClick={() => {
-                            setRemarks("");
-                            setIsRequestingRevision(true);
-                        }}
-                        disabled={actionLoading}
-                        className="flex-1 h-14 bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-amber-500/10 active:scale-95 transition-all"
-                    >
-                        Request Revision
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setRemarks("");
-                            setIsRejecting(true);
-                        }}
-                        disabled={actionLoading}
-                        className="flex-1 h-14 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/10 active:scale-95 transition-all"
-                    >
-                        Reject Application
-                    </Button>
-                </div>
+                <RejectionRevisionButtons 
+                    onReject={() => {
+                        setRemarks("");
+                        setIsRejecting(true);
+                    }}
+                    onRevision={() => {
+                        setRemarks("");
+                        setIsRequestingRevision(true);
+                    }}
+                    actionLoading={actionLoading}
+                    className="pt-4 border-t border-dashed border-slate-100 dark:border-white/5"
+                />
             )}
 
             {/* Rejection Modal */}
