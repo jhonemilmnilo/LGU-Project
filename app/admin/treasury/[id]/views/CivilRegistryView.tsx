@@ -434,6 +434,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url) ? (
                                                 <Dialog>
                                                     <DialogTrigger asChild>
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                         <img
                                                             src={doc.url}
                                                             alt={doc.label}
@@ -499,6 +500,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                             {snapshot.idFrontUrl ? (
                                                                 <Dialog>
                                                                     <DialogTrigger asChild>
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                         <img src={snapshot.idFrontUrl} alt="Previous ID Front" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
                                                                     </DialogTrigger>
                                                                     <LightboxView src={snapshot.idFrontUrl} alt="Previous ID Front" label="Previous ID Front" />
@@ -508,6 +510,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                             {snapshot.idBackUrl ? (
                                                                 <Dialog>
                                                                     <DialogTrigger asChild>
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                         <img src={snapshot.idBackUrl} alt="Previous ID Back" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
                                                                     </DialogTrigger>
                                                                     <LightboxView src={snapshot.idBackUrl} alt="Previous ID Back" label="Previous ID Back" />
@@ -524,6 +527,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                             {current.idFrontUrl ? (
                                                                 <Dialog>
                                                                     <DialogTrigger asChild>
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                         <img src={current.idFrontUrl} alt="Current ID Front" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
                                                                     </DialogTrigger>
                                                                     <LightboxView src={current.idFrontUrl} alt="Current ID Front" label="Current ID Front" />
@@ -533,6 +537,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                             {current.idBackUrl ? (
                                                                 <Dialog>
                                                                     <DialogTrigger asChild>
+                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                         <img src={current.idBackUrl} alt="Current ID Back" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
                                                                     </DialogTrigger>
                                                                     <LightboxView src={current.idBackUrl} alt="Current ID Back" label="Current ID Back" />

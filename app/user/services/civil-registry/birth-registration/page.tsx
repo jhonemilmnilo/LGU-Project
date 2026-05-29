@@ -262,7 +262,7 @@ export default function BirthRegistrationPage() {
                     miscFee: isLate ? prev.miscFee : 0
                 };
             });
-        } catch (e) {
+        } catch {
             // ignore
         }
     }, [form.dateOfEvent]);
@@ -505,7 +505,7 @@ export default function BirthRegistrationPage() {
             }));
 
             // Do not show toast here to avoid popping while typing; notify user when they proceed.
-        } catch (e) {
+        } catch {
             // Fallback to simple set
             setForm(prev => ({ ...prev, dateOfEvent: value }));
         }
@@ -1308,7 +1308,7 @@ export default function BirthRegistrationPage() {
                                                             toast.info("Registration set to LATE because date of birth is over 1 month old.");
                                                         }
                                                     }
-                                                } catch (e) {
+                                                } catch {
                                                     // ignore
                                                 }
                                                 setCurrentStep("PARENTS");
@@ -1499,7 +1499,7 @@ export default function BirthRegistrationPage() {
                                                                         return;
                                                                     }
                                                                 }
-                                                            } catch (e) {
+                                                            } catch {
                                                                 // ignore parse errors and allow change
                                                             }
                                                             setForm(prev => ({ ...prev, registrationType: "STANDARD", lateDuration: "", miscFee: 0 }));
