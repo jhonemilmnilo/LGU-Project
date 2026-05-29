@@ -79,4 +79,5 @@ export interface TreasuryViewProps {
     hasVerification: boolean;
     hasDispute: boolean;
     isRequirementsAlone: boolean;
+    handleViewFile?: (url: string | null, title: string) => void;
 }

@@ -1248,17 +1248,66 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         currentStepIdx,
         hasVerification,
         hasDispute,
-        isRequirementsAlone
+        isRequirementsAlone,
+        handleViewFile
     };
 
     if (isBusinessPermit) {
-        return <BusinessPermitView {...viewProps} />;
+        return (
+            <>
+                <BusinessPermitView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                />
+            </>
+        );
     }
     if (isBuildingPermit) {
-        return <BuildingPermitView {...viewProps} />;
+        return (
+            <>
+                <BuildingPermitView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                />
+            </>
+        );
     }
     if (isLCR) {
-        return <CivilRegistryView {...viewProps} />;
+        return (
+            <>
+                <CivilRegistryView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                />
+            </>
+        );
     }
-    return <GenericServiceView {...viewProps} />;
+    return (
+        <>
+            <GenericServiceView {...viewProps} />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={null}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor={themeColor}
+            />
+        </>
+    );
 }

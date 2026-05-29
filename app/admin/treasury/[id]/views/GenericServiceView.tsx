@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import LightboxView from "../components/LightboxView";
 import PrintWaybill from "../components/PrintWaybill";
@@ -27,7 +29,9 @@ import { cn } from "@/lib/utils";
 export default function GenericServiceView(props: TreasuryViewProps) {
     const {
         transaction,
-        userRole,
+        rawUserRole,
+        isTreasuryStaff,
+        isBPLOAdmin,
         isReadOnlyAide,
         backUrl,
         deliveryFee,
@@ -56,7 +60,21 @@ export default function GenericServiceView(props: TreasuryViewProps) {
         feeLineItems,
         addFeeLineItem,
         removeFeeLineItem,
-        updateFeeLineItem
+        updateFeeLineItem,
+        ctcNumber,
+        setCtcNumber,
+        stickerNumber,
+        setStickerNumber,
+        eCopyFile,
+        setECopyFile,
+        eCopyPreview,
+        orFile,
+        setOrFile,
+        orPreview,
+        handleRelease,
+        handlePrintWaybill,
+        userRole,
+        handleViewFile
     } = props;
 
     const isCedula = transaction.type?.code?.includes("CEDULA");
@@ -429,6 +447,204 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                 >
                                     Decline
                                 </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* INTERACTIVE RELEASE HUB FOR PROCESSING PHASES */}
+                    {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
+                        <div className="space-y-6">
+                            <div>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 block italic leading-none">Document Issuance</span>
+                                <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-800 dark:text-white mt-1">Fulfillment Actions</h3>
+                            </div>
+
+                            {/* Document Inputs Block */}
+                            <div className="space-y-4">
+                                {/* Official Receipt (OR) upload — Required only when status is PAID */}
+                                {transaction.status === "PAID" && (
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR) <span className="text-rose-500">*</span></Label>
+                                        <Input
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            onChange={(e) => setOrFile(e.target.files?.[0] || null)}
+                                            className="h-12 rounded-xl border-slate-100 dark:border-white/5 text-xs focus:ring-primary/10 dark:bg-slate-950 dark:text-white"
+                                        />
+                                        {(orPreview || transaction.orUrl) && (
+                                            <div className="mt-2">
+                                                {(() => {
+                                                    const isOrPdf = orFile 
+                                                        ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
+                                                        : (transaction.orUrl?.toLowerCase()?.includes(".pdf") || false);
+                                                    
+                                                    if (isOrPdf) {
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Receipt PDF")}
+                                                                className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                            >
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                        📕
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Official Receipt PDF</p>
+                                                                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="h-9 px-4 rounded-xl border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0">
+                                                                    Open PDF ➔
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Receipt Document")}
+                                                            className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
+                                                        >
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img 
+                                                                src={orPreview || transaction.orUrl} 
+                                                                alt="OR Preview" 
+                                                                className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                <div className="bg-white/10 dark:bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2 text-white font-black italic uppercase tracking-widest text-[9px]">
+                                                                    <span>🔍 View Fullscreen</span>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* CTC Serial Number input — Required when status is FOR_PROCESSING */}
+                                {transaction.status === "FOR_PROCESSING" && (
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Community Tax Certificate (CTC) Serial Number <span className="text-rose-500">*</span></Label>
+                                        <Input
+                                            value={ctcNumber}
+                                            onChange={(e) => setCtcNumber(e.target.value)}
+                                            placeholder="ENTER CTC SERIAL NUMBER..."
+                                            className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-950 dark:text-white uppercase"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* E-Copy document upload — Required when status is FOR_PROCESSING */}
+                                {transaction.status === "FOR_PROCESSING" && (
+                                    <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
+                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official E-Copy Document (PDF/Image) <span className="text-rose-500">*</span></Label>
+                                        <Input
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
+                                            className="h-12 rounded-xl border-slate-100 dark:border-white/5 text-xs focus:ring-primary/10 dark:bg-slate-950 dark:text-white"
+                                        />
+                                        {(eCopyPreview || transaction.eCopyUrl) && (
+                                            <div className="mt-2">
+                                                {(() => {
+                                                    const isECopyPdf = eCopyFile 
+                                                        ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
+                                                        : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
+                                                    
+                                                    if (isECopyPdf) {
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleViewFile?.(eCopyPreview || transaction.eCopyUrl, "Official E-Copy PDF")}
+                                                                className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                            >
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                        📕
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Official E-Copy PDF</p>
+                                                                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="h-9 px-4 rounded-xl border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0">
+                                                                    Open PDF ➔
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleViewFile?.(eCopyPreview || transaction.eCopyUrl, "Official E-Copy Document")}
+                                                            className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
+                                                        >
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img 
+                                                                src={eCopyPreview || transaction.eCopyUrl} 
+                                                                alt="E-Copy Preview" 
+                                                                className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                <div className="bg-white/10 dark:bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2 text-white font-black italic uppercase tracking-widest text-[9px]">
+                                                                    <span>🔍 View Fullscreen</span>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Control Actions */}
+                            <div className="space-y-3 pt-2">
+                                {/* Print Waybill for deliveries */}
+                                {transaction.fulfillmentType === "DELIVERY" && ["FOR_PROCESSING", "PAID", "FOR_PICKING"].includes(transaction.status) && (
+                                    <Button
+                                        onClick={handlePrintWaybill}
+                                        variant="outline"
+                                        className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                    >
+                                        Generate & Print Waybill
+                                    </Button>
+                                )}
+
+                                {transaction.status !== "FOR_PICKING" && transaction.status !== "FOR_CLAIM" ? (
+                                    <Button
+                                        onClick={handleRelease}
+                                        disabled={
+                                            actionLoading ||
+                                            (transaction.status === "PAID" && !orFile && !transaction.orUrl) ||
+                                            (transaction.status === "FOR_PROCESSING" && (
+                                                (!ctcNumber && !transaction.cedula?.ctcNumber) ||
+                                                (!eCopyFile && !transaction.eCopyUrl)
+                                            ))
+                                        }
+                                        className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                    >
+                                        {actionLoading 
+                                            ? "Submitting..." 
+                                            : transaction.status === "PAID" 
+                                                ? "Confirm & Proceed to Processing" 
+                                                : (transaction.fulfillmentType === "DELIVERY" ? "Approve & Dispatch to Courier" : "Approve & Ready for Claiming")
+                                        }
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        onClick={handleRelease}
+                                        disabled={actionLoading}
+                                        className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-green-500/20"
+                                    >
+                                        {actionLoading ? "Releasing..." : transaction.fulfillmentType === "DELIVERY" ? "Dispatch to Courier" : "Release Document to Resident"}
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )}
