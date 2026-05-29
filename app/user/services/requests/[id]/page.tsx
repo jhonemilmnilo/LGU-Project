@@ -203,6 +203,8 @@ export default function RequestHubPage() {
 
                     if (req.fulfillmentType) setLocalFulfillment(req.fulfillmentType);
                     if (req.paymentType) setLocalPayment(req.paymentType);
+                    if (req.additionalData?.gcashReferenceNo) setGcashReferenceNo(req.additionalData.gcashReferenceNo);
+                    if (req.paymentReference) setPaymentProofPreview(req.paymentReference);
 
                 } else {
                     toast.error("Request not found");
@@ -497,7 +499,7 @@ export default function RequestHubPage() {
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";
-    const isActionable = ["EVALUATED", "UNPAID"].includes(request?.status || "") && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot);
+    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && typeCode.startsWith("BUSINESS_PERMIT"));
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
     const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");
@@ -755,6 +757,21 @@ export default function RequestHubPage() {
                             {/* Configuration Column */}
                             <div className="lg:col-span-7 space-y-6 md:space-y-10">
                                 <div className="bg-white dark:bg-[#0d0f14] rounded-2xl md:rounded-[2.5rem] border border-slate-200 dark:border-white/5 p-5 md:p-10 shadow-2xl space-y-8 md:space-y-12">
+                                    {/* Treasury Rejection Remarks Notice */}
+                                    {request?.status === "UNPAID" && request?.rejectionRemarks && (
+                                        <div className="bg-red-500/10 border-2 border-red-500/20 rounded-[1.5rem] p-6 space-y-2 animate-in zoom-in-95">
+                                            <div className="flex items-center gap-2 text-red-500 font-black italic uppercase tracking-wider text-[10px]">
+                                                <span>⚠️ TREASURY REVISION REQUESTED</span>
+                                            </div>
+                                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">
+                                                &ldquo;{request.rejectionRemarks}&rdquo;
+                                            </p>
+                                            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic pt-2">
+                                                Please review the details, replace the GCash Reference/Proof of payment below, and resubmit.
+                                            </p>
+                                        </div>
+                                    )}
+
                                     {/* Logistics Selection */}
                                     <div className="space-y-6">
                                         <div className="flex items-center gap-3">
@@ -896,7 +913,7 @@ export default function RequestHubPage() {
                                                     <div className="w-full aspect-[21/6] bg-white dark:bg-black rounded-xl md:rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 relative overflow-hidden group">
                                                         {paymentProofPreview ? (
                                                             <>
-                                                                <Image src={paymentProofPreview} alt="Proof" fill className="object-cover" />
+                                                                <Image src={paymentProofPreview} alt="Proof" fill unoptimized className="object-cover" />
                                                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                                                                     <div className="relative"><Button size="sm" className="h-8 px-4 font-black italic uppercase text-[8px] tracking-widest rounded-lg bg-white text-slate-900">Change</Button><input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
                                                                     <Button onClick={handleClearPaymentProof} variant="destructive" size="sm" className="h-8 px-4 font-black italic uppercase text-[8px] tracking-widest rounded-lg bg-red-600">Remove</Button>
