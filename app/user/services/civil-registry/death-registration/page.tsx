@@ -1,9 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User,
@@ -50,6 +52,24 @@ import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+
+const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
+    const [src, setSrc] = React.useState(fallbackUrl || "");
+
+    React.useEffect(() => {
+        if (!file) {
+            setSrc(fallbackUrl || "");
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setSrc(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [file, fallbackUrl]);
+
+    return <img src={src} alt={alt} className={className} />;
+};
 
 const STORAGE_KEY = "lcr_death_registration_draft";
 
@@ -135,6 +155,18 @@ export default function DeathRegistrationPage() {
     const [resident, setResident] = useState<any>(null);
     const [typeId, setTypeId] = useState<string>("");
     const [showErrors, setShowErrors] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleOpenViewer = (file: File | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(null);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -297,13 +329,6 @@ export default function DeathRegistrationPage() {
             return `${mb.toFixed(2)} MB`;
         };
 
-        const handleViewFile = () => {
-            if (file) {
-                const url = URL.createObjectURL(file);
-                window.open(url, "_blank");
-            }
-        };
-
         const isImage = file?.type.startsWith("image/");
 
         return (
@@ -329,10 +354,12 @@ export default function DeathRegistrationPage() {
                 {file ? (
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
                         {isImage ? (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-100 dark:bg-slate-900 group/thumb">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img 
-                                    src={URL.createObjectURL(file)} 
+                            <div 
+                                onClick={() => handleOpenViewer(file, label)}
+                                className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-100 dark:bg-slate-900 group/thumb cursor-pointer"
+                            >
+                                <PreviewImage 
+                                    file={file} 
                                     alt="Preview" 
                                     className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300" 
                                 />
@@ -341,24 +368,36 @@ export default function DeathRegistrationPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="w-12 h-12 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center shrink-0">
-                                <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            <div 
+                                onClick={() => handleOpenViewer(file, label)}
+                                className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all relative group/thumb"
+                            >
+                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                    <Eye className="w-3.5 h-3.5 text-white" />
+                                </div>
                             </div>
                         )}
 
-                        <div className="flex-1 min-w-0">
+                        <div 
+                            onClick={() => handleOpenViewer(file, label)}
+                            className="flex-1 min-w-0 cursor-pointer hover:opacity-80"
+                        >
                             <p className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate pr-2 uppercase italic">
                                 {file.name}
                             </p>
                             <p className="text-[8px] text-slate-400 dark:text-slate-500 italic mt-0.5">
-                                {formatFileSize(file.size)}
+                                {formatFileSize(file.size)} <span className="text-emerald-500 font-bold ml-1 select-none">(Click to Preview)</span>
                             </p>
                             <div className="flex items-center gap-1.5 mt-1">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={handleViewFile}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenViewer(file, label);
+                                    }}
                                     className="h-5 px-2 rounded-md text-[7px] font-black uppercase tracking-widest border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-1 text-slate-600 dark:text-slate-300"
                                 >
                                     <Eye className="w-2 h-2" /> Inspect
@@ -367,7 +406,8 @@ export default function DeathRegistrationPage() {
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={async () => {
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
                                         setFiles(prev => ({ ...prev, [fileKey]: null }));
                                         await saveDraftFile(STORAGE_KEY, fileKey, null);
                                     }}
@@ -503,6 +543,14 @@ export default function DeathRegistrationPage() {
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
+                themeColor="var(--emerald-600)"
+            />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
                 themeColor="var(--emerald-600)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">

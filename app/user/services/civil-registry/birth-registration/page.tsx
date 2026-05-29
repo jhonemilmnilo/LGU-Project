@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -19,8 +20,10 @@ import {
     Search,
     CheckCircle2,
     Users,
-    AlertCircle
+    AlertCircle,
+    Eye
 } from "lucide-react";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +55,16 @@ import { useRouter } from "next/navigation";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 
 const STORAGE_KEY = "lcr_birth_registration_draft";
+
+const checkIsPdf = (file: any, url: string | null) => {
+    if (file && file instanceof File) {
+        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    }
+    if (url) {
+        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+    }
+    return false;
+};
 
 // --- TYPES ---
 
@@ -161,6 +174,18 @@ export default function BirthRegistrationPage() {
     const [policyOpen, setPolicyOpen] = useState(false);
 
     const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(existingUrl);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     const handleAcceptPolicy = () => {
         setPolicyOpen(false);
@@ -599,6 +624,14 @@ export default function BirthRegistrationPage() {
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--amber-500)"
+            />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor="var(--blue-500)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
@@ -1317,23 +1350,51 @@ export default function BirthRegistrationPage() {
                                                         ]).map((doc) => (
                                                             <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
                                                                 <div className="flex items-center gap-3">
-                                                                    {form.previews[doc.key] && form.previews[doc.key]!.startsWith('data:image/') ? (
-                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
-                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                    {form.files[doc.key] || form.previews[doc.key] ? (
+                                                                        <div 
+                                                                            onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
+                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+                                                                        >
+                                                                            {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
+                                                                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                                                            ) : form.previews[doc.key] ? (
+                                                                                <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <FileText className="w-5 h-5 text-blue-500" />
+                                                                            )}
+                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+                                                                                <Eye className="w-4 h-4 text-white" />
+                                                                            </div>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
                                                                             <FileText className="w-5 h-5 text-slate-300" />
                                                                         </div>
                                                                     )}
-                                                                    <div className="flex flex-col gap-0.5">
+                                                                    <div 
+                                                                        onClick={() => {
+                                                                            if (form.files[doc.key] || form.previews[doc.key]) {
+                                                                                handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
+                                                                            }
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex flex-col gap-0.5 select-none",
+                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                        )}
+                                                                    >
                                                                         <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
                                                                         <span className={cn(
                                                                             "text-[8px] font-black uppercase tracking-[0.2em] italic",
                                                                             (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
                                                                         )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? "Uploaded" : "Pending"}
+                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? (
+                                                                                <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
+                                                                                    <span>Uploaded (Click to Preview)</span>
+                                                                                    <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
+                                                                                        {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
+                                                                                    </span>
+                                                                                </span>
+                                                                            ) : "Pending"}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -1363,23 +1424,51 @@ export default function BirthRegistrationPage() {
                                                         ].map((doc) => (
                                                             <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
                                                                 <div className="flex items-center gap-3">
-                                                                    {form.previews[doc.key] && form.previews[doc.key]!.startsWith('data:image/') ? (
-                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
-                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                    {form.files[doc.key] || form.previews[doc.key] ? (
+                                                                        <div 
+                                                                            onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
+                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+                                                                        >
+                                                                            {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
+                                                                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                                                            ) : form.previews[doc.key] ? (
+                                                                                <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <FileText className="w-5 h-5 text-blue-500" />
+                                                                            )}
+                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+                                                                                <Eye className="w-4 h-4 text-white" />
+                                                                            </div>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
                                                                             <FileText className="w-5 h-5 text-slate-300" />
                                                                         </div>
                                                                     )}
-                                                                    <div className="flex flex-col gap-0.5">
+                                                                    <div 
+                                                                        onClick={() => {
+                                                                            if (form.files[doc.key] || form.previews[doc.key]) {
+                                                                                handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
+                                                                            }
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex flex-col gap-0.5 select-none",
+                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                        )}
+                                                                    >
                                                                         <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
                                                                         <span className={cn(
                                                                             "text-[8px] font-black uppercase tracking-[0.2em] italic",
                                                                             (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
                                                                         )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? "Uploaded" : "Pending"}
+                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? (
+                                                                                <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
+                                                                                    <span>Uploaded (Click to Preview)</span>
+                                                                                    <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
+                                                                                        {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
+                                                                                    </span>
+                                                                                </span>
+                                                                            ) : "Pending"}
                                                                         </span>
                                                                     </div>
                                                                 </div>

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -14,8 +15,20 @@ import {
     Search,
     CheckCircle2,
     Heart,
-    MapPin
+    MapPin,
+    Eye
 } from "lucide-react";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+
+const checkIsPdf = (file: any, url: string | null) => {
+    if (file && file instanceof File) {
+        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    }
+    if (url) {
+        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+    }
+    return false;
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +60,24 @@ import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+
+const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
+    const [src, setSrc] = React.useState(fallbackUrl || "");
+
+    React.useEffect(() => {
+        if (!file) {
+            setSrc(fallbackUrl || "");
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setSrc(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [file, fallbackUrl]);
+
+    return <img src={src} alt={alt} className={className} />;
+};
 
 // --- TYPES ---
 
@@ -270,6 +301,18 @@ export default function DeathCertificateRequestPage() {
     // Privacy policy modal state
     const [policyOpen, setPolicyOpen] = useState(false);
     const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(existingUrl);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     useEffect(() => {
         async function init() {
@@ -521,6 +564,14 @@ export default function DeathCertificateRequestPage() {
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => setPolicyAccepted(false)}
+                themeColor="var(--blue-500)"
+            />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
                 themeColor="var(--blue-500)"
             />
             {/* Breadcrumbs */}
@@ -1143,13 +1194,32 @@ export default function DeathCertificateRequestPage() {
                                                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                                                     Using registered ID (Front) from Profile
                                                 </div>
-                                                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img
-                                                        src={resident.idFrontUrl}
-                                                        alt="ID Front Profile"
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                <div 
+                                                    onClick={() => handleViewFile(null, resident.idFrontUrl, "Valid Government ID (Front)")}
+                                                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
+                                                >
+                                                    {checkIsPdf(null, resident.idFrontUrl) ? (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">ID_FRONT.pdf</span>
+                                                        </div>
+                                                    ) : (
+                                                        <img
+                                                            src={resident.idFrontUrl}
+                                                            alt="ID Front Profile"
+                                                            className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-500"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5 mr-1" />
+                                                            View
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : form.files.validIdFront ? (
@@ -1158,13 +1228,34 @@ export default function DeathCertificateRequestPage() {
                                                     <FileText className="w-4 h-4 shrink-0" />
                                                     {form.files.validIdFront.name}
                                                 </div>
-                                                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img
-                                                        src={URL.createObjectURL(form.files.validIdFront)}
-                                                        alt="New ID Front Preview"
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                <div 
+                                                    onClick={() => handleViewFile(form.files.validIdFront, null, "Valid Government ID (Front)")}
+                                                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
+                                                >
+                                                    {checkIsPdf(form.files.validIdFront, null) ? (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">
+                                                                {form.files.validIdFront.name}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <PreviewImage
+                                                            file={form.files.validIdFront}
+                                                            alt="New ID Front Preview"
+                                                            className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-500"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5 mr-1" />
+                                                            View
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : null}
@@ -1198,13 +1289,32 @@ export default function DeathCertificateRequestPage() {
                                                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                                                     Using registered ID (Back) from Profile
                                                 </div>
-                                                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img
-                                                        src={resident.idBackUrl}
-                                                        alt="ID Back Profile"
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                <div 
+                                                    onClick={() => handleViewFile(null, resident.idBackUrl, "Valid Government ID (Back)")}
+                                                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
+                                                >
+                                                    {checkIsPdf(null, resident.idBackUrl) ? (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">ID_BACK.pdf</span>
+                                                        </div>
+                                                    ) : (
+                                                        <img
+                                                            src={resident.idBackUrl}
+                                                            alt="ID Back Profile"
+                                                            className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-500"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5 mr-1" />
+                                                            View
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : form.files.validIdBack ? (
@@ -1213,13 +1323,34 @@ export default function DeathCertificateRequestPage() {
                                                     <FileText className="w-4 h-4 shrink-0" />
                                                     {form.files.validIdBack.name}
                                                 </div>
-                                                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10">
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img
-                                                        src={URL.createObjectURL(form.files.validIdBack)}
-                                                        alt="New ID Back Preview"
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                <div 
+                                                    onClick={() => handleViewFile(form.files.validIdBack, null, "Valid Government ID (Back)")}
+                                                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
+                                                >
+                                                    {checkIsPdf(form.files.validIdBack, null) ? (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">
+                                                                {form.files.validIdBack.name}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <PreviewImage
+                                                            file={form.files.validIdBack}
+                                                            alt="New ID Back Preview"
+                                                            className="w-full h-full object-cover group-hover/preview:scale-105 transition-transform duration-500"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5 mr-1" />
+                                                            View
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : null}
