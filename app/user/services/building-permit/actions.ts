@@ -91,7 +91,7 @@ export async function submitBuildingPermit(formData: FormData) {
         status: "FOR_REQUESTING",
         residentSnapshot: resident ? (resident as any) : {},
         additionalData: additionalData,
-        totalAmount: type.baseFee || 1000,
+        totalAmount: 0,
       }
     });
 
@@ -242,5 +242,51 @@ export async function resubmitBuildingPermit(transactionId: string, formData: Fo
   } catch (error) {
     console.error("Building Permit Resubmission Error:", error);
     return { success: false, error: "Failed to resubmit building permit application." };
+  }
+}
+
+export async function submitBuildingPermitPaymentProof(transactionId: string, formData: FormData) {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId }
+    });
+
+    if (!transaction || transaction.userId !== userId) {
+      return { success: false, error: "Transaction not found" };
+    }
+
+    const file = formData.get("paymentFile") as File;
+    if (!file || file.size === 0) {
+      return { success: false, error: "No file provided" };
+    }
+
+    const timestamp = Date.now();
+    const path = `building-permits/${userId}/payments/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const paymentProofUrl = await uploadFile(file, path);
+
+    if (!paymentProofUrl) {
+      return { success: false, error: "Failed to upload payment proof" };
+    }
+
+    // Clear rejection remarks if any, set payment reference
+    const updatedTransaction = await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        paymentReference: paymentProofUrl,
+        rejectionRemarks: null, // Clear out the revision requirement!
+        updatedAt: new Date()
+      }
+    });
+
+    revalidatePath("/user/services/building-permit");
+    revalidatePath("/admin/treasury");
+    return { success: true, transactionId: updatedTransaction.id };
+  } catch (error) {
+    console.error("Payment Proof Upload Error:", error);
+    return { success: false, error: "Failed to upload payment proof" };
   }
 }

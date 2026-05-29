@@ -41,7 +41,8 @@ import {
     addAdditionalBuildingPermitFee,
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
-    declinePaymentProofAction
+    declinePaymentProofAction,
+    confirmTransactionPaymentWithReceipt
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -237,8 +238,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [remarks, setRemarks] = useState("");
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
     const remarksRef = useRef<HTMLTextAreaElement>(null);
     const [ctcNumber, setCtcNumber] = useState("");
+    const [showPaymentHistoryOverride, setShowPaymentHistoryOverride] = useState(false);
     const [stickerNumber, setStickerNumber] = useState("");
     const [isRejecting, setIsRejecting] = useState(false);
     const [isRequestingRevision, setIsRequestingRevision] = useState(false);
@@ -566,8 +570,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleRelease = useCallback(async () => {
 
         // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits)
+        let ctcVal = ctcNumber;
+        if (isBuildingPermit && transaction?.status === "PAID") {
+            ctcVal = "RECORDED";
+        }
         const ctcRequired = !isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
-        if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
+        if (ctcRequired && !ctcVal && !transaction?.cedula?.ctcNumber) {
             toast.error("CTC Number Required");
             return;
         }
@@ -600,7 +608,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl, orUrl, stickerNumber);
+            const res = await releaseCedula(transaction.id, ctcVal, eCopyUrl, orUrl, stickerNumber);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -618,7 +626,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, backUrl]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isBuildingPermit, backUrl]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -889,10 +897,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ];
         const getBuildingStepIndex = (status: string) => {
             if (status === "EVALUATED") return 0; // EVALUATION
-            if (status === "UNPAID" || status === "PAID") return 1; // ASSESSMENT
-            return 2; // PAYMENT HISTORY (FOR_PROCESSING, FOR_CLAIM, RELEASED)
+            if (status === "UNPAID" || status === "PAID") return 1; // ASSESSMENT (Includes PAID phase)
+            return 2; // PAYMENT HISTORY (FOR_PROCESSING, FOR_CLAIM, FOR_PICKING, RELEASED)
         };
-        currentStepIdx = getBuildingStepIndex(transaction.status);
+        currentStepIdx = showPaymentHistoryOverride ? 2 : getBuildingStepIndex(transaction.status);
     }
 
     // Build evidence documents list for the Evidence Vault UI
@@ -1108,10 +1116,28 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
-            const res = await confirmTransactionPayment(transaction.id);
-            if (res.success) { toast.success("Payment Confirmed"); fetchTransaction(); }
+            const formData = new FormData();
+            formData.append("id", transaction.id);
+            if (remarks) formData.append("remarks", remarks);
+            if (receiptFile) formData.append("receiptFile", receiptFile);
+
+            const res = await confirmTransactionPaymentWithReceipt(formData);
+            if (res.success) { 
+                toast.success("Payment Confirmed"); 
+                setReceiptFile(null);
+                setReceiptPreview(null);
+                fetchTransaction(); 
+            }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
+    };
+
+    const handleReceiptFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setReceiptFile(file);
+            setReceiptPreview(URL.createObjectURL(file));
+        }
     };
 
     const handleDeclinePaymentProof = async () => {
@@ -2033,8 +2059,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         )}
 
                         {/* Verification Vault: Payment & Delivery */}
-                        {((transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") || (transaction.status === "DELIVERED" && transaction.podUrl)) && (
-                            <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6">
+                        {(((transaction.paymentReference || transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && !(isBuildingPermit && transaction.status === "PAID" && !showPaymentHistoryOverride)) || (transaction.status === "DELIVERED" && transaction.podUrl)) && (
+                            <div id="verification-vault" className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border-slate-50 dark:border-white/5 border space-y-6 scroll-mt-24">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary/10 rounded-lg"><Camera className="text-primary w-4 h-4" /></div>
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Verification</span>
@@ -2096,6 +2122,51 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                             Copy
                                                         </button>
                                                     </div>
+                                                </div>
+                                            )}
+
+                                            {transaction.updatedAt && (
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/date relative overflow-hidden transition-all hover:border-emerald-500/20 shadow-sm animate-in fade-in-50 duration-300">
+                                                    <div className="flex items-center gap-2">
+                                                        <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Date Paid</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-xs md:text-sm font-black tracking-tight text-slate-800 dark:text-white font-mono">
+                                                            {(() => {
+                                                                try {
+                                                                    return format(new Date(transaction.updatedAt), "MMMM dd, yyyy - hh:mm a");
+                                                                } catch (e) {
+                                                                    return "Recorded";
+                                                                }
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {/* Display Treasury Remarks / Notes */}
+                                            {(transaction.additionalData as any)?.treasuryRemarks && (
+                                                <div className="p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-200 dark:border-emerald-500/20 space-y-2 mt-2 shadow-sm animate-in fade-in-50 duration-300">
+                                                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
+                                                        <FileText className="w-3.5 h-3.5" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest">Treasury Notes / Remarks</span>
+                                                    </div>
+                                                    <p className="text-xs md:text-sm font-medium tracking-tight text-emerald-900 dark:text-emerald-100 italic">
+                                                        {(transaction.additionalData as any).treasuryRemarks}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Display Revision / Rejection Remarks */}
+                                            {transaction.rejectionRemarks && (
+                                                <div className="p-4 bg-red-50 dark:bg-red-500/5 rounded-2xl border border-red-200 dark:border-red-500/20 space-y-2 mt-2 shadow-sm animate-in fade-in-50 duration-300">
+                                                    <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
+                                                        <AlertCircle className="w-3.5 h-3.5" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest">Payment Revision Notes</span>
+                                                    </div>
+                                                    <p className="text-xs md:text-sm font-medium tracking-tight text-red-900 dark:text-red-100 italic">
+                                                        {transaction.rejectionRemarks}
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>
@@ -2498,20 +2569,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             >
                                                 {actionLoading ? "Processing..." : "Approve & Send Billing to Citizen"}
                                             </Button>
-                                            <div className="flex gap-2 w-full">
-                                                <Button
-                                                    onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                    className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
-                                                >
-                                                    Request Revision
-                                                </Button>
-                                                <Button
-                                                    onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                    className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                                                >
-                                                    Decline
-                                                </Button>
-                                            </div>
                                         </div>
                                     ) : (
                                         <div className="bg-blue-50 dark:bg-blue-500/5 p-8 rounded-[2.5rem] border-2 border-blue-100 dark:border-blue-500/20 text-center space-y-4 animate-in zoom-in-95">
@@ -2541,33 +2598,88 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                             </div>
 
                                             <div className="space-y-3">
-                                                <Button
-                                                    onClick={handleConfirmPayment}
-                                                    disabled={actionLoading}
-                                                    className="w-full h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-xl shadow-green-950/20 active:scale-95 border-none"
-                                                >
-                                                    {actionLoading ? "Processing..." : "Approve Payment (Move to PAID)"}
-                                                </Button>
-
                                                 <Dialog>
                                                     <DialogTrigger asChild>
                                                         <Button
-                                                            variant="outline"
-                                                            className="w-full h-12 rounded-xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95"
+                                                            disabled={actionLoading}
+                                                            className="w-full h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-xl shadow-green-950/20 active:scale-95 border-none"
                                                         >
-                                                            <Ban className="w-4 h-4 mr-2" /> Decline Payment Proof
+                                                            {actionLoading ? "Processing..." : "Approve Payment (Move to PAID)"}
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
                                                         <DialogHeader className="space-y-3">
                                                             <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                                Decline <span className="text-red-500">Payment</span>
+                                                                Approve <span className="text-emerald-500">Payment</span>
                                                             </DialogTitle>
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Decline Payment Proof Receipt</p>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Confirm Payment Verification</p>
                                                         </DialogHeader>
                                                         <div className="space-y-6 py-6">
                                                             <div className="space-y-3">
-                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Official Receipt Number / Notes (Optional)</Label>
+                                                                <Textarea
+                                                                    placeholder="e.g. Verified. OR# 123456"
+                                                                    value={remarks}
+                                                                    onChange={(e) => setRemarks(e.target.value)}
+                                                                    className="min-h-[80px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Upload Official Receipt Image (Optional)</Label>
+                                                                {!receiptPreview ? (
+                                                                    <label className="flex flex-col items-center justify-center gap-3 aspect-[3/1] rounded-2xl border-2 border-dashed border-emerald-500/20 hover:border-emerald-500/40 bg-emerald-500/[0.02] cursor-pointer group transition-all">
+                                                                        <div className="text-center">
+                                                                            <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 italic block">Select Image</span>
+                                                                            <span className="text-[9px] text-slate-400 uppercase tracking-widest">JPG, PNG, PDF</span>
+                                                                        </div>
+                                                                        <input type="file" accept="image/*,.pdf" onChange={handleReceiptFileSelect} className="hidden" />
+                                                                    </label>
+                                                                ) : (
+                                                                    <div className="space-y-4">
+                                                                        <div className="relative aspect-[3/1] rounded-2xl overflow-hidden border-2 border-emerald-500/20 bg-slate-50 dark:bg-black/20 flex justify-center items-center">
+                                                                            <img src={receiptPreview} alt="Preview" className="object-contain h-full" />
+                                                                        </div>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                                                                            disabled={actionLoading}
+                                                                            className="w-full h-10 rounded-xl border-2 border-red-500/20 text-red-500 hover:bg-red-500/5 font-black italic uppercase tracking-widest text-[10px]"
+                                                                        >
+                                                                            Remove / Change Image
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            onClick={handleConfirmPayment}
+                                                            disabled={actionLoading}
+                                                            className="w-full h-14 bg-emerald-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
+                                                        >
+                                                            {actionLoading ? "Processing..." : "Confirm & Approve Payment"}
+                                                        </Button>
+                                                    </DialogContent>
+                                                </Dialog>
+
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="w-full h-12 rounded-xl border-2 border-amber-500/20 text-amber-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-amber-500/5 transition-all active:scale-95"
+                                                        >
+                                                            <AlertCircle className="w-4 h-4 mr-2" /> Revise Payment Proof
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                                        <DialogHeader className="space-y-3">
+                                                            <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                                Revise <span className="text-amber-500">Payment</span>
+                                                            </DialogTitle>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Require Citizen to Re-upload Payment Proof</p>
+                                                        </DialogHeader>
+                                                        <div className="space-y-6 py-6">
+                                                            <div className="space-y-3">
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Revision</Label>
                                                                 <Textarea
                                                                     placeholder="e.g. Reference number mismatch, receipt image blurry..."
                                                                     value={remarks}
@@ -2579,12 +2691,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         <Button
                                                             onClick={handleDeclinePaymentProof}
                                                             disabled={actionLoading || !remarks}
-                                                            className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+                                                            className="w-full h-14 bg-amber-500 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
                                                         >
-                                                            {actionLoading ? "Processing..." : "Decline Payment Proof"}
+                                                            {actionLoading ? "Processing..." : "Submit Revision Request"}
                                                         </Button>
                                                     </DialogContent>
                                                 </Dialog>
+
+                                                <Button
+                                                    onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                    className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95 border-none"
+                                                >
+                                                    Decline Application
+                                                </Button>
                                             </div>
                                         </div>
                                     ) : (
@@ -2730,7 +2849,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                                     The existing permit number <span className="font-mono font-black text-emerald-700 dark:text-emerald-300">{additional?.permitNumber || additional?.existingPermitNumber || "—"}</span> will automatically carry over as the renewed permit number. No input needed.
                                                                 </p>
                                                             </div>
-                                                        ) : !isBusinessPermit ? (
+                                                        ) : (isBuildingPermit && transaction.status === "PAID") ? null : (!isBusinessPermit) ? (
                                                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
                                                                 <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">
                                                                     Registry Serial Entry (CTC No.)
@@ -2787,77 +2906,51 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                 </Button>
                                             )}
 
-                                            {transaction.status !== "FOR_PICKING" && (
-                                                <>
+                                            {isBuildingPermit && transaction.status === "PAID" ? (
+                                                !showPaymentHistoryOverride && (
                                                     <Button
-                                                        onClick={handleRelease}
-                                                        disabled={
-                                                            actionLoading ||
-                                                            // Requirement: CTC needed for initial processing (only for non-Business Permits)
-                                                            (!isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
-                                                            // Requirement: For Business Permit RENEWAL reinspection - only sticker number required (permit no. is auto-carried)
-                                                            // Requirement: For Business Permit NEW reinspection - both permit number and sticker are required
-                                                            (isBusinessPermit && isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
-                                                            (isBusinessPermit && !isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
-                                                            (isBusinessPermit && !isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
-                                                            (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
-                                                            // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows (Bypassed in FOR_PROCESSING and PAID for Business Permit)
-                                                            (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION", "PAID"].includes(transaction.status)) && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
-                                                            // Requirement: OR copy also needed for Business Permits in initial processing phases
-                                                            (isBusinessPermit && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !orFile && !transaction.orUrl)
-                                                        }
-                                                        className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                                        onClick={() => setShowPaymentHistoryOverride(true)}
+                                                        variant="outline"
+                                                        className="w-full h-12 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all active:scale-95"
                                                     >
-                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document" }
+                                                        VIEW PAYMENT HISTORY
                                                     </Button>
-                                                    {isBusinessPermit && transaction.status === "PAID" && (
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className="w-full h-12 rounded-2xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95 mb-2"
-                                                                >
-                                                                    Request Revision / Decline Proof
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
-                                                                <DialogHeader className="space-y-3">
-                                                                    <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                                        Decline <span className="text-red-500">Payment</span>
-                                                                    </DialogTitle>
-                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Request payment proof revision</p>
-                                                                </DialogHeader>
-                                                                <div className="space-y-6 py-6">
-                                                                    <div className="space-y-3">
-                                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
-                                                                        <Textarea
-                                                                            placeholder="e.g. GCash reference mismatch, blurry screenshot, incorrect amount..."
-                                                                            value={remarks}
-                                                                            onChange={(e) => setRemarks(e.target.value)}
-                                                                            className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                                <Button
-                                                                    onClick={handleDeclinePaymentProof}
-                                                                    disabled={actionLoading || !remarks}
-                                                                    className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
-                                                                >
-                                                                    {actionLoading ? "Processing..." : "Decline Payment Proof"}
-                                                                </Button>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    )}
-
-                                                    {(!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
+                                                )
+                                            ) : (
+                                                transaction.status !== "FOR_PICKING" && (
+                                                    <>
                                                         <Button
-                                                            onClick={() => setIsRejecting(true)}
-                                                            className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                            onClick={handleRelease}
+                                                            disabled={
+                                                                actionLoading ||
+                                                                // Requirement: CTC needed for initial processing (only for non-Business Permits)
+                                                                (!isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status) && !ctcNumber && !transaction.cedula?.ctcNumber) ||
+                                                                // Requirement: For Business Permit RENEWAL reinspection - only sticker number required (permit no. is auto-carried)
+                                                                // Requirement: For Business Permit NEW reinspection - both permit number and sticker are required
+                                                                (isBusinessPermit && isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                                (isBusinessPermit && !isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
+                                                                (isBusinessPermit && !isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                                (isBusinessPermit && transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
+                                                                // Requirement: E-Copy needed for FOR_PROCESSING (including Cash Pickups) and specific digital/delivery PAID flows (Bypassed in FOR_PROCESSING and PAID for Business Permit)
+                                                                (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION", "PAID"].includes(transaction.status)) && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !eCopyFile && !transaction.eCopyUrl) ||
+                                                                // Requirement: OR copy also needed for Business Permits in initial processing phases
+                                                                (isBusinessPermit && (transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !orFile && !transaction.orUrl)
+                                                            }
+                                                            className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                         >
-                                                            Decline Registry Process
+                                                            {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                                         </Button>
-                                                    )}
-                                                </>
+
+                                                        {(!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
+                                                            <Button
+                                                                onClick={() => setIsRejecting(true)}
+                                                                className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                            >
+                                                                Decline Registry Process
+                                                            </Button>
+                                                        )}
+                                                    </>
+                                                )
                                             )}
                                         </div>
                                     </div>

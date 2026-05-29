@@ -12,7 +12,10 @@ import {
     Check,
     Upload,
     FileText,
-    ExternalLink
+    ExternalLink,
+    X,
+    FileWarning,
+    RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -21,7 +24,9 @@ import {
     getSystemSettingAction,
     approveBuildingPermit,
     uploadECopyAction,
-    submitBuildingPermitAction
+    submitBuildingPermitAction,
+    reviseBuildingPermitClearancesAction,
+    declineBuildingPermitAction
 } from "@/app/admin/transactions/actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +60,11 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
     const [, setECopyFile] = useState<File | null>(null);
     const [eCopyUrl, setECopyUrl] = useState<string>("");
     const [uploading, setUploading] = useState(false);
+
+    // Modals state
+    const [reviseModalOpen, setReviseModalOpen] = useState(false);
+    const [declineModalOpen, setDeclineModalOpen] = useState(false);
+    const [reasonText, setReasonText] = useState("");
 
     const feeAssessment = transaction?.additionalData?.feeAssessment || null;
     const isEndorsed = feeAssessment?.endorsed === true;
@@ -136,6 +146,52 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
             }
         } catch {
             toast.error("An error occurred while approving permit");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleRevise = async () => {
+        if (!reasonText.trim()) {
+            toast.error("Please provide a reason for revision.");
+            return;
+        }
+        setActionLoading(true);
+        try {
+            const res = await reviseBuildingPermitClearancesAction(id, reasonText);
+            if (res.success) {
+                toast.success("Revision requested. Clearances have been reset.");
+                setReviseModalOpen(false);
+                setReasonText("");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to request revision");
+            }
+        } catch {
+            toast.error("An error occurred");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDecline = async () => {
+        if (!reasonText.trim()) {
+            toast.error("Please provide a reason for decline.");
+            return;
+        }
+        setActionLoading(true);
+        try {
+            const res = await declineBuildingPermitAction(id, reasonText);
+            if (res.success) {
+                toast.success("Permit declined successfully.");
+                setDeclineModalOpen(false);
+                setReasonText("");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to decline permit");
+            }
+        } catch {
+            toast.error("An error occurred");
         } finally {
             setActionLoading(false);
         }
@@ -422,6 +478,27 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                         </div>
                     )}
 
+                    {/* Zoning Clearance Vault */}
+                    {transaction.additionalData?.zoningClearanceUrl && (
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
+                            <div>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                    Zoning / Locational <span className="text-primary">Clearance Certificate</span>
+                                </h2>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2">The resident has uploaded their Zoning/Locational Clearance certificate issued by the Zoning Officer / MPDC. Please verify this document before approving the permit.</p>
+                            </div>
+                            <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 group max-w-lg shadow-sm hover:shadow-md transition-all duration-300">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={transaction.additionalData.zoningClearanceUrl} alt="Zoning Clearance" className="object-cover w-full h-full" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <a href={transaction.additionalData.zoningClearanceUrl} target="_blank" rel="noreferrer" className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                                        View Fullscreen
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* E-Copy Upload Section for FOR_PROCESSING */}
                     {transaction.status === "FOR_PROCESSING" && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
@@ -579,15 +656,46 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                             </div>
                                         )}
 
+                                        {!transaction.additionalData?.zoningClearanceUrl ? (
+                                            <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider italic flex items-start gap-2">
+                                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 animate-pulse" />
+                                                <span>Awaiting Zoning/Locational Clearance upload from constituent.</span>
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 rounded-xl text-[9px] font-bold uppercase tracking-wider italic flex items-start gap-2">
+                                                <Check className="w-4 h-4 shrink-0 mt-0.5" />
+                                                <span>Zoning/Locational Clearance Proof has been submitted by constituent!</span>
+                                            </div>
+                                        )}
+
                                         {userRole === "ENGINEER" && (
-                                            <div className="pt-2">
+                                            <div className="pt-2 space-y-3">
                                                 <Button
                                                     onClick={handleApprove}
-                                                    disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl}
+                                                    disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl || !transaction.additionalData?.zoningClearanceUrl}
                                                     className="w-full h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <BadgeCheck className="w-4 h-4 mr-2" /> Approve & Process Permit
                                                 </Button>
+
+                                                <div className="flex items-center gap-3">
+                                                    <Button
+                                                        onClick={() => { setReasonText(""); setReviseModalOpen(true); }}
+                                                        disabled={actionLoading}
+                                                        variant="outline"
+                                                        className="w-full h-12 rounded-xl border-amber-500/50 text-amber-500 hover:bg-amber-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
+                                                    >
+                                                        <RefreshCw className="w-3.5 h-3.5 mr-2" /> Revise Clearances
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => { setReasonText(""); setDeclineModalOpen(true); }}
+                                                        disabled={actionLoading}
+                                                        variant="outline"
+                                                        className="w-full h-12 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
+                                                    >
+                                                        <FileWarning className="w-3.5 h-3.5 mr-2" /> Decline Permit
+                                                    </Button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -628,6 +736,76 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                     </div>
                 </div>
             </main>
+
+            {/* Revise Modal */}
+            {reviseModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#151b28] w-full max-w-lg rounded-[2rem] p-8 shadow-2xl border border-slate-100 dark:border-white/10 relative">
+                        <button onClick={() => setReviseModalOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                            <X className="w-5 h-5 text-slate-500" />
+                        </button>
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                                    <RefreshCw className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white">Revise Clearances</h3>
+                                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Request the resident to re-upload their clearances.</p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Reason for Revision</Label>
+                                <textarea
+                                    value={reasonText}
+                                    onChange={(e) => setReasonText(e.target.value)}
+                                    placeholder="Explain why the submitted clearances are invalid..."
+                                    className="w-full h-32 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button onClick={() => setReviseModalOpen(false)} variant="outline" className="flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">Cancel</Button>
+                                <Button onClick={handleRevise} disabled={actionLoading || !reasonText.trim()} className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black italic uppercase tracking-widest transition-all">Submit Revision</Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Decline Modal */}
+            {declineModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#151b28] w-full max-w-lg rounded-[2rem] p-8 shadow-2xl border border-slate-100 dark:border-white/10 relative">
+                        <button onClick={() => setDeclineModalOpen(false)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                            <X className="w-5 h-5 text-slate-500" />
+                        </button>
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
+                                    <FileWarning className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white">Decline Permit</h3>
+                                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Reject this application permanently.</p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Reason for Decline</Label>
+                                <textarea
+                                    value={reasonText}
+                                    onChange={(e) => setReasonText(e.target.value)}
+                                    placeholder="Explain why this permit application is being declined..."
+                                    className="w-full h-32 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button onClick={() => setDeclineModalOpen(false)} variant="outline" className="flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-widest">Cancel</Button>
+                                <Button onClick={handleDecline} disabled={actionLoading || !reasonText.trim()} className="flex-1 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black italic uppercase tracking-widest transition-all">Decline & Reject</Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
