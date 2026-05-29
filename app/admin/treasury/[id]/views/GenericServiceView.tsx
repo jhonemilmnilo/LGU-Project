@@ -14,25 +14,38 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import LightboxView from "../components/LightboxView";
 import PrintWaybill from "../components/PrintWaybill";
+import ResidentIdentityProfile from "../components/ResidentIdentityProfile";
+import TransactionInfoCard from "../components/TransactionInfoCard";
+import RejectionRevisionControls from "../components/RejectionRevisionControls";
 import { TreasuryViewProps } from "./types";
 import { cn } from "@/lib/utils";
 
-export default function GenericServiceView({
-    transaction,
-    isReadOnlyAide,
-    backUrl,
-    deliveryFee,
-    themeColor,
-    branding,
-    safeFormatDate,
-    declaredValue,
-    declaredLabel,
-    calcResult,
-    displayTotal,
-    evidenceDocs,
-    steps,
-    currentStepIdx
-}: TreasuryViewProps) {
+export default function GenericServiceView(props: TreasuryViewProps) {
+    const {
+        transaction,
+        isReadOnlyAide,
+        backUrl,
+        deliveryFee,
+        themeColor,
+        branding,
+        safeFormatDate,
+        declaredValue,
+        declaredLabel,
+        calcResult,
+        displayTotal,
+        evidenceDocs,
+        steps,
+        currentStepIdx,
+        isRejecting,
+        setIsRejecting,
+        isRequestingRevision,
+        setIsRequestingRevision,
+        remarks,
+        setRemarks,
+        actionLoading,
+        handleReject,
+        handleRequestRevision
+    } = props;
     const additional = transaction.additionalData || {};
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const deliveryAddr = transaction.deliveryAddress
@@ -60,6 +73,20 @@ export default function GenericServiceView({
             <main className="max-w-[1400px] mx-auto px-8 grid grid-cols-12 gap-8 mt-4">
                 {/* LEFT COLUMN: Assessment & Identity */}
                 <div className="col-span-12 lg:col-span-8 space-y-8">
+                    {/* TRANSACTION CATEGORY CARD */}
+                    <TransactionInfoCard 
+                        transactionName={transaction.type.name} 
+                        categoryLabel="General Service" 
+                        themeColor={themeColor} 
+                    />
+
+                    {/* RESIDENT IDENTITY PROFILE ACCORDION */}
+                    <ResidentIdentityProfile 
+                        resident={resident} 
+                        safeFormatDate={safeFormatDate} 
+                        themeColor={themeColor} 
+                    />
+
                     {/* MAIN ASSESSMENT CARD */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
                         {/* IDENTIFIER */}
@@ -294,6 +321,18 @@ export default function GenericServiceView({
                     )}
                 </div>
             </main>
+
+            <RejectionRevisionControls 
+                isRejecting={isRejecting}
+                setIsRejecting={setIsRejecting}
+                isRequestingRevision={isRequestingRevision}
+                setIsRequestingRevision={setIsRequestingRevision}
+                remarks={remarks}
+                setRemarks={setRemarks}
+                actionLoading={actionLoading}
+                handleReject={handleReject}
+                handleRequestRevision={handleRequestRevision}
+            />
         </div>
     );
 }

@@ -26,6 +26,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import LightboxView from "../components/LightboxView";
 import PrintWaybill from "../components/PrintWaybill";
+import ResidentIdentityProfile from "../components/ResidentIdentityProfile";
+import TransactionInfoCard from "../components/TransactionInfoCard";
+import RejectionRevisionControls from "../components/RejectionRevisionControls";
 import { cn } from "@/lib/utils";
 
 export default function BuildingPermitView(props: TreasuryViewProps) {
@@ -145,6 +148,19 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                     
                     {/* Left Column: Dossier Details & Evidence */}
                     <div className="lg:col-span-8 space-y-8">
+                        {/* TRANSACTION CATEGORY CARD */}
+                        <TransactionInfoCard 
+                            transactionName={transaction.type.name} 
+                            categoryLabel="Building Permit" 
+                            themeColor={themeColor} 
+                        />
+
+                        {/* RESIDENT IDENTITY PROFILE ACCORDION */}
+                        <ResidentIdentityProfile 
+                            resident={resident} 
+                            safeFormatDate={props.safeFormatDate} 
+                            themeColor={themeColor} 
+                        />
                         
                         {/* Q&A Block */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
@@ -558,45 +574,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                         </div>
                                     </div>
                                 )}
-
-                                {/* REJECT / REVISION INLINE FORMS */}
-                                {(isRejecting || isRequestingRevision) && (
-                                    <div className="p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl space-y-4 animate-in slide-in-from-top-4 duration-300">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-red-500 italic">
-                                            {isRejecting ? "Reject Application Remarks" : "Revision Request Description"}
-                                        </span>
-                                        <Textarea
-                                            placeholder={isRejecting ? "Provide exact remarks detailing why this building permit application is being rejected..." : "Provide exact instructions detailing what files or fields the resident needs to correct/update..."}
-                                            value={remarks}
-                                            onChange={(e) => setRemarks(e.target.value)}
-                                            className="min-h-[100px] rounded-xl text-slate-800 dark:text-slate-100"
-                                        />
-                                        <div className="flex gap-2 justify-end">
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    setIsRejecting(false);
-                                                    setIsRequestingRevision(false);
-                                                    setRemarks("");
-                                                }}
-                                                className="h-9 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider text-slate-400"
-                                            >
-                                                Cancel
-                                            </Button>
-                                            <Button
-                                                onClick={isRejecting ? handleReject : handleRequestRevision}
-                                                disabled={actionLoading || !remarks.trim()}
-                                                className={cn(
-                                                    "h-9 px-4 rounded-xl font-black italic uppercase tracking-wider text-[10px] text-white shadow-lg",
-                                                    isRejecting ? "bg-red-500 shadow-red-500/20 hover:bg-red-600" : "bg-amber-500 shadow-amber-500/20 hover:bg-amber-600"
-                                                )}
-                                            >
-                                                Submit Decision
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                             </div>
                         )}
 
                     </div>
@@ -604,6 +582,18 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                 </div>
 
             </div>
+
+            <RejectionRevisionControls 
+                isRejecting={isRejecting}
+                setIsRejecting={setIsRejecting}
+                isRequestingRevision={isRequestingRevision}
+                setIsRequestingRevision={setIsRequestingRevision}
+                remarks={remarks}
+                setRemarks={setRemarks}
+                actionLoading={actionLoading}
+                handleReject={handleReject}
+                handleRequestRevision={handleRequestRevision}
+            />
         </div>
     );
 }
