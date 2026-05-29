@@ -31,8 +31,8 @@ import {
     evaluateCedulaTransaction,
     confirmTransactionPayment,
     releaseCedula,
-    // rejectTransaction,
-    // sendForRevision,
+    rejectTransaction,
+    sendForRevision,
     uploadECopyAction,
     getSystemSettingAction,
     getDeliveryFeeByBarangay,
@@ -535,7 +535,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return () => URL.revokeObjectURL(url);
     }, [orFile]);
 
-    /*
     const handleReject = async () => {
         if (!remarks) { toast.error("Remarks required"); return; }
         setActionLoading(true);
@@ -543,6 +542,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const res = await rejectTransaction(transaction.id, remarks);
             if (res.success) {
                 toast.success("Rejected");
+                setIsRejecting(false);
                 router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
@@ -556,12 +556,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const res = await sendForRevision(transaction.id, remarks);
             if (res.success) {
                 toast.success("Sent back for revision");
+                setIsRequestingRevision(false);
                 router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
-    */
 
     const handleRelease = useCallback(async () => {
 
@@ -2808,53 +2808,31 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
-                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document" }
+                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
                                                     </Button>
                                                     {isBusinessPermit && transaction.status === "PAID" && (
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className="w-full h-12 rounded-2xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95 mb-2"
-                                                                >
-                                                                    Request Revision / Decline Proof
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
-                                                                <DialogHeader className="space-y-3">
-                                                                    <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                                        Decline <span className="text-red-500">Payment</span>
-                                                                    </DialogTitle>
-                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Request payment proof revision</p>
-                                                                </DialogHeader>
-                                                                <div className="space-y-6 py-6">
-                                                                    <div className="space-y-3">
-                                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
-                                                                        <Textarea
-                                                                            placeholder="e.g. GCash reference mismatch, blurry screenshot, incorrect amount..."
-                                                                            value={remarks}
-                                                                            onChange={(e) => setRemarks(e.target.value)}
-                                                                            className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                                <Button
-                                                                    onClick={handleDeclinePaymentProof}
-                                                                    disabled={actionLoading || !remarks}
-                                                                    className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
-                                                                >
-                                                                    {actionLoading ? "Processing..." : "Decline Payment Proof"}
-                                                                </Button>
-                                                            </DialogContent>
-                                                        </Dialog>
+                                                        <div className="flex gap-2 w-full mb-2">
+                                                            <Button
+                                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                                className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+                                                            >
+                                                                Request Revision
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                                className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
+                                                            >
+                                                                Reject
+                                                            </Button>
+                                                        </div>
                                                     )}
 
-                                                    {(!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
+                                                    {!(isBusinessPermit && transaction.status === "PAID") && (!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
                                                         <Button
-                                                            onClick={() => setIsRejecting(true)}
+                                                            onClick={() => { setIsRejecting(true); setRemarks(""); }}
                                                             className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
                                                         >
-                                                            Decline Registry Process
+                                                            Reject Application
                                                         </Button>
                                                     )}
                                                 </>
@@ -2983,6 +2961,66 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     </div>
                 </div>
             </main>
+ 
+             {/* REJECTION DIALOG */}
+             <Dialog open={isRejecting} onOpenChange={setIsRejecting}>
+                 <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                     <DialogHeader className="space-y-3">
+                         <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                             Reject <span className="text-red-500">Application</span>
+                         </DialogTitle>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Official Rejection Protocol</p>
+                     </DialogHeader>
+                     <div className="space-y-6 py-6">
+                         <div className="space-y-3">
+                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Rejection</Label>
+                             <Textarea
+                                 placeholder="Why is this application being rejected? (e.g. Fraudulent document, requirements invalid...)"
+                                 value={remarks}
+                                 onChange={(e) => setRemarks(e.target.value)}
+                                 className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
+                             />
+                         </div>
+                     </div>
+                     <Button
+                         onClick={handleReject}
+                         disabled={actionLoading || !remarks}
+                         className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+                     >
+                         {actionLoading ? "Processing..." : "Confirm Rejection"}
+                     </Button>
+                 </DialogContent>
+             </Dialog>
+ 
+             {/* REVISION DIALOG */}
+             <Dialog open={isRequestingRevision} onOpenChange={setIsRequestingRevision}>
+                 <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                     <DialogHeader className="space-y-3">
+                         <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                             Request <span className="text-amber-500">Revision</span>
+                         </DialogTitle>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Request Correction Protocol</p>
+                     </DialogHeader>
+                     <div className="space-y-6 py-6">
+                         <div className="space-y-3">
+                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Correction Remarks</Label>
+                             <Textarea
+                                 placeholder="What needs to be corrected? (e.g. Please re-upload a clearer image of your ID...)"
+                                 value={remarks}
+                                 onChange={(e) => setRemarks(e.target.value)}
+                                 className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
+                             />
+                         </div>
+                     </div>
+                     <Button
+                         onClick={handleRequestRevision}
+                         disabled={actionLoading || !remarks}
+                         className="w-full h-14 bg-amber-500 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+                     >
+                         {actionLoading ? "Processing..." : "Send Revision Request"}
+                     </Button>
+                 </DialogContent>
+             </Dialog>
 
             {/* HIGH-FIDELITY MUNICIPAL WAYBILL (PRINT ONLY) */}
             <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible text-black font-sans leading-tight">

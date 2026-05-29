@@ -425,15 +425,15 @@ export default function TreasuryDashboard() {
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
-                                                            {tx.type?.requiresBusinessName
-                                                                ? (tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY")
-                                                                : (() => {
-                                                                    const rs = getResidentSnapshot(tx);
-                                                                    return `${rs.firstName || 'Unknown'} ${rs.lastName || 'Applicant'}`;
-                                                                })()}
+                                                            {(() => {
+                                                                const rs = getResidentSnapshot(tx);
+                                                                return `${rs.firstName || 'Unknown'} ${rs.lastName || 'Applicant'}`;
+                                                            })()}
                                                         </span>
                                                         <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
-                                                            {tx.type?.requiresBusinessName ? "Business Entity" : "Registered Resident"}
+                                                            {tx.type?.requiresBusinessName 
+                                                                ? `Business: ${tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY"}` 
+                                                                : "Registered Resident"}
                                                         </span>
                                                     </div>
                                                 </TableCell>
