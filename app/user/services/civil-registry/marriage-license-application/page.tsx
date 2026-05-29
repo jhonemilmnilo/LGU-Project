@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { getCurrentUserResident, getTransactionTypes, ensureCivilRegistryTransactionTypes, submitCivilRegistryTransaction } from "@/app/admin/transactions/actions";
+import { getCurrentUserResident, getTransactionTypes, ensureCivilRegistryTransactionTypes, submitCivilRegistryTransaction, getSystemSettingAction } from "@/app/admin/transactions/actions";
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 
@@ -143,6 +143,16 @@ export default function MarriageLicenseApplicationPage() {
 	const router = useRouter();
 	const [loading, setLoading] = useState(true);
 	const [mounted, setMounted] = useState(false);
+
+	const [themeColor, setThemeColor] = useState("theme_color");
+
+	useEffect(() => {
+		getSystemSettingAction("theme_color").then((res) => {
+			if (res.success && res.data) {
+				setThemeColor(res.data);
+			}
+		});
+	}, []);
 
 	const [viewerOpen, setViewerOpen] = useState(false);
 	const [viewerFile, setViewerFile] = useState<File | null>(null);
@@ -579,13 +589,57 @@ export default function MarriageLicenseApplicationPage() {
 
 	return (
 		<>
+			<style dangerouslySetInnerHTML={{
+				__html: `
+				:root, * {
+					--primary-theme: ${themeColor} !important;
+				}
+				.text-amber-500, [class*="text-amber-500"]:not(input):not(select):not(textarea) {
+					color: ${themeColor} !important;
+				}
+				.text-amber-600, [class*="text-amber-600"]:not(input):not(select):not(textarea) {
+					color: ${themeColor} !important;
+				}
+				.bg-amber-500, [class*="bg-amber-500"] {
+					background-color: ${themeColor} !important;
+				}
+				.bg-amber-600, [class*="bg-amber-600"] {
+					background-color: ${themeColor} !important;
+				}
+				.border-amber-500, [class*="border-amber-500"] {
+					border-color: ${themeColor} !important;
+				}
+				.border-amber-600, [class*="border-amber-600"] {
+					border-color: ${themeColor} !important;
+				}
+				.bg-amber-500\\/5, [class*="bg-amber-500/5"] {
+					background-color: ${themeColor}0d !important;
+				}
+				.shadow-amber-500\\/20, [class*="shadow-amber-500/20"] {
+					--tw-shadow-color: ${themeColor}33 !important;
+				}
+				.hover\\:bg-amber-600:hover, [class*="hover:bg-amber-600"]:hover {
+					background-color: ${themeColor} !important;
+					filter: brightness(0.9);
+				}
+				.hover\\:ring-amber-500\\/50:hover, [class*="hover:ring-amber-500"]:hover {
+					--tw-ring-color: ${themeColor}80 !important;
+				}
+				input:not([type="button"]):not([type="submit"]), select, textarea {
+					color: #0f172a !important;
+				}
+				.dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
+					color: #f8fafc !important;
+				}
+				`
+			}} />
 			<SecureIdleTimer />
 			<PrivacyTermsModal
 				isOpen={policyOpen}
 				onClose={() => setPolicyOpen(false)}
 				onAccept={handleAcceptPolicy}
 				onDecline={() => { setPolicyAccepted(false); }}
-				themeColor="var(--amber-500)"
+				themeColor="var(--primary-theme)"
 			/>
 			<DocumentViewerModal
 				isOpen={viewerOpen}
@@ -593,7 +647,7 @@ export default function MarriageLicenseApplicationPage() {
 				file={viewerFile}
 				fileUrl={viewerUrl}
 				title={viewerTitle}
-				themeColor="var(--amber-500)"
+				themeColor="var(--primary-theme)"
 			/>
 			<div className="container max-w-4xl mx-auto px-4 pt-0 pb-0">
 			<Breadcrumb className="mb-4">

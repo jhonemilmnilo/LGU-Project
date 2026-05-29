@@ -56,7 +56,8 @@ import {
     getCurrentUserResident,
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
-    submitCivilRegistryTransaction
+    submitCivilRegistryTransaction,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { toast } from "sonner";
@@ -177,6 +178,16 @@ export default function MarriageRegistrationPage() {
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    const [themeColor, setThemeColor] = useState("theme_color");
+
+    useEffect(() => {
+        getSystemSettingAction("theme_color").then((res) => {
+            if (res.success && res.data) {
+                setThemeColor(res.data);
+            }
+        });
+    }, []);
 
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerFile, setViewerFile] = useState<File | null>(null);
@@ -551,13 +562,64 @@ export default function MarriageRegistrationPage() {
 
     return (
         <>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                :root, * {
+                    --primary-theme: ${themeColor} !important;
+                }
+                .text-rose-500, [class*="text-rose-500"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .text-rose-600, [class*="text-rose-600"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .bg-rose-500, [class*="bg-rose-500"] {
+                    background-color: ${themeColor} !important;
+                }
+                .bg-rose-600, [class*="bg-rose-600"] {
+                    background-color: ${themeColor} !important;
+                }
+                .border-rose-500, [class*="border-rose-500"] {
+                    border-color: ${themeColor} !important;
+                }
+                .border-rose-600, [class*="border-rose-600"] {
+                    border-color: ${themeColor} !important;
+                }
+                .bg-rose-500\\/10, [class*="bg-rose-500/10"] {
+                    background-color: ${themeColor}1a !important;
+                }
+                .bg-rose-500\\/5, [class*="bg-rose-500/5"] {
+                    background-color: ${themeColor}0d !important;
+                }
+                .shadow-rose-500\\/20, [class*="shadow-rose-500/20"] {
+                    --tw-shadow-color: ${themeColor}33 !important;
+                }
+                .hover\\:bg-rose-600:hover, [class*="hover:bg-rose-600"]:hover {
+                    background-color: ${themeColor} !important;
+                    filter: brightness(0.9);
+                }
+                .hover\\:bg-rose-700:hover, [class*="hover:bg-rose-700"]:hover {
+                    background-color: ${themeColor} !important;
+                    filter: brightness(0.85);
+                }
+                .hover\\:border-rose-500\\/50:hover, [class*="hover:border-rose-500/50"]:hover {
+                    border-color: ${themeColor}80 !important;
+                }
+                input:not([type="button"]):not([type="submit"]), select, textarea {
+                    color: #0f172a !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
+                    color: #f8fafc !important;
+                }
+                `
+            }} />
             <SecureIdleTimer />
             <PrivacyTermsModal
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
-                themeColor="var(--amber-500)"
+                themeColor="var(--primary-theme)"
             />
             <DocumentViewerModal
                 isOpen={viewerOpen}
@@ -565,7 +627,7 @@ export default function MarriageRegistrationPage() {
                 file={viewerFile}
                 fileUrl={viewerUrl}
                 title={viewerTitle}
-                themeColor="var(--rose-500)"
+                themeColor="var(--primary-theme)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
