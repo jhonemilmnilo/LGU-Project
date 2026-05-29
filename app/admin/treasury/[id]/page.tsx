@@ -813,7 +813,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     })();
 
     // Prefer persisted `transaction.totalAmount` when available (greater than 0); otherwise use calculated result
-    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
+    const additionalFeesSum = (transaction.status === "FOR_REQUESTING")
+        ? feeLineItems.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0)
+        : 0;
+    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0)) + additionalFeesSum;
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
@@ -1103,7 +1106,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             let itemsToSend: { label: string; amount: number }[] | undefined = undefined;
+
             if (isBusinessPermit && userRole !== "ADMIN_AIDE") {
+                // Business Permit: at least one valid fee is required
                 const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "");
                 if (validItems.length === 0) {
                     toast.error("Please add at least one valid fee line item.");
@@ -1114,6 +1119,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     label: item.label.trim(),
                     amount: parseFloat(item.amount) || 0
                 }));
+            } else {
+                // Cedula / Generic: additional fees are optional — only send if filled in
+                const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "");
+                if (validItems.length > 0) {
+                    itemsToSend = validItems.map(item => ({
+                        label: item.label.trim(),
+                        amount: parseFloat(item.amount) || 0
+                    }));
+                }
             }
 
             const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend);

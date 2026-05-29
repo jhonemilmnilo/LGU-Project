@@ -1291,6 +1291,11 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             };
         }
 
+        if (!isBusinessPermit && !isBuildingPermit && sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
+            const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+            result.totalAmount += itemsSum;
+        }
+
         // Determine New Status
         // If it is an ADMIN_AIDE pre-screening a Business Permit, the status should be set to FOR_REQUESTING
         const newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
@@ -1308,7 +1313,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     penaltyCharge: result!.penalty,
                     deliveryFee: result!.deliveryFee, // Persist delivery fee here
                     totalAmount: result!.totalAmount,
-                    ...(isBusinessPermit && sanitizedBpFeeLineItems ? { lineItems: sanitizedBpFeeLineItems } : {})
+                    ...(sanitizedBpFeeLineItems ? { lineItems: sanitizedBpFeeLineItems } : {})
                 }
             } as any,
             include: { user: true }
@@ -1462,8 +1467,9 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the evaluation phase." };
         }
 
+        const nextStatus = transaction.status === "PAID" ? "FOR_PROCESSING" : "PAID";
         const transactionData: any = {
-            status: "PAID",
+            status: nextStatus as any,
             updatedAt: new Date()
         };
 

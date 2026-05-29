@@ -449,10 +449,10 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
-                        {/* Workflow tracker */}
+                        {/* Status tracker */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
                             <div>
-                                <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Workflow Tracker</h3>
+                                <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Status Tracker</h3>
                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Status phase progress</p>
                             </div>
                             <div className="relative border-l border-slate-100 dark:border-white/5 ml-3 space-y-6">

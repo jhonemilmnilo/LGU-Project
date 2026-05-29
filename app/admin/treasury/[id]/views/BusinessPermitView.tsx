@@ -138,17 +138,10 @@ export default function BusinessPermitView({
                     )}
 
                     {/* TRANSACTION CATEGORY CARD */}
-                    <TransactionInfoCard 
-                        transactionName={transaction.type.name} 
-                        categoryLabel="Business Permit" 
-                        themeColor={themeColor} 
-                    />
-
-                    {/* RESIDENT IDENTITY PROFILE ACCORDION */}
-                    <ResidentIdentityProfile 
-                        resident={resident} 
-                        safeFormatDate={safeFormatDate} 
-                        themeColor={themeColor} 
+                    <TransactionInfoCard
+                        transactionName={transaction.type.name}
+                        categoryLabel="Business Permit"
+                        themeColor={themeColor}
                     />
 
                     {/* MAIN ASSESSMENT CARD */}
@@ -298,59 +291,17 @@ export default function BusinessPermitView({
                         </div>
                     )}
 
-                    {/* IDENTITY DOSSIER (CITIZEN + BUSINESS) */}
+                    {/* RESIDENT IDENTITY PROFILE ACCORDION */}
+                    <ResidentIdentityProfile
+                        resident={resident}
+                        safeFormatDate={safeFormatDate}
+                        themeColor={themeColor}
+                    />
+
+                    {/* BUSINESS RECORD CARD */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-10">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-primary rounded-xl text-white shadow-lg shadow-primary/20">
-                                <Camera className="w-5 h-5" />
-                            </div>
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">Identity Dossier</h3>
-                        </div>
-
-                        {/* Citizen Profile */}
-                        <div className="grid grid-cols-3 gap-8">
-                            <div className="space-y-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">First Name</span>
-                                <p className="text-base font-black italic uppercase text-slate-800 dark:text-slate-200">{resident.firstName}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Middle Name</span>
-                                <p className="text-base font-black italic uppercase text-slate-800 dark:text-slate-200">{resident.middleName || "—"}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Last Name</span>
-                                <p className="text-base font-black italic uppercase text-slate-800 dark:text-slate-200">{resident.lastName}</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-8 pt-4 border-t border-slate-100 dark:border-white/5">
-                            <div className="space-y-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Gender</span>
-                                <p className="text-base font-black italic uppercase text-slate-800 dark:text-slate-200">{resident.gender || "—"}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Date of Birth</span>
-                                <p className="text-base font-black italic uppercase text-slate-800 dark:text-slate-200">{safeFormatDate(resident.dateOfBirth)}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Civil Status</span>
-                                <p className="text-base font-black italic uppercase text-slate-800 dark:text-slate-200">{resident.civilStatus || "—"}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-white/5">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Registered Residential Address</span>
-                            <p className="text-md font-black italic uppercase text-slate-800 dark:text-slate-200">
-                                {resident.houseNumber && `${resident.houseNumber}, `}
-                                {resident.street && `${resident.street} `}
-                                {resident.sitio && `Sitio ${resident.sitio}, `}
-                                {resident.purok && `Purok ${resident.purok}, `}
-                                Barangay {resident.barangay}, {resident.municipality || "Mapandan"}, {resident.province || "Pangasinan"}
-                            </p>
-                        </div>
-
                         {/* Business Profile */}
-                        <div className="border-t border-slate-100 dark:border-white/5 pt-8 space-y-8 animate-in fade-in duration-300">
+                        <div className="space-y-8 animate-in fade-in duration-300">
                             <div>
                                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
                                     Business <span className="text-primary">Record</span>
@@ -442,7 +393,7 @@ export default function BusinessPermitView({
                         <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
                             <div className="flex items-center gap-2">
                                 <BadgeCheck className="w-5 h-5 text-primary" />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Documentary Requirements Vault</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">All Requirments</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 {evidenceDocs.map((doc, idx) => (
@@ -533,7 +484,7 @@ export default function BusinessPermitView({
                     {/* WORKFLOW TRACKING TIMELINE */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-10 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-8">
                         <div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Workflow Tracking</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Status Tracking</span>
                             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white mt-1 leading-none">Timeline</h2>
                         </div>
 
@@ -822,7 +773,7 @@ export default function BusinessPermitView({
             </main>
 
             {/* SHARED MODALS */}
-            <RejectionRevisionControls 
+            <RejectionRevisionControls
                 isRejecting={isRejecting}
                 setIsRejecting={setIsRejecting}
                 isRequestingRevision={isRequestingRevision}

@@ -515,7 +515,7 @@ export default function RequestHubPage() {
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";
-    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && typeCode.startsWith("BUSINESS_PERMIT"));
+    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && (typeCode.startsWith("BUSINESS_PERMIT") || typeCode.startsWith("CEDULA")));
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
     const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");
@@ -727,23 +727,31 @@ export default function RequestHubPage() {
                                             <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed">Evaluation complete. Secure your issuance below.</p>
                                         </div>
                                         <div className="space-y-4 md:space-y-5">
-                                            {(isBusinessPermit || isBuildingPermit) && computation?.lineItems && computation.lineItems.length > 0 ? (
+                                            {/* Structured Line Items (Additional fees or itemized breakdown) */}
+                                            {computation?.lineItems && computation.lineItems.length > 0 && (
                                                 computation.lineItems.map((item: any, idx: number) => (
                                                     <div key={idx} className="flex justify-between items-end pb-3 border-b border-white/5">
                                                         <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">{item.label}</span>
                                                         <span className="text-lg md:text-2xl font-black italic">₱{(Number(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                                     </div>
                                                 ))
-                                            ) : (
+                                            )}
+
+                                            {/* Basic & Additional Taxes for non-BPLO / non-itemized defaults */}
+                                            {(!isBusinessPermit && !isBuildingPermit) && (
                                                 <>
-                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
-                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
-                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                    </div>
+                                                    {computation && computation.basicTax > 0 && (
+                                                        <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
+                                                            <span className="text-lg md:text-2xl font-black italic">₱{computation.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {computation && computation.additionalTax > 0 && (
+                                                        <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
+                                                            <span className="text-lg md:text-2xl font-black italic">₱{computation.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                             {computation && computation.penaltyAmount > 0 && (
@@ -1091,7 +1099,9 @@ export default function RequestHubPage() {
                                                 <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
                                                     &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
                                                         ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
-                                                        : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)}&quot;
+                                                        : (request.status === "PAID"
+                                                            ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
+                                                            : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
                                                 </p>
                                             </div>
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
