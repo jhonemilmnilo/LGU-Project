@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
@@ -46,7 +47,8 @@ import {
     getCurrentUserResident,
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
-    submitCivilRegistryTransaction
+    submitCivilRegistryTransaction,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -135,10 +137,16 @@ export default function CivilRegistryPage() {
     const searchParams = useSearchParams();
     const urlType = searchParams ? searchParams.get("type") : null;
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
     const [availableTypes, setAvailableTypes] = useState<any[]>([]);
+    const [themeColor, setThemeColor] = useState("#2563eb");
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [resident, setResident] = useState<any>(null);
 
     const [form, setForm] = useState<FormState>({
@@ -263,10 +271,15 @@ export default function CivilRegistryPage() {
         async function init() {
             try {
                 await ensureCivilRegistryTransactionTypes();
-                const [resResult, typesResult] = await Promise.all([
+                const [resResult, typesResult, themeResult] = await Promise.all([
                     getCurrentUserResident(),
-                    getTransactionTypes()
+                    getTransactionTypes(),
+                    getSystemSettingAction("theme_color", "#2563eb")
                 ]);
+
+                if (themeResult.success && themeResult.data) {
+                    setThemeColor(themeResult.data);
+                }
 
                 if (resResult.success && resResult.data) {
                     setResident(resResult.data);
@@ -441,15 +454,26 @@ export default function CivilRegistryPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#08090d] pb-20 pt-24 px-6">
+        <div 
+            className="container max-w-4xl mx-auto px-4 pt-0 pb-0 space-y-8"
+            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+        >
+            <style dangerouslySetInnerHTML={{__html: `
+                :root, * {
+                    --color-blue-500: ${themeColor} !important;
+                    --color-blue-600: ${themeColor} !important;
+                    --color-blue-700: ${themeColor} !important;
+                    --primary-theme: ${themeColor} !important;
+                    --color-primary: ${themeColor} !important;
+                }
+            `}} />
             <PrivacyTermsModal
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
-                themeColor="var(--blue-500)"
+                themeColor={themeColor}
             />
-            <div className="max-w-4xl mx-auto space-y-8">
                 {/* Header Section */}
                 <div className="space-y-4">
                     <Breadcrumb>
@@ -528,20 +552,23 @@ export default function CivilRegistryPage() {
                     </div>
                 </div>
 
-                <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-2xl border-t border-slate-200 dark:border-white/10 z-50 p-2.5 flex flex-col items-center">
-                    <div className="w-full max-w-5xl flex items-center justify-center gap-4">
-                        <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                            <motion.div
-                                className="h-full bg-blue-600"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
-                            />
+                {mounted && typeof document !== "undefined" && createPortal(
+                    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+                        <div className="w-full max-w-5xl flex items-center justify-center gap-4">
+                            <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-blue-600"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+                                />
+                            </div>
+                            <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+                                Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+                            </span>
                         </div>
-                        <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
-                            Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
-                        </span>
-                    </div>
-                </div>
+                    </div>,
+                    document.body
+                )}
 
                 {/* Step Selection */}
                 <Card className="p-8 rounded-[2.5rem] border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl shadow-slate-200/40 dark:shadow-none min-h-[400px]">
@@ -771,35 +798,10 @@ export default function CivilRegistryPage() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    {/* Data Privacy Agreement panel */}
-                                    <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
-                                        <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300")}>
-                                            {policyAccepted ? <Check className="w-3 h-3" /> : null}
-                                        </button>
-                                        <div className="flex-1 text-xs">
-                                            <div className="font-black uppercase text-[11px] tracking-wider text-slate-800 dark:text-white">DATA PRIVACY & CERTIFICATION AGREEMENT</div>
-                                            <div className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">
-                                                BY SUBMITTING, I CERTIFY THAT ALL INFORMATION PROVIDED IS TRUE AND CORRECT. I AM AWARE OF THE DATA PRIVACY POLICY OF MAPANDAN. CLICK TO REVIEW AGREEMENT.
-                                            </div>
-                                        </div>
-                                        <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600">Review</button>
-                                    </div>
                                     <div className="space-y-4 p-8 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5">
                                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 italic mb-4">Primary Subject Information</h3>
 
                                         <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Certificate Type</Label>
-                                                <Input
-                                                    value={form.registryType === "BIRTH" ? "Birth Certificate" :
-                                                        form.registryType === "MARRIAGE" ? "Marriage Certificate" :
-                                                            form.registryType === "DEATH" ? "Death Certificate" :
-                                                                form.registryType === "MARRIAGE_LICENSE" ? "Marriage License Application" : ""}
-                                                    readOnly
-                                                    className="h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-500 font-bold italic"
-                                                />
-                                            </div>
-
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
@@ -989,11 +991,10 @@ export default function CivilRegistryPage() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.fatherFirstName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. JUAN"
@@ -1001,9 +1002,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, fatherFirstName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.fatherFirstName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -1021,11 +1019,10 @@ export default function CivilRegistryPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.fatherLastName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. SANTOS"
@@ -1033,9 +1030,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, fatherLastName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.fatherLastName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1051,11 +1045,10 @@ export default function CivilRegistryPage() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.motherFirstName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. MARIA"
@@ -1063,9 +1056,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, motherFirstName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.motherFirstName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -1083,11 +1073,10 @@ export default function CivilRegistryPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.motherLastName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. MERCADO"
@@ -1095,9 +1084,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, motherLastName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.motherLastName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1121,13 +1107,6 @@ export default function CivilRegistryPage() {
                                     </Button>
                                     <Button
                                         onClick={() => {
-                                            if (!form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName) {
-                                                setShowErrors(true);
-                                                toast.error("Please fill in all required parent details", {
-                                                    className: "font-black uppercase tracking-widest text-[10px] italic",
-                                                });
-                                                return;
-                                            }
                                             setShowErrors(false);
                                             setCurrentStep("CONFIRM");
                                         }}
@@ -1440,7 +1419,6 @@ export default function CivilRegistryPage() {
                         </div>
                     </Card>
                 </div>
-            </div>
         </div>
     );
 }

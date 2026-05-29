@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion, AnimatePresence } from "framer-motion";
@@ -160,7 +161,12 @@ const STORAGE_KEY = "lcr_marriage_registration_draft";
 export default function MarriageRegistrationPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [submitting, setSubmitting] = useState(false);
     const [resident, setResident] = useState<any>(null);
     const [showDetailsErrors, setShowDetailsErrors] = useState(false);
@@ -527,7 +533,7 @@ export default function MarriageRegistrationPage() {
                 onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--amber-500)"
             />
-            <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+            <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
@@ -618,6 +624,24 @@ export default function MarriageRegistrationPage() {
                             })}
                         </div>
                     </div>
+
+                    {mounted && typeof document !== "undefined" && createPortal(
+                        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+                            <div className="w-full max-w-5xl flex items-center justify-center gap-4">
+                                <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-rose-600"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+                                    />
+                                </div>
+                                <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+                                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+                                </span>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                     <AnimatePresence mode="wait">
                         <motion.div

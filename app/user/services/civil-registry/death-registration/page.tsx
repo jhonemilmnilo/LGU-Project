@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User,
+    Search,
     Loader2,
     Check,
     AlertCircle,
@@ -44,6 +46,7 @@ import {
     submitCivilRegistryTransaction,
     getTransactionTypes
 } from "@/app/admin/transactions/actions";
+import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
@@ -58,10 +61,76 @@ const STEPS: { id: Step; label: string; icon: any }[] = [
     { id: "CONFIRM", label: "Review & Submit", icon: CheckCircle2 },
 ];
 
+// --- Resident Search Component ---
+const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSelect: (r: any) => void; placeholder?: string }) => {
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (query.length > 2) {
+            const delayDebounceFn = setTimeout(async () => {
+                const res = await searchResidents(query);
+                if (res.success && res.data) {
+                    setResults(res.data as any[]);
+                } else {
+                    setResults([]);
+                }
+            }, 300);
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            setResults([]);
+        }
+    }, [query]);
+
+    return (
+        <div className="relative w-full">
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                    placeholder={placeholder}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-12 h-12 bg-slate-50 dark:bg-white/5 border-none font-bold"
+                />
+            </div>
+
+            {results.length > 0 && (
+                <div className="absolute z-[110] w-full mt-2 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2 space-y-1">
+                    {results.map((r) => (
+                        <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                                onSelect(r);
+                                setQuery("");
+                                setResults([]);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 dark:hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                                <User className="w-4 h-4 text-slate-400" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black uppercase italic">{r.firstName} {r.lastName}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{r.barangay}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function DeathRegistrationPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [submitting, setSubmitting] = useState(false);
     const [resident, setResident] = useState<any>(null);
     const [typeId, setTypeId] = useState<string>("");
@@ -436,7 +505,7 @@ export default function DeathRegistrationPage() {
                 onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--emerald-600)"
             />
-            <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+            <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
@@ -521,6 +590,24 @@ export default function DeathRegistrationPage() {
                             })}
                         </div>
                     </div>
+
+                    {mounted && typeof document !== "undefined" && createPortal(
+                        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+                            <div className="w-full max-w-5xl flex items-center justify-center gap-4">
+                                <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-emerald-500"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+                                    />
+                                </div>
+                                <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+                                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+                                </span>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                     <Card className="p-6 md:p-10 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden min-h-[400px]">
                         <AnimatePresence mode="wait">
@@ -660,6 +747,36 @@ export default function DeathRegistrationPage() {
                                             Deceased Information
                                         </h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Provide the details of the deceased individual</p>
+                                    </div>
+
+                                    {/* Resident Database Search */}
+                                    <div className="space-y-3 p-6 rounded-[2rem] bg-slate-500/5 border border-slate-200/50 dark:border-white/5">
+                                        <div className="flex items-center gap-2">
+                                            <Search className="w-4 h-4 text-emerald-500" />
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                Search Deceased in Resident Database
+                                            </Label>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">
+                                            If the deceased was a registered resident of Mapandan, you can search and select their profile to automatically pre-fill all available information.
+                                        </p>
+                                        <ResidentSearch
+                                            placeholder="Type resident name to search..."
+                                            onSelect={(r) => {
+                                                const middleInit = r.middleName ? ` ${r.middleName.charAt(0)}.` : "";
+                                                const suffixStr = r.suffix ? ` ${r.suffix}` : "";
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    fullName: `${r.firstName}${middleInit} ${r.lastName}${suffixStr}`.toUpperCase(),
+                                                    dateOfBirth: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                                                    gender: r.sex || "",
+                                                    civilStatus: r.civilStatus || "",
+                                                    fathersName: r.fatherName || "",
+                                                    mothersName: r.motherName || ""
+                                                }));
+                                                toast.success(`Selected ${r.firstName} ${r.lastName} as the deceased.`);
+                                            }}
+                                        />
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

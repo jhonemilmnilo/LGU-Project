@@ -7,13 +7,14 @@ import {
     Heart,
     FileText,
     ArrowRight,
-    Sparkles
+    Sparkles,
+    Home
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { UserBreadcrumb } from "@/components/shared/UserBreadcrumb";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const REGISTRY_TYPES = [
     {
@@ -114,11 +115,34 @@ const REGISTRY_TYPES = [
 
 export default function CivilRegistryPage() {
     return (
-        <div className="container max-w-5xl mx-auto px-4 py-4 space-y-6 pb-32">
+        <div className="container max-w-5xl mx-auto px-4 pt-0 pb-32 space-y-6">
             {/* Breadcrumbs */}
-            <div className="-mt-8 md:-mt-12 mb-4">
-                <UserBreadcrumb />
-            </div>
+            <Breadcrumb className="mb-4">
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/user" className="flex items-center gap-1.5 transition-colors hover:text-blue-500 font-bold italic text-[11px] uppercase tracking-wider">
+                                <Home className="w-3.5 h-3.5" />
+                                Home
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="opacity-40" />
+                    <BreadcrumbItem>
+                        <BreadcrumbLink asChild>
+                            <Link href="/user/services" className="transition-colors hover:text-blue-500 font-bold italic text-[11px] uppercase tracking-wider">
+                                Services
+                            </Link>
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="opacity-40" />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage className="text-blue-500 font-black italic text-[11px] uppercase tracking-wider">
+                            Civil Registry
+                        </BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
             {/* Header */}
             <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 p-8 md:p-12 text-white shadow-2xl border border-slate-700/50">
