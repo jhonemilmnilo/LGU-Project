@@ -1443,7 +1443,6 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
     try {
         const sanitizedId = sanitizeString(id);
         const sanitizedReferenceNo = referenceNo ? sanitizeString(referenceNo) : undefined;
-        const sanitizedRemarks = remarks ? sanitizeString(remarks) : undefined;
 
         const session = await getSession();
         const user = session?.user as any;
@@ -3699,7 +3698,7 @@ export async function declinePaymentProofAction(id: string, reason: string) {
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const currentAdditionalData = (transaction.additionalData as any) || {};
-        let updatedAdditionalData = { ...currentAdditionalData };
+        const updatedAdditionalData = { ...currentAdditionalData };
 
         // Only apply 3x limit rule for Building Permits
         const isBuildingPermit = transaction.type?.code?.startsWith("BUILDING_PERMIT");

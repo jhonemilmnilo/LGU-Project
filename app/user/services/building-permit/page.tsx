@@ -28,8 +28,6 @@ import {
   CheckCircle2,
   Upload,
   Shield,
-  Building,
-  Scale,
   Hourglass,
   Receipt,
   Check,
@@ -67,7 +65,7 @@ import { getCurrentUserResident, cancelTransaction, uploadECopyAction, saveBfpCl
 import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits, resubmitBuildingPermit, submitBuildingPermitPaymentProof, submitClearancesForReviewAction } from "./actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -205,14 +203,6 @@ export default function BuildingPermitPage() {
     }
   }, [selectedApplication]);
 
-  const handleOpenPaymentModal = (application: any) => {
-    setSelectedApplication(application);
-    setPaymentFile(null);
-    setPaymentPreviewUrl(null);
-    setGcashReferenceNo(application.additionalData?.gcashReferenceNo || "");
-    setIsPaymentModalOpen(true);
-  };
-
   const handleUploadBfpClearance = async (file: File | null) => {
     if (!file || !selectedApplication) return;
     const toastId = toast.loading("Uploading BFP Clearance Proof...");
@@ -307,7 +297,7 @@ export default function BuildingPermitPage() {
       } else {
         toast.error(res.error || "Failed to upload payment receipt.", { id: toastId });
       }
-    } catch (err) {
+    } catch {
       toast.error("An error occurred while submitting payment.", { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -2128,7 +2118,7 @@ export default function BuildingPermitPage() {
                                 } else {
                                   toast.error(res.error || "Submission failed", { id: toastId });
                                 }
-                              } catch (e) {
+                              } catch {
                                 toast.error("An error occurred", { id: toastId });
                               } finally {
                                 setIsSubmitting(false);
