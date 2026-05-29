@@ -244,7 +244,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
     // Treasury Staff can only upload OR; Permit No., Sticker No., and Waybill are BPLO Admin only
     const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
-    const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
+    // backUrl is dynamically determined below after loading transaction metadata
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -413,6 +413,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     );
     const isBuildingPermit = transaction?.type?.code?.startsWith("BUILDING_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
+    const backUrl = isLCR
+        ? "/admin/treasury?category=Civil%20Registry"
+        : (userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury");
     const typeCode = (transaction?.type?.code || "").toUpperCase();
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
@@ -585,12 +588,19 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const handleRelease = useCallback(async () => {
 
-        // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits)
-        const ctcRequired = !isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits, and not for Birth Registration)
+        const isBirthReg = transaction?.type?.code === "LCR_BIRTH" || transaction?.type?.code === "LCR_BIRTH_REG";
+        const ctcRequired = !isBusinessPermit && !isBirthReg && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
         if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
             toast.error("CTC Number Required");
             return;
         }
+        // Require E-Copy for LCR releases
+        if (isLCR && !eCopyFile && !transaction.eCopyUrl) {
+            toast.error("Official Digital E-Copy registry record is required before releasing.");
+            return;
+        }
+
         setActionLoading(true);
         try {
             // Strict Validation for Business Permit: OR attachment is also required!
@@ -949,8 +959,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     docs.push({ url: additional.negativePSA, label: "Negative Certification from PSA" });
                     docs.push({ url: additional.colb, label: "Certificate of Live Birth (COLB)" });
                     docs.push({ url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" });
-                    docs.push({ url: additional.supportingEvidence1, label: "Supporting Evidence 1" });
-                    docs.push({ url: additional.supportingEvidence2, label: "Supporting Evidence 2" });
                 } else {
                     const parentsMarried = additional.parentsMarried === true || additional.parentsMarried === "true";
                     if (parentsMarried) {
@@ -1013,8 +1021,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 { key: 'negativePSA', label: 'Negative Certification from PSA' },
                 { key: 'colb', label: 'Certificate of Live Birth (COLB)' },
                 { key: 'affidavitDelayed', label: 'Affidavit of Delayed Registration' },
-                { key: 'supportingEvidence1', label: 'Supporting Evidence 1' },
-                { key: 'supportingEvidence2', label: 'Supporting Evidence 2' },
                 { key: 'municipalForm103', label: 'Municipal Form No. 103' },
                 { key: 'psaNegative', label: 'PSA Negative Certification' },
                 { key: 'affidavitOfDelay', label: 'Affidavit of Delayed Registration' },
@@ -1063,22 +1069,25 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 // ignore parsing errors
             }
 
-            // --- ID & Document Uploads for Civil Registry Request/Registration ---
-            const idFront = additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl;
-            const idBack = additional.validIdBack || additional.idBackUrl || resident.idBackUrl;
 
-            if (idFront && !docs.find(d => d.url === idFront)) {
-                docs.push({ url: idFront, label: "Government ID (Front)" });
-            }
-            if (idBack && !docs.find(d => d.url === idBack)) {
-                docs.push({ url: idBack, label: "Government ID (Back)" });
-            }
 
             // Also check for any other uploaded files in additionalData that are valid URLs
             Object.entries(additional).forEach(([key, val]) => {
                 if (typeof val === 'string' && val.startsWith('http') && !docs.find(d => d.url === val)) {
                     // Avoid duplicating paymentReference, eCopyUrl, or orUrl in requirements vault
-                    if (key !== 'paymentReference' && key !== 'eCopyUrl' && key !== 'orUrl') {
+                    if (
+                        key !== 'paymentReference' &&
+                        key !== 'eCopyUrl' &&
+                        key !== 'orUrl' &&
+                        key !== 'idFrontUrl' &&
+                        key !== 'idBackUrl' &&
+                        key !== 'validIdFront' &&
+                        key !== 'validIdBack' &&
+                        key !== 'validIdFrontUrl' &&
+                        key !== 'validIdBackUrl' &&
+                        key !== 'validIdUrl' &&
+                        key !== 'idTypeOverride'
+                    ) {
                         // Humanize the key for the label
                         const label = key
                             .replace(/([A-Z])/g, ' $1')

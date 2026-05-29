@@ -21,7 +21,8 @@ import {
     CheckCircle2,
     Users,
     AlertCircle,
-    Eye
+    Eye,
+    ChevronDown
 } from "lucide-react";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Button } from "@/components/ui/button";
@@ -43,12 +44,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
     getCurrentUserResident,
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
-    submitCivilRegistryTransaction
+    submitCivilRegistryTransaction,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -65,6 +73,26 @@ const checkIsPdf = (file: any, url: string | null) => {
     }
     return false;
 };
+
+const EVIDENCE_LABELS: Record<string, string> = {
+    A: "Baptismal Certificate",
+    B: "School records",
+    C: "Income tax return of parents",
+    D: "Insurance Policy",
+    E: "Medical records",
+    F: "Others (Voter registration record, Barangay certification)",
+    G: "Affidavit of 2 disinterested persons"
+};
+
+const EVIDENCE_OPTIONS = [
+    { value: 'A', label: 'A. Baptismal Certificate' },
+    { value: 'B', label: 'B. School records' },
+    { value: 'C', label: 'C. Income tax return of parents' },
+    { value: 'D', label: 'D. Insurance Policy' },
+    { value: 'E', label: 'E. Medical records' },
+    { value: 'F', label: 'F. Others (Voter registration record, Barangay certification)' },
+    { value: 'G', label: 'G. Affidavit of 2 disinterested persons' }
+];
 
 // --- TYPES ---
 
@@ -100,6 +128,11 @@ interface FormState {
     lateDuration?: "1-10" | "10-20" | "20+" | string;
     miscFee?: number;
     parentsMarried?: boolean;
+    supportingEvidence1Type: string;
+    supportingEvidence2Type: string;
+    supportingEvidenceTypes: string[];
+    supportingEvidence1Source: string;
+    supportingEvidence2Source: string;
     // Shared
     paymentType: "WALK_IN";
     files: Record<string, File | null>;
@@ -127,6 +160,16 @@ export default function BirthRegistrationPage() {
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const [themeColor, setThemeColor] = useState("theme_color");
+
+    useEffect(() => {
+        getSystemSettingAction("theme_color").then((res) => {
+            if (res.success && res.data) {
+                setThemeColor(res.data);
+            }
+        });
+    }, []);
+
     useEffect(() => {
         setMounted(true);
     }, []);
@@ -151,6 +194,11 @@ export default function BirthRegistrationPage() {
         registrationType: "STANDARD",
         miscFee: 0,
         lateDuration: "",
+        supportingEvidence1Type: "",
+        supportingEvidence2Type: "",
+        supportingEvidenceTypes: [],
+        supportingEvidence1Source: "",
+        supportingEvidence2Source: "",
         paymentType: "WALK_IN",
         files: {},
         previews: {},
@@ -180,12 +228,44 @@ export default function BirthRegistrationPage() {
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
 
+    // Dropdown open state for evidence menu
+    const [evidenceMenuOpen, setEvidenceMenuOpen] = useState(false);
+
     const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
         setViewerFile(file);
         setViewerUrl(existingUrl);
         setViewerTitle(title);
         setViewerOpen(true);
     };
+
+    // If the dateOfEvent is set from another source (e.g. profile hydrate), keep registrationType in sync
+    useEffect(() => {
+        if (!form.dateOfEvent) return;
+
+        try {
+            const dob = new Date(form.dateOfEvent);
+            const today = new Date();
+
+            const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
+            const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+            const diffDays = Math.floor((todayNorm.getTime() - dobNorm.getTime()) / (1000 * 60 * 60 * 24));
+            const isLate = diffDays > 30;
+
+            setForm(prev => {
+                const desired = isLate ? "LATE" : "STANDARD";
+                if (prev.registrationType === desired) return prev;
+                return {
+                    ...prev,
+                    registrationType: desired,
+                    lateDuration: isLate ? prev.lateDuration : "",
+                    miscFee: isLate ? prev.miscFee : 0
+                };
+            });
+        } catch (e) {
+            // ignore
+        }
+    }, [form.dateOfEvent]);
 
     const handleAcceptPolicy = () => {
         setPolicyOpen(false);
@@ -215,10 +295,18 @@ export default function BirthRegistrationPage() {
         if (savedForm) {
             try {
                 const parsed = JSON.parse(savedForm);
-                setForm(prev => ({
-                    ...prev,
-                    ...parsed
-                }));
+                if (parsed && typeof parsed === "object") {
+                    const parsedSupporting = parsed.supportingEvidenceTypes || ((parsed.supportingEvidence1Type || parsed.supportingEvidence2Type) ? [parsed.supportingEvidence1Type, parsed.supportingEvidence2Type].filter(Boolean) : []);
+
+                    isRestoredRef.current = true;
+                    setForm(prev => ({
+                        ...prev,
+                        ...parsed,
+                        supportingEvidenceTypes: parsedSupporting,
+                        supportingEvidence1Type: parsed.supportingEvidence1Type || parsedSupporting[0] || "",
+                        supportingEvidence2Type: parsed.supportingEvidence2Type || parsedSupporting[1] || ""
+                    }));
+                }
             } catch (e) {
                 console.error("Failed to parse saved form", e);
             }
@@ -363,7 +451,7 @@ export default function BirthRegistrationPage() {
         let count = 1;
         if (val === "TWIN") count = 2;
         if (val === "TRIPLET") count = 3;
-        if (val === "OTHERS") count = 4;
+        if (val === "QUADRUPLET") count = 4;
 
         setForm(prev => {
             const currentChildren = [...prev.children];
@@ -386,6 +474,41 @@ export default function BirthRegistrationPage() {
             newChildren[index] = { ...newChildren[index], [field]: value.toUpperCase() };
             return { ...prev, children: newChildren };
         });
+    };
+
+    const handleDateOfEventChange = (value: string) => {
+        // Auto-set registration type to LATE when DOB is more than 1 month ago
+        if (!value) {
+            setForm(prev => ({ ...prev, dateOfEvent: value }));
+            return;
+        }
+
+        try {
+            const dob = new Date(value);
+            const today = new Date();
+
+            // Normalize to dates only to avoid timezone issues
+            const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
+            const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+            const diffDays = Math.floor((todayNorm.getTime() - dobNorm.getTime()) / (1000 * 60 * 60 * 24));
+
+            const isLate = diffDays > 30; // more than ~1 month
+
+            setForm(prev => ({
+                ...prev,
+                dateOfEvent: value,
+                registrationType: isLate ? "LATE" : "STANDARD",
+                // Clear lateDuration when switching back to STANDARD
+                lateDuration: isLate ? prev.lateDuration : "",
+                miscFee: isLate ? prev.miscFee : 0
+            }));
+
+            // Do not show toast here to avoid popping while typing; notify user when they proceed.
+        } catch (e) {
+            // Fallback to simple set
+            setForm(prev => ({ ...prev, dateOfEvent: value }));
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
@@ -419,6 +542,33 @@ export default function BirthRegistrationPage() {
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const toggleSupportingEvidence = (val: string) => {
+        setForm(prev => {
+            const current = prev.supportingEvidenceTypes || [];
+            let next: string[];
+            if (current.includes(val)) {
+                next = current.filter(v => v !== val);
+            } else {
+                if (current.length >= 2) {
+                    toast.error("You can select only two supporting evidence types. Remove one to add another.");
+                    return prev;
+                }
+                next = [...current, val];
+            }
+
+            if (next.length === 2) {
+                setTimeout(() => setEvidenceMenuOpen(false), 0);
+            }
+
+            return {
+                ...prev,
+                supportingEvidenceTypes: next,
+                supportingEvidence1Type: next[0] || "",
+                supportingEvidence2Type: next[1] || ""
+            };
+        });
     };
 
     const validateStep = (step: Step) => {
@@ -508,7 +658,7 @@ export default function BirthRegistrationPage() {
                 if (!(form.files[k] || form.previews[k])) {
                     const map: any = {
                         negativePSA: 'Negative Certification from PSA',
-                        colb: 'COLB',
+                        colb: 'Certificate of Live Birth (COLB)',
                         affidavitDelayed: 'Affidavit of Delayed Registration',
                         supportingEvidence1: 'Supporting Evidence 1',
                         supportingEvidence2: 'Supporting Evidence 2'
@@ -525,6 +675,17 @@ export default function BirthRegistrationPage() {
             // Scroll to documents section
             try { document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { void e; }
             return;
+        }
+
+        // If LATE, ensure evidence types are selected before submitting
+        if (form.registrationType === "LATE") {
+            if (!form.supportingEvidenceTypes || form.supportingEvidenceTypes.length < 2) {
+                setErrors(prev => ({ ...prev, documents: "Please select two supporting evidence types." }));
+                setShowErrors(true);
+                toast.error("Please select two supporting evidence types before uploading files.");
+                try { document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { void e; }
+                return;
+            }
         }
 
         setSubmitting(true);
@@ -572,14 +733,48 @@ export default function BirthRegistrationPage() {
                 parentsMarried: form.parentsMarried,
                 miscFee: totalAmount,
                 totalAmount: totalAmount,
+                supportingEvidenceTypes: form.supportingEvidenceTypes || [],
+                supportingEvidence1Type: form.supportingEvidence1Type || null,
+                supportingEvidence2Type: form.supportingEvidence2Type || null,
             };
 
 
 
             formData.append("additionalData", JSON.stringify(baseAdditionalData));
 
+            // Helper function to convert base64 to File object
+            const dataURLtoFile = (dataurl: string, filenameWithoutExt: string): File | null => {
+                try {
+                    const arr = dataurl.split(',');
+                    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+                    const ext = mime.includes('pdf') ? 'pdf' : (mime.split('/')[1] || 'png');
+                    const filename = `${filenameWithoutExt}.${ext}`;
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while (n--) {
+                        u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    return new File([u8arr], filename, { type: mime });
+                } catch (e) {
+                    console.error("Failed to convert dataURL to File:", e);
+                    return null;
+                }
+            };
+
+            // Reconstruct any missing files from data URL previews (so reloads/drafts survive!)
+            const finalFiles = { ...form.files };
+            Object.entries(form.previews).forEach(([key, previewUrl]) => {
+                if (previewUrl && previewUrl.startsWith("data:") && !finalFiles[key]) {
+                    const reconstructedFile = dataURLtoFile(previewUrl, key);
+                    if (reconstructedFile) {
+                        finalFiles[key] = reconstructedFile;
+                    }
+                }
+            });
+
             // Append files
-            Object.entries(form.files).forEach(([key, file]) => {
+            Object.entries(finalFiles).forEach(([key, file]) => {
                 if (file) formData.append(key, file);
             });
 
@@ -617,13 +812,60 @@ export default function BirthRegistrationPage() {
 
     return (
         <>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                :root, * {
+                    --primary-theme: ${themeColor} !important;
+                }
+                .text-blue-500, [class*="text-blue-500"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .text-blue-600, [class*="text-blue-600"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .bg-blue-500, [class*="bg-blue-500"] {
+                    background-color: ${themeColor} !important;
+                }
+                .bg-blue-600, [class*="bg-blue-600"] {
+                    background-color: ${themeColor} !important;
+                }
+                .border-blue-500, [class*="border-blue-500"] {
+                    border-color: ${themeColor} !important;
+                }
+                .border-blue-600, [class*="border-blue-600"] {
+                    border-color: ${themeColor} !important;
+                }
+                .bg-blue-500\\/10, [class*="bg-blue-500/10"] {
+                    background-color: ${themeColor}1a !important;
+                }
+                .bg-blue-500\\/5, [class*="bg-blue-500/5"] {
+                    background-color: ${themeColor}0d !important;
+                }
+                .shadow-blue-500\\/20, [class*="shadow-blue-500/20"] {
+                    --tw-shadow-color: ${themeColor}33 !important;
+                }
+                .hover\\:bg-blue-600:hover, [class*="hover:bg-blue-600"]:hover {
+                    background-color: ${themeColor} !important;
+                    filter: brightness(0.9);
+                }
+                .hover\\:border-blue-500\\/50:hover, [class*="hover:border-blue-500/50"]:hover {
+                    border-color: ${themeColor}80 !important;
+                }
+                input:not([type="button"]):not([type="submit"]), select, textarea {
+                    color: #0f172a !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
+                    color: #f8fafc !important;
+                }
+                `
+            }} />
             <SecureIdleTimer />
             <PrivacyTermsModal
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
-                themeColor="var(--amber-500)"
+                themeColor="var(--primary-theme)"
             />
             <DocumentViewerModal
                 isOpen={viewerOpen}
@@ -631,7 +873,7 @@ export default function BirthRegistrationPage() {
                 file={viewerFile}
                 fileUrl={viewerUrl}
                 title={viewerTitle}
-                themeColor="var(--blue-500)"
+                themeColor="var(--primary-theme)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
@@ -937,7 +1179,7 @@ export default function BirthRegistrationPage() {
                                                     <SelectItem value="SINGLE">Single</SelectItem>
                                                     <SelectItem value="TWIN">Twin</SelectItem>
                                                     <SelectItem value="TRIPLET">Triplet</SelectItem>
-                                                    <SelectItem value="OTHERS">Others (Quadruplets+, etc.)</SelectItem>
+                                                    <SelectItem value="QUADRUPLET">Quadruplets</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -1018,7 +1260,7 @@ export default function BirthRegistrationPage() {
                                                         (errors.dateOfEvent) && "border-red-500/50 bg-red-50/10"
                                                     )}
                                                     value={form.dateOfEvent}
-                                                    onChange={(e) => setForm({ ...form, dateOfEvent: e.target.value })}
+                                                    onChange={(e) => handleDateOfEventChange(e.target.value)}
                                                 />
                                                 {errors.dateOfEvent && (
                                                     <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.dateOfEvent}</p>
@@ -1054,6 +1296,21 @@ export default function BirthRegistrationPage() {
                                         <Button
                                             onClick={() => {
                                                 if (!validateStep("DETAILS")) return;
+                                                // Show late-registration notice when user proceeds
+                                                try {
+                                                    if (form.dateOfEvent) {
+                                                        const dob = new Date(form.dateOfEvent);
+                                                        const today = new Date();
+                                                        const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
+                                                        const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                                        const diffDays = Math.floor((todayNorm.getTime() - dobNorm.getTime()) / (1000 * 60 * 60 * 24));
+                                                        if (diffDays > 30 && form.registrationType === "LATE") {
+                                                            toast.info("Registration set to LATE because date of birth is over 1 month old.");
+                                                        }
+                                                    }
+                                                } catch (e) {
+                                                    // ignore
+                                                }
                                                 setCurrentStep("PARENTS");
                                             }}
                                             className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
@@ -1228,7 +1485,25 @@ export default function BirthRegistrationPage() {
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Registration Type:</span>
                                                 <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-full border border-slate-200 dark:border-white/10">
                                                     <button
-                                                        onClick={() => setForm(prev => ({ ...prev, registrationType: "STANDARD" }))}
+                                                        onClick={() => {
+                                                            // Prevent switching to STANDARD if DOB is more than 1 month ago
+                                                            try {
+                                                                if (form.dateOfEvent) {
+                                                                    const dob = new Date(form.dateOfEvent);
+                                                                    const today = new Date();
+                                                                    const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
+                                                                    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                                                    const diffDays = Math.floor((todayNorm.getTime() - dobNorm.getTime()) / (1000 * 60 * 60 * 24));
+                                                                    if (diffDays > 30) {
+                                                                        toast.error("The selected date of birth is more than 1 month ago — registration should be LATE.");
+                                                                        return;
+                                                                    }
+                                                                }
+                                                            } catch (e) {
+                                                                // ignore parse errors and allow change
+                                                            }
+                                                            setForm(prev => ({ ...prev, registrationType: "STANDARD", lateDuration: "", miscFee: 0 }));
+                                                        }}
                                                         className={cn(
                                                             "px-6 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300",
                                                             form.registrationType === "STANDARD"
@@ -1351,7 +1626,7 @@ export default function BirthRegistrationPage() {
                                                             <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
                                                                 <div className="flex items-center gap-3">
                                                                     {form.files[doc.key] || form.previews[doc.key] ? (
-                                                                        <div 
+                                                                        <div
                                                                             onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
                                                                             className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
                                                                         >
@@ -1371,7 +1646,7 @@ export default function BirthRegistrationPage() {
                                                                             <FileText className="w-5 h-5 text-slate-300" />
                                                                         </div>
                                                                     )}
-                                                                    <div 
+                                                                    <div
                                                                         onClick={() => {
                                                                             if (form.files[doc.key] || form.previews[doc.key]) {
                                                                                 handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
@@ -1415,79 +1690,203 @@ export default function BirthRegistrationPage() {
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        [
-                                                            { key: "negativePSA", label: "Negative Certification from PSA" },
-                                                            { key: "colb", label: "COLB" },
-                                                            { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" },
-                                                            { key: "supportingEvidence1", label: "Supporting Evidence 1" },
-                                                            { key: "supportingEvidence2", label: "Supporting Evidence 2" }
-                                                        ].map((doc) => (
-                                                            <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
-                                                                <div className="flex items-center gap-3">
-                                                                    {form.files[doc.key] || form.previews[doc.key] ? (
-                                                                        <div 
-                                                                            onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
-                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
-                                                                        >
-                                                                            {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
-                                                                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
-                                                                            ) : form.previews[doc.key] ? (
-                                                                                <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
-                                                                            ) : (
-                                                                                <FileText className="w-5 h-5 text-blue-500" />
-                                                                            )}
-                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
-                                                                                <Eye className="w-4 h-4 text-white" />
+                                                        <>
+                                                            {[
+                                                                { key: "negativePSA", label: "Negative Certification from PSA" },
+                                                                { key: "colb", label: "Certificate of Live Birth (COLB)" },
+                                                                { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" }
+                                                            ].map((doc) => (
+                                                                <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
+                                                                    <div className="flex items-center gap-3">
+                                                                        {form.files[doc.key] || form.previews[doc.key] ? (
+                                                                            <div
+                                                                                onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
+                                                                                className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+                                                                            >
+                                                                                {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
+                                                                                    <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                                                                ) : form.previews[doc.key] ? (
+                                                                                    <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                                ) : (
+                                                                                    <FileText className="w-5 h-5 text-blue-500" />
+                                                                                )}
+                                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+                                                                                    <Eye className="w-4 h-4 text-white" />
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
-                                                                            <FileText className="w-5 h-5 text-slate-300" />
-                                                                        </div>
-                                                                    )}
-                                                                    <div 
-                                                                        onClick={() => {
-                                                                            if (form.files[doc.key] || form.previews[doc.key]) {
-                                                                                handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
-                                                                            }
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex flex-col gap-0.5 select-none",
-                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                                                <FileText className="w-5 h-5 text-slate-300" />
+                                                                            </div>
                                                                         )}
-                                                                    >
-                                                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
-                                                                        <span className={cn(
-                                                                            "text-[8px] font-black uppercase tracking-[0.2em] italic",
-                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
-                                                                        )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? (
-                                                                                <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
-                                                                                    <span>Uploaded (Click to Preview)</span>
-                                                                                    <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
-                                                                                        {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
+                                                                        <div
+                                                                            onClick={() => {
+                                                                                if (form.files[doc.key] || form.previews[doc.key]) {
+                                                                                    handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
+                                                                                }
+                                                                            }}
+                                                                            className={cn(
+                                                                                "flex flex-col gap-0.5 select-none",
+                                                                                (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                            )}
+                                                                        >
+                                                                            <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
+                                                                            <span className={cn(
+                                                                                "text-[8px] font-black uppercase tracking-[0.2em] italic",
+                                                                                (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
+                                                                            )}>
+                                                                                {(form.files[doc.key] || form.previews[doc.key]) ? (
+                                                                                    <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
+                                                                                        <span>Uploaded (Click to Preview)</span>
+                                                                                        <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
+                                                                                            {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
+                                                                                        </span>
                                                                                     </span>
-                                                                                </span>
-                                                                            ) : "Pending"}
-                                                                        </span>
+                                                                                ) : "Pending"}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            type="file"
+                                                                            onChange={(e) => handleFileChange(e, doc.key)}
+                                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                            accept="image/*,.pdf"
+                                                                        />
+                                                                        <div className={cn(
+                                                                            "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
+                                                                        )}>
+                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="relative">
-                                                                    <input
-                                                                        type="file"
-                                                                        onChange={(e) => handleFileChange(e, doc.key)}
-                                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                                        accept="image/*,.pdf"
-                                                                    />
-                                                                    <div className={cn(
-                                                                        "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                        (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
-                                                                    )}>
-                                                                        {(form.files[doc.key] || form.previews[doc.key]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                            ))}
+
+                                                            <div className="col-span-1 md:col-span-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4">
+                                                                <div className="space-y-3 w-full">
+                                                                    <div>
+                                                                        <Label className="text-[9px] font-black uppercase tracking-wider text-slate-500 italic">Supporting Evidence (select up to 2)</Label>
+                                                                        <DropdownMenu open={evidenceMenuOpen} onOpenChange={setEvidenceMenuOpen}>
+                                                                            <DropdownMenuTrigger className="h-10 rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-bold w-full text-left px-3 flex items-center justify-between">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {form.supportingEvidenceTypes && form.supportingEvidenceTypes.length > 0 ? (
+                                                                                        <span className="text-xs font-bold uppercase">{form.supportingEvidenceTypes.map(v => EVIDENCE_LABELS[v] || v).join(', ')}</span>
+                                                                                    ) : (
+                                                                                        <span className="text-xs italic text-slate-400">Select up to 2 evidence types</span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {form.supportingEvidenceTypes && form.supportingEvidenceTypes.length > 0 ? (
+                                                                                        <div className="bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 text-[10px] font-black uppercase">{form.supportingEvidenceTypes.length}</div>
+                                                                                    ) : null}
+                                                                                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                                                                                </div>
+                                                                            </DropdownMenuTrigger>
+                                                                            <DropdownMenuContent className="rounded-xl border-slate-200 dark:border-white/10 italic w-64">
+                                                                                <div className="p-1">
+                                                                                    {EVIDENCE_OPTIONS.map(opt => (
+                                                                                        <DropdownMenuCheckboxItem
+                                                                                            key={opt.value}
+                                                                                            checked={form.supportingEvidenceTypes?.includes(opt.value)}
+                                                                                            onCheckedChange={() => toggleSupportingEvidence(opt.value)}
+                                                                                            onSelect={(e) => e.preventDefault()}
+                                                                                            className="text-xs font-bold uppercase px-3 py-2 flex items-center justify-between"
+                                                                                        >
+                                                                                            <span>{opt.label}</span>
+                                                                                            {form.supportingEvidenceTypes?.includes(opt.value) ? <Check className="w-4 h-4 text-blue-600" /> : null}
+                                                                                        </DropdownMenuCheckboxItem>
+                                                                                    ))}
+                                                                                </div>
+                                                                                <div className="border-t px-3 py-2 flex justify-end">
+                                                                                    <button type="button" onClick={() => setEvidenceMenuOpen(false)} className="text-sm font-black uppercase text-blue-600">Done</button>
+                                                                                </div>
+                                                                            </DropdownMenuContent>
+                                                                        </DropdownMenu>
+                                                                    </div>
+
+                                                                    <div>
+                                                                        {(form.supportingEvidenceTypes && form.supportingEvidenceTypes.length === 2) ? (
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                                                                {['supportingEvidence1', 'supportingEvidence2'].map((k, idx) => {
+                                                                                    const selectedLabel = EVIDENCE_LABELS[form.supportingEvidenceTypes[idx]] || (k === 'supportingEvidence1' ? 'Supporting Evidence 1' : 'Supporting Evidence 2');
+
+                                                                                    return (
+                                                                                        <div key={k} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
+                                                                                            <div className="flex items-center gap-3">
+                                                                                                {form.files[k] || form.previews[k] ? (
+                                                                                                    <div
+                                                                                                        onClick={() => handleViewFile(form.files[k] || null, form.previews[k] || null, selectedLabel)}
+                                                                                                        className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+                                                                                                    >
+                                                                                                        {checkIsPdf(form.files[k], form.previews[k]) ? (
+                                                                                                            <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                                                                                        ) : form.previews[k] ? (
+                                                                                                            <img src={form.previews[k]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                                                        ) : (
+                                                                                                            <FileText className="w-5 h-5 text-blue-500" />
+                                                                                                        )}
+                                                                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+                                                                                                            <Eye className="w-4 h-4 text-white" />
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                ) : (
+                                                                                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                                                                                        <FileText className="w-5 h-5 text-slate-300" />
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                <div
+                                                                                                    onClick={() => {
+                                                                                                        if (form.files[k] || form.previews[k]) {
+                                                                                                            handleViewFile(form.files[k] || null, form.previews[k] || null, selectedLabel);
+                                                                                                        }
+                                                                                                    }}
+                                                                                                    className={cn(
+                                                                                                        "flex flex-col gap-0.5 select-none",
+                                                                                                        (form.files[k] || form.previews[k]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                                                    )}
+                                                                                                >
+                                                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{selectedLabel} <span className="text-red-500">*</span></span>
+                                                                                                    <span className={cn(
+                                                                                                        "text-[8px] font-black uppercase tracking-[0.2em] italic",
+                                                                                                        (form.files[k] || form.previews[k]) ? "text-green-500" : "text-blue-500/50"
+                                                                                                    )}>
+                                                                                                        {(form.files[k] || form.previews[k]) ? (
+                                                                                                            <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
+                                                                                                                <span>Uploaded (Click to Preview)</span>
+                                                                                                                <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
+                                                                                                                    {form.files[k] ? (form.files[k] as File).name : "document.png"}
+                                                                                                                </span>
+                                                                                                            </span>
+                                                                                                        ) : "Pending"}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="relative">
+                                                                                                <input
+                                                                                                    type="file"
+                                                                                                    onChange={(e) => handleFileChange(e, k)}
+                                                                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                                                    accept="image/*,.pdf"
+                                                                                                />
+                                                                                                <div className={cn(
+                                                                                                    "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                                                    (form.files[k] || form.previews[k]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
+                                                                                                )}>
+                                                                                                    {(form.files[k] || form.previews[k]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="text-[9px] text-slate-500 italic">Select two supporting evidence types to enable uploads</div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        ))
+                                                        </>
                                                     )}
                                                 </div>
                                                 {errors.documents && (
@@ -1579,3 +1978,4 @@ export default function BirthRegistrationPage() {
         </>
     );
 }
+

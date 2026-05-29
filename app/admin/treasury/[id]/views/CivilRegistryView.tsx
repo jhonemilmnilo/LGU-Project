@@ -9,7 +9,8 @@ import {
     FileText,
     AlertCircle,
     RotateCw,
-    ExternalLink
+    ExternalLink,
+    Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,10 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
         isRequestingRevision,
         setIsRequestingRevision,
         deliveryFee,
+        eCopyFile,
+        setECopyFile,
+        eCopyPreview,
+        setECopyPreview,
         themeColor,
         fetchTransaction,
         handleEvaluate,
@@ -52,8 +57,18 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
         branding
     } = props;
 
-    const resident = transaction.resident;
+    const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const additional = transaction.additionalData || {};
+
+    const EVIDENCE_LABELS: Record<string, string> = {
+        A: "Baptismal Certificate",
+        B: "School records",
+        C: "Income tax return of parents",
+        D: "Insurance Policy",
+        E: "Medical records",
+        F: "Others (Voter registration record, Barangay certification)",
+        G: "Affidavit of 2 disinterested persons"
+    };
 
     const isDeath = transaction.type?.code?.includes("DEATH") || transaction.type?.code?.startsWith("LCR_DEATH");
     const isMarriage = transaction.type?.code?.includes("MARRIAGE") || transaction.type?.code?.startsWith("LCR_MARRIAGE");
@@ -66,7 +81,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
             {/* Main Container */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-                
+
                 {/* Back Button & Navigation */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in fade-in duration-300">
                     <Link
@@ -74,7 +89,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                         className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors group"
                     >
                         <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                        Back to Ledger
+                        Back to Civil Registry
                     </Link>
 
                     <div className="flex items-center gap-2">
@@ -89,23 +104,23 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
                 {/* Main Content Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    
+
                     {/* Left Column: Dossier Details & Evidence */}
                     <div className="lg:col-span-8 space-y-8">
                         {/* TRANSACTION CATEGORY CARD */}
-                        <TransactionInfoCard 
-                            transactionName={transaction.type.name} 
-                            categoryLabel="Civil Registry" 
-                            themeColor={themeColor} 
+                        <TransactionInfoCard
+                            transactionName={transaction.type.name}
+                            categoryLabel="Civil Registry"
+                            themeColor={themeColor}
                         />
 
                         {/* RESIDENT IDENTITY PROFILE ACCORDION */}
-                        <ResidentIdentityProfile 
-                            resident={resident} 
-                            safeFormatDate={props.safeFormatDate} 
-                            themeColor={themeColor} 
+                        <ResidentIdentityProfile
+                            resident={resident}
+                            safeFormatDate={props.safeFormatDate}
+                            themeColor={themeColor}
                         />
-                        
+
                         {/* Primary LCR Specific Details Panel */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
                             <div className="flex items-center gap-3">
@@ -326,6 +341,37 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                     </div>
                                                 </div>
                                             )}
+                                            {(additional.registrationType || "").toUpperCase() === "LATE" && (() => {
+                                                const types = additional.supportingEvidenceTypes || [];
+                                                const type1 = additional.supportingEvidence1Type || types[0];
+                                                const type2 = additional.supportingEvidence2Type || types[1];
+                                                const label1 = EVIDENCE_LABELS[type1 as string];
+                                                const label2 = EVIDENCE_LABELS[type2 as string];
+
+                                                if (!label1 && !label2) return null;
+
+                                                return (
+                                                    <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5 w-full">
+                                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Selected Supporting Evidence</h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            {label1 && (
+                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200 leading-normal">
+                                                                        {label1}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                            {label2 && (
+                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
+                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200 leading-normal">
+                                                                        {label2}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </>
                                     )}
                                 </div>
@@ -347,7 +393,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 <div className="col-span-12 md:col-span-4 space-y-2">
                                     <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Full Name</label>
                                     <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {resident ? `${resident.firstName} ${resident.middleName ? resident.middleName + ' ' : ''}${resident.lastName}` : "--"}
+                                        {resident && resident.firstName ? `${resident.firstName} ${resident.middleName ? resident.middleName + ' ' : ''}${resident.lastName}` : "--"}
                                     </div>
                                 </div>
                                 <div className="col-span-12 md:col-span-4 space-y-2">
@@ -381,39 +427,142 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             </div>
                                             <div className="space-y-0.5">
                                                 <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase leading-none">{doc.label}</p>
-                                                <p className="text-[9px] font-medium text-slate-400 dark:text-slate-500 italic">Prisma Document Attachment</p>
                                             </div>
                                         </div>
 
                                         {doc.url ? (
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                                        <ExternalLink className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                            </Dialog>
+                                            /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url) ? (
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <img
+                                                            src={doc.url}
+                                                            alt={doc.label}
+                                                            className="w-28 h-20 object-cover rounded-md cursor-pointer border border-slate-100 dark:border-white/5"
+                                                        />
+                                                    </DialogTrigger>
+                                                    <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                                                </Dialog>
+                                            ) : (
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                                                </Dialog>
+                                            )
                                         ) : (
                                             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider italic">Pending Attachment</span>
                                         )}
                                     </div>
                                 ))}
                             </div>
+
+                            {(() => {
+                                const typeCode = (transaction?.type?.code || "").toString().toUpperCase();
+                                const isBirthType = typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.toLowerCase().includes("birth"));
+                                const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
+                                const hasCTCInEvidence = evidenceDocs && evidenceDocs.some(d => /community tax|cedula|ctc/i.test(d.label) || (d.url && (d.url === ctcCandidate)));
+
+                                if (isBirthType && !hasCTCInEvidence) {
+                                    let snapshot: any = transaction.residentSnapshot || {};
+                                    if (snapshot && typeof snapshot === 'string') {
+                                        try { snapshot = JSON.parse(snapshot); } catch { snapshot = {}; }
+                                    }
+                                    const current = transaction.user?.residentProfile || {};
+                                    const snapshotHasId = snapshot && (snapshot.idFrontUrl || snapshot.idBackUrl || snapshot.idNumber || snapshot.idType);
+                                    const idChanged = !!snapshotHasId && (
+                                        (current.idFrontUrl && current.idFrontUrl !== snapshot.idFrontUrl) ||
+                                        (current.idBackUrl && current.idBackUrl !== snapshot.idBackUrl) ||
+                                        (current.idNumber && current.idNumber !== snapshot.idNumber) ||
+                                        (current.idType && current.idType !== snapshot.idType)
+                                    );
+
+                                    if (idChanged) {
+                                        return (
+                                            <div className="mt-4 p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-600 dark:text-amber-500">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2.5 bg-amber-100 rounded-xl text-amber-600">
+                                                        <FileText className="w-4 h-4" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-black uppercase">Community Tax Certificate</p>
+                                                        <p className="text-[10px] italic">Not uploaded — resident ID was updated after submission</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                                    <div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Snapshot (at submission)</span>
+                                                        <div className="mt-2 space-y-2">
+                                                            {snapshot.idFrontUrl ? (
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <img src={snapshot.idFrontUrl} alt="Previous ID Front" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
+                                                                    </DialogTrigger>
+                                                                    <LightboxView src={snapshot.idFrontUrl} alt="Previous ID Front" label="Previous ID Front" />
+                                                                </Dialog>
+                                                            ) : <div className="text-xs text-slate-400 italic">No ID front saved in snapshot</div>}
+
+                                                            {snapshot.idBackUrl ? (
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <img src={snapshot.idBackUrl} alt="Previous ID Back" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
+                                                                    </DialogTrigger>
+                                                                    <LightboxView src={snapshot.idBackUrl} alt="Previous ID Back" label="Previous ID Back" />
+                                                                </Dialog>
+                                                            ) : null}
+
+                                                            {snapshot.idNumber && <div className="text-xs font-bold uppercase">{(snapshot.idType || 'ID') + ': ' + snapshot.idNumber}</div>}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Current Resident Record</span>
+                                                        <div className="mt-2 space-y-2">
+                                                            {current.idFrontUrl ? (
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <img src={current.idFrontUrl} alt="Current ID Front" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
+                                                                    </DialogTrigger>
+                                                                    <LightboxView src={current.idFrontUrl} alt="Current ID Front" label="Current ID Front" />
+                                                                </Dialog>
+                                                            ) : <div className="text-xs text-slate-400 italic">No ID front on resident record</div>}
+
+                                                            {current.idBackUrl ? (
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <img src={current.idBackUrl} alt="Current ID Back" className="w-28 h-20 object-cover rounded-md border border-slate-100 dark:border-white/5" />
+                                                                    </DialogTrigger>
+                                                                    <LightboxView src={current.idBackUrl} alt="Current ID Back" label="Current ID Back" />
+                                                                </Dialog>
+                                                            ) : null}
+
+                                                            {current.idNumber && <div className="text-xs font-bold uppercase">{(current.idType || 'ID') + ': ' + current.idNumber}</div>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                }
+                                return null;
+                            })()}
                         </div>
 
                     </div>
 
                     {/* Right Column: Workflow Steps & Dynamic Evaluation Controls */}
                     <div className="lg:col-span-4 space-y-8">
-                        
+
                         {/* BILLING / ASSESSMENT TOTAL DUE */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
                             <div>
                                 <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Payment Breakdown</h3>
                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">LCR assessment fees</p>
                             </div>
-                            
+
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center pt-2 gap-4">
                                     <div>
@@ -425,7 +574,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                         </p>
                                     </div>
                                     {(additional.registrationType || "").toUpperCase() === "LATE" ? (
-                                        <span className="text-sm font-black text-amber-600 italic">₱300.00</span>
+                                        <span className="text-sm font-black text-amber-600 italic">₱315.00</span>
                                     ) : (
                                         <span className="text-sm font-black text-emerald-600 italic">FREE</span>
                                     )}
@@ -464,8 +613,8 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             <div className={cn(
                                                 "absolute -left-[9px] top-1 w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all duration-300",
                                                 isCompleted ? "bg-primary border-primary text-white" :
-                                                isCurrent ? "bg-white dark:bg-slate-900 border-primary text-primary shadow-lg shadow-primary/20 scale-110" :
-                                                "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-300"
+                                                    isCurrent ? "bg-white dark:bg-slate-900 border-primary text-primary shadow-lg shadow-primary/20 scale-110" :
+                                                        "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-300"
                                             )}>
                                                 {isCompleted ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <span className="text-[8px] font-black">{idx + 1}</span>}
                                             </div>
@@ -481,60 +630,71 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                         </div>
 
                         {/* Interactive Decision / Actions box */}
-                        {(!isReadOnlyAide || transaction.status === "PENDING_RELEASE") && (
+                        {(!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM"].includes(transaction.status)) && (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
                                 <div>
                                     <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Evaluation Hub</h3>
                                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Actions & Endorsements</p>
                                 </div>
 
-                                {transaction.status === "UNDER_REVIEW" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
+                                {(transaction.status === "FOR_REQUESTING" || transaction.status === "UNDER_REVIEW") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
                                     <div className="space-y-4">
                                         <Button
                                             onClick={handleEvaluate}
                                             disabled={actionLoading}
-                                            className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
                                         >
-                                            {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Approve & Send Assessment"}
+                                            {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                            Approve & Send Assessment
                                         </Button>
 
                                         <div className="flex gap-2">
                                             <Button
-                                                variant="outline"
-                                                onClick={() => setIsRequestingRevision(true)}
-                                                className="flex-1 h-11 border-dashed rounded-xl font-bold text-[10px] uppercase tracking-wider text-amber-500 hover:text-amber-600 transition-colors"
+                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
                                             >
                                                 Request Revision
                                             </Button>
                                             <Button
-                                                variant="outline"
-                                                onClick={() => setIsRejecting(true)}
-                                                className="flex-1 h-11 border-dashed rounded-xl font-bold text-[10px] uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors"
+                                                onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
                                             >
-                                                Reject Application
+                                                Decline
                                             </Button>
                                         </div>
                                     </div>
                                 )}
 
-                                {transaction.status === "PENDING_PAYMENT_VERIFICATION" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
-                                    <div className="space-y-4">
+                                {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
+                                    <div className="space-y-3">
                                         {/* Proof of Payment Lightbox */}
-                                        {transaction.paymentProofUrl && (
-                                            <div className="space-y-2">
+                                        {transaction.paymentReference && (
+                                            <div className="space-y-3">
                                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Payment Proof Reference</label>
-                                                <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between">
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl space-y-3">
                                                     <div className="flex items-center gap-2">
                                                         <Coins className="text-primary w-4 h-4" />
-                                                        <span className="text-xs font-black text-slate-600 dark:text-slate-300">Reference: {transaction.paymentReference || "N/A"}</span>
+                                                        <span className="text-xs font-black text-slate-600 dark:text-slate-300">
+                                                            Reference No: {additional?.gcashReferenceNo || "N/A"}
+                                                        </span>
                                                     </div>
                                                     <Dialog>
                                                         <DialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full">
-                                                                <ExternalLink className="w-3.5 h-3.5 text-primary" />
-                                                            </Button>
+                                                            <div className="relative aspect-[4/3] rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none">
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={transaction.paymentReference}
+                                                                    alt="GCash Receipt"
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-all"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                                    <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full flex items-center gap-1.5">
+                                                                        <ExternalLink className="w-3 h-3" /> Zoom Receipt
+                                                                    </span>
+                                                                </div>
+                                                            </div>
                                                         </DialogTrigger>
-                                                        <LightboxView src={transaction.paymentProofUrl} alt="GCash Receipt" label="GCash Payment Proof" />
+                                                        <LightboxView src={transaction.paymentReference} alt="GCash Receipt" label="GCash Payment Proof" />
                                                     </Dialog>
                                                 </div>
                                             </div>
@@ -559,45 +719,158 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                     </div>
                                 )}
 
-                                {transaction.status === "PENDING_RELEASE" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (
-                                    <div className="space-y-6">
-                                        <PrintWaybill 
-                                            transaction={transaction} 
-                                            resident={resident} 
-                                            deliveryAddr={null} 
-                                            fiscal={null} 
-                                            branding={branding} 
-                                            themeColor={themeColor} 
-                                        />
+                                {transaction.status === "FOR_PROCESSING" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (() => {
+                                    const isReleaseDisabled = actionLoading || (!eCopyFile && !transaction.eCopyUrl);
+                                    return (
+                                        <div className="space-y-6">
+                                            <PrintWaybill
+                                                transaction={transaction}
+                                                resident={resident}
+                                                deliveryAddr={null}
+                                                fiscal={null}
+                                                branding={branding}
+                                                themeColor={themeColor}
+                                            />
 
-                                        {transaction.fulfillmentMode === "DELIVERY" && !transaction.waybillPrintedAt && (
-                                            <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-600 dark:text-amber-500 flex items-start gap-3">
-                                                <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-                                                <p className="text-[10px] font-bold leading-relaxed">
-                                                    Print the official shipping waybill before releasing to update the logistics carrier dispatch system.
-                                                </p>
+                                            {/* Digital E-Copy Upload Block */}
+                                            <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
+                                                    Attach Official Digital E-Copy Registry Record <span className="text-rose-500 font-extrabold">*Required</span>
+                                                </label>
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        setECopyFile(file);
+                                                        if (file) {
+                                                            const url = URL.createObjectURL(file);
+                                                            setECopyPreview(url);
+                                                        } else {
+                                                            setECopyPreview(null);
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                    id="treasury-ecopy-upload"
+                                                />
+                                                <label
+                                                    htmlFor="treasury-ecopy-upload"
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-44 bg-[#f8fafd] dark:bg-white/5 overflow-hidden relative group cursor-pointer",
+                                                        (eCopyFile || transaction.eCopyUrl)
+                                                            ? "border-primary/30 bg-primary/5 shadow-inner"
+                                                            : "border-slate-200 dark:border-white/10 hover:border-primary/30"
+                                                    )}
+                                                >
+                                                    {(eCopyPreview || transaction.eCopyUrl) ? (
+                                                        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                                                            {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && /\.(png|jpe?g|gif|webp|svg)$/i.test(transaction.eCopyUrl))) ? (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img
+                                                                    src={eCopyPreview || transaction.eCopyUrl}
+                                                                    alt="E-Copy Preview"
+                                                                    className="w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex flex-col items-center justify-center text-primary/60 group-hover:text-primary transition-colors">
+                                                                    <FileText className="w-10 h-10" />
+                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest mt-2">PDF Document Ready</span>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-2 backdrop-blur-sm">
+                                                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                                                                    <Upload className="w-4 h-4" />
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update E-Copy Attachment</span>
+                                                            </div>
+
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between border-t border-slate-100 dark:border-white/5">
+                                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                                    <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                                        <Check className="w-3 text-primary stroke-[3]" />
+                                                                    </div>
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+                                                                        {eCopyFile?.name || "Registry-Record.pdf"}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 text-slate-300 dark:text-slate-600 shadow-sm transition-all group-hover:bg-primary group-hover:text-white">
+                                                                <Upload className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
+                                                            </div>
+                                                            <div className="text-center space-y-1">
+                                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] italic text-slate-400 dark:text-slate-500 block">
+                                                                    Attach Digital Registry Record
+                                                                </span>
+                                                                <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase italic tracking-tighter">
+                                                                    PDF or Image up to 5MB
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </label>
                                             </div>
-                                        )}
 
-                                        <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                            {transaction.fulfillmentMode === "DELIVERY" ? (
-                                                <Button
-                                                    onClick={handleRelease}
-                                                    disabled={actionLoading}
-                                                    className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
-                                                >
-                                                    {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Dispatch to Courier"}
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    onClick={handleRelease}
-                                                    disabled={actionLoading}
-                                                    className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all"
-                                                >
-                                                    {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Release Document to Resident"}
-                                                </Button>
+                                            {transaction.fulfillmentMode === "DELIVERY" && !transaction.waybillPrintedAt && (
+                                                <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-amber-600 dark:text-amber-500 flex items-start gap-3">
+                                                    <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                                                    <p className="text-[10px] font-bold leading-relaxed">
+                                                        Print the official shipping waybill before releasing to update the logistics carrier dispatch system.
+                                                    </p>
+                                                </div>
                                             )}
+
+                                            {(!eCopyFile && !transaction.eCopyUrl) && (
+                                                <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20 text-rose-600 dark:text-rose-500 flex items-start gap-3">
+                                                    <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                                                    <p className="text-[10px] font-bold leading-relaxed">
+                                                        You must upload the official digital E-Copy registry record before you can release this document.
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                                {transaction.fulfillmentMode === "DELIVERY" ? (
+                                                    <Button
+                                                        onClick={handleRelease}
+                                                        disabled={isReleaseDisabled}
+                                                        className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Dispatch to Courier"}
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        onClick={handleRelease}
+                                                        disabled={isReleaseDisabled}
+                                                        className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Release Document to Resident"}
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
+                                    );
+                                })()}
+
+                                {transaction.status === "FOR_CLAIM" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
+                                    <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <div className="p-4 bg-green-500/10 rounded-2xl border border-green-500/20 text-green-600 dark:text-green-500 flex items-start gap-3">
+                                            <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] font-bold leading-relaxed">
+                                                This document is ready for claiming. Once the resident personally claims the physical copy, click below to confirm and mark this request as officially released.
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            onClick={handleRelease}
+                                            disabled={actionLoading}
+                                            className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Confirm & Release Document"}
+                                        </Button>
                                     </div>
                                 )}
 
@@ -610,7 +883,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
             </div>
 
-            <RejectionRevisionControls 
+            <RejectionRevisionControls
                 isRejecting={isRejecting}
                 setIsRejecting={setIsRejecting}
                 isRequestingRevision={isRequestingRevision}

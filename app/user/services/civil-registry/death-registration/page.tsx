@@ -46,7 +46,8 @@ import {
     getCurrentUserResident,
     ensureCivilRegistryTransactionTypes,
     submitCivilRegistryTransaction,
-    getTransactionTypes
+    getTransactionTypes,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
@@ -147,6 +148,16 @@ export default function DeathRegistrationPage() {
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    const [themeColor, setThemeColor] = useState("theme_color");
+
+    useEffect(() => {
+        getSystemSettingAction("theme_color").then((res) => {
+            if (res.success && res.data) {
+                setThemeColor(res.data);
+            }
+        });
+    }, []);
 
     useEffect(() => {
         setMounted(true);
@@ -537,13 +548,63 @@ export default function DeathRegistrationPage() {
 
     return (
         <>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                :root, * {
+                    --primary-theme: ${themeColor} !important;
+                }
+                .text-emerald-500, [class*="text-emerald-500"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .text-emerald-600, [class*="text-emerald-600"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .bg-emerald-500, [class*="bg-emerald-500"] {
+                    background-color: ${themeColor} !important;
+                }
+                .bg-emerald-600, [class*="bg-emerald-600"] {
+                    background-color: ${themeColor} !important;
+                }
+                .border-emerald-500, [class*="border-emerald-500"] {
+                    border-color: ${themeColor} !important;
+                }
+                .border-emerald-600, [class*="border-emerald-600"] {
+                    border-color: ${themeColor} !important;
+                }
+                .bg-emerald-500\\/10, [class*="bg-emerald-500/10"] {
+                    background-color: ${themeColor}1a !important;
+                }
+                .bg-emerald-500\\/20, [class*="bg-emerald-500/20"] {
+                    background-color: ${themeColor}33 !important;
+                }
+                .bg-emerald-500\\/5, [class*="bg-emerald-500/5"] {
+                    background-color: ${themeColor}0d !important;
+                }
+                .shadow-emerald-500\\/20, [class*="shadow-emerald-500/20"] {
+                    --tw-shadow-color: ${themeColor}33 !important;
+                }
+                .hover\\:bg-emerald-600:hover, [class*="hover:bg-emerald-600"]:hover {
+                    background-color: ${themeColor} !important;
+                    filter: brightness(0.9);
+                }
+                .hover\\:border-emerald-500\\/50:hover, [class*="hover:border-emerald-500/50"]:hover {
+                    border-color: ${themeColor}80 !important;
+                }
+                input:not([type="button"]):not([type="submit"]), select, textarea {
+                    color: #0f172a !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
+                    color: #f8fafc !important;
+                }
+                `
+            }} />
             <SecureIdleTimer />
             <PrivacyTermsModal
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
-                themeColor="var(--emerald-600)"
+                themeColor="var(--primary-theme)"
             />
             <DocumentViewerModal
                 isOpen={viewerOpen}
@@ -551,7 +612,7 @@ export default function DeathRegistrationPage() {
                 file={viewerFile}
                 fileUrl={viewerUrl}
                 title={viewerTitle}
-                themeColor="var(--emerald-600)"
+                themeColor="var(--primary-theme)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>

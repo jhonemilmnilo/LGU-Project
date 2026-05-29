@@ -122,7 +122,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
 
             {/* Main Container */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-                
+
                 {/* Back Button & Navigation */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in fade-in duration-300">
                     <Link
@@ -145,23 +145,23 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
 
                 {/* Main Content Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    
+
                     {/* Left Column: Dossier Details & Evidence */}
                     <div className="lg:col-span-8 space-y-8">
                         {/* TRANSACTION CATEGORY CARD */}
-                        <TransactionInfoCard 
-                            transactionName={transaction.type.name} 
-                            categoryLabel="Building Permit" 
-                            themeColor={themeColor} 
+                        <TransactionInfoCard
+                            transactionName={transaction.type.name}
+                            categoryLabel="Building Permit"
+                            themeColor={themeColor}
                         />
 
                         {/* RESIDENT IDENTITY PROFILE ACCORDION */}
-                        <ResidentIdentityProfile 
-                            resident={resident} 
-                            safeFormatDate={props.safeFormatDate} 
-                            themeColor={themeColor} 
+                        <ResidentIdentityProfile
+                            resident={resident}
+                            safeFormatDate={props.safeFormatDate}
+                            themeColor={themeColor}
                         />
-                        
+
                         {/* Q&A Block */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
                             <div>
@@ -405,7 +405,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
 
                     {/* Right Column: Workflow Steps & Dynamic Evaluation Controls */}
                     <div className="lg:col-span-4 space-y-8">
-                        
+
                         {/* Workflow tracker */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
                             <div>
@@ -421,8 +421,8 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                             <div className={cn(
                                                 "absolute -left-[9px] top-1 w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all duration-300",
                                                 isCompleted ? "bg-primary border-primary text-white" :
-                                                isCurrent ? "bg-white dark:bg-slate-900 border-primary text-primary shadow-lg shadow-primary/20 scale-110" :
-                                                "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-300"
+                                                    isCurrent ? "bg-white dark:bg-slate-900 border-primary text-primary shadow-lg shadow-primary/20 scale-110" :
+                                                        "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-300"
                                             )}>
                                                 {isCompleted ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <span className="text-[8px] font-black">{idx + 1}</span>}
                                             </div>
@@ -438,7 +438,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                         </div>
 
                         {/* Interactive Decision / Actions box */}
-                        {(!isReadOnlyAide || transaction.status === "PENDING_RELEASE") && (
+                        {(!isReadOnlyAide || transaction.status === "FOR_PROCESSING") && (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
                                 <div>
                                     <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Evaluation Hub</h3>
@@ -533,15 +533,15 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                     </div>
                                 )}
 
-                                {transaction.status === "PENDING_RELEASE" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (
+                                {transaction.status === "FOR_PROCESSING" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (
                                     <div className="space-y-6">
-                                        <PrintWaybill 
-                                            transaction={transaction} 
-                                            resident={resident} 
-                                            deliveryAddr={null} 
-                                            fiscal={additional.feeAssessment} 
-                                            branding={branding} 
-                                            themeColor={themeColor} 
+                                        <PrintWaybill
+                                            transaction={transaction}
+                                            resident={resident}
+                                            deliveryAddr={null}
+                                            fiscal={additional.feeAssessment}
+                                            branding={branding}
+                                            themeColor={themeColor}
                                         />
 
                                         {transaction.fulfillmentMode === "DELIVERY" && !transaction.waybillPrintedAt && (
@@ -574,7 +574,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                         </div>
                                     </div>
                                 )}
-                             </div>
+                            </div>
                         )}
 
                     </div>
@@ -583,7 +583,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
 
             </div>
 
-            <RejectionRevisionControls 
+            <RejectionRevisionControls
                 isRejecting={isRejecting}
                 setIsRejecting={setIsRejecting}
                 isRequestingRevision={isRequestingRevision}
