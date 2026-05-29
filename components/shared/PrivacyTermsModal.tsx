@@ -30,14 +30,14 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                 containerRef.current.scrollTop = 0;
             }
         };
-        
+
         resetScroll();
-        
+
         // Multi-stage asynchronous resets to counteract DOM repaint lag and browser momentum scrolling
         const t1 = setTimeout(resetScroll, 0);
         const t2 = setTimeout(resetScroll, 50);
         const t3 = setTimeout(resetScroll, 100);
-        
+
         return () => {
             clearTimeout(t1);
             clearTimeout(t2);
@@ -97,7 +97,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                         className="relative w-full max-w-lg bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10 max-h-[75vh]"
                     >
                         {/* Ambient Glow behind header */}
-                        <div 
+                        <div
                             className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-36 blur-[80px] rounded-full opacity-15 pointer-events-none"
                             style={{ backgroundColor: themeColor }}
                         />
@@ -137,7 +137,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                         onClick={() => setActiveTab(tab.id as TabType)}
                                         className={cn(
                                             "flex items-center gap-1.5 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic transition-all shrink-0",
-                                            isSelected 
+                                            isSelected
                                                 ? "text-white shadow-sm sm:shadow-md"
                                                 : "text-slate-400 hover:text-slate-700 dark:hover:text-white"
                                         )}
@@ -151,19 +151,19 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                         </div>
 
                         {/* Content Body (Scrollable) */}
-                        <div 
+                        <div
                             ref={containerRef}
                             onScroll={(e) => handleScroll(e, activeTab)}
                             className="p-4 sm:p-6 md:p-8 overflow-y-auto space-y-4 flex-1 text-slate-600 dark:text-slate-300 scrollbar-thin max-h-[40vh] sm:max-h-[45vh]"
                         >
                             {activeTab === "PRIVACY" ? (
                                 <div className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs md:text-sm font-medium leading-relaxed italic">
-                                    <div 
+                                    <div
                                         className="p-3 sm:p-4 rounded-xl flex gap-3 border items-center"
-                                        style={{ 
-                                            backgroundColor: `${themeColor}0a`, 
-                                            borderColor: `${themeColor}20`, 
-                                            color: themeColor 
+                                        style={{
+                                            backgroundColor: `${themeColor}0a`,
+                                            borderColor: `${themeColor}20`,
+                                            color: themeColor
                                         }}
                                     >
                                         <ShieldCheck className="w-4 h-4 sm:w-5 h-5 shrink-0" />
@@ -198,12 +198,12 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                 </div>
                             ) : (
                                 <div className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs md:text-sm font-medium leading-relaxed italic">
-                                    <div 
+                                    <div
                                         className="p-3 sm:p-4 rounded-xl flex gap-3 border items-center"
-                                        style={{ 
-                                            backgroundColor: `${themeColor}0a`, 
-                                            borderColor: `${themeColor}20`, 
-                                            color: themeColor 
+                                        style={{
+                                            backgroundColor: `${themeColor}0a`,
+                                            borderColor: `${themeColor}20`,
+                                            color: themeColor
                                         }}
                                     >
                                         <Scale className="w-4 h-4 sm:w-5 h-5 shrink-0" />
@@ -241,7 +241,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                             {/* Side-by-side Read Progress Indicators */}
                             <div className="flex items-center gap-4 flex-wrap">
                                 <div className="flex items-center gap-1.5">
-                                    <div 
+                                    <div
                                         className={cn(
                                             "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0",
                                             hasReadPrivacy ? "text-white" : "border-slate-300 dark:border-white/20"
@@ -250,7 +250,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                     >
                                         {hasReadPrivacy && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                                     </div>
-                                    <span 
+                                    <span
                                         className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest transition-colors"
                                         style={hasReadPrivacy ? { color: themeColor } : { color: "#94a3b8" }}
                                     >
@@ -259,7 +259,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                 </div>
 
                                 <div className="flex items-center gap-1.5">
-                                    <div 
+                                    <div
                                         className={cn(
                                             "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0",
                                             hasReadTerms ? "text-white" : "border-slate-300 dark:border-white/20"
@@ -268,7 +268,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                     >
                                         {hasReadTerms && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                                     </div>
-                                    <span 
+                                    <span
                                         className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest transition-colors"
                                         style={hasReadTerms ? { color: themeColor } : { color: "#94a3b8" }}
                                     >

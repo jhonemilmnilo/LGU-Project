@@ -1464,7 +1464,7 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         }
 
         const transactionData: any = {
-            status: "PAID",
+            status: "FOR_PROCESSING",
             updatedAt: new Date()
         };
 
@@ -1727,8 +1727,9 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 });
             }
         } else {
+            const isBirthReg = transaction.type.code === "LCR_BIRTH" || transaction.type.code === "LCR_BIRTH_REG";
             if (!transaction.cedula) {
-                if (!ctcNumber && !isPickupCashInitial) {
+                if (!ctcNumber && !isPickupCashInitial && !isBirthReg) {
                     return { success: false, error: "CTC Number is required for this transaction type." };
                 }
                 await prisma.cedula.create({
@@ -1848,8 +1849,10 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                                         dateOfEvent: dateOfEvent,
                                         placeOfEvent: placeOfEvent,
                                         fatherName: src.fatherName || src.father || null,
-                                        motherName: src.motherName || src.mother || null
-                                    }
+                                        motherName: src.motherName || src.mother || null,
+                                        supportingEvidence1Type: src.supportingEvidence1Type || null,
+                                        supportingEvidence2Type: src.supportingEvidence2Type || null
+                                    } as any
                                 });
                             } catch (createErr) {
                                 // If creation fails (e.g., unique constraint on registryNumber), log and continue
@@ -1993,7 +1996,8 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 to: transaction.user.email,
                 name: `${resident.firstName} ${resident.lastName}`,
                 transactionId: id.slice(-8).toUpperCase(),
-                amount: transaction.totalAmount // Include amount so they know what to bring if for claim
+                amount: transaction.totalAmount, // Include amount so they know what to bring if for claim
+                serviceName: transaction.type.name
             });
         }
 

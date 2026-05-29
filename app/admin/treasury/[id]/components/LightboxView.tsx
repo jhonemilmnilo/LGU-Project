@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { isValidUrl } from "@/utils/image";
 import { ZoomIn, ZoomOut, RotateCw, RefreshCcw } from "lucide-react";
@@ -13,6 +13,13 @@ export default function LightboxView({ src, alt, label }: { src: string; alt: st
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    const isPdf = useMemo(() => {
+        if (src) {
+            return src.toLowerCase().endsWith(".pdf") || src.includes("application/pdf") || src.includes(".pdf?");
+        }
+        return false;
+    }, [src]);
 
     const handleWheel = (e: React.WheelEvent) => {
         const delta = e.deltaY < 0 ? 0.15 : -0.15;
@@ -77,31 +84,39 @@ export default function LightboxView({ src, alt, label }: { src: string; alt: st
             </DialogHeader>
 
             <div
-                className="relative w-full h-[75vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing select-none"
-                onWheel={handleWheel}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                className={`relative w-full h-[75vh] flex items-center justify-center overflow-hidden select-none ${isPdf ? "bg-[#1e293b] rounded-3xl" : "cursor-grab active:cursor-grabbing"}`}
+                onWheel={isPdf ? undefined : handleWheel}
+                onMouseDown={isPdf ? undefined : handleMouseDown}
+                onMouseMove={isPdf ? undefined : handleMouseMove}
+                onMouseUp={isPdf ? undefined : handleMouseUp}
+                onMouseLeave={isPdf ? undefined : handleMouseUp}
+                onTouchStart={isPdf ? undefined : handleTouchStart}
+                onTouchMove={isPdf ? undefined : handleTouchMove}
+                onTouchEnd={isPdf ? undefined : handleTouchEnd}
             >
                 <div
                     className="relative w-full h-full flex items-center justify-center"
-                    style={{
+                    style={isPdf ? {} : {
                         transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotate}deg)`,
                         transition: isDragging ? 'none' : 'transform 0.3s ease-out'
                     }}
                 >
-                    <Image
-                        src={isValidUrl(src) ? src : "/placeholder.png"}
-                        alt={alt}
-                        fill
-                        className="object-contain"
-                        priority
-                        draggable={false}
-                    />
+                    {isPdf ? (
+                        <iframe
+                            src={`${src}#toolbar=1`}
+                            className="w-full h-full rounded-3xl border-0 bg-white"
+                            title={label}
+                        />
+                    ) : (
+                        <Image
+                            src={isValidUrl(src) ? src : "/placeholder.png"}
+                            alt={alt}
+                            fill
+                            className="object-contain"
+                            priority
+                            draggable={false}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -110,52 +125,67 @@ export default function LightboxView({ src, alt, label }: { src: string; alt: st
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white italic whitespace-nowrap">{label}</p>
                 </div>
 
-                <div className="flex items-center gap-1">
+                {isPdf ? (
                     <Button
                         variant="ghost"
-                        size="icon"
-                        className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
-                        onClick={() => setScale(s => Math.max(s - 0.2, 0.5))}
+                        size="sm"
+                        className="h-8 gap-2 hover:bg-white/10 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all"
+                        onClick={() => window.open(src, "_blank")}
                     >
-                        <ZoomOut className="w-4 h-4" />
+                        Open PDF in New Tab
                     </Button>
-                    <div className="w-12 text-center text-[10px] font-black text-white/50 italic">
-                        {Math.round(scale * 100)}%
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
-                        onClick={() => setScale(s => Math.min(s + 0.2, 5))}
-                    >
-                        <ZoomIn className="w-4 h-4" />
-                    </Button>
-                </div>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                                onClick={() => setScale(s => Math.max(s - 0.2, 0.5))}
+                            >
+                                <ZoomOut className="w-4 h-4" />
+                            </Button>
+                            <div className="w-12 text-center text-[10px] font-black text-white/50 italic">
+                                {Math.round(scale * 100)}%
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                                onClick={() => setScale(s => Math.min(s + 0.2, 5))}
+                            >
+                                <ZoomIn className="w-4 h-4" />
+                            </Button>
+                        </div>
 
-                <div className="w-px h-4 bg-white/10 mx-2" />
+                        <div className="w-px h-4 bg-white/10 mx-2" />
 
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
-                    onClick={() => setRotate(r => (r + 90) % 360)}
-                    title="Rotate 90°"
-                >
-                    <RotateCw className="w-4 h-4" />
-                </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                            onClick={() => setRotate(r => (r + 90) % 360)}
+                            title="Rotate 90°"
+                        >
+                            <RotateCw className="w-4 h-4" />
+                        </Button>
 
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
-                    onClick={reset}
-                    title="Reset View"
-                >
-                    <RefreshCcw className="w-4 h-4" />
-                </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-10 h-10 rounded-full hover:bg-white/10 text-white transition-all"
+                            onClick={reset}
+                            title="Reset View"
+                        >
+                            <RefreshCcw className="w-4 h-4" />
+                        </Button>
+                    </>
+                )}
             </div>
 
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan Active</p>
+            {!isPdf && (
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Scroll to Zoom • Drag to Pan Active</p>
+            )}
         </DialogContent>
     );
 }

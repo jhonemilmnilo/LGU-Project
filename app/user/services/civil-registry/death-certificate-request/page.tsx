@@ -54,7 +54,8 @@ import {
     getCurrentUserResident,
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
-    submitCivilRegistryTransaction
+    submitCivilRegistryTransaction,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
@@ -258,6 +259,16 @@ export default function DeathCertificateRequestPage() {
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    const [themeColor, setThemeColor] = useState("theme_color");
+
+    useEffect(() => {
+        getSystemSettingAction("theme_color").then((res) => {
+            if (res.success && res.data) {
+                setThemeColor(res.data);
+            }
+        });
+    }, []);
 
     useEffect(() => {
         setMounted(true);
@@ -559,12 +570,59 @@ export default function DeathCertificateRequestPage() {
 
     return (
         <div className="container max-w-4xl mx-auto px-4 pt-0 pb-0 space-y-8">
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                :root, * {
+                    --primary-theme: ${themeColor} !important;
+                }
+                .text-slate-500, [class*="text-slate-500"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .text-slate-600, [class*="text-slate-600"]:not(input):not(select):not(textarea) {
+                    color: ${themeColor} !important;
+                }
+                .bg-slate-500, [class*="bg-slate-500"] {
+                    background-color: ${themeColor} !important;
+                }
+                .bg-slate-600, [class*="bg-slate-600"] {
+                    background-color: ${themeColor} !important;
+                }
+                .border-slate-500, [class*="border-slate-500"] {
+                    border-color: ${themeColor} !important;
+                }
+                .border-slate-600, [class*="border-slate-600"] {
+                    border-color: ${themeColor} !important;
+                }
+                .bg-slate-500\\/10, [class*="bg-slate-500/10"] {
+                    background-color: ${themeColor}1a !important;
+                }
+                .bg-slate-500\\/5, [class*="bg-slate-500/5"] {
+                    background-color: ${themeColor}0d !important;
+                }
+                .shadow-slate-500\\/20, [class*="shadow-slate-500/20"] {
+                    --tw-shadow-color: ${themeColor}33 !important;
+                }
+                .hover\\:bg-slate-600:hover, [class*="hover:bg-slate-600"]:hover {
+                    background-color: ${themeColor} !important;
+                    filter: brightness(0.9);
+                }
+                .hover\\:border-slate-500\\/50:hover, [class*="hover:border-slate-500/50"]:hover {
+                    border-color: ${themeColor}80 !important;
+                }
+                input:not([type="button"]):not([type="submit"]), select, textarea {
+                    color: #0f172a !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
+                    color: #f8fafc !important;
+                }
+                `
+            }} />
             <PrivacyTermsModal
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => setPolicyAccepted(false)}
-                themeColor="var(--blue-500)"
+                themeColor="var(--primary-theme)"
             />
             <DocumentViewerModal
                 isOpen={viewerOpen}
@@ -572,7 +630,7 @@ export default function DeathCertificateRequestPage() {
                 file={viewerFile}
                 fileUrl={viewerUrl}
                 title={viewerTitle}
-                themeColor="var(--blue-500)"
+                themeColor="var(--primary-theme)"
             />
             {/* Breadcrumbs */}
             <div className="space-y-4">
