@@ -1439,7 +1439,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
 /**
  * Confirm Payment (Treasury Staff side)
  */
-export async function confirmTransactionPayment(id: string, referenceNo?: string, remarks?: string) {
+export async function confirmTransactionPayment(id: string, referenceNo?: string, _remarks?: string) {
     try {
         const sanitizedId = sanitizeString(id);
         const sanitizedReferenceNo = referenceNo ? sanitizeString(referenceNo) : undefined;
