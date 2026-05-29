@@ -55,6 +55,12 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { CancelRequestModal } from "@/components/shared/CancelRequestModal";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+
+const checkIsPdf = (url: string | null) => {
+    if (!url) return false;
+    return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+};
 
 // Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
 function formatPHDate(date: string | Date): string {
@@ -164,6 +170,16 @@ export default function RequestHubPage() {
     // --- Lightbox State ---
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (url: string | null, title: string) => {
+        setViewerUrl(url);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     useEffect(() => {
         async function fetchRequest() {
@@ -1201,23 +1217,41 @@ export default function RequestHubPage() {
                                     <div className="space-y-6">
                                         <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Requirements</h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-                                            {documentList.length > 0 ? documentList.map((doc, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
-                                                    className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full text-left"
-                                                >
-                                                    <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
-                                                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
-                                                        <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 scale-75 group-hover/doc:scale-100 transition-transform duration-300">
-                                                            <Search className="w-4 h-4 text-white" />
+                                            {documentList.length > 0 ? documentList.map((doc, i) => {
+                                                const isPdf = checkIsPdf(doc.url);
+                                                if (isPdf) {
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => handleViewFile(doc.url, doc.label)}
+                                                            className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 hover:border-red-500/50"
+                                                        >
+                                                            <FileText className="w-8 h-8 text-red-500 group-hover/doc:scale-110 transition-transform duration-300 animate-pulse" />
+                                                            <span className="text-[7px] font-black uppercase text-red-500/70 tracking-wider mt-1">View PDF Document</span>
+                                                            <div className="absolute bottom-2 left-2 right-2">
+                                                                <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                }
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
+                                                        className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full text-left"
+                                                    >
+                                                        <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
+                                                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
+                                                            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 scale-75 group-hover/doc:scale-100 transition-transform duration-300">
+                                                                <Search className="w-4 h-4 text-white" />
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="absolute bottom-2 left-2 right-2">
-                                                        <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
-                                                    </div>
-                                                </button>
-                                            )) : (
+                                                        <div className="absolute bottom-2 left-2 right-2">
+                                                            <Badge className="text-[7px] bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-white border-none font-black italic tracking-widest uppercase w-full block text-center py-0.5 truncate">{doc.label}</Badge>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            }) : (
                                                 <div className="col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
                                                     <FileText className="w-8 h-8 mb-2 opacity-30" />
                                                     <p className="text-[9px] font-black uppercase tracking-widest italic">No documents uploaded</p>
@@ -1517,14 +1551,18 @@ export default function RequestHubPage() {
                                         key={i}
                                         onClick={() => setLightboxIndex(i)}
                                         className={cn(
-                                            "w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 relative",
+                                            "w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 relative flex items-center justify-center bg-slate-100 dark:bg-slate-900",
                                             i === lightboxIndex
                                                 ? "border-primary scale-110 shadow-lg shadow-primary/30"
                                                 : "border-white/20 opacity-50 hover:opacity-80 hover:border-white/50"
                                         )}
                                     >
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
+                                        {checkIsPdf(doc.url) ? (
+                                            <FileText className="w-6 h-6 text-red-500" />
+                                        ) : (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
+                                        )}
                                     </button>
                                 ))}
                             </div>
@@ -1532,6 +1570,15 @@ export default function RequestHubPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={null}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor="var(--primary-theme)"
+            />
         </>
     );
 }

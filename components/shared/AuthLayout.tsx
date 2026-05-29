@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield } from "lucide-react";
 
 export const AuthTransitionContext = React.createContext<{
     isLeaving: boolean;
@@ -70,40 +70,6 @@ export const AuthLayout = ({
                 className="flex min-h-screen w-full bg-slate-950 transition-colors duration-500 font-sans text-slate-950 dark:text-white relative overflow-hidden"
                 style={{ "--primary-theme": themeColor } as React.CSSProperties}
             >
-                {/* Absolute Center Background Content (Revealed during Split) */}
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-950 z-0">
-                    <div className="flex flex-col items-center gap-6">
-                        <motion.div 
-                            initial={{ scale: 0.6, opacity: 0 }}
-                            animate={isLeaving ? { scale: 1.1, opacity: 1 } : { scale: 0.6, opacity: 0 }}
-                            transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-                            className="relative w-28 h-28 rounded-3xl flex items-center justify-center shadow-[0_0_80px_-10px_rgba(37,99,235,0.4)]"
-                            style={{ backgroundColor: themeColor }}
-                        >
-                            {logoSrc ? (
-                                <Image src={logoSrc} alt="Logo" fill className="object-cover p-3 animate-pulse" />
-                            ) : (
-                                <Shield className="w-12 h-12 text-white animate-pulse" />
-                            )}
-                        </motion.div>
-                        <motion.div 
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={isLeaving ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-                            transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
-                            className="text-center space-y-1.5"
-                        >
-                            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">
-                                Entering Portal
-                            </p>
-                            <div className="flex items-center justify-center gap-2">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-white opacity-65" />
-                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 italic">
-                                    Loading your workspace...
-                                </span>
-                            </div>
-                        </motion.div>
-                    </div>
-                </div>
 
 
             {/* Left Side: Form Area */}

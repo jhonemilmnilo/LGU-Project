@@ -1,6 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
@@ -19,8 +21,20 @@ import {
     Upload,
     Search,
     CheckCircle2,
-    Users
+    Users,
+    Eye
 } from "lucide-react";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+
+const checkIsPdf = (file: any, url: string | null) => {
+    if (file && file instanceof File) {
+        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    }
+    if (url) {
+        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+    }
+    return false;
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,12 +60,30 @@ import {
     getCurrentUserResident,
     getTransactionTypes,
     ensureCivilRegistryTransactionTypes,
-    submitCivilRegistryTransaction
+    submitCivilRegistryTransaction,
+    getSystemSettingAction
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
+const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
+    const [src, setSrc] = React.useState(fallbackUrl || "");
+
+    React.useEffect(() => {
+        if (!file) {
+            setSrc(fallbackUrl || "");
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setSrc(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [file, fallbackUrl]);
+
+    return <img src={src} alt={alt} className={className} />;
+};
 
 // --- TYPES ---
 
@@ -135,10 +167,16 @@ export default function CivilRegistryPage() {
     const searchParams = useSearchParams();
     const urlType = searchParams ? searchParams.get("type") : null;
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showErrors, setShowErrors] = useState(false);
     const [availableTypes, setAvailableTypes] = useState<any[]>([]);
+    const [themeColor, setThemeColor] = useState("#2563eb");
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [resident, setResident] = useState<any>(null);
 
     const [form, setForm] = useState<FormState>({
@@ -175,6 +213,18 @@ export default function CivilRegistryPage() {
     // Privacy / Terms modal state (shared key across LCR pages)
     const [policyOpen, setPolicyOpen] = useState(false);
     const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(existingUrl);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     // Persist progress to session storage
     useEffect(() => {
@@ -263,10 +313,15 @@ export default function CivilRegistryPage() {
         async function init() {
             try {
                 await ensureCivilRegistryTransactionTypes();
-                const [resResult, typesResult] = await Promise.all([
+                const [resResult, typesResult, themeResult] = await Promise.all([
                     getCurrentUserResident(),
-                    getTransactionTypes()
+                    getTransactionTypes(),
+                    getSystemSettingAction("theme_color", "#2563eb")
                 ]);
+
+                if (themeResult.success && themeResult.data) {
+                    setThemeColor(themeResult.data);
+                }
 
                 if (resResult.success && resResult.data) {
                     setResident(resResult.data);
@@ -441,15 +496,34 @@ export default function CivilRegistryPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#08090d] pb-20 pt-24 px-6">
+        <div 
+            className="container max-w-4xl mx-auto px-4 pt-0 pb-0 space-y-8"
+            style={{ "--primary-theme": themeColor } as React.CSSProperties}
+        >
+            <style dangerouslySetInnerHTML={{__html: `
+                :root, * {
+                    --color-blue-500: ${themeColor} !important;
+                    --color-blue-600: ${themeColor} !important;
+                    --color-blue-700: ${themeColor} !important;
+                    --primary-theme: ${themeColor} !important;
+                    --color-primary: ${themeColor} !important;
+                }
+            `}} />
             <PrivacyTermsModal
                 isOpen={policyOpen}
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
-                themeColor="var(--blue-500)"
+                themeColor={themeColor}
             />
-            <div className="max-w-4xl mx-auto space-y-8">
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor={themeColor}
+            />
                 {/* Header Section */}
                 <div className="space-y-4">
                     <Breadcrumb>
@@ -528,20 +602,23 @@ export default function CivilRegistryPage() {
                     </div>
                 </div>
 
-                <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-2xl border-t border-slate-200 dark:border-white/10 z-50 p-2.5 flex flex-col items-center">
-                    <div className="w-full max-w-5xl flex items-center justify-center gap-4">
-                        <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                            <motion.div
-                                className="h-full bg-blue-600"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
-                            />
+                {mounted && typeof document !== "undefined" && createPortal(
+                    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+                        <div className="w-full max-w-5xl flex items-center justify-center gap-4">
+                            <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-blue-600"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+                                />
+                            </div>
+                            <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+                                Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+                            </span>
                         </div>
-                        <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
-                            Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
-                        </span>
-                    </div>
-                </div>
+                    </div>,
+                    document.body
+                )}
 
                 {/* Step Selection */}
                 <Card className="p-8 rounded-[2.5rem] border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl shadow-slate-200/40 dark:shadow-none min-h-[400px]">
@@ -771,35 +848,10 @@ export default function CivilRegistryPage() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    {/* Data Privacy Agreement panel */}
-                                    <div className="p-4 rounded-2xl border border-slate-200/40 bg-white/30 dark:bg-white/5 flex items-start gap-4">
-                                        <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300")}>
-                                            {policyAccepted ? <Check className="w-3 h-3" /> : null}
-                                        </button>
-                                        <div className="flex-1 text-xs">
-                                            <div className="font-black uppercase text-[11px] tracking-wider text-slate-800 dark:text-white">DATA PRIVACY & CERTIFICATION AGREEMENT</div>
-                                            <div className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">
-                                                BY SUBMITTING, I CERTIFY THAT ALL INFORMATION PROVIDED IS TRUE AND CORRECT. I AM AWARE OF THE DATA PRIVACY POLICY OF MAPANDAN. CLICK TO REVIEW AGREEMENT.
-                                            </div>
-                                        </div>
-                                        <button type="button" onClick={() => setPolicyOpen(true)} className="text-[10px] font-black italic text-blue-600">Review</button>
-                                    </div>
                                     <div className="space-y-4 p-8 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5">
                                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 italic mb-4">Primary Subject Information</h3>
 
                                         <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Certificate Type</Label>
-                                                <Input
-                                                    value={form.registryType === "BIRTH" ? "Birth Certificate" :
-                                                        form.registryType === "MARRIAGE" ? "Marriage Certificate" :
-                                                            form.registryType === "DEATH" ? "Death Certificate" :
-                                                                form.registryType === "MARRIAGE_LICENSE" ? "Marriage License Application" : ""}
-                                                    readOnly
-                                                    className="h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-500 font-bold italic"
-                                                />
-                                            </div>
-
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
@@ -989,11 +1041,10 @@ export default function CivilRegistryPage() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.fatherFirstName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. JUAN"
@@ -1001,9 +1052,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, fatherFirstName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.fatherFirstName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -1021,11 +1069,10 @@ export default function CivilRegistryPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.fatherLastName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. SANTOS"
@@ -1033,9 +1080,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, fatherLastName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.fatherLastName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1051,11 +1095,10 @@ export default function CivilRegistryPage() {
 
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">First Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.motherFirstName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. MARIA"
@@ -1063,9 +1106,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, motherFirstName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.motherFirstName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
 
                                             <div className="space-y-2">
@@ -1083,11 +1123,10 @@ export default function CivilRegistryPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name <span className="text-red-500">*</span></Label>
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Last Name</Label>
                                                 <Input
                                                     className={cn(
                                                         "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                        (showErrors && !form.motherLastName) && "border-red-500/50 bg-red-50/10",
                                                         form.relationship === "SELF" && "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                                     )}
                                                     placeholder="EX. MERCADO"
@@ -1095,9 +1134,6 @@ export default function CivilRegistryPage() {
                                                     onChange={(e) => form.relationship !== "SELF" && setForm({ ...form, motherLastName: e.target.value.toUpperCase() })}
                                                     readOnly={form.relationship === "SELF"}
                                                 />
-                                                {(showErrors && !form.motherLastName) && (
-                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">Required</p>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1121,13 +1157,6 @@ export default function CivilRegistryPage() {
                                     </Button>
                                     <Button
                                         onClick={() => {
-                                            if (!form.fatherFirstName || !form.fatherLastName || !form.motherFirstName || !form.motherLastName) {
-                                                setShowErrors(true);
-                                                toast.error("Please fill in all required parent details", {
-                                                    className: "font-black uppercase tracking-widest text-[10px] italic",
-                                                });
-                                                return;
-                                            }
                                             setShowErrors(false);
                                             setCurrentStep("CONFIRM");
                                         }}
@@ -1284,16 +1313,35 @@ export default function CivilRegistryPage() {
                                                     />
                                                     {(form.files["validIdFront"] || resident?.idFrontUrl) ? (
                                                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden group/preview shadow-lg">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img
-                                                                src={form.files["validIdFront"] ? URL.createObjectURL(form.files["validIdFront"] as File) : resident.idFrontUrl}
-                                                                alt="ID Front Preview"
-                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                                                                <div className="p-2 bg-white/20 backdrop-blur-md rounded-full">
-                                                                    <Upload className="w-4 h-4 text-white" />
+                                                            {checkIsPdf(form.files["validIdFront"], resident?.idFrontUrl) ? (
+                                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">
+                                                                        {form.files["validIdFront"] ? (form.files["validIdFront"] as File).name : "ID_FRONT.pdf"}
+                                                                    </span>
                                                                 </div>
+                                                            ) : (
+                                                                <PreviewImage
+                                                                    file={form.files["validIdFront"] as File || null}
+                                                                    fallbackUrl={resident?.idFrontUrl || ""}
+                                                                    alt="ID Front Preview"
+                                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
+                                                                />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleViewFile(form.files["validIdFront"] as File || null, resident?.idFrontUrl || null, "Valid Government ID (Front)");
+                                                                    }}
+                                                                    className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5 mr-1" />
+                                                                    View
+                                                                </Button>
+                                                                <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside to change file</span>
                                                             </div>
                                                             <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 rounded-lg shadow-lg flex items-center gap-1.5 min-w-0 max-w-[calc(100%-1rem)] border border-white/20">
                                                                 <Check className="w-2.5 h-2.5 text-white shrink-0" />
@@ -1327,16 +1375,35 @@ export default function CivilRegistryPage() {
                                                     />
                                                     {(form.files["validIdBack"] || resident?.idBackUrl) ? (
                                                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden group/preview shadow-lg">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img
-                                                                src={form.files["validIdBack"] ? URL.createObjectURL(form.files["validIdBack"] as File) : resident.idBackUrl}
-                                                                alt="ID Back Preview"
-                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                                                                <div className="p-2 bg-white/20 backdrop-blur-md rounded-full">
-                                                                    <Upload className="w-4 h-4 text-white" />
+                                                            {checkIsPdf(form.files["validIdBack"], resident?.idBackUrl) ? (
+                                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">
+                                                                        {form.files["validIdBack"] ? (form.files["validIdBack"] as File).name : "ID_BACK.pdf"}
+                                                                    </span>
                                                                 </div>
+                                                            ) : (
+                                                                <PreviewImage
+                                                                    file={form.files["validIdBack"] as File || null}
+                                                                    fallbackUrl={resident?.idBackUrl || ""}
+                                                                    alt="ID Back Preview"
+                                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
+                                                                />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleViewFile(form.files["validIdBack"] as File || null, resident?.idBackUrl || null, "Valid Government ID (Back)");
+                                                                    }}
+                                                                    className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5 mr-1" />
+                                                                    View
+                                                                </Button>
+                                                                <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside to change file</span>
                                                             </div>
                                                             <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 rounded-lg shadow-lg flex items-center gap-1.5 min-w-0 max-w-[calc(100%-1rem)] border border-white/20">
                                                                 <Check className="w-2.5 h-2.5 text-white shrink-0" />
@@ -1440,7 +1507,6 @@ export default function CivilRegistryPage() {
                         </div>
                     </Card>
                 </div>
-            </div>
         </div>
     );
 }

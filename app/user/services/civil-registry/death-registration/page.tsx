@@ -1,11 +1,15 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User,
+    Search,
     Loader2,
     Check,
     AlertCircle,
@@ -44,9 +48,28 @@ import {
     submitCivilRegistryTransaction,
     getTransactionTypes
 } from "@/app/admin/transactions/actions";
+import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+
+const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
+    const [src, setSrc] = React.useState(fallbackUrl || "");
+
+    React.useEffect(() => {
+        if (!file) {
+            setSrc(fallbackUrl || "");
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setSrc(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [file, fallbackUrl]);
+
+    return <img src={src} alt={alt} className={className} />;
+};
 
 const STORAGE_KEY = "lcr_death_registration_draft";
 
@@ -58,14 +81,92 @@ const STEPS: { id: Step; label: string; icon: any }[] = [
     { id: "CONFIRM", label: "Review & Submit", icon: CheckCircle2 },
 ];
 
+// --- Resident Search Component ---
+const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSelect: (r: any) => void; placeholder?: string }) => {
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (query.length > 2) {
+            const delayDebounceFn = setTimeout(async () => {
+                const res = await searchResidents(query);
+                if (res.success && res.data) {
+                    setResults(res.data as any[]);
+                } else {
+                    setResults([]);
+                }
+            }, 300);
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            setResults([]);
+        }
+    }, [query]);
+
+    return (
+        <div className="relative w-full">
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                    placeholder={placeholder}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-12 h-12 bg-slate-50 dark:bg-white/5 border-none font-bold"
+                />
+            </div>
+
+            {results.length > 0 && (
+                <div className="absolute z-[110] w-full mt-2 bg-white dark:bg-[#151b2b] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2 space-y-1">
+                    {results.map((r) => (
+                        <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => {
+                                onSelect(r);
+                                setQuery("");
+                                setResults([]);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-emerald-500/10 dark:hover:bg-white/5 rounded-xl flex items-center gap-3 transition-colors"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                                <User className="w-4 h-4 text-slate-400" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black uppercase italic">{r.firstName} {r.lastName}</p>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{r.barangay}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function DeathRegistrationPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [submitting, setSubmitting] = useState(false);
     const [resident, setResident] = useState<any>(null);
     const [typeId, setTypeId] = useState<string>("");
     const [showErrors, setShowErrors] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleOpenViewer = (file: File | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(null);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -228,13 +329,6 @@ export default function DeathRegistrationPage() {
             return `${mb.toFixed(2)} MB`;
         };
 
-        const handleViewFile = () => {
-            if (file) {
-                const url = URL.createObjectURL(file);
-                window.open(url, "_blank");
-            }
-        };
-
         const isImage = file?.type.startsWith("image/");
 
         return (
@@ -260,10 +354,12 @@ export default function DeathRegistrationPage() {
                 {file ? (
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
                         {isImage ? (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-100 dark:bg-slate-900 group/thumb">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img 
-                                    src={URL.createObjectURL(file)} 
+                            <div 
+                                onClick={() => handleOpenViewer(file, label)}
+                                className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-100 dark:bg-slate-900 group/thumb cursor-pointer"
+                            >
+                                <PreviewImage 
+                                    file={file} 
                                     alt="Preview" 
                                     className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300" 
                                 />
@@ -272,24 +368,36 @@ export default function DeathRegistrationPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="w-12 h-12 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center shrink-0">
-                                <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                            <div 
+                                onClick={() => handleOpenViewer(file, label)}
+                                className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all relative group/thumb"
+                            >
+                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                    <Eye className="w-3.5 h-3.5 text-white" />
+                                </div>
                             </div>
                         )}
 
-                        <div className="flex-1 min-w-0">
+                        <div 
+                            onClick={() => handleOpenViewer(file, label)}
+                            className="flex-1 min-w-0 cursor-pointer hover:opacity-80"
+                        >
                             <p className="text-[9px] font-bold text-slate-700 dark:text-slate-200 truncate pr-2 uppercase italic">
                                 {file.name}
                             </p>
                             <p className="text-[8px] text-slate-400 dark:text-slate-500 italic mt-0.5">
-                                {formatFileSize(file.size)}
+                                {formatFileSize(file.size)} <span className="text-emerald-500 font-bold ml-1 select-none">(Click to Preview)</span>
                             </p>
                             <div className="flex items-center gap-1.5 mt-1">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={handleViewFile}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenViewer(file, label);
+                                    }}
                                     className="h-5 px-2 rounded-md text-[7px] font-black uppercase tracking-widest border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-1 text-slate-600 dark:text-slate-300"
                                 >
                                     <Eye className="w-2 h-2" /> Inspect
@@ -298,7 +406,8 @@ export default function DeathRegistrationPage() {
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={async () => {
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
                                         setFiles(prev => ({ ...prev, [fileKey]: null }));
                                         await saveDraftFile(STORAGE_KEY, fileKey, null);
                                     }}
@@ -436,7 +545,15 @@ export default function DeathRegistrationPage() {
                 onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--emerald-600)"
             />
-            <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor="var(--emerald-600)"
+            />
+            <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
@@ -521,6 +638,24 @@ export default function DeathRegistrationPage() {
                             })}
                         </div>
                     </div>
+
+                    {mounted && typeof document !== "undefined" && createPortal(
+                        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+                            <div className="w-full max-w-5xl flex items-center justify-center gap-4">
+                                <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-emerald-500"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+                                    />
+                                </div>
+                                <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+                                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+                                </span>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                     <Card className="p-6 md:p-10 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden min-h-[400px]">
                         <AnimatePresence mode="wait">
@@ -660,6 +795,36 @@ export default function DeathRegistrationPage() {
                                             Deceased Information
                                         </h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Provide the details of the deceased individual</p>
+                                    </div>
+
+                                    {/* Resident Database Search */}
+                                    <div className="space-y-3 p-6 rounded-[2rem] bg-slate-500/5 border border-slate-200/50 dark:border-white/5">
+                                        <div className="flex items-center gap-2">
+                                            <Search className="w-4 h-4 text-emerald-500" />
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                Search Deceased in Resident Database
+                                            </Label>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">
+                                            If the deceased was a registered resident of Mapandan, you can search and select their profile to automatically pre-fill all available information.
+                                        </p>
+                                        <ResidentSearch
+                                            placeholder="Type resident name to search..."
+                                            onSelect={(r) => {
+                                                const middleInit = r.middleName ? ` ${r.middleName.charAt(0)}.` : "";
+                                                const suffixStr = r.suffix ? ` ${r.suffix}` : "";
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    fullName: `${r.firstName}${middleInit} ${r.lastName}${suffixStr}`.toUpperCase(),
+                                                    dateOfBirth: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
+                                                    gender: r.sex || "",
+                                                    civilStatus: r.civilStatus || "",
+                                                    fathersName: r.fatherName || "",
+                                                    mothersName: r.motherName || ""
+                                                }));
+                                                toast.success(`Selected ${r.firstName} ${r.lastName} as the deceased.`);
+                                            }}
+                                        />
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
