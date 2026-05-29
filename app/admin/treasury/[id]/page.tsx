@@ -42,7 +42,8 @@ import {
     addAdditionalBuildingPermitFee,
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
-    declinePaymentProofAction
+    declinePaymentProofAction,
+    confirmTransactionPaymentWithReceipt
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -249,8 +250,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [remarks, setRemarks] = useState("");
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
     const remarksRef = useRef<HTMLTextAreaElement>(null);
     const [ctcNumber, setCtcNumber] = useState("");
+    const [showPaymentHistoryOverride, setShowPaymentHistoryOverride] = useState(false);
     const [stickerNumber, setStickerNumber] = useState("");
     const [isRejecting, setIsRejecting] = useState(false);
     const [isRequestingRevision, setIsRequestingRevision] = useState(false);
@@ -588,10 +592,13 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const handleRelease = useCallback(async () => {
 
-        // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits, and not for Birth Registration)
-        const isBirthReg = transaction?.type?.code === "LCR_BIRTH" || transaction?.type?.code === "LCR_BIRTH_REG";
-        const ctcRequired = !isBusinessPermit && !isBirthReg && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
-        if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
+        // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits)
+        let ctcVal = ctcNumber;
+        if (isBuildingPermit && transaction?.status === "PAID") {
+            ctcVal = "RECORDED";
+        }
+        const ctcRequired = !isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        if (ctcRequired && !ctcVal && !transaction?.cedula?.ctcNumber) {
             toast.error("CTC Number Required");
             return;
         }
@@ -630,7 +637,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl, orUrl, stickerNumber);
+            const res = await releaseCedula(transaction.id, ctcVal, eCopyUrl, orUrl, stickerNumber);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -648,7 +655,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, backUrl, isLCR]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isBuildingPermit, backUrl, isLCR]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -919,10 +926,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ];
         const getBuildingStepIndex = (status: string) => {
             if (status === "EVALUATED") return 0; // EVALUATION
-            if (status === "UNPAID" || status === "PAID") return 1; // ASSESSMENT
-            return 2; // PAYMENT HISTORY (FOR_PROCESSING, FOR_CLAIM, RELEASED)
+            if (status === "UNPAID") return 1; // ASSESSMENT
+            return 3; // PAYMENT HISTORY and everything else is fully verified/checked
         };
-        currentStepIdx = getBuildingStepIndex(transaction.status);
+        currentStepIdx = showPaymentHistoryOverride ? 2 : getBuildingStepIndex(transaction.status);
     }
 
     // Build evidence documents list for the Evidence Vault UI
@@ -1137,10 +1144,28 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
-            const res = await confirmTransactionPayment(transaction.id);
-            if (res.success) { toast.success("Payment Confirmed"); fetchTransaction(); }
+            const formData = new FormData();
+            formData.append("id", transaction.id);
+            if (remarks) formData.append("remarks", remarks);
+            if (receiptFile) formData.append("receiptFile", receiptFile);
+
+            const res = await confirmTransactionPaymentWithReceipt(formData);
+            if (res.success) { 
+                toast.success("Payment Confirmed"); 
+                setReceiptFile(null);
+                setReceiptPreview(null);
+                fetchTransaction(); 
+            }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
+    };
+
+    const handleReceiptFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setReceiptFile(file);
+            setReceiptPreview(URL.createObjectURL(file));
+        }
     };
 
     const handleDeclinePaymentProof = async () => {
@@ -1151,6 +1176,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) {
                 toast.success("Payment proof declined successfully.");
                 setRemarks("");
+                setIsRequestingRevision(false);
                 fetchTransaction();
             } else {
                 toast.error(res.error || "Failed to decline payment proof");
@@ -1243,7 +1269,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         currentStepIdx,
         hasVerification,
         hasDispute,
-        isRequirementsAlone
+        isRequirementsAlone,
+        receiptFile,
+        setReceiptFile,
+        receiptPreview,
+        setReceiptPreview,
+        handleReceiptFileSelect
     };
 
     if (isBusinessPermit) {
@@ -1257,3 +1288,4 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }
     return <GenericServiceView {...viewProps} />;
 }
+
