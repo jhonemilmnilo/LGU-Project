@@ -11,7 +11,6 @@ import {
     Home
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { UserBreadcrumb } from "@/components/shared/UserBreadcrumb";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
