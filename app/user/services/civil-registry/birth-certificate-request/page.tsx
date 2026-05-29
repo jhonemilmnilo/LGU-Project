@@ -20,8 +20,20 @@ import {
     Upload,
     Search,
     CheckCircle2,
-    Users
+    Users,
+    Eye
 } from "lucide-react";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+
+const checkIsPdf = (file: any, url: string | null) => {
+    if (file && file instanceof File) {
+        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    }
+    if (url) {
+        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+    }
+    return false;
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +66,23 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
+const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null; fallbackUrl?: string; alt: string; className?: string }) => {
+    const [src, setSrc] = React.useState(fallbackUrl || "");
+
+    React.useEffect(() => {
+        if (!file) {
+            setSrc(fallbackUrl || "");
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setSrc(url);
+        return () => {
+            URL.revokeObjectURL(url);
+        };
+    }, [file, fallbackUrl]);
+
+    return <img src={src} alt={alt} className={className} />;
+};
 
 // --- TYPES ---
 
@@ -183,6 +212,18 @@ export default function CivilRegistryPage() {
     // Privacy / Terms modal state (shared key across LCR pages)
     const [policyOpen, setPolicyOpen] = useState(false);
     const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(existingUrl);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     // Persist progress to session storage
     useEffect(() => {
@@ -472,6 +513,14 @@ export default function CivilRegistryPage() {
                 onClose={() => setPolicyOpen(false)}
                 onAccept={handleAcceptPolicy}
                 onDecline={() => { setPolicyAccepted(false); }}
+                themeColor={themeColor}
+            />
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
                 themeColor={themeColor}
             />
                 {/* Header Section */}
@@ -1263,16 +1312,35 @@ export default function CivilRegistryPage() {
                                                     />
                                                     {(form.files["validIdFront"] || resident?.idFrontUrl) ? (
                                                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden group/preview shadow-lg">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img
-                                                                src={form.files["validIdFront"] ? URL.createObjectURL(form.files["validIdFront"] as File) : resident.idFrontUrl}
-                                                                alt="ID Front Preview"
-                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                                                                <div className="p-2 bg-white/20 backdrop-blur-md rounded-full">
-                                                                    <Upload className="w-4 h-4 text-white" />
+                                                            {checkIsPdf(form.files["validIdFront"], resident?.idFrontUrl) ? (
+                                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">
+                                                                        {form.files["validIdFront"] ? (form.files["validIdFront"] as File).name : "ID_FRONT.pdf"}
+                                                                    </span>
                                                                 </div>
+                                                            ) : (
+                                                                <PreviewImage
+                                                                    file={form.files["validIdFront"] as File || null}
+                                                                    fallbackUrl={resident?.idFrontUrl || ""}
+                                                                    alt="ID Front Preview"
+                                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
+                                                                />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleViewFile(form.files["validIdFront"] as File || null, resident?.idFrontUrl || null, "Valid Government ID (Front)");
+                                                                    }}
+                                                                    className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5 mr-1" />
+                                                                    View
+                                                                </Button>
+                                                                <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside to change file</span>
                                                             </div>
                                                             <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 rounded-lg shadow-lg flex items-center gap-1.5 min-w-0 max-w-[calc(100%-1rem)] border border-white/20">
                                                                 <Check className="w-2.5 h-2.5 text-white shrink-0" />
@@ -1306,16 +1374,35 @@ export default function CivilRegistryPage() {
                                                     />
                                                     {(form.files["validIdBack"] || resident?.idBackUrl) ? (
                                                         <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden group/preview shadow-lg">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img
-                                                                src={form.files["validIdBack"] ? URL.createObjectURL(form.files["validIdBack"] as File) : resident.idBackUrl}
-                                                                alt="ID Back Preview"
-                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                                                                <div className="p-2 bg-white/20 backdrop-blur-md rounded-full">
-                                                                    <Upload className="w-4 h-4 text-white" />
+                                                            {checkIsPdf(form.files["validIdBack"], resident?.idBackUrl) ? (
+                                                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-white/5 p-4 text-center">
+                                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 max-w-[80%] truncate">
+                                                                        {form.files["validIdBack"] ? (form.files["validIdBack"] as File).name : "ID_BACK.pdf"}
+                                                                    </span>
                                                                 </div>
+                                                            ) : (
+                                                                <PreviewImage
+                                                                    file={form.files["validIdBack"] as File || null}
+                                                                    fallbackUrl={resident?.idBackUrl || ""}
+                                                                    alt="ID Back Preview"
+                                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-110"
+                                                                />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleViewFile(form.files["validIdBack"] as File || null, resident?.idBackUrl || null, "Valid Government ID (Back)");
+                                                                    }}
+                                                                    className="font-black italic uppercase tracking-widest text-[8px] px-3 h-7 rounded-lg bg-white text-slate-900 hover:bg-slate-100"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5 mr-1" />
+                                                                    View
+                                                                </Button>
+                                                                <span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside to change file</span>
                                                             </div>
                                                             <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 rounded-lg shadow-lg flex items-center gap-1.5 min-w-0 max-w-[calc(100%-1rem)] border border-white/20">
                                                                 <Check className="w-2.5 h-2.5 text-white shrink-0" />

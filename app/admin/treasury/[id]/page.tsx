@@ -58,6 +58,12 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+
+const checkIsPdf = (url: string | null) => {
+    if (!url) return false;
+    return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -248,6 +254,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [orFile, setOrFile] = useState<File | null>(null);
     const [orPreview, setOrPreview] = useState<string | null>(null);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (url: string | null, title: string) => {
+        setViewerUrl(url);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
     const [branding, setBranding] = useState({
         word1: "Mapandan",
         word2: "Express",
@@ -1997,37 +2013,59 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">All the Requirements</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    {evidenceDocs.filter(doc => doc && doc.url).map((doc, i) => (
-                                        <Dialog key={i}>
-                                            <DialogTrigger asChild>
-                                                <div className={cn(
-                                                    "group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in transition-all duration-500",
-                                                    isRequirementsAlone ? "aspect-[4/3]" : "aspect-video"
-                                                )}>
-                                                    {doc.url ? (
-                                                        <>
-                                                            <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-                                                                    <ZoomIn className="w-5 h-5 text-white" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="absolute bottom-2 left-2 right-2 z-10">
-                                                                <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
-                                                                    {doc.label}
-                                                                </span>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <Camera className="w-6 h-6 text-slate-200 dark:text-slate-700" />
+                                    {evidenceDocs.filter(doc => doc && doc.url).map((doc, i) => {
+                                        const isPdf = checkIsPdf(doc.url || null);
+                                        if (isPdf) {
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    onClick={() => handleViewFile(doc.url || null, doc.label)}
+                                                    className={cn(
+                                                        "group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center cursor-pointer transition-all duration-500 hover:border-red-500/50 hover:shadow-xl",
+                                                        isRequirementsAlone ? "aspect-[4/3]" : "aspect-video"
                                                     )}
+                                                >
+                                                    <FileText className="w-10 h-10 text-red-500 group-hover:scale-110 transition-transform duration-300 animate-pulse" />
+                                                    <div className="absolute bottom-2 left-2 right-2 z-10">
+                                                        <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
+                                                            {doc.label}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </DialogTrigger>
-                                            {doc.url && (
-                                                <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                            )}
-                                        </Dialog>
-                                    ))}
+                                            );
+                                        }
+                                        return (
+                                            <Dialog key={i}>
+                                                <DialogTrigger asChild>
+                                                    <div className={cn(
+                                                        "group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in transition-all duration-500",
+                                                        isRequirementsAlone ? "aspect-[4/3]" : "aspect-video"
+                                                    )}>
+                                                        {doc.url ? (
+                                                            <>
+                                                                <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                                                                        <ZoomIn className="w-5 h-5 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="absolute bottom-2 left-2 right-2 z-10">
+                                                                    <span className="text-[8px] font-black uppercase tracking-wider text-white bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-md truncate block max-w-full text-center italic shadow-sm">
+                                                                        {doc.label}
+                                                                    </span>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <Camera className="w-6 h-6 text-slate-200 dark:text-slate-700" />
+                                                        )}
+                                                    </div>
+                                                </DialogTrigger>
+                                                {doc.url && (
+                                                    <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
+                                                )}
+                                            </Dialog>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -2983,6 +3021,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     </div>
                 </div>
             </main>
+
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={null}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor="var(--primary-theme)"
+            />
 
             {/* HIGH-FIDELITY MUNICIPAL WAYBILL (PRINT ONLY) */}
             <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible text-black font-sans leading-tight">
