@@ -1,6 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,8 +20,10 @@ import {
     Search,
     CheckCircle2,
     Users,
-    AlertCircle
+    AlertCircle,
+    Eye
 } from "lucide-react";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +55,16 @@ import { useRouter } from "next/navigation";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 
 const STORAGE_KEY = "lcr_birth_registration_draft";
+
+const checkIsPdf = (file: any, url: string | null) => {
+    if (file && file instanceof File) {
+        return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    }
+    if (url) {
+        return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+    }
+    return false;
+};
 
 // --- TYPES ---
 
@@ -110,7 +124,12 @@ interface FormState {
 export default function BirthRegistrationPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState<Step>("IDENTITY");
+    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     const [submitting, setSubmitting] = useState(false);
     const [, setShowErrors] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -155,6 +174,18 @@ export default function BirthRegistrationPage() {
     const [policyOpen, setPolicyOpen] = useState(false);
 
     const [policyAccepted, setPolicyAccepted] = useState(false);
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerFile, setViewerFile] = useState<File | null>(null);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
+        setViewerFile(file);
+        setViewerUrl(existingUrl);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
 
     const handleAcceptPolicy = () => {
         setPolicyOpen(false);
@@ -408,10 +439,6 @@ export default function BirthRegistrationPage() {
         }
 
         if (step === "PARENTS") {
-            if (!form.fatherFirstName) errs.fatherFirstName = "Please enter father's first name.";
-            if (!form.fatherLastName) errs.fatherLastName = "Please enter father's last name.";
-            if (!form.motherFirstName) errs.motherFirstName = "Please enter mother's first name.";
-            if (!form.motherLastName) errs.motherLastName = "Please enter mother's last name.";
             if (typeof form.parentsMarried === 'undefined') errs.parentsMarried = "Please indicate parents' marital status.";
         }
 
@@ -598,7 +625,15 @@ export default function BirthRegistrationPage() {
                 onDecline={() => { setPolicyAccepted(false); }}
                 themeColor="var(--amber-500)"
             />
-            <div className="container max-w-5xl mx-auto px-4 py-8 space-y-8 pb-32">
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                file={viewerFile}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor="var(--blue-500)"
+            />
+            <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
@@ -691,6 +726,24 @@ export default function BirthRegistrationPage() {
                             })}
                         </div>
                     </div>
+
+                    {mounted && typeof document !== "undefined" && createPortal(
+                        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+                            <div className="w-full max-w-5xl flex items-center justify-center gap-4">
+                                <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-blue-600"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+                                    />
+                                </div>
+                                <span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+                                    Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+                                </span>
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                     <Card className="p-6 md:p-10 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden min-h-[400px]">
                         <AnimatePresence mode="wait">
@@ -1037,19 +1090,13 @@ export default function BirthRegistrationPage() {
 
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name <span className="text-red-500">*</span></Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name</Label>
                                                     <Input
-                                                        className={cn(
-                                                            "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                            (errors.fatherFirstName) && "border-red-500/50 bg-red-50/10"
-                                                        )}
+                                                        className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12"
                                                         placeholder="First name"
                                                         value={form.fatherFirstName}
                                                         onChange={(e) => setForm({ ...form, fatherFirstName: e.target.value.toUpperCase() })}
                                                     />
-                                                    {errors.fatherFirstName && (
-                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.fatherFirstName}</p>
-                                                    )}
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Middle Name</Label>
@@ -1061,19 +1108,13 @@ export default function BirthRegistrationPage() {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name <span className="text-red-500">*</span></Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name</Label>
                                                     <Input
-                                                        className={cn(
-                                                            "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                            (errors.fatherLastName) && "border-red-500/50 bg-red-50/10"
-                                                        )}
+                                                        className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12"
                                                         placeholder="Last name"
                                                         value={form.fatherLastName}
                                                         onChange={(e) => setForm({ ...form, fatherLastName: e.target.value.toUpperCase() })}
                                                     />
-                                                    {errors.fatherLastName && (
-                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.fatherLastName}</p>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1089,19 +1130,13 @@ export default function BirthRegistrationPage() {
 
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name <span className="text-red-500">*</span></Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">First Name</Label>
                                                     <Input
-                                                        className={cn(
-                                                            "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                            (errors.motherFirstName) && "border-red-500/50 bg-red-50/10"
-                                                        )}
+                                                        className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12"
                                                         placeholder="First name"
                                                         value={form.motherFirstName}
                                                         onChange={(e) => setForm({ ...form, motherFirstName: e.target.value.toUpperCase() })}
                                                     />
-                                                    {errors.motherFirstName && (
-                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.motherFirstName}</p>
-                                                    )}
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Middle Name</Label>
@@ -1113,19 +1148,13 @@ export default function BirthRegistrationPage() {
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name <span className="text-red-500">*</span></Label>
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Last Name</Label>
                                                     <Input
-                                                        className={cn(
-                                                            "rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12",
-                                                            (errors.motherLastName) && "border-red-500/50 bg-red-50/10"
-                                                        )}
+                                                        className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 transition-all uppercase font-medium h-12"
                                                         placeholder="Last name"
                                                         value={form.motherLastName}
                                                         onChange={(e) => setForm({ ...form, motherLastName: e.target.value.toUpperCase() })}
                                                     />
-                                                    {errors.motherLastName && (
-                                                        <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.motherLastName}</p>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1321,23 +1350,51 @@ export default function BirthRegistrationPage() {
                                                         ]).map((doc) => (
                                                             <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
                                                                 <div className="flex items-center gap-3">
-                                                                    {form.previews[doc.key] && form.previews[doc.key]!.startsWith('data:image/') ? (
-                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
-                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                    {form.files[doc.key] || form.previews[doc.key] ? (
+                                                                        <div 
+                                                                            onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
+                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+                                                                        >
+                                                                            {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
+                                                                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                                                            ) : form.previews[doc.key] ? (
+                                                                                <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <FileText className="w-5 h-5 text-blue-500" />
+                                                                            )}
+                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+                                                                                <Eye className="w-4 h-4 text-white" />
+                                                                            </div>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
                                                                             <FileText className="w-5 h-5 text-slate-300" />
                                                                         </div>
                                                                     )}
-                                                                    <div className="flex flex-col gap-0.5">
+                                                                    <div 
+                                                                        onClick={() => {
+                                                                            if (form.files[doc.key] || form.previews[doc.key]) {
+                                                                                handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
+                                                                            }
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex flex-col gap-0.5 select-none",
+                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                        )}
+                                                                    >
                                                                         <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
                                                                         <span className={cn(
                                                                             "text-[8px] font-black uppercase tracking-[0.2em] italic",
                                                                             (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
                                                                         )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? "Uploaded" : "Pending"}
+                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? (
+                                                                                <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
+                                                                                    <span>Uploaded (Click to Preview)</span>
+                                                                                    <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
+                                                                                        {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
+                                                                                    </span>
+                                                                                </span>
+                                                                            ) : "Pending"}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -1367,23 +1424,51 @@ export default function BirthRegistrationPage() {
                                                         ].map((doc) => (
                                                             <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
                                                                 <div className="flex items-center gap-3">
-                                                                    {form.previews[doc.key] && form.previews[doc.key]!.startsWith('data:image/') ? (
-                                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
-                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                            <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                    {form.files[doc.key] || form.previews[doc.key] ? (
+                                                                        <div 
+                                                                            onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
+                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+                                                                        >
+                                                                            {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
+                                                                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
+                                                                            ) : form.previews[doc.key] ? (
+                                                                                <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <FileText className="w-5 h-5 text-blue-500" />
+                                                                            )}
+                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+                                                                                <Eye className="w-4 h-4 text-white" />
+                                                                            </div>
                                                                         </div>
                                                                     ) : (
                                                                         <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
                                                                             <FileText className="w-5 h-5 text-slate-300" />
                                                                         </div>
                                                                     )}
-                                                                    <div className="flex flex-col gap-0.5">
+                                                                    <div 
+                                                                        onClick={() => {
+                                                                            if (form.files[doc.key] || form.previews[doc.key]) {
+                                                                                handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
+                                                                            }
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex flex-col gap-0.5 select-none",
+                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
+                                                                        )}
+                                                                    >
                                                                         <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
                                                                         <span className={cn(
                                                                             "text-[8px] font-black uppercase tracking-[0.2em] italic",
                                                                             (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
                                                                         )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? "Uploaded" : "Pending"}
+                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? (
+                                                                                <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
+                                                                                    <span>Uploaded (Click to Preview)</span>
+                                                                                    <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
+                                                                                        {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
+                                                                                    </span>
+                                                                                </span>
+                                                                            ) : "Pending"}
                                                                         </span>
                                                                     </div>
                                                                 </div>

@@ -252,7 +252,7 @@ async function main() {
       isFixed: true,
       requiresBusinessName: false,
       supportsECopy: true,
-      requiredDocs: ["Valid ID of Applicant", "Proof of Relationship"],
+      requiredDocs: ["Valid ID of Applicant"],
       formSchema: {
         type: "CIVIL_REGISTRY",
         registryType: "DEATH",

@@ -1,13 +1,16 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,16 @@ import { useRouter } from "next/navigation";
 import { getCurrentUserResident, getTransactionTypes, ensureCivilRegistryTransactionTypes, submitCivilRegistryTransaction } from "@/app/admin/transactions/actions";
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+
+const checkIsPdf = (file: any, url: string | null) => {
+	if (file && file instanceof File) {
+		return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+	}
+	if (url) {
+		return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+	}
+	return false;
+};
 
 const REQUIRED_DOCS = [
 	"Municipal Form No. 90",
@@ -129,6 +142,24 @@ const ResidentSearch = ({ onSelect, placeholder = "Search resident..." }: { onSe
 export default function MarriageLicenseApplicationPage() {
 	const router = useRouter();
 	const [loading, setLoading] = useState(true);
+	const [mounted, setMounted] = useState(false);
+
+	const [viewerOpen, setViewerOpen] = useState(false);
+	const [viewerFile, setViewerFile] = useState<File | null>(null);
+	const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+	const [viewerTitle, setViewerTitle] = useState("");
+
+	const handleViewFile = (file: File | null, existingUrl: string | null, title: string) => {
+		setViewerFile(file);
+		setViewerUrl(existingUrl);
+		setViewerTitle(title);
+		setViewerOpen(true);
+	};
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	const [typeId, setTypeId] = useState("");
 
 	const [resident, setResident] = useState<any>(null);
@@ -556,8 +587,16 @@ export default function MarriageLicenseApplicationPage() {
 				onDecline={() => { setPolicyAccepted(false); }}
 				themeColor="var(--amber-500)"
 			/>
-			<div className="container max-w-4xl mx-auto px-4 py-8">
-			<Breadcrumb className="-mt-8 mb-4">
+			<DocumentViewerModal
+				isOpen={viewerOpen}
+				onClose={() => setViewerOpen(false)}
+				file={viewerFile}
+				fileUrl={viewerUrl}
+				title={viewerTitle}
+				themeColor="var(--amber-500)"
+			/>
+			<div className="container max-w-4xl mx-auto px-4 pt-0 pb-0">
+			<Breadcrumb className="mb-4">
 				<BreadcrumbList>
 					<BreadcrumbItem>
 						<BreadcrumbLink asChild>
@@ -610,8 +649,26 @@ export default function MarriageLicenseApplicationPage() {
 								</div>
 							);
 						})}
-					</div>
 				</div>
+			</div>
+
+			{mounted && typeof document !== "undefined" && createPortal(
+				<div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#06080a] border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-2.5 px-4 flex flex-col items-center">
+					<div className="w-full max-w-5xl flex items-center justify-center gap-4">
+						<div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+							<motion.div
+								className="h-full bg-amber-600"
+								initial={{ width: 0 }}
+								animate={{ width: `${((STEPS.findIndex(s => s.id === currentStep) + 1) / STEPS.length) * 100}%` }}
+							/>
+						</div>
+						<span className="font-black uppercase tracking-widest italic text-[8px] md:text-[10px] text-slate-400 whitespace-nowrap">
+							Phase {STEPS.findIndex(s => s.id === currentStep) + 1} / {STEPS.length}
+						</span>
+					</div>
+				</div>,
+				document.body
+			)}
 
 				{/* Identity Step */}
 				{currentStep === 'IDENTITY' && (
@@ -725,15 +782,41 @@ export default function MarriageLicenseApplicationPage() {
 								return (
 									<div key={d} className="space-y-3">
 										<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{d}</Label>
-										<div onClick={() => document.getElementById(id)?.click()} className={cn(
-											"aspect-video relative rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all group overflow-hidden",
-											form.files?.[d] ? "border-amber-500" : missingFiles[d] ? "border-red-500 bg-red-50 dark:bg-red-900/10" : "border-slate-200 dark:border-white/10"
-										)}>
-											{form.previews?.[d] ? (
-												<>
-													{/* eslint-disable-next-line @next/next/no-img-element */}
-													<img src={form.previews[d] || ""} alt="Document preview" className="absolute inset-0 w-full h-full object-cover" />
-												</>
+										<div
+											onClick={() => document.getElementById(id)?.click()}
+											className={cn(
+												"aspect-video relative rounded-3xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden",
+												(form.files?.[d] || form.previews?.[d]) ? "border-amber-500 bg-amber-500/5" : missingFiles[d] ? "border-red-500 bg-red-50 dark:bg-red-900/10" : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+											)}
+										>
+											{(form.files?.[d] || form.previews?.[d]) ? (
+												<div className="relative w-full h-full group/preview">
+													{checkIsPdf(form.files?.[d], form.previews?.[d]) ? (
+														<div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-[#151b2b] p-4 text-center">
+															<FileText className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
+															<span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 max-w-[80%] truncate">
+																{form.files?.[d] ? form.files[d].name : `${d}.pdf`}
+															</span>
+														</div>
+													) : (
+														<img src={form.previews?.[d] ?? ""} alt="Document preview" className="absolute inset-0 w-full h-full object-cover" />
+													)}
+													<div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity z-20 gap-2">
+														<Button
+															type="button"
+															size="sm"
+															onClick={(e) => {
+																e.stopPropagation();
+																handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d);
+															}}
+															className="font-black italic uppercase tracking-widest text-[9px] px-4 h-8 rounded-xl bg-white text-slate-900 hover:bg-slate-100 shadow-lg flex items-center gap-1.5 transition-all"
+														>
+															<Eye className="w-4 h-4 text-amber-500" />
+															View Document
+														</Button>
+														<span className="text-[7px] font-black uppercase tracking-widest text-white/70 italic">Click outside button to change</span>
+													</div>
+												</div>
 											) : (
 												<>
 													<Upload className="w-8 h-8 text-slate-300 group-hover:text-amber-500 transition-colors" />
@@ -745,9 +828,6 @@ export default function MarriageLicenseApplicationPage() {
 												<div className="absolute -bottom-6 left-4 text-xs text-red-600 font-bold">Required</div>
 											)}
 										</div>
-										{form.files?.[d] && form.files[d]?.type === 'application/pdf' && (
-											<div className="text-[10px] text-slate-400 italic">{form.files[d]?.name} (PDF)</div>
-										)}
 									</div>
 								);
 							})}
@@ -777,16 +857,36 @@ export default function MarriageLicenseApplicationPage() {
 							<ul className="text-xs list-disc list-inside space-y-2">
 								{REQUIRED_DOCS.filter(d => form.requiredDocs?.[d]).map(d => (
 									<li key={d} className="flex items-center gap-3">
-										<div className="flex-1">
+										<div 
+											onClick={() => {
+												if (form.files?.[d] || form.previews?.[d]) {
+													handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d);
+												}
+											}}
+											className={cn(
+												"flex-1",
+												(form.files?.[d] || form.previews?.[d]) ? "cursor-pointer hover:opacity-80" : ""
+											)}
+										>
 											{d} {form.files?.[d] ? ` — ${form.files[d]?.name}` : ''}
+											{(form.files?.[d] || form.previews?.[d]) && (
+												<span className="text-[9px] text-amber-600 font-bold ml-1.5 select-none">(Click to Preview)</span>
+											)}
 										</div>
-										{form.previews?.[d] ? (
-											<>
-												{/* eslint-disable-next-line @next/next/no-img-element */}
-												<img src={form.previews[d] || ""} alt="Document thumbnail" className="w-16 h-12 object-cover rounded-md border" />
-											</>
-										) : form.files?.[d] ? (
-											<div className="text-[10px] text-slate-400 italic">{form.files[d]?.type === 'application/pdf' ? 'PDF' : ''}</div>
+										{form.files?.[d] || form.previews?.[d] ? (
+											<div
+												onClick={() => handleViewFile(form.files?.[d] || null, form.previews?.[d] || null, d)}
+												className="w-16 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-amber-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
+											>
+												{checkIsPdf(form.files?.[d], form.previews?.[d]) ? (
+													<FileText className="w-6 h-6 text-red-500" />
+												) : (
+													<img src={form.previews?.[d] || ""} alt="Document thumbnail" className="w-full h-full object-cover" />
+												)}
+												<div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
+													<Eye className="w-4 h-4 text-white" />
+												</div>
+											</div>
 										) : null}
 									</li>
 								))}

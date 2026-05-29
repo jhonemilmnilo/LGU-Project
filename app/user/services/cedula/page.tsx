@@ -514,7 +514,7 @@ export default function CedulaApplicationPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-0 space-y-12">
             {/* Header / Breadcrumb */}
         <div className="space-y-4 md:space-y-10">
             {/* Header / Breadcrumb */}
@@ -1329,7 +1329,7 @@ export default function CedulaApplicationPage() {
             </div>
 
             {/* Sticky Actions */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-2xl border-t border-slate-200 dark:border-white/10 z-50 p-2.5 flex flex-col items-center">
+            <div className="fixed bottom-0 left-0 right-0 bg-white/70 dark:bg-[#06080a]/70 backdrop-blur-2xl border-t border-slate-200 dark:border-white/10 z-50 pt-2.5 pb-0 px-2.5 flex flex-col items-center">
                 <div className="w-full max-w-5xl flex items-center justify-center gap-4">
                     <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                         <motion.div 

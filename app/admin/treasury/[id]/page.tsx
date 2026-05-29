@@ -59,6 +59,12 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+
+const checkIsPdf = (url: string | null) => {
+    if (!url) return false;
+    return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
+};
 
 import BusinessPermitView from "./views/BusinessPermitView";
 import BuildingPermitView from "./views/BuildingPermitView";
@@ -254,6 +260,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [orFile, setOrFile] = useState<File | null>(null);
     const [orPreview, setOrPreview] = useState<string | null>(null);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
+
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
+
+    const handleViewFile = (url: string | null, title: string) => {
+        setViewerUrl(url);
+        setViewerTitle(title);
+        setViewerOpen(true);
+    };
     const [branding, setBranding] = useState({
         word1: "Mapandan",
         word2: "Express",
