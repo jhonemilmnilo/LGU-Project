@@ -1193,13 +1193,28 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
 
         if (isBusinessPermit || isBuildingPermit) {
             if (isUserAdminAide(user) && isBusinessPermit) {
-                result = {
-                    basicTax: 0,
-                    additionalTax: 0,
-                    penalty: 0,
-                    deliveryFee: 0,
-                    totalAmount: 0
-                };
+                if (sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
+                    const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+                    const deliveryFee = transaction.fulfillmentType === "DELIVERY"
+                        ? (deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || 0)
+                        : 0;
+                    const total = itemsSum + deliveryFee;
+                    result = {
+                        basicTax: itemsSum,
+                        additionalTax: 0,
+                        penalty: 0,
+                        deliveryFee: deliveryFee,
+                        totalAmount: total
+                    };
+                } else {
+                    result = {
+                        basicTax: 0,
+                        additionalTax: 0,
+                        penalty: 0,
+                        deliveryFee: 0,
+                        totalAmount: 0
+                    };
+                }
             } else if (sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
                 const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
                 const deliveryFee = transaction.fulfillmentType === "DELIVERY"
@@ -1384,7 +1399,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         const isForProcessing = fulfillmentType === "PICK_UP" || (fulfillmentType === "DELIVERY" && paymentType === "CASH_ON_DELIVERY");
         let newStatus = isForProcessing ? "FOR_PROCESSING" : "PAID";
         if (paymentType === "E_PAYMENT" || paymentType === "BANK_TRANSFER") {
-            newStatus = "UNPAID";
+            newStatus = "PAID";
         }
 
         const updatedTransaction = await prisma.transaction.update({
@@ -3534,7 +3549,6 @@ export async function declinePaymentProofAction(id: string, reason: string) {
             data: {
                 status: "UNPAID",
                 rejectionRemarks: reason,
-                paymentReference: null, // Clear rejected payment reference so they can upload a new one
                 updatedAt: new Date()
             }
         });

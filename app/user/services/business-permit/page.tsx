@@ -630,9 +630,7 @@ export default function BusinessPermitWizardPage() {
                         (formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) &&
                         (formData.ctcFile || revisionTx?.additionalData?.ctcUrl) &&
                         (formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) &&
-                        (formData.birCorFile || revisionTx?.additionalData?.birCorUrl) &&
                         (formData.brgyClearanceFile || revisionTx?.additionalData?.brgyClearanceUrl) &&
-                        (formData.locationPhotoFile || revisionTx?.additionalData?.locationPhotoUrl) &&
                         (formData.sanitaryPermitFile || revisionTx?.additionalData?.sanitaryPermitUrl) &&
                         (formData.fireSafetyFile || revisionTx?.additionalData?.fireSafetyUrl)
                     );
@@ -641,7 +639,6 @@ export default function BusinessPermitWizardPage() {
                         (formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) &&
                         (formData.ctcFile || revisionTx?.additionalData?.ctcUrl) &&
                         (formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) &&
-                        (formData.birCorFile || revisionTx?.additionalData?.birCorUrl) &&
                         (formData.previousPermitFile || revisionTx?.additionalData?.previousPermitUrl)
                     );
                 }
@@ -730,9 +727,7 @@ export default function BusinessPermitWizardPage() {
                         { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) },
                         { field: "ctcFile", check: !!(formData.ctcFile || revisionTx?.additionalData?.ctcUrl) },
                         { field: "dtiSecFile", check: !!(formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) },
-                        { field: "birCorFile", check: !!(formData.birCorFile || revisionTx?.additionalData?.birCorUrl) },
                         { field: "brgyClearanceFile", check: !!(formData.brgyClearanceFile || revisionTx?.additionalData?.brgyClearanceUrl) },
-                        { field: "locationPhotoFile", check: !!(formData.locationPhotoFile || revisionTx?.additionalData?.locationPhotoUrl) },
                         { field: "sanitaryPermitFile", check: !!(formData.sanitaryPermitFile || revisionTx?.additionalData?.sanitaryPermitUrl) },
                         { field: "fireSafetyFile", check: !!(formData.fireSafetyFile || revisionTx?.additionalData?.fireSafetyUrl) }
                     ]
@@ -740,7 +735,6 @@ export default function BusinessPermitWizardPage() {
                         { field: "ownerIdFile", check: !!(formData.ownerIdFile || formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl) },
                         { field: "ctcFile", check: !!(formData.ctcFile || revisionTx?.additionalData?.ctcUrl) },
                         { field: "dtiSecFile", check: !!(formData.dtiSecFile || revisionTx?.additionalData?.dtiSecUrl) },
-                        { field: "birCorFile", check: !!(formData.birCorFile || revisionTx?.additionalData?.birCorUrl) },
                         { field: "previousPermitFile", check: !!(formData.previousPermitFile || revisionTx?.additionalData?.previousPermitUrl) }
                     ];
                 const firstMissing = requiredChecks.find(c => !c.check);
@@ -765,6 +759,24 @@ export default function BusinessPermitWizardPage() {
         }
     };
 
+
+    const handleRemoveFile = async (field: keyof FormState) => {
+        setFormData(prev => ({ ...prev, [field]: null }));
+        await persistDraftFile(field as string, null as any);
+
+        // Also clear from revisionTx if it exists so the UI preview disappears
+        if (revisionTx) {
+            const urlField = `${(field as string).replace("File", "Url")}`;
+            if (revisionTx.additionalData && revisionTx.additionalData[urlField]) {
+                const updatedAdditional = { ...revisionTx.additionalData };
+                delete updatedAdditional[urlField];
+                setRevisionTx((prev: any) => ({
+                    ...prev,
+                    additionalData: updatedAdditional
+                }));
+            }
+        }
+    };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof FormState) => {
         if (e.target.files && e.target.files[0]) {
@@ -1502,9 +1514,9 @@ export default function BusinessPermitWizardPage() {
                                                 { label: "1. Owner's Valid ID", field: "ownerIdFile" },
                                                 { label: "2. Community Tax Certificate (CTC/Cedula)", field: "ctcFile" },
                                                 { label: "3. DTI / SEC / CDA Registration", field: "dtiSecFile" },
-                                                { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile" },
+                                                { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile", optional: true },
                                                 { label: "5. Barangay Clearance", field: "brgyClearanceFile" },
-                                                { label: "6. Location Photo of Business", field: "locationPhotoFile" },
+                                                { label: "6. Location Photo of Business", field: "locationPhotoFile", optional: true },
                                                 { label: "7. Sanitary Permit", field: "sanitaryPermitFile" },
                                                 { label: "8. Fire Safety Inspection Certificate", field: "fireSafetyFile" }
                                             ]
@@ -1512,7 +1524,7 @@ export default function BusinessPermitWizardPage() {
                                                 { label: "1. Owner's Valid ID", field: "ownerIdFile" },
                                                 { label: "2. Community Tax Certificate (CTC/Cedula)", field: "ctcFile" },
                                                 { label: "3. DTI / SEC / CDA Registration", field: "dtiSecFile" },
-                                                { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile" },
+                                                { label: "4. BIR Certificate of Registration (COR)", field: "birCorFile", optional: true },
                                                 { label: "5. Previous Business Permit", field: "previousPermitFile" }
                                             ]
                                         ) as { label: string; field: string; optional?: boolean }[]).map(item => {
@@ -1637,23 +1649,34 @@ export default function BusinessPermitWizardPage() {
                                                                 id={`upload-${item.field}`}
                                                             />
                                                             {(file || (item.field === "ownerIdFile" && formData.residentData?.idFrontUrl) || revisionTx?.additionalData?.[`${item.field.replace("File", "Url")}`]) ? (
-                                                                <Button
-                                                                    asChild
-                                                                    variant="outline"
-                                                                    className="font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98] shadow-sm bg-transparent"
-                                                                >
-                                                                    <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
+                                                                <div className="flex gap-2 w-full">
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        onClick={() => document.getElementById(`upload-${item.field}`)?.click()}
+                                                                        className="flex-1 font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 rounded-2xl transition-all select-none border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98] shadow-sm bg-transparent"
+                                                                    >
                                                                         Change File
-                                                                    </label>
-                                                                </Button>
+                                                                    </Button>
+                                                                    {/* Only render Remove button if it's not the preloaded system-linked verified Resident ID */}
+                                                                    {!(item.field === "ownerIdFile" && formData.residentData?.idFrontUrl && !file) && (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            onClick={() => handleRemoveFile(item.field as keyof FormState)}
+                                                                            className="flex-1 font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 rounded-2xl transition-all border-rose-200/50 dark:border-rose-500/10 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 active:scale-[0.98] shadow-sm bg-transparent"
+                                                                        >
+                                                                            Remove
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             ) : (
                                                                 <Button
-                                                                    asChild
+                                                                    type="button"
+                                                                    onClick={() => document.getElementById(`upload-${item.field}`)?.click()}
                                                                     className="font-black italic uppercase tracking-widest text-[9px] sm:text-xs h-10 w-full rounded-2xl transition-all select-none bg-primary hover:bg-primary/90 text-white shadow-md active:scale-[0.98]"
                                                                 >
-                                                                    <label htmlFor={`upload-${item.field}`} className="cursor-pointer flex items-center justify-center w-full h-full">
-                                                                        Upload
-                                                                    </label>
+                                                                    Upload
                                                                 </Button>
                                                             )}
                                                         </div>
@@ -1716,6 +1739,26 @@ export default function BusinessPermitWizardPage() {
                                                 </div>
                                             </div>
 
+                                            {/* Expected Fees Structure (Local Revenue Code) */}
+                                            {(() => {
+                                                const selectedType = bpTypes.find((t: any) => t.id === formData.typeId);
+                                                const defaultFees = selectedType?.defaultFees;
+                                                if (!Array.isArray(defaultFees) || defaultFees.length === 0) return null;
+                                                return (
+                                                    <div className="p-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl space-y-4 animate-in fade-in duration-300">
+                                                        <h3 className="text-xs font-black uppercase tracking-widest text-primary italic">Expected Fees Structure (Local Revenue Code)</h3>
+                                                        <div className="space-y-3">
+                                                            {defaultFees.map((fee: any, idx: number) => (
+                                                                <div key={idx} className="flex justify-between items-start text-xs font-bold text-slate-500 uppercase tracking-widest gap-4 border-b border-slate-200/50 dark:border-white/5 pb-2 last:border-0 last:pb-0">
+                                                                    <span className="text-slate-700 dark:text-slate-300">{fee.label}</span>
+                                                                    <span className="text-slate-900 dark:text-white font-mono text-right italic normal-case shrink-0">{fee.description}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+
                                             {/* Privacy Acceptance checkbox card */}
                                             {!revisionId && (
                                                 <div
@@ -1747,7 +1790,6 @@ export default function BusinessPermitWizardPage() {
                                             )}
                                         </div>
 
-                                        {/* Note: Tax computation will be assessed by Treasury after review */}
                                         <div className="p-5 bg-amber-500/[0.04] border border-dashed border-amber-500/20 rounded-2xl flex items-center gap-3">
                                             <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 shrink-0">
                                                 <Calculator className="w-4 h-4" />

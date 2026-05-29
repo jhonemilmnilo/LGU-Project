@@ -581,6 +581,8 @@ model TransactionType {
   requiredDocs  Json     @default("[]") // e.g., ["Valid ID", "Proof of Income"]
   formSchema    Json     @default("{}") // Definitions for extra fields needed
   logicCode     String?  // Code-hook for backend calculator (e.g., "cedula_calc_v1")
+  defaultFees   Json     @default("[]")
+  
   
   // Operations
   slaDays       Int      @default(3)

@@ -425,6 +425,24 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             { label: "Other Applicable Municipal Charges", amount: String(assessed.municipalCharges || 0) }
                         ]);
                     }
+                } else if (tx) {
+                    const fiscal = tx.fiscalSnapshot as any;
+                    if (fiscal && Array.isArray(fiscal.lineItems) && fiscal.lineItems.length > 0) {
+                        const mappedFees = fiscal.lineItems.map((item: any) => ({
+                            label: item.label,
+                            amount: String(item.amount)
+                        }));
+                        setFeeLineItems(mappedFees);
+                    } else {
+                        const defaultFees = tx.type?.defaultFees;
+                        if (Array.isArray(defaultFees) && defaultFees.length > 0 && (!tx.fiscalSnapshot || Object.keys(tx.fiscalSnapshot).length === 0)) {
+                            const mappedFees = defaultFees.map((fee: any) => ({
+                                label: fee.label,
+                                amount: ""
+                            }));
+                            setFeeLineItems(mappedFees);
+                        }
+                    }
                 }
 
                 // Smart Delivery Fee Pre-fill Logic
@@ -2212,6 +2230,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             !transaction.eCopyUrl
                         ) ||
                         (transaction.status === "PAID" && (
+                            isBusinessPermit ||
                             transaction.fulfillmentType === "E_COPY" ||
                             (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))
                         ))
@@ -2599,7 +2618,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
                                         {/* Financial Verification: Show if Online Payment AND not yet confirmed. Bypassed for E-COPY and PICK_UP E-PAYMENT Fast-track */}
                                         {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") &&
-                                            transaction.fulfillmentType !== "E_COPY" &&
+                                                            transaction.fulfillmentType !== "E_COPY" &&
                                             !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) &&
                                             !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") &&
                                             !(isBusinessPermit && transaction.status === "FOR_REINSPECTION") &&
@@ -2612,6 +2631,42 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                     >
                                                         {actionLoading ? "Processing Verification..." : "Verify Financial Record"}
                                                     </Button>
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="w-full h-12 rounded-xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95"
+                                                            >
+                                                                Request Revision / Decline Proof
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                                            <DialogHeader className="space-y-3">
+                                                                <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                                    Decline <span className="text-red-500">Payment</span>
+                                                                </DialogTitle>
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Request payment proof revision</p>
+                                                            </DialogHeader>
+                                                            <div className="space-y-6 py-6">
+                                                                <div className="space-y-3">
+                                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
+                                                                    <Textarea
+                                                                        placeholder="e.g. GCash reference mismatch, blurry screenshot, incorrect amount..."
+                                                                        value={remarks}
+                                                                        onChange={(e) => setRemarks(e.target.value)}
+                                                                        className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                onClick={handleDeclinePaymentProof}
+                                                                disabled={actionLoading || !remarks}
+                                                                className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+                                                            >
+                                                                {actionLoading ? "Processing..." : "Decline Payment Proof"}
+                                                            </Button>
+                                                        </DialogContent>
+                                                    </Dialog>
                                                 </div>
                                             )}
 
@@ -2753,8 +2808,46 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
-                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document"}
+                                                        {actionLoading ? "Submitting..." : (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status)) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" && isBusinessPermit) ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : (transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document" }
                                                     </Button>
+                                                    {isBusinessPermit && transaction.status === "PAID" && (
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="w-full h-12 rounded-2xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95 mb-2"
+                                                                >
+                                                                    Request Revision / Decline Proof
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+                                                                <DialogHeader className="space-y-3">
+                                                                    <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+                                                                        Decline <span className="text-red-500">Payment</span>
+                                                                    </DialogTitle>
+                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Request payment proof revision</p>
+                                                                </DialogHeader>
+                                                                <div className="space-y-6 py-6">
+                                                                    <div className="space-y-3">
+                                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
+                                                                        <Textarea
+                                                                            placeholder="e.g. GCash reference mismatch, blurry screenshot, incorrect amount..."
+                                                                            value={remarks}
+                                                                            onChange={(e) => setRemarks(e.target.value)}
+                                                                            className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <Button
+                                                                    onClick={handleDeclinePaymentProof}
+                                                                    disabled={actionLoading || !remarks}
+                                                                    className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+                                                                >
+                                                                    {actionLoading ? "Processing..." : "Decline Payment Proof"}
+                                                                </Button>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    )}
 
                                                     {(!(isBusinessPermit && ["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) || userRole === "ADMIN_AIDE" || (userRole === "ADMIN" && session?.user?.department?.toUpperCase() === "BPLO")) && (
                                                         <Button
