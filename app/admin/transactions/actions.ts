@@ -3698,6 +3698,61 @@ export async function submitBuildingPermitAction(id: string, eCopyUrl: string) {
     }
 }
 
+export async function releaseBuildingPermitAction(id: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Engineers or Admins can release building permits." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id },
+            include: { user: { include: { residentProfile: true } } }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const additionalData = (transaction.additionalData as any) || {};
+        const resident = transaction.user?.residentProfile || (transaction as any).residentSnapshot || {};
+        const applicantName = `${resident.firstName || ""} ${resident.lastName || ""}`.trim() || "Unknown Applicant";
+
+        const updatedTransaction = await prisma.$transaction(async (tx) => {
+            const updatedTx = await tx.transaction.update({
+                where: { id },
+                data: {
+                    status: "RELEASED",
+                    updatedAt: new Date()
+                }
+            });
+
+            // Save to BuildingPermit table
+            await tx.buildingPermit.create({
+                data: {
+                    transactionId: id,
+                    permitNumber: `BP-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`,
+                    applicantName: applicantName,
+                    projectType: additionalData.descriptionOfWork || "Building Construction",
+                    occupancyUse: additionalData.occupancyUse || "Residential",
+                    location: additionalData.location || resident.address || "Mapandan, Pangasinan",
+                    estimatedCost: parseFloat(additionalData.estimatedCost) || 0,
+                    documentUrl: transaction.eCopyUrl,
+                    issuedBy: user.name || user.email || "Municipal Engineer"
+                }
+            });
+
+            return updatedTx;
+        });
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services/building-permit");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Release building permit error:", error);
+        return { success: false, error: "Failed to release building permit" };
+    }
+}
 export async function declinePaymentProofAction(id: string, reason: string) {
     try {
         const session = await getSession();

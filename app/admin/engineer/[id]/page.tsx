@@ -407,7 +407,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                     router.replace(`/admin/engineer/${id}/inspection`);
                 } else if (transaction.status === "FOR_REINSPECTION") {
                     router.replace(`/admin/engineer/${id}/reinspection`);
-                } else if (transaction.status === "EVALUATED" || transaction.status === "PAID") {
+                } else if (["EVALUATED", "UNPAID", "PAYMENT_SUBMITTED", "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction.status)) {
                     router.replace(`/admin/engineer/${id}/fees`);
                 }
             }
