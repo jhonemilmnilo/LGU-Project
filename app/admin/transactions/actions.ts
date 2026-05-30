@@ -1739,7 +1739,6 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 });
             }
         } else {
-            const isBirthReg = transaction.type.code === "LCR_BIRTH" || transaction.type.code === "LCR_BIRTH_REG";
             if (!transaction.cedula) {
                 if (!ctcNumber && !isPickupCashInitial && transaction.status !== "PAID") {
                     return { success: false, error: "CTC Number is required for this transaction type." };

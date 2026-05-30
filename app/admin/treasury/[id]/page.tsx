@@ -246,6 +246,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     // Treasury Staff can only upload OR; Permit No., Sticker No., and Waybill are BPLO Admin only
     const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
     // backUrl is dynamically determined below after loading transaction metadata
+    const backUrl = "/admin/treasury";
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -631,7 +632,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcVal, eCopyUrl, orUrl, stickerNumber);
+            const res = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, stickerNumber);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -651,7 +652,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isBuildingPermit, backUrl, isLCR]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
