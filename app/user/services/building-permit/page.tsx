@@ -111,6 +111,7 @@ export default function BuildingPermitPage() {
     newIdFile: null as File | null,
     tctFile: null as File | null,
   });
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
 
   const requirementsProgress = selectedApplication
     ? new Set([
@@ -552,16 +553,17 @@ export default function BuildingPermitPage() {
   };
 
   const handleSubmit = async () => {
-    if (requirementsProgress < 13) {
-      toast.warning("Please ensure ALL 13 required documents are provided.");
-      return;
-    }
-    if (permitsProgress < 9) {
-      toast.warning("Please ensure ALL 9 required permits are provided.");
-      return;
-    }
-    if (!signatureData) {
-      toast.warning("Please provide your digital signature before submitting.");
+    if (requirementsProgress < 13 || permitsProgress < 9 || !signatureData) {
+      setShowValidationErrors(true);
+      if (requirementsProgress < 13) {
+        toast.warning("Please ensure ALL 13 required documents are provided.");
+        setActiveDocTab("REQUIREMENTS");
+      } else if (permitsProgress < 9) {
+        toast.warning("Please ensure ALL 9 required permits are provided.");
+        setActiveDocTab("PERMITS");
+      } else {
+        toast.warning("Please provide your digital signature before submitting.");
+      }
       return;
     }
     
@@ -1381,8 +1383,9 @@ export default function BuildingPermitPage() {
                 const fileUrl = selectedApplication?.additionalData?.documents?.[key];
                 const newlyUploaded = activeDocTab === "REQUIREMENTS" ? !!uploadedRequirements[idx] : !!uploadedPermits[idx];
                 const isUploaded = !isEditable ? !!fileUrl : (!!fileUrl || newlyUploaded);
+                const hasError = showValidationErrors && !isUploaded;
                 return (
-                  <div key={idx} className="bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm hover:border-primary/30 transition-all group">
+                  <div key={idx} className={cn("bg-white/40 dark:bg-white/5 backdrop-blur-md border rounded-2xl p-5 shadow-sm transition-all group", hasError ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10 hover:border-primary/30")}>
                     <div className="flex justify-between items-start mb-4">
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
                         <span className="text-lg">📄</span> {docName}
@@ -1532,7 +1535,7 @@ export default function BuildingPermitPage() {
                       </div>
                     </div>
                   )}
-                  <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white">
+                  <div className={cn("rounded-xl overflow-hidden bg-white transition-all", showValidationErrors && !signatureData ? "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border border-slate-200 dark:border-white/10")}>
                      <SignaturePad 
                        onSave={(dataUrl) => {
                          setSignatureData(dataUrl);
