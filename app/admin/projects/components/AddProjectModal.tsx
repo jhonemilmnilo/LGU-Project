@@ -7,8 +7,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
-    DialogFooter
+    DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,12 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, FolderKanban, Upload, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 export function AddProjectModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useProjects();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, themeColor } = useProjects();
     const { handleSubmit, loading } = useProjectsForm();
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -81,10 +80,13 @@ export function AddProjectModal() {
             }
         }}>
             <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
+                <div className="relative flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
+                    <DialogHeader
+                        className="p-8 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-primary rounded-lg">
+                            <div className="p-2 rounded-lg shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}>
                                 <FolderKanban className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -98,16 +100,14 @@ export function AddProjectModal() {
                         </div>
                     </DialogHeader>
 
-                    <div className="p-8 overflow-y-auto custom-scrollbar">
+                    <div className="p-8 pb-28 overflow-y-auto custom-scrollbar">
                         <form id="projectForm" onSubmit={onSubmit} className="space-y-8">
                             {/* Image Upload Area */}
                             <div className="space-y-3">
                                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Project Image / Render</Label>
                                 <div
-                                    className={`relative group flex justify-center items-center w-full h-48 sm:h-64 rounded-2xl border-2 border-dashed transition-all duration-200 overflow-hidden cursor-pointer
-                                ${imagePreview
-                                            ? "border-primary/50 bg-primary/5 block"
-                                            : "border-slate-300 dark:border-slate-700 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 flex"}`}
+                                    className="relative group flex justify-center items-center w-full h-48 sm:h-64 rounded-2xl border-2 border-dashed transition-all duration-200 overflow-hidden cursor-pointer bg-slate-50 dark:bg-slate-800/50"
+                                    style={{ borderColor: imagePreview ? `${themeColor}80` : `${themeColor}40`, backgroundColor: imagePreview ? `${themeColor}0d` : undefined }}
                                     onClick={() => !imagePreview && fileInputRef.current?.click()}
                                 >
                                     <Input
@@ -142,8 +142,8 @@ export function AddProjectModal() {
                                         </>
                                     ) : (
                                         <div className="text-center p-6 flex flex-col items-center">
-                                            <div className="w-12 h-12 bg-primary/10 dark:bg-primary/30 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                                                <ImageIcon className="w-6 h-6 text-primary dark:text-primary" />
+                                            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${themeColor}1a` }}>
+                                                <ImageIcon className="w-6 h-6" style={{ color: themeColor }} />
                                             </div>
                                             <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Click to upload image</p>
                                             <p className="text-xs text-slate-500">SVG, PNG, JPG or GIF (max. 5MB)</p>
@@ -163,29 +163,36 @@ export function AddProjectModal() {
                                         required
                                         defaultValue={editingData?.title ?? ""}
                                         placeholder=""
-                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
+                                        className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2"
+                                        style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                     />
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 min-w-0">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold">Category</Label>
                                     <Select name="category" defaultValue={editingData?.category || categories[0]}>
-                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                                        <SelectTrigger
+                                            className="!w-full !h-12 min-h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                                        >
                                             <SelectValue placeholder="Select Category" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent position="popper">
                                             {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 min-w-0">
                                     <Label className="text-slate-700 dark:text-slate-300 font-bold">Status</Label>
                                     <Select name="status" defaultValue={editingData?.status || statuses[0]}>
-                                        <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                                        <SelectTrigger
+                                            className="!w-full !h-12 min-h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                                        >
                                             <SelectValue placeholder="Select Status" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent position="popper">
                                             {statuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
@@ -271,20 +278,13 @@ export function AddProjectModal() {
                         </form>
                     </div>
 
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
+                    <div className="absolute left-0 right-0 bottom-0 z-50 p-6 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-[#0f1117] dark:via-[#0f1117]/95">
                         <Button
                             type="submit"
                             form="projectForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full h-12 text-white font-bold shadow-lg rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
@@ -292,7 +292,7 @@ export function AddProjectModal() {
                                 editingData ? "Update Project" : "Add Project"
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
