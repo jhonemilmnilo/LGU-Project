@@ -220,7 +220,12 @@ export default function RequestHubPage() {
                     if (req.fulfillmentType) setLocalFulfillment(req.fulfillmentType);
                     if (req.paymentType) setLocalPayment(req.paymentType);
                     if (req.additionalData?.gcashReferenceNo) setGcashReferenceNo(req.additionalData.gcashReferenceNo);
-                    if (req.paymentReference) setPaymentProofPreview(req.paymentReference);
+                    if (req.paymentReference) {
+                        setPaymentProofPreview(req.paymentReference);
+                    } else if (req.status === "UNPAID" && req.additionalData?.previousPaymentProofs?.length > 0) {
+                        const prevs = req.additionalData.previousPaymentProofs;
+                        setPaymentProofPreview(prevs[prevs.length - 1].url);
+                    }
 
                 } else {
                     toast.error("Request not found");
@@ -288,14 +293,12 @@ export default function RequestHubPage() {
         }
     };
 
+
     const handleClearPaymentProof = () => {
         setPaymentProofFile(null);
         setPaymentProofPreview(null);
     };
 
-    useEffect(() => {
-        handleClearPaymentProof();
-    }, [localPayment]);
 
     const handleDownloadQR = async () => {
         if (!gcashDetails.qr) return;
@@ -882,7 +885,12 @@ export default function RequestHubPage() {
                                                 { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
                                                 { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
                                             ].map(opt => (
-                                                <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all group relative active:scale-95 text-left", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
+                                                <button key={opt.id} onClick={() => {
+                                                    if (localPayment !== opt.id) {
+                                                        setLocalPayment(opt.id as any);
+                                                        handleClearPaymentProof();
+                                                    }
+                                                }} className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all group relative active:scale-95 text-left", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
                                                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/5 text-slate-400")}><opt.icon className="w-5 h-5" /></div>
                                                     <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest italic leading-tight">{opt.label}</span>
                                                     {localPayment === opt.id && <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><CheckCircle2 className="w-5 h-5" /></div>}
@@ -951,6 +959,47 @@ export default function RequestHubPage() {
                                                             </div>
                                                         )}
                                                     </div>
+
+                                                    {/* Previous payment proofs list */}
+                                                    {(() => {
+                                                        const prevProofs = [...(additionalData.previousPaymentProofs || request?.previousPaymentProofs || [])];
+                                                        
+                                                        // If paymentProofFile is present (meaning they selected a new file):
+                                                        // - The new file is shown in the upload snapshot container.
+                                                        // - All elements inside prevProofs (including the latest rejected one) should show in the Previous Submissions list!
+                                                        // If paymentProofFile is null (meaning they haven't uploaded a new file yet):
+                                                        // - The latest rejected one is currently displayed in the upload snapshot container.
+                                                        // - So we must remove it from the Previous Submissions list to avoid duplication!
+                                                        const hasNewUpload = !!paymentProofFile;
+                                                        
+                                                        const visibleProofs = hasNewUpload 
+                                                            ? prevProofs 
+                                                            : prevProofs.slice(0, -1); // Hide the latest one from previous list since it is currently showing in the main upload box
+
+                                                        if (visibleProofs && visibleProofs.length > 0) {
+                                                            return (
+                                                                <div className="space-y-3 pt-4 border-t border-dashed border-slate-200 dark:border-white/10 animate-in fade-in duration-300">
+                                                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Previous Submissions</span>
+                                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                                        {visibleProofs.map((proof: any, idx: number) => (
+                                                                            <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 opacity-80 hover:opacity-100 transition-all group/prev hover:scale-[1.02] shadow-sm">
+                                                                                <Image
+                                                                                    src={proof.url}
+                                                                                    alt={`Previous Proof ${idx + 1}`}
+                                                                                    fill
+                                                                                    unoptimized
+                                                                                    className="object-cover cursor-pointer"
+                                                                                    onClick={() => handleViewFile(proof.url, `Previous Proof ${idx + 1}`)}
+                                                                                />
+                                                                                <div className="absolute top-2 left-2 bg-red-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow">Rejected</div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </div>
                                             </div>
                                         )}

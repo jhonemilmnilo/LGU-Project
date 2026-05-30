@@ -13,7 +13,10 @@ import {
     Plus,
     Trash2,
     Check,
-    Ban
+    Ban,
+    Copy,
+    ChevronDown,
+    ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import LightboxView from "../components/LightboxView";
 import ResidentIdentityProfile from "../components/ResidentIdentityProfile";
 import TransactionInfoCard from "../components/TransactionInfoCard";
@@ -88,7 +92,8 @@ export default function BusinessPermitView({
     hasDispute,
     isRequirementsAlone,
     handleReject,
-    handleRequestRevision
+    handleRequestRevision,
+    handleViewFile
 }: TreasuryViewProps) {
     const additional = transaction.additionalData || {};
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
@@ -96,6 +101,12 @@ export default function BusinessPermitView({
         ? (typeof transaction.deliveryAddress === 'string' ? JSON.parse(transaction.deliveryAddress) : transaction.deliveryAddress)
         : null;
     const fiscal = transaction.fiscalSnapshot || null;
+
+    const shouldExpandRequirements = isRequirementsAlone || ["PAID", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_PICKING", "FOR_CLAIM", "RELEASED"].includes(transaction.status);
+
+    const [isAssessmentOpen, setIsAssessmentOpen] = useState(true);
+    const [isBusinessRecordOpen, setIsBusinessRecordOpen] = useState(true);
+    const [isRequirementsOpen, setIsRequirementsOpen] = useState(true);
 
     const isBusinessPermitRenewal = (
         transaction?.type?.code === "BUSINESS_PERMIT_RENEW" ||
@@ -146,8 +157,11 @@ export default function BusinessPermitView({
                     {/* MAIN ASSESSMENT CARD */}
                     {!isReadOnlyAide && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
-                            {/* IDENTIFIER */}
-                            <div className="space-y-4">
+                            {/* IDENTIFIER / ACCORDION HEADER */}
+                            <div 
+                                className="flex justify-between items-center cursor-pointer select-none"
+                                onClick={() => setIsAssessmentOpen(!isAssessmentOpen)}
+                            >
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
@@ -167,7 +181,13 @@ export default function BusinessPermitView({
                                         {transaction.businessName || additional.businessName || "UNNAMED ENTITY"}
                                     </h1>
                                 </div>
+                                <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
+                                    {isAssessmentOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                </div>
                             </div>
+
+                            {isAssessmentOpen && (
+                                <div className="space-y-12 animate-in fade-in slide-in-from-top-4 duration-300">
 
                             {/* TOP METRICS GRID */}
                             <div className="grid grid-cols-3 gap-6">
@@ -278,17 +298,12 @@ export default function BusinessPermitView({
                                             </div>
                                         </div>
                                     )}
-
-                                    <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
-                                        <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
-                                        <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                                            ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
+                </div>
+            )}
 
                     {/* RESIDENT IDENTITY PROFILE ACCORDION */}
                     <ResidentIdentityProfile
@@ -299,9 +314,12 @@ export default function BusinessPermitView({
 
                     {/* BUSINESS RECORD CARD */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-10">
-                        {/* Business Profile */}
-                        <div className="space-y-8 animate-in fade-in duration-300">
-                            <div>
+                        {/* Business Profile Accordion Header */}
+                        <div 
+                            className="flex justify-between items-center cursor-pointer select-none"
+                            onClick={() => setIsBusinessRecordOpen(!isBusinessRecordOpen)}
+                        >
+                            <div className="space-y-2">
                                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
                                     Business <span className="text-primary">Record</span>
                                 </h2>
@@ -309,6 +327,13 @@ export default function BusinessPermitView({
                                     BPLO Registration Details
                                 </p>
                             </div>
+                            <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
+                                {isBusinessRecordOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                            </div>
+                        </div>
+
+                        {isBusinessRecordOpen && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
 
                             <div className="grid grid-cols-12 gap-x-6 gap-y-6">
                                 <div className="col-span-12 md:col-span-4 space-y-2">
@@ -376,105 +401,64 @@ export default function BusinessPermitView({
                                         {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
                                     </div>
                                 </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Capital / Declared Gross</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary">
-                                        ₱{Number(additional?.grossSales || additional?.capitalInvestment || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </div>
-                                </div>
                             </div>
                         </div>
+                    )}
                     </div>
 
                     {/* EVIDENCE VAULT */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 gap-8">
                         {/* Core Requirements */}
-                        <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
-                            <div className="flex items-center gap-2">
-                                <BadgeCheck className="w-5 h-5 text-primary" />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">All Requirments</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                {evidenceDocs.map((doc, idx) => (
-                                    <Dialog key={idx}>
-                                        <DialogTrigger asChild>
-                                            <div className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none">
-                                                {doc.url ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
-                                                ) : (
-                                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-1.5 p-4">
-                                                        <span className="text-xl">📁</span>
-                                                        <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                    <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full">Zoom View</span>
-                                                </div>
-                                            </div>
-                                        </DialogTrigger>
-                                        {doc.url && <LightboxView src={doc.url} alt={doc.label} label={doc.label} />}
-                                    </Dialog>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Verification Vault */}
-                        {!isRequirementsAlone && (
-                            <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
+                        <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6 md:col-span-2">
+                            <div 
+                                className="flex justify-between items-center cursor-pointer select-none"
+                                onClick={() => setIsRequirementsOpen(!isRequirementsOpen)}
+                            >
                                 <div className="flex items-center gap-2">
-                                    <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fulfillment Verification Vault</span>
+                                    <BadgeCheck className="w-5 h-5 text-primary" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">All Requirments</span>
                                 </div>
-                                <div className="space-y-6">
-                                    {hasVerification && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {/* Payment Proof */}
-                                            {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && additional.paymentReferenceUrl && (
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <div className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-emerald-500/50 transition-all select-none">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img src={additional.paymentReferenceUrl} alt="Payment Proof" className="w-full h-full object-cover group-hover:scale-105 transition-all" />
-                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                                <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-emerald-600 px-3 py-1 rounded-full">Payment Proof</span>
-                                                            </div>
-                                                        </div>
-                                                    </DialogTrigger>
-                                                    <LightboxView src={additional.paymentReferenceUrl} alt="Payment Proof" label="GCash Payment Proof" />
-                                                </Dialog>
+                                <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
+                                    {isRequirementsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                </div>
+                            </div>
+                            {isRequirementsOpen && (
+                                <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    {evidenceDocs.map((doc, idx) => (
+                                        <div 
+                                            key={idx}
+                                            onClick={() => doc.url && handleViewFile?.(doc.url, doc.label)}
+                                            className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
+                                        >
+                                            {doc.url ? (
+                                                <>
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                                                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
+                                                        {doc.label}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-1.5 p-4">
+                                                    <span className="text-xl">📁</span>
+                                                    <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
+                                                </div>
                                             )}
-
-                                            {/* GCash Reference */}
-                                            {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") && additional.paymentReference && (
-                                                <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 flex flex-col justify-center">
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block mb-1">GCash Reference No.</span>
-                                                    <span className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">{additional.paymentReference}</span>
+                                            {doc.url && (
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                    <div 
+                                                        style={{ backgroundColor: themeColor }}
+                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                    >
+                                                        <span>View</span>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
-
-                                    {hasDispute && transaction.disputeProofUrl && (
-                                        <div className="space-y-3">
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-orange-500 block">Dispute Claim Evidence</span>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <div className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-orange-500/50 transition-all select-none w-full">
-                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img src={transaction.disputeProofUrl} alt="Dispute Claim Evidence" className="w-full h-full object-cover group-hover:scale-105 transition-all" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                            <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-orange-500 px-3 py-1 rounded-full">Dispute Evidence</span>
-                                                        </div>
-                                                    </div>
-                                                </DialogTrigger>
-                                                <LightboxView src={transaction.disputeProofUrl} alt="Dispute Proof" label="Dispute Claim Evidence" />
-                                            </Dialog>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -590,59 +574,132 @@ export default function BusinessPermitView({
 
                                 {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status) && (
                                     <div className="space-y-4 animate-in slide-in-from-bottom-4">
-                                        {/* Financial Verification */}
-                                        {(transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") &&
-                                            transaction.fulfillmentType !== "E_COPY" &&
-                                            !(transaction.fulfillmentType === "PICK_UP" && (transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER")) &&
-                                            !(transaction.status === "PAID" && transaction.fulfillmentType === "DELIVERY") &&
-                                            transaction.status !== "FOR_REINSPECTION" &&
-                                            transaction.status !== "FOR_PICKING" && (
-                                                <div className="space-y-3 p-1 rounded-[2rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                                    <Button
-                                                        onClick={handleConfirmPayment}
-                                                        disabled={actionLoading}
-                                                        className="w-full h-14 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
-                                                    >
-                                                        {actionLoading ? "Processing Verification..." : "Verify Financial Record"}
-                                                    </Button>
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className="w-full h-12 rounded-xl border-2 border-red-500/20 text-red-500 font-black italic uppercase tracking-widest text-[10px] hover:bg-red-500/5 transition-all active:scale-95"
-                                                            >
-                                                                Request Revision / Decline Proof
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
-                                                            <DialogHeader className="space-y-3">
-                                                                <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                                    Decline <span className="text-red-500">Payment</span>
-                                                                </DialogTitle>
-                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Request payment proof revision</p>
-                                                            </DialogHeader>
-                                                            <div className="space-y-6 py-6">
-                                                                <div className="space-y-3">
-                                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Declining</Label>
-                                                                    <Textarea
-                                                                        placeholder="e.g. GCash reference mismatch, blurry screenshot, incorrect amount..."
-                                                                        value={remarks}
-                                                                        onChange={(e) => setRemarks(e.target.value)}
-                                                                        className="min-h-[120px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm text-slate-900 dark:text-white"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                onClick={handleDeclinePaymentProof}
-                                                                disabled={actionLoading || !remarks}
-                                                                className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
-                                                            >
-                                                                {actionLoading ? "Processing..." : "Decline Payment Proof"}
-                                                            </Button>
-                                                        </DialogContent>
-                                                    </Dialog>
+                                        {/* Citizen Payment Proof — only rendered when payment mode is E_PAYMENT / BANK_TRANSFER */}
+                                        {((transaction.paymentType === "E_PAYMENT" || transaction.paymentType === "BANK_TRANSFER") || transaction.paymentProofUrl || additional.gcashReferenceNo || additional.paymentReference || transaction.paymentReference) && (
+                                            <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
+                                                <div className="flex justify-between items-center">
+                                                    <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Citizen Payment Proof</Label>
                                                 </div>
-                                            )}
+
+                                                {/* Proof of Payment Image */}
+                                                {(transaction.paymentProofUrl || additional.paymentReferenceUrl || (transaction.paymentReference && (transaction.paymentReference.startsWith("http") || transaction.paymentReference.startsWith("/")))) ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleViewFile?.(transaction.paymentProofUrl || additional.paymentReferenceUrl || transaction.paymentReference, "GCash Payment Proof")}
+                                                        className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
+                                                    >
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img 
+                                                            src={transaction.paymentProofUrl || additional.paymentReferenceUrl || transaction.paymentReference} 
+                                                            alt="Payment Proof" 
+                                                            className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                        />
+                                                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                            <div 
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                            >
+                                                                <span>View</span>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                ) : null}
+
+                                                {/* Reference Number with Copy Button */}
+                                                {(() => {
+                                                    const refNo = additional.gcashReferenceNo || (transaction as any).gcashReferenceNo || (transaction.paymentReference && !(transaction.paymentReference.startsWith("http") || transaction.paymentReference.startsWith("/")) ? transaction.paymentReference : null) || additional.paymentReference || "N/A";
+                                                    if (refNo === "N/A") return null;
+                                                    return (
+                                                        <div className="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
+                                                            <div className="flex items-center justify-between gap-4">
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">GCash Reference No.</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(refNo);
+                                                                        toast.success("Reference Number Copied!");
+                                                                    }}
+                                                                    className="text-[8px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-all flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-lg border border-primary/10 hover:scale-105 active:scale-95 shrink-0"
+                                                                >
+                                                                    <Copy className="w-3 h-3" />
+                                                                    Copy
+                                                                </button>
+                                                            </div>
+                                                            <div className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">
+                                                                {refNo}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+
+                                        {/* Upload Official Receipt (OR) */}
+                                        {(transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && (
+                                            <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
+                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR) <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*,.pdf"
+                                                    onChange={(e) => setOrFile(e.target.files?.[0] || null)}
+                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 text-xs focus:ring-primary/10 dark:bg-slate-950 dark:text-white"
+                                                />
+                                                {(orPreview || (transaction.orUrl && transaction.orUrl !== "null" && transaction.orUrl !== "undefined" && transaction.orUrl !== "")) && (
+                                                    <div className="mt-2">
+                                                        {(() => {
+                                                            const isOrPdf = orFile 
+                                                                ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
+                                                                 : (transaction.orUrl?.toLowerCase()?.includes(".pdf") || false);
+                                                            
+                                                            if (isOrPdf) {
+                                                                return (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Receipt PDF")}
+                                                                        className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                                    >
+                                                                        <div className="flex items-center gap-4">
+                                                                            <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                                📕
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Official Receipt PDF</p>
+                                                                                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="h-9 px-4 rounded-xl border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0">
+                                                                            Open PDF ➔
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Receipt Document")}
+                                                                    className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
+                                                                >
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img 
+                                                                        src={orPreview || transaction.orUrl} 
+                                                                        alt="OR Preview" 
+                                                                        className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                        <div 
+                                                                            style={{ backgroundColor: themeColor }}
+                                                                            className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                                        >
+                                                                            <span>View</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {/* Prepared Serial Badge */}
                                         {transaction.status === "FOR_PICKING" || transaction.status === "FOR_CLAIM" || transaction.businessPermit?.permitNumber ? (
@@ -658,7 +715,7 @@ export default function BusinessPermitView({
                                         ) : (
                                             <div className="space-y-6">
                                                 {/* Digital Copy Upload Warning */}
-                                                {(transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || (transaction.fulfillmentType === "DELIVERY" && ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType))))) && !orFile && !transaction.orUrl && (
+                                                {(transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && !orFile && !transaction.orUrl && (
                                                     <div className="p-6 rounded-3xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 text-center space-y-2">
                                                         <Upload className="w-5 h-5 text-amber-600 dark:text-amber-500 mx-auto" />
                                                         <p className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-500 italic">Official Receipt (OR) Required</p>
@@ -691,19 +748,6 @@ export default function BusinessPermitView({
                                                             />
                                                         </div>
                                                     )}
-
-                                                    {/* OR upload */}
-                                                    {(transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && (
-                                                        <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
-                                                            <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR)</Label>
-                                                            <Input
-                                                                type="file"
-                                                                accept="image/*,.pdf"
-                                                                onChange={(e) => setOrFile(e.target.files?.[0] || null)}
-                                                                className="h-12 rounded-xl border-slate-100 dark:border-white/5 text-xs focus:ring-primary/10 dark:bg-slate-900 dark:text-white"
-                                                            />
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -729,7 +773,7 @@ export default function BusinessPermitView({
                                                             (!isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
                                                             (!isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
                                                             (transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
-                                                            ((transaction.status === "FOR_PROCESSING" || (transaction.status === "PAID" && (transaction.fulfillmentType === "E_COPY" || transaction.fulfillmentType === "DELIVERY"))) && !orFile && !transaction.orUrl)
+                                                            ((transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && !orFile && !transaction.orUrl)
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
@@ -741,7 +785,7 @@ export default function BusinessPermitView({
                                                                 onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
                                                                 className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
                                                             >
-                                                                Request Revision
+                                                                Revise Payment Proof
                                                             </Button>
                                                             <Button
                                                                 onClick={() => { setIsRejecting(true); setRemarks(""); }}
@@ -752,7 +796,7 @@ export default function BusinessPermitView({
                                                         </div>
                                                     )}
 
-                                                    {!(["FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) && (
+                                                    {!(["PAID", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) && (
                                                         <Button
                                                             onClick={() => { setIsRejecting(true); setRemarks(""); }}
                                                             className="w-full h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
@@ -781,7 +825,7 @@ export default function BusinessPermitView({
                 setRemarks={setRemarks}
                 actionLoading={actionLoading}
                 handleReject={handleReject}
-                handleRequestRevision={handleRequestRevision}
+                handleRequestRevision={transaction.status === "PAID" ? handleDeclinePaymentProof : handleRequestRevision}
             />
 
         </div>
