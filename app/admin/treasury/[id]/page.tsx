@@ -988,8 +988,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 }
             }
 
+            // --- Marriage Certificate Request (Certified Copy) ---
+            if (typeCode === "LCR_MARRIAGE") {
+                docs.push({ url: additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl, label: "Government ID (Front)" });
+                docs.push({ url: additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl, label: "Government ID (Back)" });
+                return docs;
+            }
+
             // --- Marriage Registration ---
-            if (typeCode === "LCR_MARRIAGE_REG" || typeCode === "LCR_MARRIAGE") {
+            if (typeCode === "LCR_MARRIAGE_REG") {
                 if (regType === "LATE") {
                     docs.push({ url: additional.psaNeg, label: "Negative Certificate from PSA" });
                     docs.push({ url: additional.affidavitDelay, label: "Affidavit of Delayed Registration" });

@@ -546,7 +546,7 @@ export default function CivilRegistryPage() {
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500">Local Civil Registry</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                            Registry <span className="text-blue-500">Hub</span>
+                            Request <span className="text-blue-500">Birth Certificate</span>
                         </h1>
                         <p className="text-slate-500 font-medium text-sm italic">Certified true copy requests for civil registry documents.</p>
                     </div>
@@ -1430,7 +1430,7 @@ export default function CivilRegistryPage() {
                                     <button type="button" onClick={() => setPolicyOpen(true)} className={cn("w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5", policyAccepted ? "bg-blue-500 border-blue-500 text-white" : "border-slate-300")}>
                                         {policyAccepted ? <Check className="w-3 h-3" /> : null}
                                     </button>
-                                    <div className="flex-1 text-xs">
+                                    <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
                                         <div className="font-black uppercase text-[11px] tracking-wider text-slate-800 dark:text-white">DATA PRIVACY & CERTIFICATION AGREEMENT</div>
                                         <div className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">
                                             BY SUBMITTING, I CERTIFY THAT ALL INFORMATION PROVIDED IS TRUE AND CORRECT. I AM AWARE OF THE DATA PRIVACY POLICY OF MAPANDAN. CLICK TO REVIEW AGREEMENT.

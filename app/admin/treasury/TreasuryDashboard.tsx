@@ -71,7 +71,6 @@ export default function TreasuryDashboard() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const categoryParam = searchParams.get("category");
-    const isAllCategories = !categoryParam || categoryParam === "ALL";
     const { data: session } = useSession();
 
     const userRole = (session?.user as any)?.role;
@@ -105,7 +104,7 @@ export default function TreasuryDashboard() {
         }
     }, [isAdminAide]);
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [allServices, setAllServices] = useState<string[]>([]);
+    const [serviceTypes, setServiceTypes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -117,15 +116,23 @@ export default function TreasuryDashboard() {
 
     // Listen to query param category filter changes
     useEffect(() => {
-        if (categoryParam) {
+        setServiceFilter(null);
+        if (categoryParam && categoryParam !== "ALL") {
             setSortBy("service");
-            setServiceFilter(categoryParam === "ALL" ? null : categoryParam);
-        } else {
-            setServiceFilter(null);
         }
     }, [categoryParam]);
 
     // Memoize the filtered list of services based on the search query for optimal performance
+    const allServices = useMemo(() => {
+        let filtered = serviceTypes;
+        if (isAdminAide) {
+            filtered = filtered.filter((t: any) => t.code?.startsWith("BUSINESS_PERMIT"));
+        } else if (categoryParam && categoryParam !== "ALL") {
+            filtered = filtered.filter((t: any) => t.category === categoryParam);
+        }
+        return filtered.map((t: any) => t.name).filter(Boolean);
+    }, [serviceTypes, isAdminAide, categoryParam]);
+
     const filteredServices = useMemo(() => {
         return allServices.filter(srv =>
             srv.toLowerCase().includes(serviceSearch.toLowerCase())
@@ -138,19 +145,14 @@ export default function TreasuryDashboard() {
             try {
                 const res = await getTransactionTypes();
                 if (res.success && res.data) {
-                    let filtered = res.data;
-                    if (isAdminAide) {
-                        filtered = res.data.filter((t: any) => t.code?.startsWith("BUSINESS_PERMIT"));
-                    }
-                    const names = filtered.map((t: any) => t.name).filter(Boolean);
-                    setAllServices(names);
+                    setServiceTypes(res.data || []);
                 }
             } catch (err) {
                 console.error("Failed to load services for filter:", err);
             }
         }
         fetchServices();
-    }, [isAdminAide]);
+    }, []);
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -177,14 +179,10 @@ export default function TreasuryDashboard() {
         fetchTransactions();
     }, [fetchTransactions]);
 
-    // Reset serviceFilter and page when status changes to prevent lingering filter states across empty pages
+    // Reset page and serviceFilter when status changes to prevent lingering filter states across empty pages
     useEffect(() => {
-        if (categoryParam && categoryParam !== "ALL") {
-            setServiceFilter(categoryParam);
-        } else {
-            setServiceFilter(null);
-        }
-    }, [status, categoryParam]);
+        setServiceFilter(null);
+    }, [status]);
 
 
     // Reset to page 1 when filters change
@@ -205,8 +203,11 @@ export default function TreasuryDashboard() {
             tx.id.toLowerCase().includes(search.toLowerCase()) ||
             refId.includes(searchUpper);
 
-        // Direct category matching based on database category field
-        const matchesService = !serviceFilter || tx.type?.category === serviceFilter;
+        // Category filter: match url category parameter if set
+        const matchesCategory = !categoryParam || categoryParam === "ALL" || tx.type?.category === categoryParam;
+
+        // Specific service name filter: match selected service from dropdown if set
+        const matchesService = !serviceFilter || serviceFilter === "ALL" || tx.type?.name === serviceFilter;
 
         // For Building Permits, Treasury only needs to see EVALUATED, UNPAID, PAID, and REJECTED
         const isBuildingPermitTx = tx.type?.code?.startsWith("BUILDING_PERMIT") || tx.type?.name?.toUpperCase().includes("BUILDING PERMIT");
@@ -217,7 +218,7 @@ export default function TreasuryDashboard() {
             }
         }
 
-        return matchesSearch && matchesService;
+        return matchesSearch && matchesCategory && matchesService;
     });
 
     const sortedTransactions = [...filteredTransactions].sort((a, b) => {
@@ -252,11 +253,7 @@ export default function TreasuryDashboard() {
 
     // Resets any dynamic service filtering when explicit date sorting is toggled
     const handleDateHeaderClick = () => {
-        if (categoryParam && categoryParam !== "ALL") {
-            setServiceFilter(categoryParam);
-        } else {
-            setServiceFilter(null);
-        }
+        setServiceFilter(null);
         if (sortBy === "date") {
             setSortDirection(prev => prev === "asc" ? "desc" : "asc");
         } else {
@@ -290,44 +287,42 @@ export default function TreasuryDashboard() {
 
                             {/* Right controls: Status dropdown + Refresh */}
                             <div className="flex items-center gap-3">
-                                {isAllCategories && (
-                                    <div className="hidden sm:block">
-                                        <Select 
-                                            value={serviceFilter ?? "ALL"} 
-                                            onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}
-                                            onOpenChange={(open) => { if (!open) setServiceSearch(""); }}
-                                        >
-                                            <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
-                                                <SelectValue placeholder="Service" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white dark:bg-[#151b2b] min-w-[220px] max-h-80 overflow-y-auto">
-                                                {/* Search input to filter dropdown items */}
-                                                <div className="p-2 border-b border-slate-100 dark:border-[#2a3040] sticky top-0 bg-white dark:bg-[#151b2b] z-10">
-                                                    <div className="relative">
-                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
-                                                        <Input
-                                                            placeholder="Search service..."
-                                                            value={serviceSearch}
-                                                            onChange={(e) => setServiceSearch(e.target.value)}
-                                                            className="pl-8 h-8 text-xs bg-slate-50 dark:bg-[#0f1117] border-slate-100 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-lg w-full"
-                                                            onKeyDown={(e) => e.stopPropagation()}
-                                                        />
-                                                    </div>
+                                <div className="hidden sm:block">
+                                    <Select 
+                                        value={serviceFilter ?? "ALL"} 
+                                        onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}
+                                        onOpenChange={(open) => { if (!open) setServiceSearch(""); }}
+                                    >
+                                        <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
+                                            <SelectValue placeholder="Service" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white dark:bg-[#151b2b] min-w-[220px] max-h-80 overflow-y-auto">
+                                            {/* Search input to filter dropdown items */}
+                                            <div className="p-2 border-b border-slate-100 dark:border-[#2a3040] sticky top-0 bg-white dark:bg-[#151b2b] z-10">
+                                                <div className="relative">
+                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+                                                    <Input
+                                                        placeholder="Search service..."
+                                                        value={serviceSearch}
+                                                        onChange={(e) => setServiceSearch(e.target.value)}
+                                                        className="pl-8 h-8 text-xs bg-slate-50 dark:bg-[#0f1117] border-slate-100 dark:border-[#2a3040] focus-visible:ring-blue-500 rounded-lg w-full"
+                                                        onKeyDown={(e) => e.stopPropagation()}
+                                                    />
                                                 </div>
-                                                <SelectItem value="ALL" className="text-sm">All Services</SelectItem>
-                                                {filteredServices.length === 0 ? (
-                                                    <div className="p-3 text-xs text-slate-500 dark:text-slate-400 text-center italic">
-                                                        No services found
-                                                    </div>
-                                                ) : (
-                                                    filteredServices.map(srv => (
-                                                        <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
-                                                    ))
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
+                                            </div>
+                                            <SelectItem value="ALL" className="text-sm">All Services</SelectItem>
+                                            {filteredServices.length === 0 ? (
+                                                <div className="p-3 text-xs text-slate-500 dark:text-slate-400 text-center italic">
+                                                    No services found
+                                                </div>
+                                            ) : (
+                                                filteredServices.map(srv => (
+                                                    <SelectItem key={srv} value={srv} className="text-sm">{srv}</SelectItem>
+                                                ))
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
 
                                 <div className="hidden sm:block">

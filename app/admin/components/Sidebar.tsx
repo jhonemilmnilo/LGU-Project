@@ -58,10 +58,55 @@ export function Sidebar({
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
     const { theme, setTheme } = useTheme();
-
     React.useEffect(() => {
         setMounted(true);
     }, []);
+
+    React.useEffect(() => {
+        setIsSettingsOpen(pathname.startsWith("/admin/settings"));
+        setIsAboutOpen(pathname.startsWith("/admin/about"));
+        setIsBarangaysOpen(pathname.startsWith("/admin/barangays"));
+        setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+    }, [pathname]);
+
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+    const scrollToActive = React.useCallback((behavior: "smooth" | "instant" = "smooth") => {
+        const container = scrollContainerRef.current;
+        const activeElement = document.getElementById("active-sidebar-link");
+        if (container && activeElement) {
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = activeElement.getBoundingClientRect();
+            
+            // Calculate center scroll offset relative to the container boundaries
+            const relativeTop = elementRect.top - containerRect.top;
+            const targetScrollTop = container.scrollTop + relativeTop - (containerRect.height / 2) + (elementRect.height / 2);
+            
+            container.scrollTo({
+                top: Math.max(0, targetScrollTop),
+                behavior
+            });
+        }
+    }, []);
+
+    React.useEffect(() => {
+        if (!mounted) return;
+
+        // Perform an instant scroll right away so it is positioned correctly as early as possible
+        scrollToActive("instant");
+
+        // Set up sequential timers to ensure perfect alignment as animations and dynamic heights settle
+        const timers = [
+            setTimeout(() => scrollToActive("smooth"), 100),
+            setTimeout(() => scrollToActive("smooth"), 300),
+            setTimeout(() => scrollToActive("smooth"), 600),
+            setTimeout(() => scrollToActive("smooth"), 1000)
+        ];
+
+        return () => {
+            timers.forEach(clearTimeout);
+        };
+    }, [pathname, mounted, isSettingsOpen, isAboutOpen, isBarangaysOpen, isTreasuryOpen, scrollToActive]);
 
     const allMenuItems = [
         { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -236,7 +281,7 @@ export function Sidebar({
                 )}
             >
                 <div className="w-64 h-full flex flex-col justify-between">
-                    <div className="overflow-y-auto custom-scrollbar flex-1 pb-4">
+                    <div ref={scrollContainerRef} className="overflow-y-auto custom-scrollbar flex-1 pb-4">
                         {/* Logo & Branding */}
                         <div className="sticky top-0 z-20 bg-white dark:bg-[#1e2330] border-b border-slate-100 dark:border-[#2a3040]">
                             <div className="p-6">
@@ -336,6 +381,7 @@ export function Sidebar({
                                                         return (
                                                             <Link
                                                                 key={sub.href}
+                                                                id={isSubActive ? "active-sidebar-link" : undefined}
                                                                 href={sub.href}
                                                                 className={cn(
                                                                     "block px-3 py-2 text-xs font-medium rounded-lg transition-all",
@@ -368,6 +414,7 @@ export function Sidebar({
                                         )}
                                         <Link
                                             href={item.href || "#"}
+                                            id={isActive ? "active-sidebar-link" : undefined}
                                             className={cn(
                                                 "flex items-center justify-between px-3 py-2.5 rounded-lg font-medium transition-all duration-200 group",
                                                 isActive

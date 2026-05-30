@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { 
-    Dialog, 
-    DialogContent, 
+import {
+    Dialog,
+    DialogContent,
     DialogTitle,
-    DialogDescription 
+    DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin, Info, CheckCircle2 } from "lucide-react";
@@ -19,16 +19,16 @@ interface BarangaySelectionModalProps {
     themeColor?: string;
 }
 
-export function BarangaySelectionModal({ 
-    isOpen, 
-    onClose, 
+export function BarangaySelectionModal({
+    isOpen,
+    onClose,
     barangays,
-    themeColor = "#2563eb" 
+    themeColor = "#2563eb"
 }: BarangaySelectionModalProps) {
     const { selectedBarangay, setSelectedBarangay } = useBarangay();
     const [search, setSearch] = React.useState("");
 
-    const filteredBarangays = ["All", ...barangays].filter(b => 
+    const filteredBarangays = ["All", ...barangays].filter(b =>
         b.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -69,8 +69,8 @@ export function BarangaySelectionModal({
                     {/* Search Input */}
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-                        <Input 
-                            placeholder="Find your barangay..." 
+                        <Input
+                            placeholder="Find your barangay..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="h-12 pl-12 pr-4 rounded-xl bg-white dark:bg-slate-900 border-none shadow-inner text-sm font-bold placeholder:text-slate-300 dark:placeholder:text-slate-700"
@@ -89,11 +89,11 @@ export function BarangaySelectionModal({
                                     onClick={() => handleSelect(b)}
                                     className={cn(
                                         "group relative h-20 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 overflow-hidden active:scale-95",
-                                        isSelected 
-                                            ? "border-primary bg-primary/5 dark:bg-primary/10" 
+                                        isSelected
+                                            ? "border-primary bg-primary/5 dark:bg-primary/10"
                                             : "border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/50 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-900"
                                     )}
-                                    style={{ 
+                                    style={{
                                         borderColor: isSelected ? themeColor : undefined,
                                         backgroundColor: isSelected ? `${themeColor}10` : undefined
                                     }}
@@ -114,7 +114,7 @@ export function BarangaySelectionModal({
                             );
                         })}
                     </div>
-                    
+
                     {filteredBarangays.length === 0 && (
                         <div className="py-20 flex flex-col items-center justify-center gap-4 text-slate-300">
                             <MapPin className="w-12 h-12 opacity-20" />

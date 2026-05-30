@@ -1244,7 +1244,7 @@ export default function DeathRegistrationPage() {
                                             >
                                                 {policyAccepted ? <Check className="w-3 h-3" /> : null}
                                             </button>
-                                            <div className="flex-1 text-xs text-left">
+                                            <div className="flex-1 text-xs text-left cursor-pointer select-none" onClick={(e) => { e.stopPropagation(); setPolicyOpen(true); }}>
                                                 <div className="font-black uppercase text-[11px] tracking-wider text-slate-900 dark:text-white">DATA PRIVACY AND TERMS AGREEMENT</div>
                                                 <div className="text-[10px] text-slate-500 italic mt-1">I AUTHORIZE THE LGU TO PROCESS MY PERSONAL INFORMATION IN ACCORDANCE WITH THE DATA PRIVACY ACT. CLICK TO REVIEW AGREEMENT.</div>
                                                 {(showErrors && !policyAccepted) && (

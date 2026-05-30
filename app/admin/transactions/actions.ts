@@ -523,7 +523,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
 
             return t;
         });
-            // No payment record created at submission time for civil registry.
+        // No payment record created at submission time for civil registry.
 
         revalidatePath("/user/services");
         revalidatePath("/admin/transactions");
@@ -1270,7 +1270,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const additional = transaction.additionalData as any || {};
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
-            
+
             const baseFee = (isMarriageReg && !isLate)
                 ? 0
                 : Number(transaction.type?.baseFee || 0);
@@ -1317,7 +1317,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 }
             } as any,
             include: { user: true }
-        }) as any; 
+        }) as any;
 
         // Trigger email notification for payment
         if (updatedTransaction.user?.email && newStatus === "EVALUATED") {
@@ -1697,9 +1697,9 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         // Handle either BPLO or Cedula lifecycle
         if (isBusinessPermit) {
-            const isRenewal = transaction.type.code === "BUSINESS_PERMIT_RENEW" || 
-                              additionalData?.businessType === "RENEWAL" || 
-                              additionalData?.businessType === "RENEW";
+            const isRenewal = transaction.type.code === "BUSINESS_PERMIT_RENEW" ||
+                additionalData?.businessType === "RENEWAL" ||
+                additionalData?.businessType === "RENEW";
             const existingPermitNo = additionalData?.permitNumber || additionalData?.existingPermitNumber || additionalData?.existingPermitNo;
 
             if (!transaction.businessPermit) {
@@ -1771,222 +1771,222 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             }
         }
 
-            // If this is a Local Civil Registry (LCR) service, ensure a BirthCertificateRegistry
-            // or DeathRegistration entry is created when releasing the document so it appears in official registry tables.
-            const isLCR = transaction.type.code.startsWith("LCR_");
-            if (isLCR) {
-                const typeCode = (transaction.type.code || "").toUpperCase();
-                if (typeCode === "LCR_BIRTH") {
-                    const bcrExisting = (transaction as any).birthCertificateRequest;
-                    if (!bcrExisting && targetStatus === "RELEASED") {
-                        const src: any = additionalData || {};
-                        const subjectName = src.subjectName || src.fullName || null;
-                        const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
-                        const placeOfEvent = src.placeOfEvent || null;
+        // If this is a Local Civil Registry (LCR) service, ensure a BirthCertificateRegistry
+        // or DeathRegistration entry is created when releasing the document so it appears in official registry tables.
+        const isLCR = transaction.type.code.startsWith("LCR_");
+        if (isLCR) {
+            const typeCode = (transaction.type.code || "").toUpperCase();
+            if (typeCode === "LCR_BIRTH") {
+                const bcrExisting = (transaction as any).birthCertificateRequest;
+                if (!bcrExisting && targetStatus === "RELEASED") {
+                    const src: any = additionalData || {};
+                    const subjectName = src.subjectName || src.fullName || null;
+                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
+                    const placeOfEvent = src.placeOfEvent || null;
 
-                        if (subjectName && dateOfEvent && placeOfEvent) {
-                            const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                            try {
-                                await prisma.birthCertificateRequest.create({
-                                    data: {
-                                        transactionId: id,
-                                        registryNumber: generatedRegistryNumber,
-                                        subjectName: subjectName,
-                                        dateOfEvent: dateOfEvent,
-                                        placeOfEvent: placeOfEvent,
-                                        fatherName: src.fatherName || src.father || null,
-                                        motherName: src.motherName || src.mother || null,
-                                        issuedBy: user.name || "System Administrator",
-                                        documentUrl: eCopyUrl || transaction.eCopyUrl || null,
-                                        verificationId: `VER-BCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-                                    }
-                                });
-                            } catch (createErr) {
-                                console.error("Failed to create BirthCertificateRequest:", createErr);
-                            }
-                        }
-                    }
-                } else if (typeCode === "LCR_DEATH") {
-                    const dcrExisting = (transaction as any).deathCertificateRequest;
-                    if (!dcrExisting && targetStatus === "RELEASED") {
-                        const src: any = additionalData || {};
-                        const subjectName = src.subjectName || src.fullName || null;
-                        const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
-                        const placeOfEvent = src.placeOfEvent || null;
-
-                        if (subjectName && dateOfEvent && placeOfEvent) {
-                            const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-DEATH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                            try {
-                                await prisma.deathCertificateRequest.create({
-                                    data: {
-                                        transactionId: id,
-                                        registryNumber: generatedRegistryNumber,
-                                        subjectName: subjectName,
-                                        dateOfEvent: dateOfEvent,
-                                        placeOfEvent: placeOfEvent,
-                                        fatherName: src.fatherName || src.father || null,
-                                        motherName: src.motherName || src.mother || null,
-                                        issuedBy: user.name || "System Administrator",
-                                        documentUrl: eCopyUrl || transaction.eCopyUrl || null,
-                                        verificationId: `VER-DCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-                                    }
-                                });
-                            } catch (createErr) {
-                                console.error("Failed to create DeathCertificateRequest:", createErr);
-                            }
-                        }
-                    }
-                } else if (typeCode === "LCR_BIRTH_REG") {
-                    // Only create the registry entry on the final Confirm & Release (RELEASED status)
-                    const brExisting = (transaction as any).birthCertificateRegistry;
-                    if (!brExisting && targetStatus === "RELEASED") {
-                        const bcr = (transaction as any).birthCertificateRequest;
-                        const src: any = bcr || additionalData || {};
-
-                        // Only create registry if we have at least a subject name and event date/place
-                        const subjectName = src.subjectName || src.fullName || src.primaryChildName || null;
-                        const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : (src.dateOfBirth ? new Date(src.dateOfBirth) : null);
-                        const placeOfEvent = src.placeOfEvent || src.placeOfBirth || null;
-
-                        if (subjectName && dateOfEvent && placeOfEvent) {
-                            const generatedRegistryNumber = src.registryNumber || `BIRTH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                            try {
-                                await prisma.birthCertificateRegistry.create({
-                                    data: {
-                                        transactionId: id,
-                                        registryNumber: generatedRegistryNumber,
-                                        issuedBy: user.name || "System Administrator",
-                                        subjectName: subjectName,
-                                        dateOfEvent: dateOfEvent,
-                                        placeOfEvent: placeOfEvent,
-                                        fatherName: src.fatherName || src.father || null,
-                                        motherName: src.motherName || src.mother || null,
-                                        supportingEvidence1Type: src.supportingEvidence1Type || null,
-                                        supportingEvidence2Type: src.supportingEvidence2Type || null
-                                    } as any
-                                });
-                            } catch (createErr) {
-                                // If creation fails (e.g., unique constraint on registryNumber), log and continue
-                                console.error("Failed to create BirthCertificateRegistry:", createErr);
-                            }
-                        }
-                    }
-                } else if (typeCode === "LCR_DEATH_REG") {
-                    const drExisting = (transaction as any).deathRegistration;
-                    if (!drExisting && targetStatus === "RELEASED") {
-                        const subjectName = additionalData.fullName || additionalData.subjectName || null;
-                        const dateOfEvent = additionalData.dateOfDeath ? new Date(additionalData.dateOfDeath) : null;
-                        const placeOfEvent = additionalData.placeOfDeath || null;
-
-                        if (subjectName) {
-                            const generatedRegistryNumber = additionalData.registryNumber || `DEATH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                            try {
-                                await prisma.deathRegistration.create({
-                                    data: {
-                                        transactionId: id,
-                                        registryNumber: generatedRegistryNumber,
-                                        dateOfEvent: dateOfEvent,
-                                        placeOfEvent: placeOfEvent,
-                                        subjectName: subjectName,
-                                        fatherName: additionalData.fathersName || additionalData.fatherName || null,
-                                        motherName: additionalData.mothersName || additionalData.motherName || null,
-                                        issuedBy: user.name || "System Administrator",
-                                        documentUrl: eCopyUrl || transaction.eCopyUrl || null
-                                    }
-                                });
-                            } catch (createErr) {
-                                console.error("Failed to create DeathRegistration record:", createErr);
-                            }
-                        }
-                    }
-                } else if (typeCode === "LCR_MARRIAGE_REG") {
-                    const mrExisting = (transaction as any).marriageRegistration;
-                    if (!mrExisting && targetStatus === "RELEASED") {
-                        const subjectName = transaction.businessName || additionalData.subjectName || (additionalData.applicant1 && additionalData.applicant2 ? `${additionalData.applicant1.fullName} & ${additionalData.applicant2.fullName}` : null) || "Contracting Couple";
+                    if (subjectName && dateOfEvent && placeOfEvent) {
+                        const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
                         try {
-                            await prisma.marriageRegistration.create({
-                                data: {
-                                    transactionId: id,
-                                    ctcNumber: ctcNumber || null,
-                                    taxYear: now.getFullYear(),
-                                    dateIssued: now,
-                                    expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59),
-                                    basicTax,
-                                    additionalTax,
-                                    penalty,
-                                    totalPaid: transaction.totalAmount,
-                                    issuedBy: user.name || "System Administrator",
-                                    businessName: subjectName,
-                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
-                                    verificationId: `VER-MR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-                                }
-                            });
-                        } catch (createErr) {
-                            console.error("Failed to create MarriageRegistration record:", createErr);
-                        }
-                    }
-                } else if (typeCode === "LCR_MARRIAGE_LICENSE") {
-                    const mlExisting = (transaction as any).marriageLicenseApplication;
-                    if (!mlExisting) {
-                        const applicant1 = additionalData?.applicant1 || {};
-                        const applicant2 = additionalData?.applicant2 || {};
-                        
-                        const app1FullName = applicant1.fullName || additionalData?.app1FullName || "";
-                        const app2FullName = applicant2.fullName || additionalData?.app2FullName || "";
-
-                        // Parse birth dates safely
-                        const app1BirthDate = applicant1.birthDate ? new Date(applicant1.birthDate) : (additionalData?.app1BirthDate ? new Date(additionalData.app1BirthDate) : null);
-                        const app2BirthDate = applicant2.birthDate ? new Date(applicant2.birthDate) : (additionalData?.app2BirthDate ? new Date(additionalData.app2BirthDate) : null);
-
-                        const app1BirthPlace = applicant1.birthPlace || additionalData?.app1BirthPlace || null;
-                        const app2BirthPlace = applicant2.birthPlace || additionalData?.app2BirthPlace || null;
-
-                        const app1Citizenship = applicant1.citizenship || additionalData?.app1Citizenship || null;
-                        const app2Citizenship = applicant2.citizenship || additionalData?.app2Citizenship || null;
-
-                        const generatedRegistryNumber = ctcNumber?.trim() || additionalData?.registryNumber || `ML-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                        
-                        // Valid for 120 days from date of issue
-                        const expiryDate = new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000);
-
-                        try {
-                            await prisma.marriageLicenseApplication.create({
+                            await prisma.birthCertificateRequest.create({
                                 data: {
                                     transactionId: id,
                                     registryNumber: generatedRegistryNumber,
-                                    dateIssued: now,
-                                    expiryDate: expiryDate,
-                                    app1FullName,
-                                    app1BirthDate,
-                                    app1BirthPlace,
-                                    app1Citizenship,
-                                    app2FullName,
-                                    app2BirthDate,
-                                    app2BirthPlace,
-                                    app2Citizenship,
-                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                    subjectName: subjectName,
+                                    dateOfEvent: dateOfEvent,
+                                    placeOfEvent: placeOfEvent,
+                                    fatherName: src.fatherName || src.father || null,
+                                    motherName: src.motherName || src.mother || null,
                                     issuedBy: user.name || "System Administrator",
-                                    verificationId: `VER-ML-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                    verificationId: `VER-BCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                                 }
                             });
                         } catch (createErr) {
-                            console.error("Failed to create MarriageLicenseApplication record:", createErr);
-                        }
-                    } else if (ctcNumber || eCopyUrl) {
-                        try {
-                            await prisma.marriageLicenseApplication.update({
-                                where: { id: mlExisting.id },
-                                data: {
-                                    ...(ctcNumber ? { registryNumber: ctcNumber.trim() } : {}),
-                                    ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
-                                }
-                            });
-                        } catch (updateErr) {
-                            console.error("Failed to update MarriageLicenseApplication record:", updateErr);
+                            console.error("Failed to create BirthCertificateRequest:", createErr);
                         }
                     }
                 }
+            } else if (typeCode === "LCR_DEATH") {
+                const dcrExisting = (transaction as any).deathCertificateRequest;
+                if (!dcrExisting && targetStatus === "RELEASED") {
+                    const src: any = additionalData || {};
+                    const subjectName = src.subjectName || src.fullName || null;
+                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
+                    const placeOfEvent = src.placeOfEvent || null;
+
+                    if (subjectName && dateOfEvent && placeOfEvent) {
+                        const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-DEATH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                        try {
+                            await prisma.deathCertificateRequest.create({
+                                data: {
+                                    transactionId: id,
+                                    registryNumber: generatedRegistryNumber,
+                                    subjectName: subjectName,
+                                    dateOfEvent: dateOfEvent,
+                                    placeOfEvent: placeOfEvent,
+                                    fatherName: src.fatherName || src.father || null,
+                                    motherName: src.motherName || src.mother || null,
+                                    issuedBy: user.name || "System Administrator",
+                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                    verificationId: `VER-DCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                                }
+                            });
+                        } catch (createErr) {
+                            console.error("Failed to create DeathCertificateRequest:", createErr);
+                        }
+                    }
+                }
+            } else if (typeCode === "LCR_BIRTH_REG") {
+                // Only create the registry entry on the final Confirm & Release (RELEASED status)
+                const brExisting = (transaction as any).birthCertificateRegistry;
+                if (!brExisting && targetStatus === "RELEASED") {
+                    const bcr = (transaction as any).birthCertificateRequest;
+                    const src: any = bcr || additionalData || {};
+
+                    // Only create registry if we have at least a subject name and event date/place
+                    const subjectName = src.subjectName || src.fullName || src.primaryChildName || null;
+                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : (src.dateOfBirth ? new Date(src.dateOfBirth) : null);
+                    const placeOfEvent = src.placeOfEvent || src.placeOfBirth || null;
+
+                    if (subjectName && dateOfEvent && placeOfEvent) {
+                        const generatedRegistryNumber = src.registryNumber || `BIRTH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                        try {
+                            await prisma.birthCertificateRegistry.create({
+                                data: {
+                                    transactionId: id,
+                                    registryNumber: generatedRegistryNumber,
+                                    issuedBy: user.name || "System Administrator",
+                                    subjectName: subjectName,
+                                    dateOfEvent: dateOfEvent,
+                                    placeOfEvent: placeOfEvent,
+                                    fatherName: src.fatherName || src.father || null,
+                                    motherName: src.motherName || src.mother || null,
+                                    supportingEvidence1Type: src.supportingEvidence1Type || null,
+                                    supportingEvidence2Type: src.supportingEvidence2Type || null
+                                } as any
+                            });
+                        } catch (createErr) {
+                            // If creation fails (e.g., unique constraint on registryNumber), log and continue
+                            console.error("Failed to create BirthCertificateRegistry:", createErr);
+                        }
+                    }
+                }
+            } else if (typeCode === "LCR_DEATH_REG") {
+                const drExisting = (transaction as any).deathRegistration;
+                if (!drExisting && targetStatus === "RELEASED") {
+                    const subjectName = additionalData.fullName || additionalData.subjectName || null;
+                    const dateOfEvent = additionalData.dateOfDeath ? new Date(additionalData.dateOfDeath) : null;
+                    const placeOfEvent = additionalData.placeOfDeath || null;
+
+                    if (subjectName) {
+                        const generatedRegistryNumber = additionalData.registryNumber || `DEATH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+                        try {
+                            await prisma.deathRegistration.create({
+                                data: {
+                                    transactionId: id,
+                                    registryNumber: generatedRegistryNumber,
+                                    dateOfEvent: dateOfEvent,
+                                    placeOfEvent: placeOfEvent,
+                                    subjectName: subjectName,
+                                    fatherName: additionalData.fathersName || additionalData.fatherName || null,
+                                    motherName: additionalData.mothersName || additionalData.motherName || null,
+                                    issuedBy: user.name || "System Administrator",
+                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null
+                                }
+                            });
+                        } catch (createErr) {
+                            console.error("Failed to create DeathRegistration record:", createErr);
+                        }
+                    }
+                }
+            } else if (typeCode === "LCR_MARRIAGE_REG") {
+                const mrExisting = (transaction as any).marriageRegistration;
+                if (!mrExisting && targetStatus === "RELEASED") {
+                    const subjectName = transaction.businessName || additionalData.subjectName || (additionalData.applicant1 && additionalData.applicant2 ? `${additionalData.applicant1.fullName} & ${additionalData.applicant2.fullName}` : null) || "Contracting Couple";
+                    try {
+                        await prisma.marriageRegistration.create({
+                            data: {
+                                transactionId: id,
+                                ctcNumber: ctcNumber || null,
+                                taxYear: now.getFullYear(),
+                                dateIssued: now,
+                                expiryDate: new Date(now.getFullYear(), 11, 31, 23, 59, 59),
+                                basicTax,
+                                additionalTax,
+                                penalty,
+                                totalPaid: transaction.totalAmount,
+                                issuedBy: user.name || "System Administrator",
+                                businessName: subjectName,
+                                documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                verificationId: `VER-MR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                            }
+                        });
+                    } catch (createErr) {
+                        console.error("Failed to create MarriageRegistration record:", createErr);
+                    }
+                }
+            } else if (typeCode === "LCR_MARRIAGE_LICENSE") {
+                const mlExisting = (transaction as any).marriageLicenseApplication;
+                if (!mlExisting) {
+                    const applicant1 = additionalData?.applicant1 || {};
+                    const applicant2 = additionalData?.applicant2 || {};
+
+                    const app1FullName = applicant1.fullName || additionalData?.app1FullName || "";
+                    const app2FullName = applicant2.fullName || additionalData?.app2FullName || "";
+
+                    // Parse birth dates safely
+                    const app1BirthDate = applicant1.birthDate ? new Date(applicant1.birthDate) : (additionalData?.app1BirthDate ? new Date(additionalData.app1BirthDate) : null);
+                    const app2BirthDate = applicant2.birthDate ? new Date(applicant2.birthDate) : (additionalData?.app2BirthDate ? new Date(additionalData.app2BirthDate) : null);
+
+                    const app1BirthPlace = applicant1.birthPlace || additionalData?.app1BirthPlace || null;
+                    const app2BirthPlace = applicant2.birthPlace || additionalData?.app2BirthPlace || null;
+
+                    const app1Citizenship = applicant1.citizenship || additionalData?.app1Citizenship || null;
+                    const app2Citizenship = applicant2.citizenship || additionalData?.app2Citizenship || null;
+
+                    const generatedRegistryNumber = ctcNumber?.trim() || additionalData?.registryNumber || `ML-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
+
+                    // Valid for 120 days from date of issue
+                    const expiryDate = new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000);
+
+                    try {
+                        await prisma.marriageLicenseApplication.create({
+                            data: {
+                                transactionId: id,
+                                registryNumber: generatedRegistryNumber,
+                                dateIssued: now,
+                                expiryDate: expiryDate,
+                                app1FullName,
+                                app1BirthDate,
+                                app1BirthPlace,
+                                app1Citizenship,
+                                app2FullName,
+                                app2BirthDate,
+                                app2BirthPlace,
+                                app2Citizenship,
+                                documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                                issuedBy: user.name || "System Administrator",
+                                verificationId: `VER-ML-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+                            }
+                        });
+                    } catch (createErr) {
+                        console.error("Failed to create MarriageLicenseApplication record:", createErr);
+                    }
+                } else if (ctcNumber || eCopyUrl) {
+                    try {
+                        await prisma.marriageLicenseApplication.update({
+                            where: { id: mlExisting.id },
+                            data: {
+                                ...(ctcNumber ? { registryNumber: ctcNumber.trim() } : {}),
+                                ...(eCopyUrl ? { documentUrl: eCopyUrl } : {})
+                            }
+                        });
+                    } catch (updateErr) {
+                        console.error("Failed to update MarriageLicenseApplication record:", updateErr);
+                    }
+                }
             }
+        }
 
         // Update transaction status, eCopyUrl, and orUrl if provided
         await prisma.transaction.update({
@@ -2196,7 +2196,7 @@ export async function getBploTransactions(status?: string) {
         }
 
         const where: any = {
-            type: { 
+            type: {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             }
@@ -2214,8 +2214,8 @@ export async function getBploTransactions(status?: string) {
             }
         } else {
             // Default statuses BPLO can handle/see
-            where.status = { 
-                in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED", "RELEASED", "DELIVERED", "REJECTED"] 
+            where.status = {
+                in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED", "RELEASED", "DELIVERED", "REJECTED"]
             };
             where.isCancelled = false;
         }
@@ -2250,7 +2250,7 @@ export async function getPendingBploCount() {
         }
 
         const where: any = {
-            type: { 
+            type: {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             },
@@ -2278,7 +2278,7 @@ export async function getBploStatusCounts() {
         }
 
         const where: any = {
-            type: { 
+            type: {
                 processorRole: "TREASURY_STAFF",
                 code: { startsWith: "BUSINESS_PERMIT" }
             },
@@ -2293,7 +2293,7 @@ export async function getBploStatusCounts() {
 
         const cancelledCount = await prisma.transaction.count({
             where: {
-                type: { 
+                type: {
                     processorRole: "TREASURY_STAFF",
                     code: { startsWith: "BUSINESS_PERMIT" }
                 },
@@ -3203,10 +3203,10 @@ export async function markForReinspection(id: string, reason: string, details?: 
 
         const additionalData = (transaction.additionalData as any) || {};
         const count = (additionalData.reinspectionCount || 0) + 1;
-        
+
         const history = additionalData.reinspectionHistory || [];
         const newHistory = [...history];
-        
+
         // Archive the original site inspection schedule before it gets overwritten
         if ((!additionalData.reinspectionCount || additionalData.reinspectionCount === 0) && additionalData.inspectionSchedule) {
             newHistory.push({
@@ -3220,7 +3220,7 @@ export async function markForReinspection(id: string, reason: string, details?: 
                 count: 0
             });
         }
-        
+
         newHistory.push({ date: new Date().toISOString(), reason, count });
 
         let newStatus = "FOR_REINSPECTION";
@@ -3264,14 +3264,14 @@ export async function markForReinspection(id: string, reason: string, details?: 
             const resident = transaction.residentSnapshot as any;
             let textMsg = "";
             let htmlMsg = "";
-            
+
             if (count >= 4) {
                 textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been rejected after exceeding the maximum number of re-inspections.\n\nReason: ${reason}`;
                 htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been <b>rejected</b> after exceeding the maximum number of re-inspections.</p><p><b>Reason:</b> ${reason}</p>`;
             } else {
                 textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires re-inspection.\n\nReason: ${reason}\n\nThis is attempt ${count} out of 3.`;
                 htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires <b>re-inspection</b>.</p><p><b>Reason:</b> ${reason}</p><p><i>This is attempt ${count} out of 3.</i></p>`;
-                
+
                 if (details) {
                     textMsg += `\n\nRe-inspection Schedule:\nDate: ${details.date}\nTime: ${details.time}\nInspector: ${details.inspectorName}\nType: ${details.type}`;
                     htmlMsg += `<br/><br/><h4>Re-inspection Schedule:</h4><p><b>Date:</b> ${details.date}<br/><b>Time:</b> ${details.time}<br/><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}</p>`;
@@ -3320,7 +3320,7 @@ export async function endorseBuildingPermitFees(
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const currentAdditionalData = (transaction.additionalData as any) || {};
-        
+
         // Update with the fee assessment
         const updatedAdditionalData = {
             ...currentAdditionalData,
@@ -3429,7 +3429,7 @@ export async function reviseBuildingPermitClearancesAction(id: string, reason: s
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/building-permit");
-        
+
         return { success: true, data: updatedTransaction };
     } catch (error) {
         console.error("Revise clearances error:", error);
@@ -3490,12 +3490,12 @@ export async function addAdditionalBuildingPermitFee(
             }
         };
 
-        const baseTotal = 
+        const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
             Number(feeAssessment.electricalPermitFee || 0) +
             Number(feeAssessment.sanitaryPermitFee || 0) +
             Number(feeAssessment.municipalCharges || 0);
-        
+
         const additionalTotal = updatedAdditionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
         const finalTotal = baseTotal + additionalTotal;
 
@@ -3548,12 +3548,12 @@ export async function removeAdditionalBuildingPermitFee(
             }
         };
 
-        const baseTotal = 
+        const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
             Number(feeAssessment.electricalPermitFee || 0) +
             Number(feeAssessment.sanitaryPermitFee || 0) +
             Number(feeAssessment.municipalCharges || 0);
-        
+
         const additionalTotal = currentAdditionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
         const finalTotal = baseTotal + additionalTotal;
 
@@ -3589,13 +3589,13 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
 
         const currentAdditionalData = (transaction.additionalData as any) || {};
         const feeAssessment = currentAdditionalData.feeAssessment || {};
-        
-        const baseTotal = 
+
+        const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
             Number(feeAssessment.electricalPermitFee || 0) +
             Number(feeAssessment.sanitaryPermitFee || 0) +
             Number(feeAssessment.municipalCharges || 0);
-        
+
         const additionalFees = feeAssessment.additionalFees || [];
         const additionalTotal = additionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
         const finalTotal = baseTotal + additionalTotal;
@@ -3783,7 +3783,7 @@ export async function declinePaymentProofAction(id: string, reason: string) {
                 const autoRemarks = `${reason} (System: Automatically declined due to reaching the maximum limit of 3 payment proof revision requests.)`;
                 return await rejectTransaction(id, autoRemarks);
             }
-            
+
             updatedAdditionalData.paymentRevisionCount = nextPaymentRevisionCount;
         }
 
@@ -3972,7 +3972,7 @@ export async function saveZoningClearanceProofAction(id: string, url: string) {
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const currentAdditionalData = (transaction.additionalData as any) || {};
-        
+
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
             data: {
@@ -3986,10 +3986,258 @@ export async function saveZoningClearanceProofAction(id: string, url: string) {
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/building-permit");
-        
+
         return { success: true, data: updatedTransaction };
     } catch (error) {
         console.error("Save zoning clearance proof error:", error);
         return { success: false, error: "Failed to save zoning clearance proof" };
+    }
+}
+
+export async function checkPaymongoPaymentStatus(id: string) {
+    try {
+        const sanitizedId = sanitizeString(id);
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: sanitizedId }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const additional = (transaction.additionalData as any) || {};
+        const sourceId = additional?.paymongo?.sourceId;
+        const checkoutSessionId = additional?.paymongo?.checkoutSessionId;
+
+        // If the transaction is already paid, no need to check
+        if (transaction.status === "PAID") {
+            return { success: true, status: "PAID" };
+        }
+
+        if (!sourceId && !checkoutSessionId) {
+            return { success: true, status: transaction.status };
+        }
+
+        const secret = process.env.PAYMONGO_SECRET_KEY;
+        if (!secret) {
+            return { success: false, error: "PAYMONGO_SECRET_KEY not configured" };
+        }
+
+        const auth = Buffer.from(secret + ":").toString("base64");
+
+        // 1. Handle Checkout Session status verification
+        if (checkoutSessionId) {
+            const csres = await fetch(`https://api.paymongo.com/v1/checkout_sessions/${checkoutSessionId}`, {
+                method: "GET",
+                headers: { Accept: "application/json", Authorization: `Basic ${auth}` },
+            });
+
+            if (csres.ok) {
+                const csdata = await csres.json();
+                const csAttrs = csdata?.data?.attributes || {};
+                const csStatus = csAttrs?.status;
+                const payments = csAttrs?.payments || [];
+
+                console.log(`[checkPaymongoPaymentStatus] Checkout session ${checkoutSessionId}: status="${csStatus}", payments count=${payments.length}`);
+
+                // Check if any payment in the array is successful
+                const successfulPayment = payments.find((p: any) => {
+                    const pAttrs = p?.attributes || p?.data?.attributes || {};
+                    const pStatus = pAttrs?.status;
+                    return pStatus === "paid" || pStatus === "succeeded" || pStatus === "success";
+                });
+
+                // Consider session paid if: top-level status is "paid"/"complete"/"completed",
+                // OR if there is at least one successful payment in the payments array
+                const sessionIsPaid = csStatus === "paid" || csStatus === "complete" || csStatus === "completed" || !!successfulPayment;
+
+                if (sessionIsPaid) {
+                    const firstPayment = successfulPayment || payments[0] || {};
+                    const paymentId = firstPayment.id || firstPayment.data?.id || null;
+                    const payAttrs = firstPayment.attributes || firstPayment.data?.attributes || {};
+                    const paymentStatus = payAttrs.status;
+
+                    console.log(`[checkPaymongoPaymentStatus] Payment found: id=${paymentId}, status="${paymentStatus}"`);
+
+                    const isPaid = paymentStatus === "succeeded" || paymentStatus === "paid" || paymentStatus === "success" || csStatus === "paid" || csStatus === "complete" || csStatus === "completed";
+                    const mappedStatus = isPaid ? "PAID" : "PENDING";
+
+                    // Determine amount: prefer payment-level amount, then line_items total, then session-level
+                    const paymentAmount = Number(payAttrs?.amount || 0);
+                    const lineItemsTotal = (csAttrs?.line_items || []).reduce((sum: number, item: any) => sum + (Number(item?.amount || 0) * Number(item?.quantity || 1)), 0);
+                    const resolvedAmountCents = paymentAmount || lineItemsTotal || Number(csAttrs?.amount || 0);
+
+                    // Upsert Payment in DB
+                    await prisma.payment.upsert({
+                        where: { transactionId: sanitizedId },
+                        update: {
+                            amount: (resolvedAmountCents || 0) / 100,
+                            method: "E_PAYMENT",
+                            status: mappedStatus as any,
+                            reference: paymentId || checkoutSessionId,
+                            meta: csdata,
+                        },
+                        create: {
+                            transactionId: sanitizedId,
+                            amount: (resolvedAmountCents || 0) / 100,
+                            method: "E_PAYMENT",
+                            status: mappedStatus as any,
+                            reference: paymentId || checkoutSessionId,
+                            meta: csdata,
+                        },
+                    });
+
+                    // Update Transaction
+                    const updatedAdditional = { 
+                        ...additional, 
+                        paymongo: { 
+                            ...additional.paymongo, 
+                            paymentId, 
+                            lastPayment: csdata 
+                        } 
+                    };
+                    const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
+                    if (isPaid) {
+                        txUpdate.status = "PAID";
+                        txUpdate.paymentReference = paymentId || checkoutSessionId;
+                    }
+
+                    await prisma.transaction.update({
+                        where: { id: sanitizedId },
+                        data: txUpdate
+                    });
+
+                    revalidatePath(`/user/services/requests/${sanitizedId}`);
+                    revalidatePath("/user/services/requests");
+                    revalidatePath("/admin/treasury");
+
+                    console.log(`[checkPaymongoPaymentStatus] Transaction ${sanitizedId} updated to ${mappedStatus}`);
+                    return { success: true, status: isPaid ? "PAID" : "PENDING" };
+                } else {
+                    console.log(`[checkPaymongoPaymentStatus] Session not yet paid. status="${csStatus}", no successful payments found.`);
+                }
+            } else {
+                console.error("PayMongo fetch checkout session failed:", await csres.text());
+            }
+        }
+
+        // 2. Fallback: Handle Source status verification (backward compatibility)
+        if (sourceId) {
+            const sres = await fetch(`https://api.paymongo.com/v1/sources/${sourceId}`, {
+                method: "GET",
+                headers: { Accept: "application/json", Authorization: `Basic ${auth}` },
+            });
+
+            if (sres.ok) {
+                const sdata = await sres.json();
+                const attrs = sdata?.data?.attributes || {};
+                const status = attrs?.status;
+
+                if (status === "chargeable") {
+                    // Charge the source!
+                    let amountCents = attrs?.amount;
+                    if (!amountCents) {
+                        amountCents = Math.round((Number(transaction.totalAmount) || 0) * 100);
+                    }
+
+                    const billing: any = {};
+                    const billingSource = attrs?.billing || {};
+                    if (billingSource.name) billing.name = billingSource.name;
+                    if (billingSource.email) billing.email = billingSource.email;
+                    if (billingSource.phone) billing.phone = billingSource.phone;
+                    
+                    if (attrs?.metadata?.payerName || attrs?.metadata?.name) billing.name = attrs.metadata.payerName || attrs.metadata.name;
+                    if (attrs?.metadata?.payerEmail || attrs?.metadata?.email) billing.email = attrs.metadata.payerEmail || attrs.metadata.email;
+                    if (attrs?.metadata?.payerPhone || attrs?.metadata?.phone) billing.phone = attrs.metadata.payerPhone || attrs.metadata.phone;
+
+                    const paymentPayload: any = {
+                        data: {
+                            attributes: {
+                                amount: Number(amountCents),
+                                currency: "PHP",
+                                source: { id: sourceId, type: "source" },
+                                ...(Object.keys(billing).length > 0 ? { billing } : {})
+                            },
+                        },
+                    };
+
+                    const res = await fetch("https://api.paymongo.com/v1/payments", {
+                        method: "POST",
+                        headers: {
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                            Authorization: `Basic ${auth}`,
+                        },
+                        body: JSON.stringify(paymentPayload),
+                    });
+
+                    const payData = await res.json();
+                    if (!res.ok) {
+                        console.error("PayMongo create payment failed inside check status", payData);
+                        return { success: false, error: "Failed to charge source" };
+                    }
+
+                    const payment = payData?.data;
+                    const payAttrs = payment?.attributes || {};
+                    const paymentStatus = payAttrs?.status; // e.g. "succeeded" or "paid"
+                    
+                    // Map payment status to database format
+                    const isPaid = paymentStatus === "succeeded" || paymentStatus === "paid" || paymentStatus === "success";
+                    const mappedStatus = isPaid ? "PAID" : "PENDING";
+                    const paymentId = payment?.id || payData?.id || null;
+
+                    // Upsert Payment in DB
+                    await prisma.payment.upsert({
+                        where: { transactionId: sanitizedId },
+                        update: {
+                            amount: (Number(payAttrs?.amount || amountCents) || 0) / 100,
+                            method: "E_PAYMENT",
+                            status: mappedStatus as any,
+                            reference: paymentId,
+                            meta: payData,
+                        },
+                        create: {
+                            transactionId: sanitizedId,
+                            amount: (Number(payAttrs?.amount || amountCents) || 0) / 100,
+                            method: "E_PAYMENT",
+                            status: mappedStatus as any,
+                            reference: paymentId,
+                            meta: payData,
+                        },
+                    });
+
+                    // Update Transaction
+                    const updatedAdditional = { 
+                        ...additional, 
+                        paymongo: { 
+                            ...additional.paymongo, 
+                            paymentId, 
+                            lastPayment: payData 
+                        } 
+                    };
+                    const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
+                    if (isPaid) {
+                        txUpdate.status = "PAID";
+                        txUpdate.paymentReference = paymentId;
+                    }
+
+                    await prisma.transaction.update({
+                        where: { id: sanitizedId },
+                        data: txUpdate
+                    });
+
+                    revalidatePath(`/user/services/requests/${sanitizedId}`);
+                    revalidatePath("/user/services/requests");
+                    revalidatePath("/admin/treasury");
+
+                    return { success: true, status: isPaid ? "PAID" : "PENDING" };
+                }
+            } else {
+                console.error("PayMongo fetch source failed inside check status:", await sres.text());
+            }
+        }
+
+        return { success: true, status: transaction.status };
+    } catch (err) {
+        console.error("checkPaymongoPaymentStatus error:", err);
+        return { success: false, error: "Internal server error" };
     }
 }

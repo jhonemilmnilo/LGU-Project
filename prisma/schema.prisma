@@ -655,6 +655,7 @@ model Transaction {
   deathCertificateRequest DeathCertificateRequest? // One-to-one link to the death certificate request
   marriageRegistration MarriageRegistration? // One-to-one link for marriage registrations
   marriageLicenseApplication MarriageLicenseApplication? // One-to-one link for marriage license applications
+  marriageCertificateRequest MarriageCertificateRequest? // One-to-one link to the marriage certificate request
   
   isCancelled       Boolean           @default(false)
   createdAt         DateTime          @default(now())
@@ -858,6 +859,28 @@ model DeathCertificateRequest {
   
   documentUrl     String?     // Link to official generated E-Copy PDF
   issuedBy        String?     // LCR Officer Name
+  verificationId  String      @unique @default(cuid()) // Secure hash for verification QR Code
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model MarriageCertificateRequest {
+  id              String      @id @default(cuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  registryNumber  String?     @unique // Book/Page number or Registry ID
+  dateIssued      DateTime    @default(now())
+  
+  // Contracting Couple details
+  subjectName     String      // Husband's Full Name
+  spouseName      String      // Wife's Maiden Full Name
+  dateOfEvent     DateTime    // Date of Marriage
+  placeOfEvent    String      // Location of the Marriage
+  
+  documentUrl     String?     // Link to official generated E-Copy PDF
+  issuedBy        String      // LCR Officer Name
   verificationId  String      @unique @default(cuid()) // Secure hash for verification QR Code
 
   createdAt       DateTime    @default(now())
