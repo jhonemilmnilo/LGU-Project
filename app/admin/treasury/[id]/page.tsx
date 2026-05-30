@@ -827,10 +827,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     })();
 
     // Prefer persisted `transaction.totalAmount` when available (greater than 0); otherwise use calculated result
-    const additionalFeesSum = (transaction.status === "FOR_REQUESTING")
-        ? feeLineItems.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0)
-        : 0;
-    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0)) + additionalFeesSum;
+    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))

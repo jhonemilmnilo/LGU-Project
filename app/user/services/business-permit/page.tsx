@@ -473,17 +473,33 @@ export default function BusinessPermitWizardPage() {
         }
     }, [formData.lineOfBusiness]);
 
-    // Prevent background body scrolling when the renewal selection modal is open
+    // Prevent background page scrolling while custom overlays are open.
     useEffect(() => {
-        if (showRenewalModal && previousPermits.length > 0) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
+        const hasRenewalModal = showRenewalModal && previousPermits.length > 0;
+        const hasGuideModal = isDtiGuideOpen || Boolean(activeGuideKey);
+        const shouldLockScroll = hasRenewalModal || hasGuideModal;
+
+        if (!shouldLockScroll) return;
+
+        const scrollY = window.scrollY;
+        const previousOverflow = document.body.style.overflow;
+        const previousPosition = document.body.style.position;
+        const previousTop = document.body.style.top;
+        const previousWidth = document.body.style.width;
+
+        document.body.style.overflow = "hidden";
+        document.body.style.position = "fixed";
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = "100%";
+
         return () => {
-            document.body.style.overflow = "";
+            document.body.style.overflow = previousOverflow;
+            document.body.style.position = previousPosition;
+            document.body.style.top = previousTop;
+            document.body.style.width = previousWidth;
+            window.scrollTo(0, scrollY);
         };
-    }, [showRenewalModal, previousPermits.length]);
+    }, [showRenewalModal, previousPermits.length, isDtiGuideOpen, activeGuideKey]);
 
 
     const handleLineOfBusinessSelect = (val: string) => {
