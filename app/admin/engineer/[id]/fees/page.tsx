@@ -26,7 +26,8 @@ import {
     uploadECopyAction,
     submitBuildingPermitAction,
     reviseBuildingPermitClearancesAction,
-    declineBuildingPermitAction
+    declineBuildingPermitAction,
+    releaseBuildingPermitAction
 } from "@/app/admin/transactions/actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -244,6 +245,23 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
         }
     };
 
+    const handleRelease = async () => {
+        setActionLoading(true);
+        try {
+            const res = await releaseBuildingPermitAction(id);
+            if (res.success) {
+                toast.success("Building Permit released successfully!");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to release permit");
+            }
+        } catch {
+            toast.error("An error occurred while releasing permit");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] flex flex-col items-center justify-center gap-4">
@@ -267,7 +285,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
         if (status === "FOR_REQUESTING" || status === "FOR_REVISION") return 0;
         if (status === "FOR_INSPECTION") return 1;
         if (status === "FOR_REINSPECTION") return 2;
-        if (status === "EVALUATED" || status === "UNPAID" || status === "PAID") return 3;
+        if (status === "EVALUATED" || status === "UNPAID" || status === "PAYMENT_SUBMITTED" || status === "PAID") return 3;
         return 4; // SUBMIT phase (FOR_PROCESSING, FOR_CLAIM, FOR_PICKING, RELEASED)
     };
     const currentStepIdx = getStepIndex(transaction.status);
@@ -499,8 +517,8 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                         </div>
                     )}
 
-                    {/* E-Copy Upload Section for FOR_PROCESSING */}
-                    {transaction.status === "FOR_PROCESSING" && (
+                    {/* E-Copy Upload Section for FOR_PROCESSING and CLAIMING */}
+                    {["FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status) && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
                             <div>
                                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
@@ -516,7 +534,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                         id="eCopyUpload"
                                         onChange={handleFileChange}
                                         accept="application/pdf,image/*"
-                                        disabled={uploading}
+                                        disabled={uploading || transaction.status !== "FOR_PROCESSING"}
                                         className="absolute inset-0 opacity-0 cursor-pointer"
                                     />
                                     <div className="flex flex-col items-center justify-center gap-4">
@@ -620,7 +638,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 <div className="flex flex-col gap-1">
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Treasury Payment Status</span>
                                     <div className="flex items-center gap-2 mt-1">
-                                        {["EVALUATED", "UNPAID"].includes(transaction.status) ? (
+                                        {["EVALUATED", "UNPAID", "PAYMENT_SUBMITTED"].includes(transaction.status) ? (
                                             <Badge className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs px-3 py-1 font-bold rounded-lg animate-pulse">
                                                 AWAITING PAYMENT
                                             </Badge>
@@ -636,7 +654,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                     </div>
                                 </div>
 
-                                {["EVALUATED", "UNPAID"].includes(transaction.status) && (
+                                {["EVALUATED", "UNPAID", "PAYMENT_SUBMITTED"].includes(transaction.status) && (
                                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                                         The resident&apos;s payment is currently pending with the Treasury department. The approval action will unlock once payment is fully settled.
                                     </p>
@@ -708,7 +726,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                     </div>
                                 )}
 
-                                {transaction.status === "FOR_PROCESSING" && (
+                                {["FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status) && (
                                     <div className="space-y-4">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Constituent Fulfillment Preference</span>
@@ -726,14 +744,25 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                         </div>
 
                                         {userRole === "ENGINEER" && (
-                                            <div className="pt-2">
+                                            <div className="pt-2 space-y-3">
                                                 <Button
                                                     onClick={handleSubmitPermit}
-                                                    disabled={actionLoading || !eCopyUrl || uploading}
+                                                    disabled={actionLoading || !eCopyUrl || uploading || transaction.status !== "FOR_PROCESSING"}
                                                     className="w-full h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
-                                                    <Check className="w-4 h-4 mr-2" /> Submit & Release Permit
+                                                    <Check className="w-4 h-4 mr-2" /> Submit
                                                 </Button>
+
+                                                {(!transaction.fulfillmentType || transaction.fulfillmentType === "PICK_UP") && (
+                                                    <Button
+                                                        onClick={handleRelease}
+                                                        disabled={actionLoading || !eCopyUrl || uploading || transaction.status === "FOR_PROCESSING"}
+                                                        variant="outline"
+                                                        className="w-full h-14 rounded-xl border-blue-500/50 text-blue-500 hover:bg-blue-500/10 font-black italic uppercase tracking-widest text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <BadgeCheck className="w-4 h-4 mr-2" /> Released
+                                                    </Button>
+                                                )}
                                             </div>
                                         )}
                                     </div>

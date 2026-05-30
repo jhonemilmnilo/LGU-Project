@@ -198,7 +198,14 @@ export default function UserServiceRequestsPage() {
                         return (
                             <div 
                                 key={req.id} 
-                                onClick={() => router.push(`/user/services/requests/${req.id}`)}
+                                onClick={() => {
+                                    const isBuildingPermit = req.type?.code?.startsWith("BUILDING_PERMIT");
+                                    if (isBuildingPermit && req.status !== "UNPAID") {
+                                        router.push(`/user/services/building-permit?id=${req.id}`);
+                                    } else {
+                                        router.push(`/user/services/requests/${req.id}`);
+                                    }
+                                }}
                                 className="group bg-white dark:bg-white/5 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 p-3 md:p-5 transition-all cursor-pointer select-none active:scale-[0.99] flex flex-col md:flex-row items-center gap-4 md:gap-8"
                             >
                                 <div className="flex items-center gap-4 md:gap-6 flex-1 w-full">
