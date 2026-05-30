@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { useNews } from "../providers/NewsProvider";
 import { useNewsForm } from "../hooks/useNewsForm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +22,7 @@ import { Image as ImageIcon, X, Loader2, Newspaper, Info, Calendar } from "lucid
 const categories = ["Announcement", "Local News", "Advisory", "Project Update", "Other"];
 
 export function AddNewsModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useNews();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay, themeColor } = useNews();
     const { handleSubmit, loading } = useNewsForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string>("Local News");
@@ -80,16 +80,19 @@ export function AddNewsModal() {
         }}>
             <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-[2.5rem]">
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
-                    <DialogHeader className="p-10 pb-6 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
-                        <div className="flex items-center space-x-4 mb-1">
-                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--theme_color)' }}>
-                                <Newspaper className="w-7 h-7 text-white" />
+                    <DialogHeader
+                        className="p-6 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040] relative overflow-hidden"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
+                        <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}>
+                                <Newspaper className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <DialogTitle className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
+                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                                     {editingData ? "Edit News Article" : "Publish News Article"}
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic">
+                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic text-sm">
                                     Keep the community informed with the latest local news and stories.
                                 </DialogDescription>
                             </div>
@@ -101,7 +104,7 @@ export function AddNewsModal() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Left Column: Article Logic */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-primary">
+                                    <div className="flex items-center space-x-2" style={{ color: themeColor }}>
                                         <Info className="w-4 h-4" />
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Article Information</h3>
                                     </div>
@@ -113,12 +116,13 @@ export function AddNewsModal() {
                                             required
                                             defaultValue={editingData?.title || ""}
                                             placeholder="e.g. Mapandan Suspends Classes During Typhoon"
-                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20 rounded-xl font-bold italic"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-xl font-bold italic"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 min-w-0">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category</Label>
                                             <AnimatePresence mode="wait">
                                                 {selectedCategory !== "Other" ? (
@@ -128,6 +132,7 @@ export function AddNewsModal() {
                                                         animate={{ opacity: 1, x: 0 }}
                                                         exit={{ opacity: 0, x: 10 }}
                                                         transition={{ duration: 0.2 }}
+                                                        className="w-full"
                                                     >
                                                         <Select
                                                             name="category_trigger"
@@ -137,10 +142,13 @@ export function AddNewsModal() {
                                                                 if (val === "Other") setOtherCategory("");
                                                             }}
                                                         >
-                                                            <SelectTrigger className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px]">
+                                                            <SelectTrigger
+                                                                className="!w-full !h-14 min-h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px] focus:ring-2"
+                                                                style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                                                            >
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                                            <SelectContent position="popper" className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                                                 {categories.map(cat => (
                                                                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                                                 ))}
@@ -164,8 +172,8 @@ export function AddNewsModal() {
                                                             placeholder="Specify Category..."
                                                             className="h-14 rounded-xl font-bold italic pr-12"
                                                             style={{
-                                                                backgroundColor: 'var(--theme_color)',
-                                                                borderColor: 'var(--theme_color)'
+                                                                backgroundColor: `${themeColor}1a`,
+                                                                borderColor: themeColor
                                                             }}
                                                         />
                                                         <Button
@@ -176,7 +184,8 @@ export function AddNewsModal() {
                                                                 setSelectedCategory("Local News");
                                                                 setOtherCategory("");
                                                             }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
+                                                            style={{ color: themeColor }}
                                                             title="Back to Dropdown"
                                                         >
                                                             <X className="w-4 h-4" />
@@ -197,7 +206,7 @@ export function AddNewsModal() {
                                                 />
                                             )}
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 min-w-0">
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Author</Label>
                                             <Input
                                                 name="author"
@@ -228,14 +237,15 @@ export function AddNewsModal() {
                                             required
                                             defaultValue={editingData?.content || ""}
                                             placeholder="Write the full news story here..."
-                                            className="min-h-[200px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20 rounded-2xl p-5 font-medium italic resize-none"
+                                            className="min-h-[200px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                     </div>
                                 </div>
 
                                 {/* Right Column: Media */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-primary">
+                                    <div className="flex items-center space-x-2" style={{ color: themeColor }}>
                                         <ImageIcon className="w-4 h-4" />
                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Featured Image</h3>
                                     </div>
@@ -243,7 +253,8 @@ export function AddNewsModal() {
                                     <div className="space-y-2">
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="group relative h-80 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary dark:hover:border-primary bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center p-2"
+                                            className="group relative h-80 rounded-[2rem] border-2 border-dashed bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center p-2"
+                                            style={{ borderColor: `${themeColor}30` }}
                                         >
                                             {imagePreview ? (
                                                 <>
@@ -268,7 +279,7 @@ export function AddNewsModal() {
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors">
+                                                <div className="flex flex-col items-center text-slate-400 transition-colors">
                                                     <div className="w-16 h-16 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
                                                         <ImageIcon className="w-8 h-8" />
                                                     </div>
@@ -290,8 +301,8 @@ export function AddNewsModal() {
                                         </div>
                                     </div>
 
-                                    <div className="p-6 rounded-2xl" style={{ backgroundColor: 'var(--theme_color)', borderColor: 'var(--theme_color)' }}>
-                                        <p className="text-[10px] font-medium italic" style={{ color: 'var(--theme_color)' }}>
+                                    <div className="p-6 rounded-2xl border" style={{ backgroundColor: `${themeColor}14`, borderColor: `${themeColor}40` }}>
+                                        <p className="text-[10px] font-bold italic text-slate-600 dark:text-slate-200">
                                             Tip: Use high-quality landscape photos (16:9) to make the news article stand out on the main landing page.
                                         </p>
                                     </div>
@@ -300,21 +311,13 @@ export function AddNewsModal() {
                         </form>
                     </div>
 
-                    <DialogFooter className="p-10 bg-slate-50/50 dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex items-center justify-end gap-4 rounded-b-[2.5rem]">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-14 px-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:bg-slate-200 rounded-xl"
-                        >
-                            Discard
-                        </Button>
+                    <DialogFooter className="p-6 pt-0 bg-white dark:bg-[#0f1117] border-none shrink-0">
                         <Button
                             type="submit"
                             form="newsForm"
                             disabled={loading}
-                            className="h-14 px-12 hover:bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-xl transition-all hover:-translate-y-1"
-                            style={{ backgroundColor: 'var(--theme_color)' }}
+                            className="w-full h-12 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>

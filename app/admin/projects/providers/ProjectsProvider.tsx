@@ -35,6 +35,7 @@ interface ProjectsContextType {
     setSelectedStatus: (status: string) => void;
     currentBarangay?: string;
     activeBarangays?: string[];
+    themeColor: string;
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
@@ -57,10 +58,26 @@ export function ProjectsProvider({
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedStatus, setSelectedStatus] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setProjectsData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <ProjectsContext.Provider
@@ -78,7 +95,8 @@ export function ProjectsProvider({
                 selectedStatus,
                 setSelectedStatus,
                 currentBarangay,
-                activeBarangays
+                activeBarangays,
+                themeColor
             }}
         >
             {children}

@@ -422,7 +422,12 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                         )}
                                         {doc.url && (
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full">Zoom View</span>
+                                                <div 
+                                                    style={{ backgroundColor: themeColor }}
+                                                    className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                >
+                                                    <span>View</span>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -630,8 +635,11 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                             className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                         />
                                                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                            <div className="bg-white/10 dark:bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2 text-white font-black italic uppercase tracking-widest text-[9px]">
-                                                                <span>🔍 View Fullscreen</span>
+                                                            <div 
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                            >
+                                                                <span>View</span>
                                                             </div>
                                                         </div>
                                                     </button>
@@ -717,8 +725,11 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                                     className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                 />
                                                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                    <div className="bg-white/10 dark:bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2 text-white font-black italic uppercase tracking-widest text-[9px]">
-                                                                        <span>🔍 View Fullscreen</span>
+                                                                    <div 
+                                                                        style={{ backgroundColor: themeColor }}
+                                                                        className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                                    >
+                                                                        <span>View</span>
                                                                     </div>
                                                                 </div>
                                                             </button>
@@ -795,8 +806,11 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                                 className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                             />
                                                             <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                <div className="bg-white/10 dark:bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2 text-white font-black italic uppercase tracking-widest text-[9px]">
-                                                                    <span>🔍 View Fullscreen</span>
+                                                                <div 
+                                                                    style={{ backgroundColor: themeColor }}
+                                                                    className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                                >
+                                                                    <span>View</span>
                                                                 </div>
                                                             </div>
                                                         </button>
@@ -853,7 +867,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                     disabled={actionLoading}
                                                     className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-amber-500/10 active:scale-95 transition-all"
                                                 >
-                                                    Decline Payment Proof
+                                                    Revise Payment Proof
                                                 </Button>
                                                 <Button
                                                     onClick={() => { setRemarks(""); setIsRejecting(true); }}

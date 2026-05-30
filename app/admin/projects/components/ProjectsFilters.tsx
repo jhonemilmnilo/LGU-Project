@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, MapPin } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 export function ProjectsFilters() {
-    const { searchTerm, setSearchTerm, setIsAddModalOpen, selectedCategory, setSelectedCategory, selectedStatus, setSelectedStatus, currentBarangay, activeBarangays = [] } = useProjects();
+    const { searchTerm, setSearchTerm, setIsAddModalOpen, selectedCategory, setSelectedCategory, selectedStatus, setSelectedStatus, currentBarangay, activeBarangays = [], themeColor } = useProjects();
+    const [locationSearch, setLocationSearch] = useState("");
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const filteredBarangays = activeBarangays.filter((barangay) =>
+        barangay.toLowerCase().includes(locationSearch.toLowerCase())
+    );
 
     // Re-use logic to update URL params
     const createQueryString = useCallback(
@@ -80,21 +84,40 @@ export function ProjectsFilters() {
                             onValueChange={handleBarangayChange}
                         >
                             <SelectTrigger className="w-full sm:w-[160px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic text-[11px] uppercase tracking-wider">
-                                <MapPin className="w-4 h-4 mr-2 text-primary" />
+                                <MapPin className="w-4 h-4 mr-2" style={{ color: themeColor }} />
                                 <SelectValue placeholder="Barangay" />
                             </SelectTrigger>
                             <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
-                                <SelectItem value="All" className="font-bold italic text-primary">All Locations</SelectItem>
-                                {activeBarangays.map(b => (
+                                <div className="p-2 border-b border-slate-100 dark:border-white/10">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                        <Input
+                                            value={locationSearch}
+                                            onChange={(e) => setLocationSearch(e.target.value)}
+                                            onPointerDown={(e) => e.stopPropagation()}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            placeholder="Search locations..."
+                                            className="h-9 pl-9 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-lg text-[11px] font-bold italic"
+                                        />
+                                    </div>
+                                </div>
+                                <SelectItem value="All" className="font-bold italic" style={{ color: themeColor }}>All Locations</SelectItem>
+                                {filteredBarangays.map(b => (
                                     <SelectItem key={b} value={b} className="font-bold italic">{b}</SelectItem>
                                 ))}
+                                {filteredBarangays.length === 0 && (
+                                    <div className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-center">
+                                        No locations found
+                                    </div>
+                                )}
                             </SelectContent>
                         </Select>
                     )}
                 </div>
                 <Button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="w-full lg:w-auto h-11 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 px-6 rounded-xl transition-all hover:-translate-y-0.5"
+                    className="w-full lg:w-auto h-11 text-white font-bold shadow-lg px-6 rounded-xl transition-all hover:-translate-y-0.5"
+                    style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}40` }}
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     New Project

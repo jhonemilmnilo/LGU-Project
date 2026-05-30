@@ -2047,13 +2047,13 @@ export async function getTreasuryTransactions(status?: string) {
             }
         }
 
-        // TREASURY_STAFF should not see Business Permits in BPLO-exclusive phases (inspection, processing, picking, released, rejected, and disputes).
-        // Disputes for Generic Services (non-Business Permits) should be visible to Treasury Staff.
+        // TREASURY_STAFF should not see Business Permits in BPLO-exclusive inspection phases only.
+        // All other statuses (REJECTED, RELEASED, DELIVERED, disputes, etc.) should be visible.
         where.NOT = [
             {
                 AND: [
                     { type: { code: { startsWith: "BUSINESS_PERMIT" } } },
-                    { status: { in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE", "DELIVERED", "RELEASED", "REJECTED", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED"] } }
+                    { status: { in: ["FOR_INSPECTION", "FOR_REINSPECTION"] } }
                 ]
             }
         ];

@@ -29,6 +29,7 @@ interface NewsContextType {
     setSelectedCategory: (category: string) => void;
     currentBarangay?: string;
     activeBarangays?: string[];
+    themeColor: string;
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
@@ -40,10 +41,26 @@ export function NewsProvider({ children, initialData, currentBarangay, activeBar
      
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setNewsData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <NewsContext.Provider
@@ -60,6 +77,7 @@ export function NewsProvider({ children, initialData, currentBarangay, activeBar
                 setSelectedCategory,
                 currentBarangay,
                 activeBarangays,
+                themeColor,
             }}
         >
             {children}
