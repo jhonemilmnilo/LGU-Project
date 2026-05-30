@@ -22,8 +22,8 @@ async function verifySignature(header: string | null, secret: string, payload: s
         kv["signature"] = p;
       }
     }
-  } catch (e: any) {
-    // ignore
+  } catch {
+    // ignore parsing errors
   }
 
   const sigCandidates: string[] = [];
@@ -46,7 +46,7 @@ async function verifySignature(header: string | null, secret: string, payload: s
   try {
     const parsed = JSON.parse(payload);
     variants.push(JSON.stringify(parsed));
-  } catch (e) { /* ignore */ }
+  } catch { }
 
   for (const variant of variants) {
     const hmac = crypto.createHmac("sha256", secret).update(variant).digest();
@@ -66,7 +66,7 @@ async function verifySignature(header: string | null, secret: string, payload: s
           console.log("[PayMongo Webhook] verifySignature: hex match");
           return true;
         }
-      } catch (e: any) {
+      } catch {
         // not hex
       }
 
@@ -77,7 +77,7 @@ async function verifySignature(header: string | null, secret: string, payload: s
           console.log("[PayMongo Webhook] verifySignature: base64 match");
           return true;
         }
-      } catch (e: any) {
+      } catch {
         // not base64
       }
 
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     const envelopeData = payload?.data || payload;
     const envelopeAttrs = envelopeData?.attributes || {};
     // PayMongo sometimes uses dot-separated types or underscores; normalize to a consistent form
-    let eventTypeRaw = envelopeAttrs?.type || ""; // e.g. "payment.paid", "payment_failed", "checkout_session.payment.paid"
+    const eventTypeRaw = envelopeAttrs?.type || ""; // e.g. "payment.paid", "payment_failed", "checkout_session.payment.paid"
     const eventType = String(eventTypeRaw).replace(/_/g, ".").toLowerCase();
 
     // The actual resource (payment or source) is nested inside attributes.data
@@ -269,9 +269,9 @@ export async function POST(request: Request) {
       const updatedTx = await prisma.transaction.update({ where: { id: transactionId }, data: txUpdate });
       console.log(`[PayMongo Webhook] ${eventType}: updated transaction`, { transactionId, status: updatedTx.status, paymentReference: updatedTx.paymentReference });
 
-      try { revalidatePath(`/user/services/requests/${transactionId}`); } catch (e) { /* ignore */ }
-      try { revalidatePath("/user/services/requests"); } catch (e) { /* ignore */ }
-      try { revalidatePath("/admin/treasury"); } catch (e) { /* ignore */ }
+      try { revalidatePath(`/user/services/requests/${transactionId}`); } catch { }
+      try { revalidatePath("/user/services/requests"); } catch { }
+      try { revalidatePath("/admin/treasury"); } catch { }
 
       return NextResponse.json({ success: true });
     }
@@ -357,7 +357,7 @@ export async function POST(request: Request) {
           return NextResponse.json({ received: true });
         }
 
-        const upsertedPayment = await prisma.payment.upsert({
+        await prisma.payment.upsert({
           where: { transactionId: transactionId },
           update: {
             amount: (Number(payAttrs?.amount || amountCents) || 0) / 100,
@@ -391,9 +391,9 @@ export async function POST(request: Request) {
         console.log("PayMongo webhook: updated transaction", { transactionId, status: updatedTx.status, paymentReference: updatedTx.paymentReference });
 
         // Revalidate pages (include the specific request page so UI shows updated status)
-        try { revalidatePath(`/user/services/requests/${transactionId}`); } catch (e) { /* ignore */ }
-        try { revalidatePath("/user/services/requests"); } catch (e) { /* ignore */ }
-        try { revalidatePath("/admin/treasury"); } catch (e) { /* ignore */ }
+        try { revalidatePath(`/user/services/requests/${transactionId}`); } catch { }
+        try { revalidatePath("/user/services/requests"); } catch { }
+        try { revalidatePath("/admin/treasury"); } catch { }
 
         return NextResponse.json({ success: true });
       }
@@ -439,7 +439,7 @@ export async function POST(request: Request) {
       if (!tx) return NextResponse.json({ received: true });
 
       // Upsert Payment record
-      const upsertedPayment = await prisma.payment.upsert({
+      await prisma.payment.upsert({
         where: { transactionId: transactionId },
         update: {
           amount: (Number(payAttrs?.amount || 0) || 0) / 100,
@@ -470,9 +470,9 @@ export async function POST(request: Request) {
       const updatedTx = await prisma.transaction.update({ where: { id: transactionId }, data: txUpdate });
       console.log("PayMongo webhook: updated transaction (payment event)", { transactionId, status: updatedTx.status, paymentReference: updatedTx.paymentReference });
 
-      try { revalidatePath(`/user/services/requests/${transactionId}`); } catch (e) { }
-      try { revalidatePath("/user/services/requests"); } catch (e) { }
-      try { revalidatePath("/admin/treasury"); } catch (e) { }
+      try { revalidatePath(`/user/services/requests/${transactionId}`); } catch { }
+      try { revalidatePath("/user/services/requests"); } catch { }
+      try { revalidatePath("/admin/treasury"); } catch { }
 
       return NextResponse.json({ success: true });
     }

@@ -79,7 +79,7 @@ export async function POST(request: Request) {
             try {
                 data = JSON.parse(raw);
             } catch (e) {
-                console.warn('PayMongo: non-JSON response', raw?.slice?.(0, 200));
+                console.warn('PayMongo: non-JSON response', raw?.slice?.(0, 200), e);
                 data = { raw };
             }
         }

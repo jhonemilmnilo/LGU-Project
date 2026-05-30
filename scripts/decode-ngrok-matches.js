@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 const inFile = path.resolve(__dirname, '..', 'ngrok_paymongo_matches.txt');
@@ -17,7 +18,7 @@ for (const m of txt.matchAll(regex)) {
   try {
     const decoded = Buffer.from(b64, 'base64').toString('utf8');
     outputs.push(`--- raw #${++i} ---\n${decoded}\n`);
-  } catch (e) {
+  } catch {
     outputs.push(`--- raw #${++i} ---\n<<decode-error>>\n`);
   }
 }
