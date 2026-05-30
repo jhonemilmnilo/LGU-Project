@@ -119,7 +119,7 @@ export default function ResidentIdentityProfile({ resident, safeFormatDate, them
                     </div>
 
                     {/* Age */}
-                    <div className="col-span-12 sm:col-span-2 space-y-1.5">
+                    <div className="col-span-12 sm:col-span-3 space-y-1.5">
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Age</span>
                         <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                             {age}
@@ -135,7 +135,7 @@ export default function ResidentIdentityProfile({ resident, safeFormatDate, them
                     </div>
 
                     {/* Contact Number */}
-                    <div className="col-span-12 sm:col-span-4 space-y-1.5">
+                    <div className="col-span-12 sm:col-span-3 space-y-1.5">
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Contact Number</span>
                         <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                             {resident.contactNumber || resident.phoneNumber || "—"}
@@ -143,7 +143,7 @@ export default function ResidentIdentityProfile({ resident, safeFormatDate, them
                     </div>
 
                     {/* Occupation */}
-                    <div className="col-span-12 sm:col-span-5 space-y-1.5">
+                    <div className="col-span-12 sm:col-span-12 space-y-1.5">
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Occupation</span>
                         <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                             {resident.occupation || "—"}
@@ -151,9 +151,12 @@ export default function ResidentIdentityProfile({ resident, safeFormatDate, them
                     </div>
 
                     {/* Barangay & Complete Address */}
-                    <div className="col-span-12 sm:col-span-7 space-y-1.5">
+                    <div className="col-span-12 sm:col-span-12 space-y-1.5">
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Barangay & Complete Address</span>
-                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none truncate">
+                        <div 
+                            className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none truncate cursor-help"
+                            title={completeAddress}
+                        >
                             {completeAddress}
                         </div>
                     </div>

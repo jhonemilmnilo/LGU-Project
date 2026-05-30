@@ -83,8 +83,8 @@ export default function TreasuryDashboard() {
             // BPLO Admin sees: inspection, reinspection, claiming, picking, return/refund/dispute resolution tabs
             return STATUS_TABS.filter(tab => ["ALL", "FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RELEASED", "DELIVERED", "REJECTED"].includes(tab.value));
         }
-        // Treasury Staff should not see BPLO-exclusive phases nor any Return/Refund/Dispute statuses
-        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED"].includes(tab.value));
+        // Treasury Staff should see everything EXCEPT BPLO-exclusive inspection phases
+        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION"].includes(tab.value));
     }, [isAdminAide]);
 
     const [status, setStatus] = useState("ALL");
