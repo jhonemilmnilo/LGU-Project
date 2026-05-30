@@ -28,11 +28,10 @@ import {
   CheckCircle2,
   Upload,
   Shield,
-  Building,
-  Scale,
   Hourglass,
   Receipt,
-  Check
+  Check,
+  Hash
 } from "lucide-react";
 
 import {
@@ -62,10 +61,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getCurrentUserResident, cancelTransaction, uploadECopyAction, saveBfpClearanceProofAction } from "@/app/admin/transactions/actions";
-import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits, resubmitBuildingPermit } from "./actions";
+import { getCurrentUserResident, cancelTransaction, uploadECopyAction, saveBfpClearanceProofAction, saveZoningClearanceProofAction } from "@/app/admin/transactions/actions";
+import { submitBuildingPermit, saveTransactionSignature, getExistingBuildingPermits, resubmitBuildingPermit, submitBuildingPermitPaymentProof, submitClearancesForReviewAction } from "./actions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const STEPS = [
   { id: "GUIDE", label: "Guide", icon: ClipboardList },
@@ -87,6 +90,10 @@ export default function BuildingPermitPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRevision, setIsRevision] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentPreviewUrl, setPaymentPreviewUrl] = useState<string | null>(null);
+  const [gcashReferenceNo, setGcashReferenceNo] = useState("");
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
   const isEditable = !selectedApplication || isRevision;
 
@@ -222,6 +229,78 @@ export default function BuildingPermitPage() {
       }
     } catch {
       toast.error("An error occurred during upload", { id: toastId });
+    }
+  };
+
+  const handleUploadZoningClearance = async (file: File | null) => {
+    if (!file || !selectedApplication) return;
+    const toastId = toast.loading("Uploading Zoning Clearance Proof...");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await uploadECopyAction(formData);
+      if (uploadRes.success && uploadRes.data) {
+        const fileUrl = uploadRes.data as string;
+        const updateRes = await saveZoningClearanceProofAction(selectedApplication.id, fileUrl);
+        if (updateRes.success) {
+          toast.success("Zoning Clearance Proof uploaded successfully!", { id: toastId });
+          const res = await getExistingBuildingPermits();
+          if (res.success && res.data) {
+            setExistingApplications(res.data);
+            const updated = res.data.find((a: any) => a.id === selectedApplication.id);
+            if (updated) setSelectedApplication(updated);
+          }
+        } else {
+          toast.error(updateRes.error || "Failed to save clearance proof", { id: toastId });
+        }
+      } else {
+        toast.error(uploadRes.error || "Upload failed", { id: toastId });
+      }
+    } catch {
+      toast.error("An error occurred during upload", { id: toastId });
+    }
+  };
+
+  const handlePaymentFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPaymentFile(file);
+      setPaymentPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmitPaymentProof = async () => {
+    if (!paymentFile || !selectedApplication) return;
+    const toastId = toast.loading("Uploading Payment Receipt...");
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("paymentFile", paymentFile);
+      if (gcashReferenceNo) {
+        formData.append("gcashReferenceNo", gcashReferenceNo.trim());
+      }
+      const res = await submitBuildingPermitPaymentProof(selectedApplication.id, formData);
+      if (res.success) {
+        toast.success("Payment Receipt uploaded successfully! Waiting for Treasury verification.", { id: toastId });
+        setIsPaymentModalOpen(false);
+        setPaymentFile(null);
+        setPaymentPreviewUrl(null);
+        setGcashReferenceNo("");
+        
+        // Refresh application data
+        const appsRes = await getExistingBuildingPermits();
+        if (appsRes.success && appsRes.data) {
+          setExistingApplications(appsRes.data);
+          const updated = appsRes.data.find((a: any) => a.id === selectedApplication.id);
+          if (updated) setSelectedApplication(updated);
+        }
+      } else {
+        toast.error(res.error || "Failed to upload payment receipt.", { id: toastId });
+      }
+    } catch {
+      toast.error("An error occurred while submitting payment.", { id: toastId });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1806,7 +1885,7 @@ export default function BuildingPermitPage() {
                   </div>
                 )}
 
-                {selectedApplication?.status === "UNPAID" ? (
+                {selectedApplication?.status === "UNPAID" && !selectedApplication?.paymentReference ? (
                   <>
                     <div className="bg-amber-50 dark:bg-amber-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-amber-100 dark:border-amber-500/10">
                       <div className="flex items-center gap-3 text-amber-700 dark:text-amber-500">
@@ -1814,16 +1893,54 @@ export default function BuildingPermitPage() {
                         <span className="font-bold text-sm">Status: Pending Payment</span>
                       </div>
                       
-                      <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all w-full md:w-auto justify-center">
-                        <UploadCloud className="w-4 h-4" /> Upload Receipt
+                      <button onClick={() => setIsPaymentModalOpen(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all w-full md:w-auto justify-center">
+                        <UploadCloud className="w-4 h-4" /> {selectedApplication.rejectionRemarks ? "Upload New Receipt" : "Upload Receipt"}
                       </button>
                     </div>
+
+                    {/* Show Revision Remarks if any */}
+                    {selectedApplication?.rejectionRemarks && (
+                      <div className="mt-4 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-2xl p-5 space-y-2 animate-in fade-in-50 duration-500">
+                        <div className="flex items-center gap-2 text-red-700 dark:text-red-500">
+                          <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                          <h4 className="font-black text-xs uppercase tracking-widest italic">Payment Revision Required</h4>
+                        </div>
+                        <p className="text-xs font-medium text-red-800 dark:text-red-400 leading-relaxed">
+                          {selectedApplication.rejectionRemarks}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Show Previous Uploaded Receipts if any */}
+                    {selectedApplication?.additionalData?.previousPaymentProofs && selectedApplication.additionalData.previousPaymentProofs.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Previous Submissions</span>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {selectedApplication.additionalData.previousPaymentProofs.map((proof: any, idx: number) => (
+                            <div key={idx} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 opacity-70 hover:opacity-100 transition-opacity">
+                              <img src={proof.url} alt={`Previous Proof ${idx + 1}`} className="object-cover w-full h-full" />
+                              <div className="absolute top-2 left-2 bg-red-500/90 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded">Rejected</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-4 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 text-amber-700 dark:text-amber-500 text-xs font-medium px-4 py-3 rounded-lg flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                       <p>Please proceed to the LGU Mapandan Treasury Office to pay the required fees. After payment, upload your official receipt here. Receipt verification takes 24 hours.</p>
                     </div>
                   </>
+                ) : selectedApplication?.status === "UNPAID" && selectedApplication?.paymentReference ? (
+                  <div className="bg-blue-50 dark:bg-blue-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-blue-100 dark:border-blue-500/10">
+                    <div className="flex items-center gap-3 text-blue-700 dark:text-blue-500">
+                      <Hourglass className="w-5 h-5 animate-pulse" />
+                      <span className="font-bold text-sm">Status: Waiting Verification</span>
+                    </div>
+                    <div className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                      Receipt uploaded successfully. Treasury is verifying your payment.
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-6">
                     <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-emerald-100 dark:border-emerald-500/10">
@@ -1831,19 +1948,75 @@ export default function BuildingPermitPage() {
                         <Check className="w-5 h-5 text-emerald-500" />
                         <span className="font-bold text-sm">Status: Paid (Receipt Submitted)</span>
                       </div>
+                      {selectedApplication?.additionalData?.treasuryReceiptUrl && (
+                        <a 
+                           href={selectedApplication.additionalData.treasuryReceiptUrl} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                        >
+                           View Official Receipt
+                        </a>
+                      )}
+                    </div>
+                    {selectedApplication?.additionalData?.clearanceRevisionReason && (!selectedApplication?.additionalData?.bfpClearanceUrl || !selectedApplication?.additionalData?.zoningClearanceUrl) && (
+                      <div className="bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5 space-y-2 animate-in fade-in-50 duration-500">
+                        <div className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                          <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                          <h4 className="font-black text-xs uppercase tracking-widest italic">Revision Required</h4>
+                        </div>
+                        <p className="text-xs font-medium text-amber-800 dark:text-amber-400 leading-relaxed">
+                          {selectedApplication.additionalData.clearanceRevisionReason}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Info: Where to obtain clearances */}
+                    <div className="bg-sky-50 dark:bg-sky-500/5 border border-sky-200 dark:border-sky-500/10 rounded-2xl p-5 space-y-3 animate-in fade-in-50 duration-500">
+                      <div className="flex items-center gap-2 text-sky-700 dark:text-sky-400">
+                        <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                        <h4 className="font-black text-xs uppercase tracking-widest italic">Where to Obtain Your Clearances</h4>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="flex items-start gap-3 bg-white/60 dark:bg-white/5 rounded-xl p-4 border border-sky-100 dark:border-sky-500/10">
+                          <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center shrink-0">
+                            <Flame className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 italic">BFP Fire Safety Clearance</p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                              Go to the <span className="font-bold text-slate-800 dark:text-white">Bureau of Fire Protection (BFP) — Mapandan Fire Station</span> and apply for a Fire Safety Inspection Certificate.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 bg-white/60 dark:bg-white/5 rounded-xl p-4 border border-sky-100 dark:border-sky-500/10">
+                          <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <MapPin className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400 italic">Zoning / Locational Clearance</p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                              Go to the <span className="font-bold text-slate-800 dark:text-white">Office of the Zoning Officer / MPDC</span> at the Municipal Hall and apply for a Locational/Zoning Clearance.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">
+                        Once you have secured both clearances, upload them below to proceed with your Building Permit application.
+                      </p>
                     </div>
 
                     {/* BFP Fire Safety Clearance Upload Container */}
                     <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/10 space-y-4 animate-in fade-in-50 duration-500">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-purple-700 dark:text-purple-400">
-                          <Flame className="w-5 h-5 animate-pulse" />
-                          <h4 className="font-black text-sm uppercase tracking-wider italic">BFP Fire Safety Clearance</h4>
+                           <Flame className="w-5 h-5 animate-pulse" />
+                           <h4 className="font-black text-sm uppercase tracking-wider italic">BFP Fire Safety Clearance</h4>
                         </div>
                         {selectedApplication?.additionalData?.bfpClearanceUrl ? (
-                          <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Uploaded</span>
+                           <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Uploaded</span>
                         ) : (
-                          <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20 animate-pulse">Required</span>
+                           <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20 animate-pulse">Required</span>
                         )}
                       </div>
 
@@ -1852,23 +2025,113 @@ export default function BuildingPermitPage() {
                       </p>
 
                       {selectedApplication?.additionalData?.bfpClearanceUrl ? (
-                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm">
-                          <img src={selectedApplication.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <label className="relative cursor-pointer bg-white text-slate-900 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
-                              Change File
-                              <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
-                            </label>
-                          </div>
+                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm group">
+                           <img src={selectedApplication.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
+                           {selectedApplication.status === "PAID" && !selectedApplication.additionalData?.clearancesSubmitted && (
+                             <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+                               <div className="flex flex-col items-center text-white">
+                                 <UploadCloud className="w-8 h-8 mb-2" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest">Change Image</span>
+                               </div>
+                               <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
+                             </label>
+                           )}
                         </div>
                       ) : (
                         <label className="flex flex-col items-center justify-center gap-2 aspect-[21/6] rounded-xl border-2 border-dashed border-purple-500/20 hover:border-purple-500/40 bg-purple-500/[0.02] cursor-pointer group transition-all">
-                          <UploadCloud className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-purple-400 italic">Attach BFP Clearance Certificate</span>
-                          <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
+                           <UploadCloud className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                           <span className="text-[9px] font-black uppercase tracking-widest text-purple-400 italic">Attach BFP Clearance Certificate</span>
+                           <input type="file" onChange={(e) => handleUploadBfpClearance(e.target.files?.[0] || null)} className="hidden" />
                         </label>
                       )}
                     </div>
+
+                    {/* Zoning Clearance Upload Container */}
+                    <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 space-y-4 animate-in fade-in-50 duration-500">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-blue-700 dark:text-blue-400">
+                           <MapPin className="w-5 h-5 animate-pulse" />
+                           <h4 className="font-black text-sm uppercase tracking-wider italic">Zoning Clearance</h4>
+                        </div>
+                        {selectedApplication?.additionalData?.zoningClearanceUrl ? (
+                           <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Uploaded</span>
+                        ) : (
+                           <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20 animate-pulse">Required</span>
+                        )}
+                      </div>
+
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Please upload your official Locational/Zoning Clearance certificate issued by the Zoning Office / MPDC.
+                      </p>
+
+                      {selectedApplication?.additionalData?.zoningClearanceUrl ? (
+                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 max-w-sm group">
+                           <img src={selectedApplication.additionalData.zoningClearanceUrl} alt="Zoning Clearance" className="object-cover w-full h-full" />
+                           {selectedApplication.status === "PAID" && !selectedApplication.additionalData?.clearancesSubmitted && (
+                             <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+                               <div className="flex flex-col items-center text-white">
+                                 <UploadCloud className="w-8 h-8 mb-2" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest">Change Image</span>
+                               </div>
+                               <input type="file" onChange={(e) => handleUploadZoningClearance(e.target.files?.[0] || null)} className="hidden" />
+                             </label>
+                           )}
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center gap-2 aspect-[21/6] rounded-xl border-2 border-dashed border-blue-500/20 hover:border-blue-500/40 bg-blue-500/[0.02] cursor-pointer group transition-all">
+                           <UploadCloud className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
+                           <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 italic">Attach Zoning Clearance Certificate</span>
+                           <input type="file" onChange={(e) => handleUploadZoningClearance(e.target.files?.[0] || null)} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Submit Clearances Button */}
+                    {selectedApplication?.status === "PAID" && 
+                     selectedApplication?.additionalData?.bfpClearanceUrl && 
+                     selectedApplication?.additionalData?.zoningClearanceUrl && (
+                      <div className="pt-4 flex flex-col items-center gap-3">
+                        {selectedApplication.additionalData?.clearancesSubmitted ? (
+                          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-6 py-4 rounded-2xl w-full text-center flex items-center justify-center gap-3 animate-in zoom-in duration-300">
+                            <CheckCircle2 className="w-5 h-5" />
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-widest italic">Clearances Submitted</p>
+                              <p className="text-[10px] font-medium mt-1 text-emerald-600/70 dark:text-emerald-400/70">Wait for the Engineer to verify your documents</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            disabled={isSubmitting}
+                            onClick={async () => {
+                              setIsSubmitting(true);
+                              const toastId = toast.loading("Submitting clearances...");
+                              try {
+                                const res = await submitClearancesForReviewAction(selectedApplication.id);
+                                if (res.success) {
+                                  toast.success("Clearances submitted to Engineering!", { id: toastId });
+                                  const refreshRes = await getExistingBuildingPermits();
+                                  if (refreshRes.success && refreshRes.data) {
+                                    setExistingApplications(refreshRes.data);
+                                    const updated = refreshRes.data.find((a: any) => a.id === selectedApplication.id);
+                                    if (updated) setSelectedApplication(updated);
+                                  }
+                                } else {
+                                  toast.error(res.error || "Submission failed", { id: toastId });
+                                }
+                              } catch {
+                                toast.error("An error occurred", { id: toastId });
+                              } finally {
+                                setIsSubmitting(false);
+                              }
+                            }}
+                            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <Upload className="w-4 h-4" />
+                            {isSubmitting ? "Submitting..." : "Submit Clearances for Review"}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1888,7 +2151,7 @@ export default function BuildingPermitPage() {
                <button 
                  disabled={
                    selectedApplication?.status === "UNPAID" ||
-                   (selectedApplication?.status === "PAID" && !selectedApplication?.additionalData?.bfpClearanceUrl)
+                   selectedApplication?.status === "PAID"
                  }
                  onClick={() => {
                     setCurrentStep("SUBMIT");
@@ -1919,9 +2182,9 @@ export default function BuildingPermitPage() {
                 </div>
                 <div className="text-center md:text-left">
                   <p className="text-sm text-slate-700 dark:text-slate-300">
-                    <span className="font-bold">Digital Copy</span> will be sent to your email upon release
+                    <span className="font-bold">Digital Copy</span> of your documents will be available here upon release
                   </p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">{residentData?.user?.email || "applicant@email.com"}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">You can view and download your approved permit directly from this page.</p>
                 </div>
               </div>
 
@@ -1949,22 +2212,68 @@ export default function BuildingPermitPage() {
 
       </div>
 
-      {/* Footer Banner */}
-      <div className="mt-8 bg-white/80 dark:bg-white/5 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-white/10 p-4 shadow-sm flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-        <div className="flex items-center gap-2">
-          <Scale className="w-4 h-4 text-primary" />
-          Based on Mapandan Citizen's Charter • PD 1096 • RA 11032
-        </div>
-        <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-primary" />
-          RA 10173 Data Privacy Act Compliant
-        </div>
-        <div className="flex items-center gap-2">
-          <Building className="w-4 h-4 text-primary" />
-          LGU Mapandan, Pangasinan
-        </div>
-      </div>
+      {/* Payment Receipt Upload Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-slate-950 border-none rounded-[2.5rem] shadow-2xl p-10">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
+              Upload <span className="text-emerald-500">Receipt</span>
+            </DialogTitle>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Submit your proof of payment</p>
+          </DialogHeader>
 
+          <div className="space-y-6 py-6">
+            {!paymentPreviewUrl ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Hash className="w-3.5 h-3.5 text-primary" />
+                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Transaction Reference Number (Optional)</Label>
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="e.g. 5012 3456 78901 (GCash / Bank Transfer Ref No.)"
+                    value={gcashReferenceNo}
+                    onChange={(e) => setGcashReferenceNo(e.target.value)}
+                    className="h-10 md:h-12 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl font-bold italic text-[10px] md:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus-visible:ring-primary focus-visible:border-primary transition-all"
+                  />
+                </div>
+                <label className="flex flex-col items-center justify-center gap-3 aspect-square rounded-2xl border-2 border-dashed border-emerald-500/20 hover:border-emerald-500/40 bg-emerald-500/[0.02] cursor-pointer group transition-all">
+                  <UploadCloud className="w-10 h-10 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center">
+                    <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 italic block">Select Image</span>
+                    <span className="text-[9px] text-slate-400 uppercase tracking-widest">JPG, PNG, PDF</span>
+                  </div>
+                  <input type="file" accept="image/*,.pdf" onChange={handlePaymentFileSelect} className="hidden" />
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative aspect-[3/4] md:aspect-square rounded-2xl overflow-hidden border-2 border-emerald-500/20 bg-slate-50 dark:bg-black/20">
+                  <img src={paymentPreviewUrl} alt="Preview" className="object-contain w-full h-full" />
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => { setPaymentFile(null); setPaymentPreviewUrl(null); }}
+                    disabled={isSubmitting}
+                    className="flex-1 h-12 rounded-xl border-2 border-red-500/20 text-red-500 hover:bg-red-500/5 font-black italic uppercase tracking-widest text-[10px]"
+                  >
+                    Change Image
+                  </Button>
+                  <Button
+                    onClick={handleSubmitPaymentProof}
+                    disabled={isSubmitting || !paymentFile}
+                    className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20"
+                  >
+                    {isSubmitting ? "Uploading..." : "Submit Receipt"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

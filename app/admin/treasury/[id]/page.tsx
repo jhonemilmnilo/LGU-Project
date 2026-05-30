@@ -42,7 +42,8 @@ import {
     addAdditionalBuildingPermitFee,
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
-    declinePaymentProofAction
+    declinePaymentProofAction,
+    confirmTransactionPaymentWithReceipt
 } from "@/app/admin/transactions/actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -244,13 +245,16 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
     // Treasury Staff can only upload OR; Permit No., Sticker No., and Waybill are BPLO Admin only
     const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
-    const backUrl = userRole === "ENGINEER" ? "/admin/engineer" : "/admin/treasury";
+    // backUrl is dynamically determined below after loading transaction metadata
     const [transaction, setTransaction] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [remarks, setRemarks] = useState("");
+    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
     const remarksRef = useRef<HTMLTextAreaElement>(null);
     const [ctcNumber, setCtcNumber] = useState("");
+    const [showPaymentHistoryOverride, setShowPaymentHistoryOverride] = useState(false);
     const [stickerNumber, setStickerNumber] = useState("");
     const [isRejecting, setIsRejecting] = useState(false);
     const [isRequestingRevision, setIsRequestingRevision] = useState(false);
@@ -592,6 +596,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             toast.error("CTC Number Required");
             return;
         }
+        // Require E-Copy for LCR releases
+        if (isLCR && !eCopyFile && !transaction.eCopyUrl) {
+            toast.error("Official Digital E-Copy registry record is required before releasing.");
+            return;
+        }
+
         setActionLoading(true);
         try {
             // Strict Validation for Business Permit: OR attachment is also required!
@@ -621,7 +631,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber, eCopyUrl, orUrl, stickerNumber);
+            const res = await releaseCedula(transaction.id, ctcVal, eCopyUrl, orUrl, stickerNumber);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -641,7 +651,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, backUrl]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isBuildingPermit, backUrl, isLCR]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -919,10 +929,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         ];
         const getBuildingStepIndex = (status: string) => {
             if (status === "EVALUATED") return 0; // EVALUATION
-            if (status === "UNPAID" || status === "PAID") return 1; // ASSESSMENT
-            return 2; // PAYMENT HISTORY (FOR_PROCESSING, FOR_CLAIM, RELEASED)
+            if (status === "UNPAID") return 1; // ASSESSMENT
+            return 3; // PAYMENT HISTORY and everything else is fully verified/checked
         };
-        currentStepIdx = getBuildingStepIndex(transaction.status);
+        currentStepIdx = showPaymentHistoryOverride ? 2 : getBuildingStepIndex(transaction.status);
     }
 
     // Build evidence documents list for the Evidence Vault UI
@@ -959,8 +969,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     docs.push({ url: additional.negativePSA, label: "Negative Certification from PSA" });
                     docs.push({ url: additional.colb, label: "Certificate of Live Birth (COLB)" });
                     docs.push({ url: additional.affidavitDelayed, label: "Affidavit of Delayed Registration" });
-                    docs.push({ url: additional.supportingEvidence1, label: "Supporting Evidence 1" });
-                    docs.push({ url: additional.supportingEvidence2, label: "Supporting Evidence 2" });
                 } else {
                     const parentsMarried = additional.parentsMarried === true || additional.parentsMarried === "true";
                     if (parentsMarried) {
@@ -1023,8 +1031,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 { key: 'negativePSA', label: 'Negative Certification from PSA' },
                 { key: 'colb', label: 'Certificate of Live Birth (COLB)' },
                 { key: 'affidavitDelayed', label: 'Affidavit of Delayed Registration' },
-                { key: 'supportingEvidence1', label: 'Supporting Evidence 1' },
-                { key: 'supportingEvidence2', label: 'Supporting Evidence 2' },
                 { key: 'municipalForm103', label: 'Municipal Form No. 103' },
                 { key: 'psaNegative', label: 'PSA Negative Certification' },
                 { key: 'affidavitOfDelay', label: 'Affidavit of Delayed Registration' },
@@ -1073,22 +1079,25 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 // ignore parsing errors
             }
 
-            // --- ID & Document Uploads for Civil Registry Request/Registration ---
-            const idFront = additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl;
-            const idBack = additional.validIdBack || additional.idBackUrl || resident.idBackUrl;
 
-            if (idFront && !docs.find(d => d.url === idFront)) {
-                docs.push({ url: idFront, label: "Government ID (Front)" });
-            }
-            if (idBack && !docs.find(d => d.url === idBack)) {
-                docs.push({ url: idBack, label: "Government ID (Back)" });
-            }
 
             // Also check for any other uploaded files in additionalData that are valid URLs
             Object.entries(additional).forEach(([key, val]) => {
                 if (typeof val === 'string' && val.startsWith('http') && !docs.find(d => d.url === val)) {
                     // Avoid duplicating paymentReference, eCopyUrl, or orUrl in requirements vault
-                    if (key !== 'paymentReference' && key !== 'eCopyUrl' && key !== 'orUrl') {
+                    if (
+                        key !== 'paymentReference' &&
+                        key !== 'eCopyUrl' &&
+                        key !== 'orUrl' &&
+                        key !== 'idFrontUrl' &&
+                        key !== 'idBackUrl' &&
+                        key !== 'validIdFront' &&
+                        key !== 'validIdBack' &&
+                        key !== 'validIdFrontUrl' &&
+                        key !== 'validIdBackUrl' &&
+                        key !== 'validIdUrl' &&
+                        key !== 'idTypeOverride'
+                    ) {
                         // Humanize the key for the label
                         const label = key
                             .replace(/([A-Z])/g, ' $1')
@@ -1149,10 +1158,28 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
-            const res = await confirmTransactionPayment(transaction.id);
-            if (res.success) { toast.success("Payment Confirmed"); fetchTransaction(); }
+            const formData = new FormData();
+            formData.append("id", transaction.id);
+            if (remarks) formData.append("remarks", remarks);
+            if (receiptFile) formData.append("receiptFile", receiptFile);
+
+            const res = await confirmTransactionPaymentWithReceipt(formData);
+            if (res.success) { 
+                toast.success("Payment Confirmed"); 
+                setReceiptFile(null);
+                setReceiptPreview(null);
+                fetchTransaction(); 
+            }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
+    };
+
+    const handleReceiptFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setReceiptFile(file);
+            setReceiptPreview(URL.createObjectURL(file));
+        }
     };
 
     const handleDeclinePaymentProof = async () => {
@@ -1465,7 +1492,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         isRequirementsAlone,
         handleViewFile,
         deliveryAddr,
-        fiscal
+        fiscal,
+        receiptFile,
+        setReceiptFile,
+        receiptPreview,
+        setReceiptPreview,
+        handleReceiptFileSelect
     };
 
     if (isBusinessPermit) {
@@ -1527,3 +1559,4 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         </>
     );
 }
+

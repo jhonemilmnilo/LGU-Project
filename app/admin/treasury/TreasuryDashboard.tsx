@@ -208,6 +208,15 @@ export default function TreasuryDashboard() {
         // Direct category matching based on database category field
         const matchesService = !serviceFilter || tx.type?.category === serviceFilter;
 
+        // For Building Permits, Treasury only needs to see EVALUATED, UNPAID, PAID, and REJECTED
+        const isBuildingPermitTx = tx.type?.code?.startsWith("BUILDING_PERMIT") || tx.type?.name?.toUpperCase().includes("BUILDING PERMIT");
+        if (isBuildingPermitTx) {
+            const allowedStatuses = ["EVALUATED", "UNPAID", "PAID", "REJECTED"];
+            if (!allowedStatuses.includes(tx.status)) {
+                return false;
+            }
+        }
+
         return matchesSearch && matchesService;
     });
 

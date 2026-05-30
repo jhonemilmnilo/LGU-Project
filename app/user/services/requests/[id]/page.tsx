@@ -1589,7 +1589,7 @@ export default function RequestHubPage() {
                 file={null}
                 fileUrl={viewerUrl}
                 title={viewerTitle}
-                themeColor="var(--primary-theme)"
+                themeColor={themeColor || "var(--primary-theme)"}
             />
         </>
     );

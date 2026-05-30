@@ -800,7 +800,7 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
 export async function uploadECopyAction(formData: FormData) {
     try {
         const user = await assertSessionUser();
-        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE", "ENGINEER"]);
+        assertUserRoles(user, ["ADMIN", "TREASURY_STAFF", "ADMIN_AIDE", "ENGINEER", "USER"]);
         const file = formData.get("file") as File;
         if (!file) return { success: false, error: "No file provided" };
 
@@ -1491,6 +1491,61 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
         return { success: false, error: "Failed to confirm payment" };
     }
 }
+/**
+ * Confirm Payment with optional Treasury Receipt upload (Treasury Staff side)
+ */
+export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const id = formData.get("id") as string;
+        const remarks = formData.get("remarks") as string;
+        const receiptFile = formData.get("receiptFile") as File;
+
+        const sanitizedId = sanitizeString(id);
+        const sanitizedRemarks = remarks ? sanitizeString(remarks) : undefined;
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: sanitizedId },
+            include: { type: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        let treasuryReceiptUrl = undefined;
+        if (receiptFile && receiptFile.size > 0) {
+            const timestamp = Date.now();
+            const path = `treasury/receipts/${sanitizedId}/${timestamp}-${receiptFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            treasuryReceiptUrl = await uploadFile(receiptFile, path);
+        }
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const updatedAdditionalData = {
+            ...currentAdditionalData,
+            ...(sanitizedRemarks && { treasuryRemarks: sanitizedRemarks }),
+            ...(treasuryReceiptUrl && { treasuryReceiptUrl })
+        };
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id: sanitizedId },
+            data: {
+                status: "PAID",
+                updatedAt: new Date(),
+                additionalData: updatedAdditionalData
+            }
+        });
+
+        revalidatePath("/admin/treasury");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Confirm payment with receipt error:", error);
+        return { success: false, error: "Failed to confirm payment" };
+    }
+}
 
 /**
  * Release Cedula (Treasury Staff side)
@@ -1684,6 +1739,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 });
             }
         } else {
+            const isBirthReg = transaction.type.code === "LCR_BIRTH" || transaction.type.code === "LCR_BIRTH_REG";
             if (!transaction.cedula) {
                 if (!ctcNumber && !isPickupCashInitial && transaction.status !== "PAID") {
                     return { success: false, error: "CTC Number is required for this transaction type." };
@@ -1805,8 +1861,10 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                                         dateOfEvent: dateOfEvent,
                                         placeOfEvent: placeOfEvent,
                                         fatherName: src.fatherName || src.father || null,
-                                        motherName: src.motherName || src.mother || null
-                                    }
+                                        motherName: src.motherName || src.mother || null,
+                                        supportingEvidence1Type: src.supportingEvidence1Type || null,
+                                        supportingEvidence2Type: src.supportingEvidence2Type || null
+                                    } as any
                                 });
                             } catch (createErr) {
                                 // If creation fails (e.g., unique constraint on registryNumber), log and continue
@@ -1950,7 +2008,8 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 to: transaction.user.email,
                 name: `${resident.firstName} ${resident.lastName}`,
                 transactionId: id.slice(-8).toUpperCase(),
-                amount: transaction.totalAmount // Include amount so they know what to bring if for claim
+                amount: transaction.totalAmount, // Include amount so they know what to bring if for claim
+                serviceName: transaction.type.name
             });
         }
 
@@ -3326,6 +3385,73 @@ export async function approveBuildingPermit(id: string) {
     }
 }
 
+
+
+export async function reviseBuildingPermitClearancesAction(id: string, reason: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Engineers or Admins can request revisions." };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const nextClearanceRevisionCount = (currentAdditionalData.clearanceRevisionCount || 0) + 1;
+
+        if (nextClearanceRevisionCount >= 3) {
+            // 🚨 AUTOMATIC DECLINE / REJECTION!
+            const autoRemarks = `${reason} (System: Automatically declined due to reaching the maximum limit of 3 clearance revision requests.)`;
+            return await rejectTransaction(id, autoRemarks);
+        }
+
+        const updatedAdditionalData = {
+            ...currentAdditionalData,
+            bfpClearanceUrl: null,
+            zoningClearanceUrl: null,
+            clearancesSubmitted: false,
+            clearanceRevisionReason: reason,
+            clearanceRevisionCount: nextClearanceRevisionCount
+        };
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: updatedAdditionalData
+            }
+        });
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services/building-permit");
+        
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Revise clearances error:", error);
+        return { success: false, error: "Failed to request clearance revision" };
+    }
+}
+
+export async function declineBuildingPermitAction(id: string, reason: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ENGINEER" && user.role !== "ADMIN")) {
+            return { success: false, error: "Forbidden: Only Engineers or Admins can decline." };
+        }
+
+        return await rejectTransaction(id, reason);
+    } catch (error) {
+        console.error("Decline building permit error:", error);
+        return { success: false, error: "Failed to decline building permit" };
+    }
+}
+
 export async function addAdditionalBuildingPermitFee(
     id: string,
     newFee: { label: string; amount: number }
@@ -3552,10 +3678,6 @@ export async function submitBuildingPermitAction(id: string, eCopyUrl: string) {
             return { success: false, error: "Forbidden: Can only submit permits in FOR_PROCESSING phase." };
         }
 
-        // Determine final status based on fulfillmentType
-        // If PICK_UP -> FOR_CLAIM
-        // If DELIVERY -> FOR_PICKING
-        // Default to FOR_CLAIM if unspecified
         const nextStatus = transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM";
 
         const updatedTransaction = await prisma.transaction.update({
@@ -3586,17 +3708,51 @@ export async function declinePaymentProofAction(id: string, reason: string) {
         }
 
         const transaction = await prisma.transaction.findUnique({
-            where: { id }
+            where: { id },
+            include: { type: true }
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        const updatedAdditionalData = { ...currentAdditionalData };
+
+        // Only apply 3x limit rule for Building Permits
+        const isBuildingPermit = transaction.type?.code?.startsWith("BUILDING_PERMIT");
+
+        if (isBuildingPermit) {
+            const nextPaymentRevisionCount = (currentAdditionalData.paymentRevisionCount || 0) + 1;
+
+            if (nextPaymentRevisionCount >= 3) {
+                // 🚨 AUTOMATIC DECLINE / REJECTION!
+                const autoRemarks = `${reason} (System: Automatically declined due to reaching the maximum limit of 3 payment proof revision requests.)`;
+                return await rejectTransaction(id, autoRemarks);
+            }
+            
+            updatedAdditionalData.paymentRevisionCount = nextPaymentRevisionCount;
+        }
+
+        // Save the old payment reference to history before clearing it
+        if (transaction.paymentReference) {
+            const previousProofs = updatedAdditionalData.previousPaymentProofs || [];
+            updatedAdditionalData.previousPaymentProofs = [
+                ...previousProofs,
+                {
+                    url: transaction.paymentReference,
+                    rejectedAt: new Date().toISOString(),
+                    reason: reason
+                }
+            ];
+        }
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
             data: {
                 status: "UNPAID",
                 rejectionRemarks: reason,
-                updatedAt: new Date()
+                paymentReference: null, // Clear rejected payment reference so they can upload a new one
+                updatedAt: new Date(),
+                additionalData: updatedAdditionalData
             }
         });
 
@@ -3746,6 +3902,39 @@ export async function rejectReturnAction(id: string, rejectionReason: string) {
 }
 
 
+export async function saveZoningClearanceProofAction(id: string, url: string) {
+    try {
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "USER" && user.role !== "ADMIN" && user.role !== "ENGINEER")) {
+            return { success: false, error: "Forbidden" };
+        }
 
+        const transaction = await prisma.transaction.findUnique({
+            where: { id }
+        });
 
+        if (!transaction) return { success: false, error: "Transaction not found" };
 
+        const currentAdditionalData = (transaction.additionalData as any) || {};
+        
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id },
+            data: {
+                additionalData: {
+                    ...currentAdditionalData,
+                    zoningClearanceUrl: url
+                }
+            }
+        });
+
+        revalidatePath("/admin/engineer");
+        revalidatePath("/admin/treasury");
+        revalidatePath("/user/services/building-permit");
+        
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Save zoning clearance proof error:", error);
+        return { success: false, error: "Failed to save zoning clearance proof" };
+    }
+}

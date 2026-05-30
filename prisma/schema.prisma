@@ -880,6 +880,9 @@ model BirthCertificateRegistry {
   fatherName      String?
   motherName      String?
   
+  supportingEvidence1Type String?
+  supportingEvidence2Type String?
+
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
