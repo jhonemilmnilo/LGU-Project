@@ -117,6 +117,10 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
         (additional.feeAssessment?.electricalPermitFee || 0) +
         (additional.feeAssessment?.sanitaryPermitFee || 0) +
         (additional.feeAssessment?.municipalCharges || 0) +
+        (additional.feeAssessment?.engineerMunicipalCharges || []).reduce(
+            (sum: number, c: any) => sum + Number(c.amount || 0),
+            0
+        ) +
         (additional.feeAssessment?.additionalFees || []).reduce(
             (sum: number, f: any) => sum + Number(f.amount || 0),
             0
@@ -210,7 +214,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                     </div>
                                     <div>
                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                            Endorsed Fees Set by Engineer
+                                            Endorsed Fees Set by {additional?.feeAssessment?.endorsedBy || 'Engineer'}
                                         </span>
                                     </div>
                                 </div>
@@ -220,7 +224,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                     <Button
                                         onClick={() => setShowAdditionalFeeForm(true)}
                                         size="sm"
-                                        className="h-9 gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
+                                        className="h-9 gap-2 bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
                                     >
                                         <Plus className="w-3.5 h-3.5" /> Add Additional Fee
                                     </Button>
@@ -246,12 +250,23 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                         ₱{Number(additional?.feeAssessment?.sanitaryPermitFee || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Other Applicable Municipal Charges</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        ₱{Number(additional?.feeAssessment?.municipalCharges || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                {additional?.feeAssessment?.engineerMunicipalCharges && additional.feeAssessment.engineerMunicipalCharges.length > 0 ? (
+                                    additional.feeAssessment.engineerMunicipalCharges.map((charge: any, idx: number) => (
+                                        <div key={idx} className="space-y-2">
+                                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">{charge.name || "Other Applicable Municipal Charges"}</label>
+                                            <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                                ₱{Number(charge.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Other Applicable Municipal Charges</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            ₱{Number(additional?.feeAssessment?.municipalCharges || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* ADDITIONAL TREASURY FEES LIST */}
@@ -338,38 +353,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
-                        {/* Resident Identity Profile */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                            <div>
-                                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                    Resident <span className="text-primary">Identity Profile</span>
-                                </h2>
-                                <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
-                                    Verified Citizen Data Dossier
-                                </p>
-                            </div>
 
-                            <div className="grid grid-cols-12 gap-x-6 gap-y-6">
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Full Name</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {resident ? `${resident.firstName} ${resident.middleName ? resident.middleName + ' ' : ''}${resident.lastName}` : "--"}
-                                    </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Contact Number</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {resident?.contactNumber || "--"}
-                                    </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Barangay</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase">
-                                        {resident?.barangay || "--"}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Submitted Payment Proofs Section (Moved here from UNPAID block) */}
                         {(transaction.paymentReference || transaction.paymentProofUrl || (additional.previousPaymentProofs && additional.previousPaymentProofs.length > 0)) && (
@@ -557,7 +541,8 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                                 <Dialog>
                                                     <DialogTrigger asChild>
                                                         <Button
-                                                            className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2"
+                                                            className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            disabled={!transaction.paymentReference && !transaction.paymentProofUrl}
                                                         >
                                                             Approve payment (Move to Paid)
                                                         </Button>
@@ -648,7 +633,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                                                 <Button
                                                                     variant="outline"
                                                                     onClick={() => setIsRequestingRevision(true)}
-                                                                    disabled={isMaxed}
+                                                                    disabled={actionLoading || isMaxed || (!transaction.paymentReference && !transaction.paymentProofUrl)}
                                                                     className="flex-1 h-11 border-dashed rounded-xl font-bold text-[10px] uppercase tracking-wider text-amber-500 hover:text-amber-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                                                 >
                                                                     {isMaxed ? "Revise (Maxed)" : `Revise (${revCount}/3)`}
@@ -656,7 +641,8 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                                                 <Button
                                                                     variant="outline"
                                                                     onClick={() => setIsRejecting(true)}
-                                                                    className="flex-1 h-11 border-dashed rounded-xl font-bold text-[10px] uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors"
+                                                                    disabled={actionLoading || (!transaction.paymentReference && !transaction.paymentProofUrl)}
+                                                                    className="flex-1 h-11 border-dashed rounded-xl font-bold text-[10px] uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                                                 >
                                                                     Decline
                                                                 </Button>

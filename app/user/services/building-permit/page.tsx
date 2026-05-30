@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import {
   Book,
   CheckCircle,
@@ -11,6 +12,7 @@ import {
   Flame,
   Handshake,
   Home,
+  CreditCard,
   Landmark,
   MapPin,
   PenTool,
@@ -83,7 +85,7 @@ const STEPS = [
 export default function BuildingPermitPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState("GUIDE");
-  const [hasReadGuide, setHasReadGuide] = useState(false);
+  const [hasReadGuide, setHasReadGuide] = useState(true);
   const [existingApplications, setExistingApplications] = useState<any[]>([]);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [residentData, setResidentData] = useState<any>(null);
@@ -109,6 +111,7 @@ export default function BuildingPermitPage() {
     newIdFile: null as File | null,
     tctFile: null as File | null,
   });
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
 
   const requirementsProgress = selectedApplication
     ? new Set([
@@ -550,16 +553,17 @@ export default function BuildingPermitPage() {
   };
 
   const handleSubmit = async () => {
-    if (requirementsProgress < 13) {
-      toast.warning("Please ensure ALL 13 required documents are provided.");
-      return;
-    }
-    if (permitsProgress < 9) {
-      toast.warning("Please ensure ALL 9 required permits are provided.");
-      return;
-    }
-    if (!signatureData) {
-      toast.warning("Please provide your digital signature before submitting.");
+    if (requirementsProgress < 13 || permitsProgress < 9 || !signatureData) {
+      setShowValidationErrors(true);
+      if (requirementsProgress < 13) {
+        toast.warning("Please ensure ALL 13 required documents are provided.");
+        setActiveDocTab("REQUIREMENTS");
+      } else if (permitsProgress < 9) {
+        toast.warning("Please ensure ALL 9 required permits are provided.");
+        setActiveDocTab("PERMITS");
+      } else {
+        toast.warning("Please provide your digital signature before submitting.");
+      }
       return;
     }
     
@@ -616,6 +620,7 @@ export default function BuildingPermitPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32 font-sans">
+      <SecureIdleTimer />
       
       {/* Header / Breadcrumb */}
       <div className="space-y-4 md:space-y-10">
@@ -939,7 +944,9 @@ export default function BuildingPermitPage() {
           </div>
         )}
 
-        {currentStep === "PROFILE" && (
+        {currentStep === "PROFILE" && (() => {
+          const displayResident = selectedApplication?.residentSnapshot || residentData;
+          return (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
             {/* Header */}
             <div className="space-y-3 md:space-y-4 text-center mb-8">
@@ -976,26 +983,26 @@ export default function BuildingPermitPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Name</p>
-                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 uppercase text-sm">{residentData?.firstName} {residentData?.lastName}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 uppercase text-sm">{displayResident?.firstName} {displayResident?.lastName}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Age / Date of Birth</p>
                         <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 uppercase text-sm">
-                          {residentData?.dateOfBirth ? `${new Date().getFullYear() - new Date(residentData.dateOfBirth).getFullYear()} years old / ${new Date(residentData.dateOfBirth).toLocaleDateString()}` : "N/A"}
+                          {displayResident?.dateOfBirth ? `${new Date().getFullYear() - new Date(displayResident.dateOfBirth).getFullYear()} years old / ${new Date(displayResident.dateOfBirth).toLocaleDateString()}` : "N/A"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone Number</p>
-                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 text-sm">{residentData?.contactNumber || "N/A"}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 text-sm">{displayResident?.contactNumber || "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</p>
-                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 text-sm">{residentData?.user?.email || "N/A"}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 text-sm">{displayResident?.user?.email || "N/A"}</p>
                       </div>
                       <div className="md:col-span-2">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete Address</p>
                         <p className="font-bold text-slate-800 dark:text-slate-200 mt-1 uppercase text-sm">
-                          {residentData?.houseNumber ? `#${residentData.houseNumber} ${residentData.street || ""}, Brgy. ${residentData.barangay || ""}, Mapandan, Pangasinan` : "N/A"}
+                          {displayResident?.houseNumber ? `#${displayResident.houseNumber} ${displayResident.street || ""}, Brgy. ${displayResident.barangay || ""}, Mapandan, Pangasinan` : "N/A"}
                         </p>
                       </div>
                     </div>
@@ -1040,21 +1047,21 @@ export default function BuildingPermitPage() {
                         </div>
                       ) : (
                         <div className="bg-white dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5 p-5 flex flex-col gap-2 shadow-sm">
-                          <p className="text-sm font-bold text-slate-800 dark:text-white">ID on file: <span className="font-medium text-slate-600">{residentData?.idType || "Philippine ID / Profile ID"}</span></p>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Verified: <span className={cn("font-bold", residentData?.registrationStatus === "APPROVED" || residentData?.registrationStatus === "VERIFIED" ? "text-emerald-500" : "text-amber-500")}>{residentData?.registrationStatus === "APPROVED" || residentData?.registrationStatus === "VERIFIED" ? "Yes" : "Pending"}</span></p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white">ID on file: <span className="font-medium text-slate-600">{displayResident?.idType || "Philippine ID / Profile ID"}</span></p>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Verified: <span className={cn("font-bold", displayResident?.registrationStatus === "APPROVED" || displayResident?.registrationStatus === "VERIFIED" ? "text-emerald-500" : "text-amber-500")}>{displayResident?.registrationStatus === "APPROVED" || displayResident?.registrationStatus === "VERIFIED" ? "Yes" : "Pending"}</span></p>
                           
-                          {(residentData?.idFrontUrl || residentData?.idBackUrl) && (
+                          {(displayResident?.idFrontUrl || displayResident?.idBackUrl) && (
                             <div className="flex gap-4 mt-4">
-                              {residentData.idFrontUrl && (
+                              {displayResident.idFrontUrl && (
                                 <div className="flex-1 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-50 dark:bg-black/40">
                                   <p className="text-[10px] font-bold text-center py-1.5 text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5">Front ID</p>
-                                  <img src={residentData.idFrontUrl} alt="Front ID" className="w-full h-24 md:h-32 object-contain p-2" />
+                                  <img src={displayResident.idFrontUrl} alt="Front ID" className="w-full h-24 md:h-32 object-contain p-2" />
                                 </div>
                               )}
-                              {residentData.idBackUrl && (
+                              {displayResident.idBackUrl && (
                                 <div className="flex-1 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-50 dark:bg-black/40">
                                   <p className="text-[10px] font-bold text-center py-1.5 text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5">Back ID</p>
-                                  <img src={residentData.idBackUrl} alt="Back ID" className="w-full h-24 md:h-32 object-contain p-2" />
+                                  <img src={displayResident.idBackUrl} alt="Back ID" className="w-full h-24 md:h-32 object-contain p-2" />
                                 </div>
                               )}
                             </div>
@@ -1066,34 +1073,50 @@ export default function BuildingPermitPage() {
                     <>
                       <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-4">You have an ID uploaded in your profile. Choose an option:</p>
                       
-                      <div className="flex items-center gap-6 mb-6">
-                        <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 dark:text-slate-300">
-                          <input type="radio" checked={idChoice === "PROFILE"} onChange={() => setIdChoice("PROFILE")} className="accent-primary w-4 h-4" />
-                          <CheckCircle className="w-4 h-4 text-emerald-500" /> Use the one on my profile
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 dark:text-slate-300">
-                          <input type="radio" checked={idChoice === "UPLOAD"} onChange={() => setIdChoice("UPLOAD")} className="accent-primary w-4 h-4" />
-                          <Upload className="w-4 h-4" /> Upload another ID
-                        </label>
+                      <div className="flex bg-slate-100 dark:bg-black/40 p-1 rounded-xl w-full md:w-fit mb-6 shadow-inner border border-slate-200 dark:border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => setIdChoice("PROFILE")}
+                          className={cn(
+                            "flex items-center justify-center gap-2 flex-1 md:px-6 py-2.5 rounded-lg text-xs md:text-sm font-black uppercase tracking-widest transition-all",
+                            idChoice === "PROFILE" 
+                              ? "bg-white dark:bg-white/10 text-primary shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-white/5"
+                          )}
+                        >
+                          <CheckCircle className="w-4 h-4" /> Use Profile ID
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIdChoice("UPLOAD")}
+                          className={cn(
+                            "flex items-center justify-center gap-2 flex-1 md:px-6 py-2.5 rounded-lg text-xs md:text-sm font-black uppercase tracking-widest transition-all",
+                            idChoice === "UPLOAD" 
+                              ? "bg-white dark:bg-white/10 text-primary shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-white/5"
+                          )}
+                        >
+                          <Upload className="w-4 h-4" /> Upload New ID
+                        </button>
                       </div>
 
                       {idChoice === "PROFILE" ? (
                         <div className="bg-white dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5 p-5 flex flex-col gap-2 shadow-sm">
-                          <p className="text-sm font-bold text-slate-800 dark:text-white">ID on file: <span className="font-medium text-slate-600">{residentData?.idType || "Philippine ID / Profile ID"}</span></p>
-                          <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Verified: <span className={cn("font-bold", residentData?.registrationStatus === "APPROVED" || residentData?.registrationStatus === "VERIFIED" ? "text-emerald-500" : "text-amber-500")}>{residentData?.registrationStatus === "APPROVED" || residentData?.registrationStatus === "VERIFIED" ? "Yes" : "Pending"}</span></p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white">ID on file: <span className="font-medium text-slate-600">{displayResident?.idType || "Philippine ID / Profile ID"}</span></p>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Verified: <span className={cn("font-bold", displayResident?.registrationStatus === "APPROVED" || displayResident?.registrationStatus === "VERIFIED" ? "text-emerald-500" : "text-amber-500")}>{displayResident?.registrationStatus === "APPROVED" || displayResident?.registrationStatus === "VERIFIED" ? "Yes" : "Pending"}</span></p>
                           
-                          {(residentData?.idFrontUrl || residentData?.idBackUrl) && (
+                          {(displayResident?.idFrontUrl || displayResident?.idBackUrl) && (
                             <div className="flex gap-4 mt-4">
-                              {residentData.idFrontUrl && (
+                              {displayResident.idFrontUrl && (
                                 <div className="flex-1 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-50 dark:bg-black/40">
                                   <p className="text-[10px] font-bold text-center py-1.5 text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5">Front ID</p>
-                                  <img src={residentData.idFrontUrl} alt="Front ID" className="w-full h-24 md:h-32 object-contain p-2" />
+                                  <img src={displayResident.idFrontUrl} alt="Front ID" className="w-full h-24 md:h-32 object-contain p-2" />
                                 </div>
                               )}
-                              {residentData.idBackUrl && (
+                              {displayResident.idBackUrl && (
                                 <div className="flex-1 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden bg-slate-50 dark:bg-black/40">
                                   <p className="text-[10px] font-bold text-center py-1.5 text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5">Back ID</p>
-                                  <img src={residentData.idBackUrl} alt="Back ID" className="w-full h-24 md:h-32 object-contain p-2" />
+                                  <img src={displayResident.idBackUrl} alt="Back ID" className="w-full h-24 md:h-32 object-contain p-2" />
                                 </div>
                               )}
                             </div>
@@ -1105,15 +1128,19 @@ export default function BuildingPermitPage() {
                             <div className="w-full h-full absolute inset-0 opacity-60">
                               <img src={URL.createObjectURL(formData.newIdFile)} alt="Preview" className="w-full h-full object-contain" />
                             </div>
+                          ) : isRevision && !formData.newIdFile && selectedApplication?.additionalData?.documents?.newIdFile && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(selectedApplication.additionalData.documents.newIdFile) ? (
+                            <div className="w-full h-full absolute inset-0 opacity-60">
+                              <img src={selectedApplication.additionalData.documents.newIdFile} alt="Preview" className="w-full h-full object-contain" />
+                            </div>
                           ) : null}
                           <Upload className="w-8 h-8 text-slate-400 mb-2 z-10" />
                           <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10">
-                            {formData.newIdFile ? formData.newIdFile.name : "Click to upload (JPG/PNG/PDF, max 5MB)"}
+                            {formData.newIdFile ? formData.newIdFile.name : (isRevision && selectedApplication?.additionalData?.documents?.newIdFile ? "Click to replace uploaded ID" : "Click to upload (JPG/PNG/PDF, max 5MB)")}
                           </p>
                           <input 
                             type="file" 
                             accept=".jpg,.jpeg,.png,.pdf"
-                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                            className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file && file.size > 5 * 1024 * 1024) {
@@ -1200,7 +1227,7 @@ export default function BuildingPermitPage() {
                           <input 
                             type="file" 
                             accept=".jpg,.jpeg,.png,.pdf"
-                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                            className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file && file.size > 5 * 1024 * 1024) {
@@ -1269,23 +1296,23 @@ export default function BuildingPermitPage() {
                     ← Back to Requirements
                   </button>
                   <button 
+                    disabled={
+                      !formData.descriptionOfWork || 
+                      !formData.estimatedCost || 
+                      !formData.occupancyUse || 
+                      (idChoice === "UPLOAD" && !formData.newIdFile) || 
+                      (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile)
+                    }
                     onClick={() => {
-                      if (!formData.descriptionOfWork || !formData.estimatedCost || !formData.occupancyUse) {
-                        toast.warning("Please fill out the Description of Work, Estimated Cost, and Occupancy Use.");
-                        return;
-                      }
-                      if (idChoice === "UPLOAD" && !formData.newIdFile) {
-                        toast.warning("Please upload a Government ID if you chose to upload a new one.");
-                        return;
-                      }
-                      if (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile) {
-                        toast.warning("Please upload the Certified True Copy of the TCT.");
-                        return;
-                      }
                       setCurrentStep("DOCUMENTS");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }} 
-                    className="bg-emerald-500 text-white hover:bg-emerald-600 px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all shadow-xl shadow-emerald-500/20 w-full md:w-auto"
+                    className={cn(
+                      "px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all w-full md:w-auto",
+                      (!formData.descriptionOfWork || !formData.estimatedCost || !formData.occupancyUse || (idChoice === "UPLOAD" && !formData.newIdFile) || (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile))
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-white/10 dark:text-slate-400"
+                        : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/20"
+                    )}
                   >
                     Next: Upload Docs & Permits
                     <span className="text-xl leading-none">→</span>
@@ -1294,7 +1321,8 @@ export default function BuildingPermitPage() {
               </>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {currentStep === "DOCUMENTS" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -1355,8 +1383,9 @@ export default function BuildingPermitPage() {
                 const fileUrl = selectedApplication?.additionalData?.documents?.[key];
                 const newlyUploaded = activeDocTab === "REQUIREMENTS" ? !!uploadedRequirements[idx] : !!uploadedPermits[idx];
                 const isUploaded = !isEditable ? !!fileUrl : (!!fileUrl || newlyUploaded);
+                const hasError = showValidationErrors && !isUploaded;
                 return (
-                  <div key={idx} className="bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm hover:border-primary/30 transition-all group">
+                  <div key={idx} className={cn("bg-white/40 dark:bg-white/5 backdrop-blur-md border rounded-2xl p-5 shadow-sm transition-all group", hasError ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10 hover:border-primary/30")}>
                     <div className="flex justify-between items-start mb-4">
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
                         <span className="text-lg">📄</span> {docName}
@@ -1431,7 +1460,7 @@ export default function BuildingPermitPage() {
                         <input 
                           type="file" 
                           accept=".jpg,.jpeg,.png,.pdf"
-                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1506,7 +1535,7 @@ export default function BuildingPermitPage() {
                       </div>
                     </div>
                   )}
-                  <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white">
+                  <div className={cn("rounded-xl overflow-hidden bg-white transition-all", showValidationErrors && !signatureData ? "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border border-slate-200 dark:border-white/10")}>
                      <SignaturePad 
                        onSave={(dataUrl) => {
                          setSignatureData(dataUrl);
@@ -1893,8 +1922,8 @@ export default function BuildingPermitPage() {
                         <span className="font-bold text-sm">Status: Pending Payment</span>
                       </div>
                       
-                      <button onClick={() => setIsPaymentModalOpen(true)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all w-full md:w-auto justify-center">
-                        <UploadCloud className="w-4 h-4" /> {selectedApplication.rejectionRemarks ? "Upload New Receipt" : "Upload Receipt"}
+                      <button onClick={() => router.push(`/user/services/requests/${selectedApplication.id}`)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all w-full md:w-auto justify-center">
+                        <CreditCard className="w-4 h-4" /> {selectedApplication.rejectionRemarks ? "Upload New Receipt" : "Proceed to Payment"}
                       </button>
                     </div>
 

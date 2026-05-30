@@ -3303,7 +3303,7 @@ export async function endorseBuildingPermitFees(
         buildingPermitFee: number;
         electricalPermitFee: number;
         sanitaryPermitFee: number;
-        municipalCharges: number;
+        engineerMunicipalCharges: { name: string, amount: number }[];
     }
 ) {
     try {
@@ -3328,9 +3328,10 @@ export async function endorseBuildingPermitFees(
                 buildingPermitFee: Number(fees.buildingPermitFee || 0),
                 electricalPermitFee: Number(fees.electricalPermitFee || 0),
                 sanitaryPermitFee: Number(fees.sanitaryPermitFee || 0),
-                municipalCharges: Number(fees.municipalCharges || 0),
+                engineerMunicipalCharges: fees.engineerMunicipalCharges || [],
                 endorsed: true,
-                endorsedAt: new Date()
+                endorsedAt: new Date(),
+                endorsedBy: user.name || "Municipal Engineer"
             }
         };
 

@@ -2200,7 +2200,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                             <div className="space-y-2">
                                                                 <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspection Type:</Label>
                                                                 <select
-                                                                    className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e] dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-blue-500"
+                                                                    className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e] dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus-visible:ring-blue-500 text-slate-800"
                                                                     value={inspectionType}
                                                                     onChange={(e) => setInspectionType(e.target.value)}
                                                                 >
@@ -2217,7 +2217,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                     type="date" 
                                                                     value={inspectionDate}
                                                                     onChange={(e) => setInspectionDate(e.target.value)}
-                                                                    className="h-12 rounded-xl text-slate-700 font-medium"
+                                                                    className="h-12 rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none px-4 font-medium"
                                                                 />
                                                             </div>
 
@@ -2227,7 +2227,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                     type="time" 
                                                                     value={inspectionTime}
                                                                     onChange={(e) => setInspectionTime(e.target.value)}
-                                                                    className="h-12 rounded-xl text-slate-700 font-medium"
+                                                                    className="h-12 rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none px-4 font-medium"
                                                                 />
                                                             </div>
 
@@ -2237,7 +2237,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                     placeholder="Engr. Santos"
                                                                     value={inspectorName}
                                                                     onChange={(e) => setInspectorName(e.target.value)}
-                                                                    className="h-12 rounded-xl text-slate-700 font-medium"
+                                                                    className="h-12 rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none px-4 font-medium"
                                                                 />
                                                             </div>
 
@@ -2247,7 +2247,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                     placeholder="Please ensure all documents are available on-site..."
                                                                     value={inspectionNotes}
                                                                     onChange={(e) => setInspectionNotes(e.target.value)}
-                                                                    className="min-h-[80px] rounded-xl text-slate-700 font-medium"
+                                                                    className="min-h-[80px] rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none p-4 font-medium"
                                                                 />
                                                             </div>
 
@@ -2294,14 +2294,14 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                             placeholder="State reason for re-inspection..."
                                                                             value={reinspectReason}
                                                                             onChange={(e) => setReinspectReason(e.target.value)}
-                                                                            className="min-h-[80px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold italic p-6 text-sm"
+                                                                            className="min-h-[80px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold italic p-6 text-sm"
                                                                             required
                                                                         />
                                                                     </div>
                                                                     <div className="space-y-3">
                                                                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Inspection Type <span className="text-red-500">*</span></Label>
                                                                         <select
-                                                                            className="flex h-12 w-full rounded-2xl border-none bg-slate-50 px-4 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:bg-white/5 dark:focus-visible:ring-blue-500 text-slate-700 dark:text-slate-300"
+                                                                            className="flex h-12 w-full rounded-2xl border-none bg-slate-50 px-4 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 dark:bg-white/5 dark:focus-visible:ring-blue-500 text-slate-800 dark:text-white"
                                                                             value={reinspectType}
                                                                             onChange={(e) => setReinspectType(e.target.value)}
                                                                         >
@@ -2318,7 +2318,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                                 type="date" 
                                                                                 value={reinspectDate}
                                                                                 onChange={(e) => setReinspectDate(e.target.value)}
-                                                                                className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-700 font-bold px-4"
+                                                                                className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold px-4"
                                                                             />
                                                                         </div>
                                                                         <div className="space-y-3">
@@ -2327,7 +2327,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                                 type="time" 
                                                                                 value={reinspectTime}
                                                                                 onChange={(e) => setReinspectTime(e.target.value)}
-                                                                                className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-700 font-bold px-4"
+                                                                                className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold px-4"
                                                                             />
                                                                         </div>
                                                                     </div>
@@ -2337,7 +2337,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                                             placeholder="Engr. Santos"
                                                                             value={reinspectInspector}
                                                                             onChange={(e) => setReinspectInspector(e.target.value)}
-                                                                            className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-700 font-bold px-4"
+                                                                            className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold px-4"
                                                                         />
                                                                     </div>
                                                                 </div>
