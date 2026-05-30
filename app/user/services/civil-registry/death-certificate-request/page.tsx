@@ -656,7 +656,7 @@ export default function DeathCertificateRequestPage() {
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">Local Civil Registry</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                            Death <span className="text-slate-500">Certificate</span>
+                            Request <span className="text-slate-500">Death Certificate</span>
                         </h1>
                         <p className="text-slate-500 font-medium text-sm italic">Request a certified true copy of an official death certificate.</p>
                     </div>
@@ -1252,7 +1252,7 @@ export default function DeathCertificateRequestPage() {
                                                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                                                     Using registered ID (Front) from Profile
                                                 </div>
-                                                <div 
+                                                <div
                                                     onClick={() => handleViewFile(null, resident.idFrontUrl, "Valid Government ID (Front)")}
                                                     className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
                                                 >
@@ -1286,7 +1286,7 @@ export default function DeathCertificateRequestPage() {
                                                     <FileText className="w-4 h-4 shrink-0" />
                                                     {form.files.validIdFront.name}
                                                 </div>
-                                                <div 
+                                                <div
                                                     onClick={() => handleViewFile(form.files.validIdFront, null, "Valid Government ID (Front)")}
                                                     className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
                                                 >
@@ -1347,7 +1347,7 @@ export default function DeathCertificateRequestPage() {
                                                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                                                     Using registered ID (Back) from Profile
                                                 </div>
-                                                <div 
+                                                <div
                                                     onClick={() => handleViewFile(null, resident.idBackUrl, "Valid Government ID (Back)")}
                                                     className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
                                                 >
@@ -1381,7 +1381,7 @@ export default function DeathCertificateRequestPage() {
                                                     <FileText className="w-4 h-4 shrink-0" />
                                                     {form.files.validIdBack.name}
                                                 </div>
-                                                <div 
+                                                <div
                                                     onClick={() => handleViewFile(form.files.validIdBack, null, "Valid Government ID (Back)")}
                                                     className="relative w-full aspect-[16/9] rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-white/10 group/preview cursor-pointer"
                                                 >
@@ -1490,7 +1490,7 @@ export default function DeathCertificateRequestPage() {
                                     >
                                         {policyAccepted ? <Check className="w-3.5 h-3.5" /> : null}
                                     </button>
-                                    <div className="flex-1 text-xs">
+                                    <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
                                         <div className="font-black uppercase text-[10px] tracking-wider text-slate-800 dark:text-white">Data Privacy & Certification Agreement</div>
                                         <div className="text-[9px] text-slate-500 italic mt-1 leading-relaxed">
                                             I certify that all details submitted are true, correct, and matching public registry records. I agree to the Municipal Data Privacy compliance. Click to review.

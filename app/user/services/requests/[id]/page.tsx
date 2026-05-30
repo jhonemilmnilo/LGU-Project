@@ -56,6 +56,7 @@ import {
 import { format } from "date-fns";
 import { CancelRequestModal } from "@/components/shared/CancelRequestModal";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import PaymongoCheckoutButton from "@/components/PaymongoCheckoutButton";
 
 const checkIsPdf = (url: string | null) => {
     if (!url) return false;
@@ -96,7 +97,8 @@ import {
     getPublicBarangayLogistics,
     cancelTransaction,
     requestReturnOrRefund,
-    resubmitTransaction
+    resubmitTransaction,
+    checkPaymongoPaymentStatus
 } from "@/app/admin/transactions/actions";
 import Link from "next/link";
 
@@ -186,7 +188,39 @@ export default function RequestHubPage() {
             try {
                 const res = await getTransactionById(id);
                 if (res.success && res.data) {
-                    const req = res.data;
+                    let req = res.data;
+
+                    if (req.status === "UNPAID") {
+                        try {
+                            // Retry up to 3 times with delays — PayMongo may not settle the payment immediately after redirect
+                            const MAX_RETRIES = 3;
+                            const RETRY_DELAY_MS = 3000;
+                            let paymentConfirmed = false;
+
+                            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                                const checkRes = await checkPaymongoPaymentStatus(id);
+                                if (checkRes.success && checkRes.status === "PAID") {
+                                    const refreshedRes = await getTransactionById(id);
+                                    if (refreshedRes.success && refreshedRes.data) {
+                                        req = refreshedRes.data;
+                                    }
+                                    paymentConfirmed = true;
+                                    break;
+                                }
+                                // If not paid yet and we have retries left, wait before trying again
+                                if (attempt < MAX_RETRIES) {
+                                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                                }
+                            }
+
+                            if (!paymentConfirmed) {
+                                console.log("[RequestHubPage] Payment not confirmed after retries — may still be processing.");
+                            }
+                        } catch (checkErr) {
+                            console.error("Failed to check PayMongo status:", checkErr);
+                        }
+                    }
+
                     setRequest(req);
 
                     if (req.user?.residentProfile || req.residentSnapshot) {
@@ -926,6 +960,17 @@ export default function RequestHubPage() {
                                                     </div>
                                                 )}
 
+                                                <div className="mt-4">
+                                                    <PaymongoCheckoutButton
+                                                        amount={computation?.finalTotal ?? Number(request?.totalAmount) ?? 0}
+                                                        type="gcash"
+                                                        label={`Pay ₱${((computation?.finalTotal ?? Number(request?.totalAmount) ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })} via GCash`}
+                                                        transactionId={request?.id || id}
+                                                        className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] md:text-[10px] rounded-xl"
+                                                        style={{ backgroundColor: themeColor }}
+                                                    />
+                                                </div>
+
                                                 <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/[0.02] rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
                                                     <div className="flex items-center gap-3">
                                                         <Hash className="w-3.5 h-3.5 text-primary" />
@@ -1483,22 +1528,22 @@ export default function RequestHubPage() {
                                                         <div><p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic leading-none opacity-70">POD Protocol</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1 text-slate-900 dark:text-white">Fulfillment Snapshot</p></div>
                                                     </div>
                                                     {isReportAllowed && (
-                                                             <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
-                                                                 <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Report Issue</Button></DialogTrigger>
-                                                                 <DialogContent className="max-w-[330px] w-full bg-white dark:bg-slate-950 border-none rounded-[1.25rem] shadow-2xl p-4 z-[150]">
-                                                                     <DialogHeader className="space-y-0.5"><DialogTitle className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Resolution <span style={{ color: themeColor }}>Center</span></DialogTitle><DialogDescription className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Submit formal dispute for validation</DialogDescription></DialogHeader>
-                                                                     <div className="space-y-3 py-1.5">
-                                                                         <div className="flex items-center justify-between py-1 bg-slate-50 dark:bg-white/5 px-2.5 rounded-lg border border-slate-100 dark:border-white/5">
-                                                                             <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic">Protocol</span>
-                                                                             <span className="text-[7px] font-black uppercase tracking-widest text-primary italic bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20" style={{ color: themeColor, borderColor: `${themeColor}20`, backgroundColor: `${themeColor}10` }}>RETURN ONLY</span>
-                                                                         </div>
-                                                                         <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Core Reason</Label><Textarea placeholder="Describe the issue..." className="min-h-[50px] bg-slate-50 dark:bg-white/5 border-none rounded-xl font-bold italic text-[10px] p-2 focus:ring-1 focus-visible:ring-1 focus-visible:ring-offset-0 focus:outline-none placeholder:text-slate-400 text-slate-800 dark:text-white" style={{ "--tw-ring-color": `${themeColor}40` } as any} value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} /></div>
-                                                                         <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Evidence JPG/PNG</Label><div className="w-full aspect-[21/6] bg-slate-50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">{disputePreview ? (<><Image src={disputePreview} alt="Proof" fill className="object-cover" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Button variant="secondary" size="sm" className="h-6 px-2 font-black italic uppercase text-[7px] tracking-widest rounded-lg relative overflow-hidden">Change<input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></Button></div></>) : (<div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"><Upload className="w-3.5 h-3.5 text-slate-300 mb-0.5" /><p className="text-[6px] font-black uppercase text-slate-400 italic">Upload Evidence</p><input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}</div></div>
-                                                                     </div>
-                                                                     <DialogFooter><Button onClick={handleDispute} disabled={isDisputing || !disputeReason} className="w-full h-8 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}>{isDisputing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Submit</Button></DialogFooter>
-                                                                 </DialogContent>
-                                                             </Dialog>
-                                                         )}
+                                                        <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
+                                                            <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Report Issue</Button></DialogTrigger>
+                                                            <DialogContent className="max-w-[330px] w-full bg-white dark:bg-slate-950 border-none rounded-[1.25rem] shadow-2xl p-4 z-[150]">
+                                                                <DialogHeader className="space-y-0.5"><DialogTitle className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Resolution <span style={{ color: themeColor }}>Center</span></DialogTitle><DialogDescription className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Submit formal dispute for validation</DialogDescription></DialogHeader>
+                                                                <div className="space-y-3 py-1.5">
+                                                                    <div className="flex items-center justify-between py-1 bg-slate-50 dark:bg-white/5 px-2.5 rounded-lg border border-slate-100 dark:border-white/5">
+                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic">Protocol</span>
+                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-primary italic bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20" style={{ color: themeColor, borderColor: `${themeColor}20`, backgroundColor: `${themeColor}10` }}>RETURN ONLY</span>
+                                                                    </div>
+                                                                    <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Core Reason</Label><Textarea placeholder="Describe the issue..." className="min-h-[50px] bg-slate-50 dark:bg-white/5 border-none rounded-xl font-bold italic text-[10px] p-2 focus:ring-1 focus-visible:ring-1 focus-visible:ring-offset-0 focus:outline-none placeholder:text-slate-400 text-slate-800 dark:text-white" style={{ "--tw-ring-color": `${themeColor}40` } as any} value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} /></div>
+                                                                    <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Evidence JPG/PNG</Label><div className="w-full aspect-[21/6] bg-slate-50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">{disputePreview ? (<><Image src={disputePreview} alt="Proof" fill className="object-cover" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Button variant="secondary" size="sm" className="h-6 px-2 font-black italic uppercase text-[7px] tracking-widest rounded-lg relative overflow-hidden">Change<input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></Button></div></>) : (<div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"><Upload className="w-3.5 h-3.5 text-slate-300 mb-0.5" /><p className="text-[6px] font-black uppercase text-slate-400 italic">Upload Evidence</p><input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}</div></div>
+                                                                </div>
+                                                                <DialogFooter><Button onClick={handleDispute} disabled={isDisputing || !disputeReason} className="w-full h-8 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}>{isDisputing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Submit</Button></DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    )}
                                                 </div>
                                                 <Button asChild variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10">
                                                     <a href={request.podUrl} target="_blank" rel="noopener noreferrer">View Deployment Snapshot <ExternalLink className="w-3 h-3 ml-2" /></a>

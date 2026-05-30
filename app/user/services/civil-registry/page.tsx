@@ -76,7 +76,7 @@ const REGISTRY_TYPES = [
         description: "Request a certified true copy of an existing marriage certificate.",
         color: "rose",
         requirements: ["Valid ID of Applicant (Spouse/Immediate Family)", "Authorization Letter (if not spouse)"],
-        href: "/user/services/civil-registry/birth-certificate-request?type=MARRIAGE",
+        href: "/user/services/civil-registry/marriage-certificate-request",
         available: true
     },
     {
