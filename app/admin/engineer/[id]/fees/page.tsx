@@ -56,7 +56,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
     const [buildingFee, setBuildingFee] = useState<string>("");
     const [electricalFee, setElectricalFee] = useState<string>("");
     const [sanitaryFee, setSanitaryFee] = useState<string>("");
-    const [municipalCharges, setMunicipalCharges] = useState<string>("");
+    const [engineerMunicipalCharges, setEngineerMunicipalCharges] = useState<{name: string, amount: string}[]>([{ name: "", amount: "" }]);
 
     const [, setECopyFile] = useState<File | null>(null);
     const [eCopyUrl, setECopyUrl] = useState<string>("");
@@ -88,7 +88,11 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                     setBuildingFee(String(assessed.buildingPermitFee || ""));
                     setElectricalFee(String(assessed.electricalPermitFee || ""));
                     setSanitaryFee(String(assessed.sanitaryPermitFee || ""));
-                    setMunicipalCharges(String(assessed.municipalCharges || ""));
+                    if (assessed.engineerMunicipalCharges && assessed.engineerMunicipalCharges.length > 0) {
+                        setEngineerMunicipalCharges(assessed.engineerMunicipalCharges.map((c: any) => ({ name: c.name, amount: String(c.amount) })));
+                    } else if (assessed.municipalCharges) {
+                        setEngineerMunicipalCharges([{ name: "Other Applicable Municipal Charges", amount: String(assessed.municipalCharges) }]);
+                    }
                 }
             } else {
                 toast.error(res.error || "Failed to load transaction");
@@ -108,10 +112,12 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
     }, [fetchTransaction]);
 
     const handleEndorse = async () => {
-        if (!buildingFee || !electricalFee || !sanitaryFee || !municipalCharges) {
+        if (!buildingFee || !electricalFee || !sanitaryFee) {
             toast.error("Please fill in all required fee fields.");
             return;
         }
+
+        const validCharges = engineerMunicipalCharges.filter(c => c.name.trim() && c.amount);
 
         setActionLoading(true);
         try {
@@ -119,7 +125,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                 buildingPermitFee: Number(buildingFee),
                 electricalPermitFee: Number(electricalFee),
                 sanitaryPermitFee: Number(sanitaryFee),
-                municipalCharges: Number(municipalCharges)
+                engineerMunicipalCharges: validCharges.map(c => ({ name: c.name, amount: Number(c.amount) }))
             });
 
             if (res.success) {
@@ -428,16 +434,65 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 />
                             </div>
 
-                            <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Other Applicable Municipal Charges (₱) *</Label>
-                                <Input 
-                                    type="number" 
-                                    placeholder="0.00" 
-                                    value={municipalCharges} 
-                                    onChange={(e) => setMunicipalCharges(e.target.value)} 
-                                    disabled={isViewOnly}
-                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
-                                />
+                            <div className="col-span-1 md:col-span-2 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Other Applicable Municipal Charges</Label>
+                                    {!isViewOnly && (
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => setEngineerMunicipalCharges([...engineerMunicipalCharges, { name: "", amount: "" }])}
+                                            className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider text-primary border-primary/20 hover:bg-primary/10"
+                                        >
+                                            + Add Additional Fee
+                                        </Button>
+                                    )}
+                                </div>
+                                
+                                {engineerMunicipalCharges.map((charge, index) => (
+                                    <div key={index} className="flex items-center gap-4">
+                                        <Input 
+                                            type="text" 
+                                            placeholder="Fee Name (e.g. Zoning Fee)" 
+                                            value={charge.name} 
+                                            onChange={(e) => {
+                                                const newCharges = [...engineerMunicipalCharges];
+                                                newCharges[index].name = e.target.value;
+                                                setEngineerMunicipalCharges(newCharges);
+                                            }} 
+                                            disabled={isViewOnly}
+                                            className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 flex-1" 
+                                        />
+                                        <Input 
+                                            type="number" 
+                                            placeholder="0.00" 
+                                            value={charge.amount} 
+                                            onChange={(e) => {
+                                                const newCharges = [...engineerMunicipalCharges];
+                                                newCharges[index].amount = e.target.value;
+                                                setEngineerMunicipalCharges(newCharges);
+                                            }} 
+                                            disabled={isViewOnly}
+                                            className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 w-[150px]" 
+                                        />
+                                        {!isViewOnly && engineerMunicipalCharges.length > 1 && (
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                onClick={() => {
+                                                    const newCharges = [...engineerMunicipalCharges];
+                                                    newCharges.splice(index, 1);
+                                                    setEngineerMunicipalCharges(newCharges);
+                                                }}
+                                                className="h-12 w-12 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            >
+                                                <X className="w-5 h-5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
 
                             {/* ADDITIONAL TREASURY FEES LIST */}
@@ -467,7 +522,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                         (Number(buildingFee) || 0) +
                                         (Number(electricalFee) || 0) +
                                         (Number(sanitaryFee) || 0) +
-                                        (Number(municipalCharges) || 0) +
+                                        engineerMunicipalCharges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0) +
                                         (transaction.additionalData?.feeAssessment?.additionalFees || []).reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0)
                                     ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </span>
@@ -626,7 +681,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                         {!isEndorsed && userRole === "ENGINEER" && (
                             <Button 
                                 onClick={handleEndorse} 
-                                disabled={actionLoading || !buildingFee || !electricalFee || !sanitaryFee || !municipalCharges} 
+                                disabled={actionLoading || !buildingFee || !electricalFee || !sanitaryFee} 
                                 className="w-full h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-xl shadow-green-900/20 active:scale-95"
                             >
                                 <Check className="w-4 h-4 mr-2" /> Endorse to Treasury

@@ -518,7 +518,7 @@ export default function RequestHubPage() {
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";
-    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && (typeCode.startsWith("BUSINESS_PERMIT") || typeCode.startsWith("CEDULA")));
+    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && (typeCode.startsWith("BUSINESS_PERMIT") || typeCode.startsWith("CEDULA") || typeCode.startsWith("BUILDING_PERMIT")));
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
     const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");

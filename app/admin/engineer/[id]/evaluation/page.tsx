@@ -523,7 +523,7 @@ export default function BuildingPermitEvaluationPage({ params }: PageProps) {
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspection Type:</Label>
                                                     <select
-                                                        className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e] dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-blue-500"
+                                                        className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e] dark:border-slate-800 dark:bg-slate-950 dark:focus-visible:ring-blue-500 text-slate-800 dark:text-white"
                                                         value={inspectionType}
                                                         onChange={(e) => setInspectionType(e.target.value)}
                                                     >
@@ -535,19 +535,19 @@ export default function BuildingPermitEvaluationPage({ params }: PageProps) {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Date:</Label>
-                                                    <Input type="date" value={inspectionDate} onChange={(e) => setInspectionDate(e.target.value)} className="h-12 rounded-xl text-slate-700 font-medium" />
+                                                    <Input type="date" value={inspectionDate} onChange={(e) => setInspectionDate(e.target.value)} className="h-12 rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none px-4 font-medium" />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Time:</Label>
-                                                    <Input type="time" value={inspectionTime} onChange={(e) => setInspectionTime(e.target.value)} className="h-12 rounded-xl text-slate-700 font-medium" />
+                                                    <Input type="time" value={inspectionTime} onChange={(e) => setInspectionTime(e.target.value)} className="h-12 rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none px-4 font-medium" />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Inspector Name:</Label>
-                                                    <Input placeholder="Engr. Santos" value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} className="h-12 rounded-xl text-slate-700 font-medium" />
+                                                    <Input placeholder="Engr. Santos" value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} className="h-12 rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none px-4 font-medium" />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs font-bold text-slate-600 dark:text-slate-300">Notes (optional):</Label>
-                                                    <Textarea placeholder="Instructions..." value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} className="min-h-[80px] rounded-xl text-slate-700 font-medium" />
+                                                    <Textarea placeholder="Instructions..." value={inspectionNotes} onChange={(e) => setInspectionNotes(e.target.value)} className="min-h-[80px] rounded-xl text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border-none p-4 font-medium" />
                                                 </div>
                                                 <Button onClick={handleScheduleInspection} disabled={actionLoading} className="h-12 bg-[#0c4a6e] hover:bg-[#082f49] text-white rounded-xl px-6 flex items-center gap-2">
                                                     {actionLoading ? "Scheduling..." : "Schedule Inspection"}

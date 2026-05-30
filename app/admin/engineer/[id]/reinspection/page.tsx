@@ -220,7 +220,7 @@ export default function BuildingPermitReinspectionPage({ params }: PageProps) {
             const res = await evaluateCedulaTransaction(id, 0, remarks);
             if (res.success) {
                 toast.success("Inspection Approved Successfully");
-                router.push(backUrl);
+                router.push(`/admin/engineer/${id}/fees`);
             } else {
                 toast.error(res.error || "Failed");
             }
@@ -587,11 +587,11 @@ export default function BuildingPermitReinspectionPage({ params }: PageProps) {
                                         <div className="space-y-6 py-6">
                                             <div className="space-y-3">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for Re-Inspection *</Label>
-                                                <Textarea placeholder="State reason..." value={reinspectReason} onChange={(e) => setReinspectReason(e.target.value)} className="min-h-[80px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 font-bold p-6 text-sm" required />
+                                                <Textarea placeholder="State reason..." value={reinspectReason} onChange={(e) => setReinspectReason(e.target.value)} className="min-h-[80px] rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold p-6 text-sm" required />
                                             </div>
                                             <div className="space-y-3">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Inspection Type *</Label>
-                                                <select className="flex h-12 w-full rounded-2xl border-none bg-slate-50 px-4 py-2 text-sm font-bold dark:bg-white/5 text-slate-700 dark:text-slate-300 focus:outline-none" value={reinspectType} onChange={(e) => setReinspectType(e.target.value)}>
+                                                <select className="flex h-12 w-full rounded-2xl border-none bg-slate-50 px-4 py-2 text-sm font-bold dark:bg-white/5 text-slate-800 dark:text-white focus:outline-none" value={reinspectType} onChange={(e) => setReinspectType(e.target.value)}>
                                                     <option value="Structural Inspection">Structural Inspection</option>
                                                     <option value="Electrical Inspection">Electrical Inspection</option>
                                                     <option value="Sanitary/Plumbing Inspection">Sanitary/Plumbing Inspection</option>
@@ -601,16 +601,16 @@ export default function BuildingPermitReinspectionPage({ params }: PageProps) {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-3">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Date *</Label>
-                                                    <Input type="date" value={reinspectDate} onChange={(e) => setReinspectDate(e.target.value)} className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-700 font-bold px-4" />
+                                                    <Input type="date" value={reinspectDate} onChange={(e) => setReinspectDate(e.target.value)} className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold px-4" />
                                                 </div>
                                                 <div className="space-y-3">
                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Time *</Label>
-                                                    <Input type="time" value={reinspectTime} onChange={(e) => setReinspectTime(e.target.value)} className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-700 font-bold px-4" />
+                                                    <Input type="time" value={reinspectTime} onChange={(e) => setReinspectTime(e.target.value)} className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold px-4" />
                                                 </div>
                                             </div>
                                             <div className="space-y-3">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Assigned Inspector *</Label>
-                                                <Input placeholder="Engr. Santos" value={reinspectInspector} onChange={(e) => setReinspectInspector(e.target.value)} className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-700 font-bold px-4" />
+                                                <Input placeholder="Engr. Santos" value={reinspectInspector} onChange={(e) => setReinspectInspector(e.target.value)} className="h-12 rounded-2xl border-none bg-slate-50 dark:bg-white/5 text-slate-800 dark:text-white font-bold px-4" />
                                             </div>
                                         </div>
                                         <Button onClick={handleReinspect} disabled={actionLoading || !reinspectReason.trim() || !reinspectDate || !reinspectTime || !reinspectInspector} className="w-full h-14 bg-blue-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl">
