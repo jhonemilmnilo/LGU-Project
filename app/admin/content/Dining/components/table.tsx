@@ -25,12 +25,22 @@ import {
 import { formatDate } from "../utils/date_and_time";
 
 export function DiningTable() {
-    const { diningData, searchTerm, setEditingData, setIsAddModalOpen } = useDining();
+    const { diningData, searchTerm, selectedCuisine, selectedStatus, setEditingData, setIsAddModalOpen } = useDining();
 
-    const filteredData = diningData.filter((item: Dining) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.cuisineType && item.cuisineType.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredData = diningData.filter((item: Dining) => {
+        const query = searchTerm.toLowerCase();
+        const matchesSearch =
+            item.name.toLowerCase().includes(query) ||
+            item.address.toLowerCase().includes(query) ||
+            (item.cuisineType && item.cuisineType.toLowerCase().includes(query));
+        const matchesCuisine = selectedCuisine === "All" || item.cuisineType === selectedCuisine;
+        const matchesStatus =
+            selectedStatus === "All" ||
+            (selectedStatus === "Published" && item.isPublished) ||
+            (selectedStatus === "Draft" && !item.isPublished);
+
+        return matchesSearch && matchesCuisine && matchesStatus;
+    });
 
     return (
         <div className="overflow-x-auto">

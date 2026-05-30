@@ -20,7 +20,6 @@ export function EventsCards() {
             icon: Calendar,
             color: "text-primary",
             bg: "bg-primary/10 dark:bg-primary/20",
-            borderColor: "border-primary/10 dark:border-blue-800/50"
         },
         {
             label: "Live on Portal",
@@ -28,7 +27,6 @@ export function EventsCards() {
             icon: CheckCircle2,
             color: "text-emerald-600",
             bg: "bg-emerald-50 dark:bg-emerald-900/20",
-            borderColor: "border-emerald-100 dark:border-emerald-800/50"
         },
         {
             label: "Upcoming",
@@ -36,7 +34,6 @@ export function EventsCards() {
             icon: Clock,
             color: "text-amber-600",
             bg: "bg-amber-50 dark:bg-amber-900/20",
-            borderColor: "border-amber-100 dark:border-amber-800/50"
         },
         {
             label: "Festivals",
@@ -44,7 +41,6 @@ export function EventsCards() {
             icon: Star,
             color: "text-purple-600",
             bg: "bg-purple-50 dark:bg-purple-900/20",
-            borderColor: "border-purple-100 dark:border-purple-800/50"
         },
     ];
 
@@ -57,7 +53,7 @@ export function EventsCards() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                 >
-                    <Card className={`overflow-hidden border-2 ${stat.borderColor} hover:shadow-xl transition-all duration-300 group rounded-2xl`}>
+                    <Card className="overflow-hidden border-none shadow-md shadow-slate-200/50 dark:shadow-none hover:shadow-xl transition-all duration-300 group rounded-2xl bg-white dark:bg-[#151b2b]">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div className={`p-3 rounded-xl ${stat.bg} group-hover:scale-110 transition-transform duration-300`}>

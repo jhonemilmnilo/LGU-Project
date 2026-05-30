@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Store, UploadCloud, Save } from "lucide-react";
 import { useDining } from "../providers/DiningProvider";
 import { useDiningForm } from "../hooks/useDiningForm";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 // removed unused containerVariants
 
 export function AddDiningModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useDining();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay, themeColor } = useDining();
     const { handleSubmit, loading } = useDiningForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -37,11 +37,14 @@ export function AddDiningModal() {
             }}
         >
             <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
+                <div className="relative flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     {/* Header */}
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
+                    <DialogHeader
+                        className="p-8 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/20">
+                            <div className="p-2 rounded-lg shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}>
                                 <Store className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -56,7 +59,7 @@ export function AddDiningModal() {
                     </DialogHeader>
 
                     {/* Scrollable Form Body */}
-                    <div className="p-6 overflow-y-auto custom-scrollbar">
+                    <div className="p-6 pb-28 overflow-y-auto custom-scrollbar">
                         <form id="diningForm" onSubmit={handleSubmit} className="space-y-6">
 
                             {/* Inner Boxed Container imitating the image */}
@@ -153,7 +156,11 @@ export function AddDiningModal() {
                                             value={editingData?.barangay || currentBarangay || ""} 
                                         />
                                     )}
-                                    <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-colors cursor-pointer group relative overflow-hidden">
+                                    <label
+                                        htmlFor="imageFile"
+                                        className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-colors cursor-pointer group relative overflow-hidden"
+                                        style={{ borderColor: `${themeColor}40` }}
+                                    >
                                         {imagePreview ? (
                                             <div className="absolute inset-0 w-full h-full">
                                                 { }
@@ -165,8 +172,8 @@ export function AddDiningModal() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                                    <UploadCloud className="w-6 h-6 text-primary dark:text-primary" />
+                                                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" style={{ backgroundColor: `${themeColor}1a` }}>
+                                                    <UploadCloud className="w-6 h-6" style={{ color: themeColor }} />
                                                 </div>
                                                 <p className="text-slate-900 dark:text-slate-200 font-medium text-sm mb-1">Click to upload or drag and drop</p>
                                                 <p className="text-slate-500 dark:text-slate-500 text-xs">PNG, JPG or WEBP</p>
@@ -194,21 +201,13 @@ export function AddDiningModal() {
                         </form>
                     </div>
 
-                    {/* Footer Actions */}
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
+                    <div className="absolute left-0 right-0 bottom-0 z-50 p-6 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent dark:from-[#0f1117] dark:via-[#0f1117]/95">
                         <Button
                             type="submit"
                             form="diningForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full h-12 text-white font-bold shadow-lg rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 "Saving..."
@@ -219,7 +218,7 @@ export function AddDiningModal() {
                                 </>
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

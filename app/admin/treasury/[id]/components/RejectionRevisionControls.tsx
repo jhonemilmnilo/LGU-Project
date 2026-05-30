@@ -72,7 +72,7 @@ export default function RejectionRevisionControls({
                     <Button
                         onClick={handleReject}
                         disabled={actionLoading || !remarks}
-                        className="w-full h-14 bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
+                        className="w-full h-14 bg-red-600 hover:bg-red-600 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 transition-all"
                     >
                         {actionLoading ? "Processing..." : "Confirm Rejection"}
                     </Button>
@@ -102,7 +102,7 @@ export default function RejectionRevisionControls({
                     <Button
                         onClick={handleRequestRevision}
                         disabled={actionLoading || !remarks}
-                        className="w-full h-14 bg-amber-500 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+                        className="w-full h-14 bg-amber-500 hover:bg-amber-500 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
                     >
                         {actionLoading ? "Processing..." : "Send Revision Request"}
                     </Button>
