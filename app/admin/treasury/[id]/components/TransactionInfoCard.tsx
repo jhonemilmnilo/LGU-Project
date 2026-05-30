@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
 
 interface TransactionInfoCardProps {
@@ -10,7 +9,7 @@ interface TransactionInfoCardProps {
     themeColor: string;
 }
 
-export default function TransactionInfoCard({ transactionName, categoryLabel, themeColor }: TransactionInfoCardProps) {
+export default function TransactionInfoCard({ transactionName, themeColor }: TransactionInfoCardProps) {
     return (
         <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -36,17 +35,6 @@ export default function TransactionInfoCard({ transactionName, categoryLabel, th
                     </h2>
                 </div>
             </div>
-            <Badge 
-                variant="outline" 
-                className="font-mono text-xs font-black italic uppercase tracking-widest px-4 py-2 rounded-xl border transition-colors shrink-0"
-                style={{ 
-                    color: themeColor,
-                    backgroundColor: `${themeColor}10`,
-                    borderColor: `${themeColor}20`
-                }}
-            >
-                Category: {categoryLabel}
-            </Badge>
         </div>
     );
 }

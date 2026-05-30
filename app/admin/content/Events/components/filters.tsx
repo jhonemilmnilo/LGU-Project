@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Search, Plus, SlidersHorizontal, MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 export function EventsFilters() {
     const { searchTerm, setSearchTerm, setIsAddModalOpen, selectedCategory, setSelectedCategory, currentBarangay, activeBarangays = [] } = useEvents();
+    const [locationSearch, setLocationSearch] = useState("");
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const filteredBarangays = activeBarangays.filter((barangay) =>
+        barangay.toLowerCase().includes(locationSearch.toLowerCase())
+    );
 
     // Re-use logic to update URL params
     const createQueryString = useCallback(
@@ -36,8 +40,8 @@ export function EventsFilters() {
 
     return (
         <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#151b2b] border-b border-slate-200 dark:border-[#2a3040]">
-            <div className="flex flex-1 items-center gap-3">
-                <div className="relative w-full max-w-sm group">
+            <div className="flex flex-wrap flex-1 items-center gap-3">
+                <div className="relative flex-1 min-w-[260px] max-w-sm group">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors w-4 h-4" />
                     <Input
                         placeholder="Search events, venues..."
@@ -47,7 +51,7 @@ export function EventsFilters() {
                     />
                 </div>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                    <SelectTrigger className="w-full sm:w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
                         <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
                         <SelectValue placeholder="Category" />
                     </SelectTrigger>
@@ -64,15 +68,33 @@ export function EventsFilters() {
                         value={currentBarangay || "All"} 
                         onValueChange={handleBarangayChange}
                     >
-                        <SelectTrigger className="w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic">
+                        <SelectTrigger className="w-full sm:w-[180px] h-11 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic">
                             <MapPin className="w-4 h-4 mr-2 text-primary" />
                             <SelectValue placeholder="Barangay" />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                            <div className="p-2 border-b border-slate-100 dark:border-white/10">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                                    <Input
+                                        value={locationSearch}
+                                        onChange={(e) => setLocationSearch(e.target.value)}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onKeyDown={(e) => e.stopPropagation()}
+                                        placeholder="Search locations..."
+                                        className="h-9 pl-9 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-lg text-[11px] font-bold italic"
+                                    />
+                                </div>
+                            </div>
                             <SelectItem value="All" className="font-bold italic text-primary">All Locations</SelectItem>
-                            {activeBarangays.map(b => (
+                            {filteredBarangays.map(b => (
                                 <SelectItem key={b} value={b} className="font-bold italic">{b}</SelectItem>
                             ))}
+                            {filteredBarangays.length === 0 && (
+                                <div className="px-3 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-center">
+                                    No locations found
+                                </div>
+                            )}
                         </SelectContent>
                     </Select>
                 )}

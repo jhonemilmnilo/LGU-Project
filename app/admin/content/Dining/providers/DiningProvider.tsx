@@ -29,16 +29,25 @@ interface DiningContextType {
     diningData: Dining[];
     editingData: Dining | null;
     setEditingData: (data: Dining | null) => void;
+    selectedCuisine: string;
+    setSelectedCuisine: (cuisine: string) => void;
+    selectedStatus: string;
+    setSelectedStatus: (status: string) => void;
     currentBarangay?: string;
+    activeBarangays?: string[];
+    themeColor: string;
 }
 
 const DiningContext = createContext<DiningContextType | undefined>(undefined);
 
-export function DiningProvider({ children, initialData, currentBarangay }: { children: React.ReactNode; initialData: Dining[]; currentBarangay?: string }) {
+export function DiningProvider({ children, initialData, currentBarangay, activeBarangays = [] }: { children: React.ReactNode; initialData: Dining[]; currentBarangay?: string; activeBarangays?: string[] }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [diningData, setDiningData] = useState<Dining[]>(initialData);
     const [editingData, setEditingData] = useState<Dining | null>(null);
+    const [selectedCuisine, setSelectedCuisine] = useState("All");
+    const [selectedStatus, setSelectedStatus] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     // Whenever initialData from server changes, you might want to sync, 
     // but for simple cases we just use it directly or let the server action revalidate the page.
@@ -46,8 +55,23 @@ export function DiningProvider({ children, initialData, currentBarangay }: { chi
         setDiningData(initialData);
     }, [initialData]);
 
+    React.useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     return (
-        <DiningContext.Provider value={{ searchTerm, setSearchTerm, isAddModalOpen, setIsAddModalOpen, diningData, editingData, setEditingData, currentBarangay }}>
+        <DiningContext.Provider value={{ searchTerm, setSearchTerm, isAddModalOpen, setIsAddModalOpen, diningData, editingData, setEditingData, selectedCuisine, setSelectedCuisine, selectedStatus, setSelectedStatus, currentBarangay, activeBarangays, themeColor }}>
             {children}
         </DiningContext.Provider>
     );

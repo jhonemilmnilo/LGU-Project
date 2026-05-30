@@ -220,7 +220,12 @@ export default function RequestHubPage() {
                     if (req.fulfillmentType) setLocalFulfillment(req.fulfillmentType);
                     if (req.paymentType) setLocalPayment(req.paymentType);
                     if (req.additionalData?.gcashReferenceNo) setGcashReferenceNo(req.additionalData.gcashReferenceNo);
-                    if (req.paymentReference) setPaymentProofPreview(req.paymentReference);
+                    if (req.paymentReference) {
+                        setPaymentProofPreview(req.paymentReference);
+                    } else if (req.status === "UNPAID" && req.additionalData?.previousPaymentProofs?.length > 0) {
+                        const prevs = req.additionalData.previousPaymentProofs;
+                        setPaymentProofPreview(prevs[prevs.length - 1].url);
+                    }
 
                 } else {
                     toast.error("Request not found");
@@ -288,14 +293,12 @@ export default function RequestHubPage() {
         }
     };
 
+
     const handleClearPaymentProof = () => {
         setPaymentProofFile(null);
         setPaymentProofPreview(null);
     };
 
-    useEffect(() => {
-        handleClearPaymentProof();
-    }, [localPayment]);
 
     const handleDownloadQR = async () => {
         if (!gcashDetails.qr) return;
@@ -515,7 +518,7 @@ export default function RequestHubPage() {
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";
-    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && typeCode.startsWith("BUSINESS_PERMIT"));
+    const isActionable = (request?.status === "EVALUATED" && !request.paymentType && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && (typeCode.startsWith("BUSINESS_PERMIT") || typeCode.startsWith("CEDULA")));
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
     const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");
@@ -727,23 +730,31 @@ export default function RequestHubPage() {
                                             <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed">Evaluation complete. Secure your issuance below.</p>
                                         </div>
                                         <div className="space-y-4 md:space-y-5">
-                                            {(isBusinessPermit || isBuildingPermit) && computation?.lineItems && computation.lineItems.length > 0 ? (
+                                            {/* Structured Line Items (Additional fees or itemized breakdown) */}
+                                            {computation?.lineItems && computation.lineItems.length > 0 && (
                                                 computation.lineItems.map((item: any, idx: number) => (
                                                     <div key={idx} className="flex justify-between items-end pb-3 border-b border-white/5">
                                                         <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">{item.label}</span>
                                                         <span className="text-lg md:text-2xl font-black italic">₱{(Number(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                                     </div>
                                                 ))
-                                            ) : (
+                                            )}
+
+                                            {/* Basic & Additional Taxes for non-BPLO / non-itemized defaults */}
+                                            {(!isBusinessPermit && !isBuildingPermit) && (
                                                 <>
-                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
-                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
-                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                    </div>
+                                                    {computation && computation.basicTax > 0 && (
+                                                        <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
+                                                            <span className="text-lg md:text-2xl font-black italic">₱{computation.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
+                                                    {computation && computation.additionalTax > 0 && (
+                                                        <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
+                                                            <span className="text-lg md:text-2xl font-black italic">₱{computation.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                             {computation && computation.penaltyAmount > 0 && (
@@ -874,7 +885,12 @@ export default function RequestHubPage() {
                                                 { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
                                                 { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
                                             ].map(opt => (
-                                                <button key={opt.id} onClick={() => setLocalPayment(opt.id as any)} className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all group relative active:scale-95 text-left", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
+                                                <button key={opt.id} onClick={() => {
+                                                    if (localPayment !== opt.id) {
+                                                        setLocalPayment(opt.id as any);
+                                                        handleClearPaymentProof();
+                                                    }
+                                                }} className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all group relative active:scale-95 text-left", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
                                                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/5 text-slate-400")}><opt.icon className="w-5 h-5" /></div>
                                                     <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest italic leading-tight">{opt.label}</span>
                                                     {localPayment === opt.id && <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><CheckCircle2 className="w-5 h-5" /></div>}
@@ -943,6 +959,47 @@ export default function RequestHubPage() {
                                                             </div>
                                                         )}
                                                     </div>
+
+                                                    {/* Previous payment proofs list */}
+                                                    {(() => {
+                                                        const prevProofs = [...(additionalData.previousPaymentProofs || request?.previousPaymentProofs || [])];
+                                                        
+                                                        // If paymentProofFile is present (meaning they selected a new file):
+                                                        // - The new file is shown in the upload snapshot container.
+                                                        // - All elements inside prevProofs (including the latest rejected one) should show in the Previous Submissions list!
+                                                        // If paymentProofFile is null (meaning they haven't uploaded a new file yet):
+                                                        // - The latest rejected one is currently displayed in the upload snapshot container.
+                                                        // - So we must remove it from the Previous Submissions list to avoid duplication!
+                                                        const hasNewUpload = !!paymentProofFile;
+                                                        
+                                                        const visibleProofs = hasNewUpload 
+                                                            ? prevProofs 
+                                                            : prevProofs.slice(0, -1); // Hide the latest one from previous list since it is currently showing in the main upload box
+
+                                                        if (visibleProofs && visibleProofs.length > 0) {
+                                                            return (
+                                                                <div className="space-y-3 pt-4 border-t border-dashed border-slate-200 dark:border-white/10 animate-in fade-in duration-300">
+                                                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Previous Submissions</span>
+                                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                                        {visibleProofs.map((proof: any, idx: number) => (
+                                                                            <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 opacity-80 hover:opacity-100 transition-all group/prev hover:scale-[1.02] shadow-sm">
+                                                                                <Image
+                                                                                    src={proof.url}
+                                                                                    alt={`Previous Proof ${idx + 1}`}
+                                                                                    fill
+                                                                                    unoptimized
+                                                                                    className="object-cover cursor-pointer"
+                                                                                    onClick={() => handleViewFile(proof.url, `Previous Proof ${idx + 1}`)}
+                                                                                />
+                                                                                <div className="absolute top-2 left-2 bg-red-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow">Rejected</div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </div>
                                             </div>
                                         )}
@@ -1091,7 +1148,11 @@ export default function RequestHubPage() {
                                                 <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
                                                     &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
                                                         ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
-                                                        : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)}&quot;
+                                                        : (request.status === "PAID"
+                                                            ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
+                                                            : (["REJECTED", "FOR_REVISION"].includes(request.status)
+                                                                ? (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)
+                                                                : `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
                                                 </p>
                                             </div>
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
@@ -1242,8 +1303,11 @@ export default function RequestHubPage() {
                                                     >
                                                         <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
                                                         <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
-                                                            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 scale-75 group-hover/doc:scale-100 transition-transform duration-300">
-                                                                <Search className="w-4 h-4 text-white" />
+                                                            <div
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] scale-75 group-hover/doc:scale-100 transition-transform duration-300"
+                                                            >
+                                                                <span>View</span>
                                                             </div>
                                                         </div>
                                                         <div className="absolute bottom-2 left-2 right-2">

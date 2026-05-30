@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { useEvents } from "../providers/EventsProvider";
 import { useEventsForm } from "../hooks/useEventsForm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,8 +10,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
-    DialogFooter
+    DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +22,7 @@ import { MapPin, Image as ImageIcon, X, Loader2, Calendar, Info, Clock, Phone, M
 const categories = ["Festival", "Community", "Religious", "Sports", "Other"];
 
 export function AddEventModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useEvents();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay, themeColor } = useEvents();
     const { handleSubmit, loading } = useEventsForm();
     const [selectedCategory, setSelectedCategory] = useState<string>("Community");
     const [otherCategory, setOtherCategory] = useState<string>("");
@@ -150,10 +149,13 @@ export function AddEventModal() {
             }
         }}>
             <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
+                <div className="relative flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
+                    <DialogHeader
+                        className="p-8 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-primary rounded-lg">
+                            <div className="p-2 rounded-lg shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}>
                                 <Calendar className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -167,12 +169,12 @@ export function AddEventModal() {
                         </div>
                     </DialogHeader>
 
-                    <div className="p-8 overflow-y-auto custom-scrollbar">
+                    <div className="p-8 pb-28 overflow-y-auto custom-scrollbar">
                         <form id="eventForm" onSubmit={handleSubmit} className="space-y-8">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                 {/* Left Column: Event details */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-primary dark:text-primary mb-2">
+                                    <div className="flex items-center space-x-2 mb-2" style={{ color: themeColor }}>
                                         <Info className="w-4 h-4" />
                                         <h3 className="text-sm font-bold uppercase tracking-wider">Event Information</h3>
                                     </div>
@@ -184,7 +186,8 @@ export function AddEventModal() {
                                             required
                                             defaultValue={editingData?.title || ""}
                                             placeholder="e.g. Schedule for Coastal Clean-up"
-                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20 rounded-xl font-bold italic"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-xl font-bold italic"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                         {(currentBarangay || editingData?.barangay) && (
                                             <input
@@ -196,7 +199,7 @@ export function AddEventModal() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 min-w-0">
                                             <Label className="text-slate-700 dark:text-slate-300 font-bold">Category</Label>
                                             <AnimatePresence mode="wait">
                                                 {selectedCategory !== "Other" ? (
@@ -206,6 +209,7 @@ export function AddEventModal() {
                                                         animate={{ opacity: 1, x: 0 }}
                                                         exit={{ opacity: 0, x: 10 }}
                                                         transition={{ duration: 0.2 }}
+                                                        className="w-full"
                                                     >
                                                         <Select
                                                             name="category_trigger"
@@ -215,10 +219,13 @@ export function AddEventModal() {
                                                                 if (val === "Other") setOtherCategory("");
                                                             }}
                                                         >
-                                                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                                                            <SelectTrigger
+                                                                className="!w-full !h-12 min-h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                                                style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                                                            >
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                                            <SelectContent position="popper" className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                                                 {categories.map(cat => (
                                                                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                                                 ))}
@@ -240,7 +247,8 @@ export function AddEventModal() {
                                                             value={otherCategory}
                                                             onChange={(e) => setOtherCategory(e.target.value)}
                                                             placeholder="Specify Category..."
-                                                            className="h-12 bg-primary/5 dark:bg-primary/10 border-primary/20 dark:border-primary/30 focus:ring-2 focus:ring-primary/20 pr-12"
+                                                            className="h-12 focus:ring-2 pr-12"
+                                                            style={{ backgroundColor: `${themeColor}14`, borderColor: `${themeColor}40`, "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                                         />
                                                         <Button
                                                             type="button"
@@ -250,7 +258,8 @@ export function AddEventModal() {
                                                                 setSelectedCategory("Community");
                                                                 setOtherCategory("");
                                                             }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400 hover:text-primary"
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-slate-400"
+                                                            style={{ color: themeColor }}
                                                             title="Back to Dropdown"
                                                         >
                                                             <X className="w-4 h-4" />
@@ -264,7 +273,7 @@ export function AddEventModal() {
                                                 value={selectedCategory === "Other" ? otherCategory : selectedCategory}
                                             />
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 min-w-0">
                                             <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
                                                 <Phone className="w-3 h-3 mr-1" /> Contact Info
                                             </Label>
@@ -329,7 +338,7 @@ export function AddEventModal() {
 
                                 {/* Right Column: Location & Image */}
                                 <div className="space-y-6">
-                                    <div className="flex items-center space-x-2 text-primary dark:text-primary mb-2">
+                                    <div className="flex items-center space-x-2 mb-2" style={{ color: themeColor }}>
                                         <MapPin className="w-4 h-4" />
                                         <h3 className="text-sm font-bold uppercase tracking-wider">Venue & Media</h3>
                                     </div>
@@ -401,7 +410,8 @@ export function AddEventModal() {
                                                 variant="outline"
                                                 size="icon"
                                                 onClick={() => window.open('https://www.google.com/maps/@16.0287,120.4022,15z', '_blank')}
-                                                className="h-12 w-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] hover:text-primary shrink-0"
+                                                className="h-12 w-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] shrink-0"
+                                                style={{ color: themeColor }}
                                                 title="Open Google Maps to find location"
                                             >
                                                 <MapPin className="w-5 h-5" />
@@ -413,7 +423,8 @@ export function AddEventModal() {
                                         <Label className="text-slate-700 dark:text-slate-300 font-bold">Image Upload</Label>
                                         <div
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="group relative h-40 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center"
+                                            className="group relative h-40 rounded-2xl border-2 border-dashed bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center"
+                                            style={{ borderColor: `${themeColor}40` }}
                                         >
                                             {imagePreview ? (
                                                 <>
@@ -438,7 +449,7 @@ export function AddEventModal() {
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors">
+                                                <div className="flex flex-col items-center text-slate-400 transition-colors">
                                                     <ImageIcon className="w-10 h-10 mb-2" />
                                                     <p className="text-sm font-bold uppercase tracking-wide">Upload Photo</p>
                                                 </div>
@@ -458,24 +469,16 @@ export function AddEventModal() {
                                     </div>
                                 </div>
                             </div>
-
                         </form>
                     </div>
 
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
+                    <div className="absolute left-0 right-0 bottom-0 z-50 p-6 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-[#0f1117] dark:via-[#0f1117]/95">
                         <Button
                             type="submit"
                             form="eventForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full h-12 text-white font-bold shadow-lg rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
@@ -483,7 +486,7 @@ export function AddEventModal() {
                                 editingData ? "Update Event" : "Publish Event"
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

@@ -26,8 +26,14 @@ export default async function DiningPage({ searchParams }: { searchParams: Promi
         orderBy: { createdAt: "desc" }
     });
 
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
     return <DiningPageWrapper 
         diningData={diningData} 
         currentBarangay={isBarangayAdmin ? user.managedBarangay : (barangayParam || undefined)}
+        activeBarangays={isBarangayAdmin ? [] : activeBarangays.map(b => b.name)}
     />;
 }

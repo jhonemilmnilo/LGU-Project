@@ -31,6 +31,11 @@ export interface TreasuryViewProps {
     setOrFile: Dispatch<SetStateAction<File | null>>;
     orPreview: string | null;
     setOrPreview: Dispatch<SetStateAction<string | null>>;
+    receiptFile: File | null;
+    setReceiptFile: Dispatch<SetStateAction<File | null>>;
+    receiptPreview: string | null;
+    setReceiptPreview: Dispatch<SetStateAction<string | null>>;
+    handleReceiptFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
     themeColor: string;
     branding: {
         word1: string;
@@ -79,4 +84,5 @@ export interface TreasuryViewProps {
     hasVerification: boolean;
     hasDispute: boolean;
     isRequirementsAlone: boolean;
+    handleViewFile?: (url: string | null, title: string) => void;
 }

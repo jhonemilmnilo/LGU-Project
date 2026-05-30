@@ -143,7 +143,7 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
         if (status === "FOR_REQUESTING" || status === "FOR_REVISION") return 0;
         if (status === "FOR_INSPECTION") return 1;
         if (status === "FOR_REINSPECTION") return 2;
-        if (status === "EVALUATED" || status === "UNPAID" || status === "PAID") return 3;
+        if (status === "EVALUATED" || status === "UNPAID" || status === "PAYMENT_SUBMITTED" || status === "PAID") return 3;
         return 4; // SUBMIT phase (FOR_PROCESSING, FOR_CLAIM, FOR_PICKING, RELEASED)
     };
     const currentStepIdx = getStepIndex(transaction.status);

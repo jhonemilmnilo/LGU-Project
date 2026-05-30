@@ -83,8 +83,8 @@ export default function TreasuryDashboard() {
             // BPLO Admin sees: inspection, reinspection, claiming, picking, return/refund/dispute resolution tabs
             return STATUS_TABS.filter(tab => ["ALL", "FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RELEASED", "DELIVERED", "REJECTED"].includes(tab.value));
         }
-        // Treasury Staff should not see BPLO-exclusive phases nor any Return/Refund/Dispute statuses
-        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED"].includes(tab.value));
+        // Treasury Staff should see everything EXCEPT BPLO-exclusive inspection phases
+        return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION"].includes(tab.value));
     }, [isAdminAide]);
 
     const [status, setStatus] = useState("ALL");
@@ -207,6 +207,15 @@ export default function TreasuryDashboard() {
 
         // Direct category matching based on database category field
         const matchesService = !serviceFilter || tx.type?.category === serviceFilter;
+
+        // For Building Permits, Treasury only needs to see EVALUATED, UNPAID, PAID, and REJECTED
+        const isBuildingPermitTx = tx.type?.code?.startsWith("BUILDING_PERMIT") || tx.type?.name?.toUpperCase().includes("BUILDING PERMIT");
+        if (isBuildingPermitTx) {
+            const allowedStatuses = ["EVALUATED", "UNPAID", "PAID", "REJECTED"];
+            if (!allowedStatuses.includes(tx.status)) {
+                return false;
+            }
+        }
 
         return matchesSearch && matchesService;
     });

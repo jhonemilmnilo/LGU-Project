@@ -35,6 +35,19 @@ export default function DocumentViewerModal({
         };
     }, [isOpen]);
 
+    const [fetchedType, setFetchedType] = React.useState<string | null>(null);
+
+    useEffect(() => {
+        if (fileUrl && fileUrl.startsWith("blob:")) {
+            fetch(fileUrl)
+                .then(res => res.blob())
+                .then(blob => setFetchedType(blob.type))
+                .catch(() => {});
+        } else {
+            setFetchedType(null);
+        }
+    }, [fileUrl]);
+
     const activeUrl = React.useMemo(() => {
         if (file) {
             return URL.createObjectURL(file);
@@ -46,11 +59,19 @@ export default function DocumentViewerModal({
         if (file) {
             return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
         }
+        if (fetchedType) {
+            return fetchedType === "application/pdf";
+        }
         if (fileUrl) {
-            return fileUrl.toLowerCase().endsWith(".pdf") || fileUrl.includes("application/pdf") || fileUrl.includes(".pdf?");
+            if (fileUrl.toLowerCase().endsWith(".pdf") || fileUrl.includes("application/pdf") || fileUrl.includes(".pdf?")) {
+                return true;
+            }
+        }
+        if (title && title.toLowerCase().includes("pdf")) {
+            return true;
         }
         return false;
-    }, [file, fileUrl]);
+    }, [file, fileUrl, fetchedType, title]);
 
     return (
         <AnimatePresence>

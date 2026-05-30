@@ -36,6 +36,7 @@ interface EventsContextType {
     setSelectedCategory: (category: string) => void;
     currentBarangay?: string;
     activeBarangays?: string[];
+    themeColor: string;
 }
 
 const EventsContext = createContext<EventsContextType | undefined>(undefined);
@@ -46,10 +47,26 @@ export function EventsProvider({ children, initialData, currentBarangay, activeB
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingData, setEditingData] = useState<Event | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setEvents(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <EventsContext.Provider
@@ -66,6 +83,7 @@ export function EventsProvider({ children, initialData, currentBarangay, activeB
                 setSelectedCategory,
                 currentBarangay,
                 activeBarangays,
+                themeColor,
             }}
         >
             {children}
