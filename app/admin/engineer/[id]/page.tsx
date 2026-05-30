@@ -2684,17 +2684,27 @@ export default function EngineerDetailPage({ params }: PageProps) {
             </main>
 
             {/* HIGH-FIDELITY MUNICIPAL WAYBILL (PRINT ONLY) */}
-            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible text-black font-sans leading-tight">
-                <style dangerouslySetInnerHTML={{
-                    __html: `
-                    @media print {
-                        @page { size: 100mm 150mm; margin: 0; }
-                        body { visibility: hidden; }
-                        .print-only { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 5mm; }
+            {/* CRITICAL: Print stylesheet MUST be OUTSIDE the hidden container */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media print {
+                    @page { size: 100mm 150mm; margin: 0; }
+                    body * { visibility: hidden !important; }
+                    .waybill-print-zone, .waybill-print-zone * { visibility: visible !important; }
+                    .waybill-print-zone { 
+                        position: fixed !important; 
+                        left: 0 !important; 
+                        top: 0 !important; 
+                        width: 100% !important; 
+                        height: 100% !important; 
+                        padding: 5mm !important;
+                        z-index: 99999 !important;
+                        background: white !important;
                     }
-                `}} />
-
-                <div className="print-only flex flex-col h-full border-[3px] border-black rounded-sm">
+                }
+            `}} />
+            <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-0 m-0 overflow-visible text-black font-sans leading-tight">
+                <div className="waybill-print-zone flex flex-col h-full border-[3px] border-black rounded-sm">
                     {/* Header: Dynamic Branding */}
                     <div className="border-b-[3px] border-black p-3 flex items-center justify-between bg-black text-white">
                         <div className="flex items-center gap-3">

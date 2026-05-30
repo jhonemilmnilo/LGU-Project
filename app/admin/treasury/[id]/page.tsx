@@ -59,7 +59,7 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import DocumentViewerModal from "./components/DocumentViewerModal";
 
 const checkIsPdf = (url: string | null) => {
     if (!url) return false;
@@ -413,6 +413,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     );
     const isBuildingPermit = transaction?.type?.code?.startsWith("BUILDING_PERMIT") ?? false;
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
+    const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
@@ -586,7 +587,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleRelease = useCallback(async () => {
 
         // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits)
-        const ctcRequired = !isBusinessPermit && !["FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        const ctcRequired = !isBusinessPermit && !["PAID", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
         if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
             toast.error("CTC Number Required");
             return;
@@ -627,9 +628,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     ? "Ready for Picking"
                     : status === "FOR_CLAIM"
                         ? "Marked as Ready for Claiming"
-                        : status === "FOR_REINSPECTION"
-                            ? "Successfully sent to BPLO for Re-Inspection"
-                            : "Document Released";
+                        : status === "FOR_PROCESSING"
+                            ? "Transaction Proceeded to Processing"
+                            : status === "FOR_REINSPECTION"
+                                ? "Successfully sent to BPLO for Re-Inspection"
+                                : "Document Released";
                 toast.success(message);
                 setECopyFile(null);
                 setOrFile(null);
@@ -828,37 +831,47 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const baseSteps = (() => {
         if (isBusinessPermit) {
-            return [
+            const stepsList = [
                 { id: "FOR_INSPECTION", label: "INSPECTION" },
                 { id: "FOR_REQUESTING", label: "EVALUATION" },
                 { id: "EVALUATED", label: "ASSESSMENT" },
                 { id: "PAID", label: "PAID" },
                 { id: "FOR_PROCESSING", label: "PROCESSING" },
                 { id: "FOR_REINSPECTION", label: "PROCESS" },
-                {
-                    id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
-                    label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
-                },
-                {
-                    id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
-                    label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
-                }
             ];
+            if (transaction.fulfillmentType === "DELIVERY") {
+                stepsList.push(
+                    { id: "FOR_PICKING", label: "FOR PICKING" },
+                    { id: "IN_ROUTE", label: "IN ROUTE" },
+                    { id: "DELIVERED", label: "DELIVERED" }
+                );
+            } else {
+                stepsList.push(
+                    { id: "FOR_CLAIM", label: "CLAIMING" },
+                    { id: "RELEASED", label: "RELEASED" }
+                );
+            }
+            return stepsList;
         }
-        return [
+        const stepsList = [
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
             { id: "PAID", label: "PAID" },
             { id: "FOR_PROCESSING", label: "PROCESSING" },
-            {
-                id: transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM",
-                label: transaction.fulfillmentType === "DELIVERY" ? "FOR PICKING" : "CLAIMING"
-            },
-            {
-                id: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED",
-                label: transaction.fulfillmentType === "DELIVERY" ? "DELIVERED" : "RELEASED"
-            }
         ];
+        if (transaction.fulfillmentType === "DELIVERY") {
+            stepsList.push(
+                { id: "FOR_PICKING", label: "FOR PICKING" },
+                { id: "IN_ROUTE", label: "IN ROUTE" },
+                { id: "DELIVERED", label: "DELIVERED" }
+            );
+        } else {
+            stepsList.push(
+                { id: "FOR_CLAIM", label: "CLAIMING" },
+                { id: "RELEASED", label: "RELEASED" }
+            );
+        }
+        return stepsList;
     })();
 
     // Logic to add terminal or dispute steps
@@ -886,12 +899,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }
 
     steps = steps.filter(step => {
-        // Fast-track: Remove PROCESSING step for Digital Delivery (PAID phase skip)
-        if (step.id === "FOR_PROCESSING" &&
-            transaction.fulfillmentType === "DELIVERY" &&
-            ["E_PAYMENT", "BANK_TRANSFER"].includes(transaction.paymentType)) {
-            return false;
-        }
         // Over-the-counter Cash on Pick Up: Remove PAID step from middle tracking
         if (step.id === "PAID" &&
             transaction.fulfillmentType === "PICK_UP" &&
@@ -1156,6 +1163,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) {
                 toast.success("Payment proof declined successfully.");
                 setRemarks("");
+                setIsRequestingRevision(false);
                 fetchTransaction();
             } else {
                 toast.error(res.error || "Failed to decline payment proof");
@@ -1166,7 +1174,213 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
 
     const handlePrintWaybill = () => {
-        window.print();
+        // Create an isolated hidden iframe for printing
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document;
+        if (!doc) {
+            toast.error("Failed to initialize print frame.");
+            return;
+        }
+
+        const validLogo = branding.logo && (branding.logo.startsWith('/') || branding.logo.startsWith('http') || branding.logo.startsWith('data:'))
+            ? branding.logo 
+            : "/placeholder.png";
+
+        const logoHtml = branding.logo ? `
+            <img src="${validLogo}" alt="Logo" style="width: 36px; height: 36px; object-fit: contain;" />
+        ` : `
+            <div style="width: 32px; height: 32px; border: 2px solid black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: black;">
+                ${(branding.word1 || 'A').charAt(0)}
+            </div>
+        `;
+
+        const addressHtml = deliveryAddr ? `
+            ${deliveryAddr.houseNumber ? deliveryAddr.houseNumber + ', ' : ''}
+            ${deliveryAddr.street ? deliveryAddr.street + ' ' : ''}
+            ${deliveryAddr.sitio ? 'Sitio ' + deliveryAddr.sitio + ', ' : ''}
+            ${deliveryAddr.purok ? 'Purok ' + deliveryAddr.purok + ', ' : ''}
+            <br />
+            Barangay ${deliveryAddr.barangay || ''},<br />
+            ${deliveryAddr.municipality || ''}, ${deliveryAddr.province || ''}
+        ` : `
+            ${resident.houseNumber ? resident.houseNumber + ', ' : ''}${resident.street || ''}<br />
+            Barangay ${resident.barangay || ''},<br />
+            ${resident.municipality || ''}, ${resident.province || ''}
+        `;
+
+        const landmarkHtml = (deliveryAddr?.landmark || transaction.deliveryLandmark) ? `
+            <div style="margin-top: 4px; padding: 4px; background: rgba(0,0,0,0.05); border-radius: 2px; word-break: break-word;">
+                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #94a3b8; display: block; line-height: 1;">Landmark</span>
+                <span style="font-size: 7px; font-weight: 900; font-style: italic; text-transform: uppercase; line-height: 1.1; color: black; display: block;">
+                    ${deliveryAddr?.landmark || transaction.deliveryLandmark}
+                </span>
+            </div>
+        ` : '';
+
+        const amountDue = (fiscal?.totalAmount || transaction.totalAmount || 0).toLocaleString();
+
+        const waybillHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Print Waybill - ${transaction.id}</title>
+                    <style>
+                        @media print {
+                            @page { 
+                                size: 100mm 150mm; 
+                                margin: 0; 
+                            }
+                            body { 
+                                margin: 0 !important; 
+                                padding: 0 !important; 
+                                background: white !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+                        }
+                        body {
+                            font-family: system-ui, -apple-system, sans-serif;
+                            margin: 0;
+                            padding: 5mm;
+                            background: white;
+                            color: black;
+                            width: 90mm;
+                            height: 140mm;
+                            box-sizing: border-box;
+                        }
+                        .container {
+                            display: flex;
+                            flex-direction: column;
+                            height: 100%;
+                            border: 3px solid black;
+                            border-radius: 2px;
+                            line-height: 1.2;
+                            background: white;
+                            box-sizing: border-box;
+                        }
+                        .text-wrap {
+                            word-break: break-word;
+                            overflow-wrap: anywhere;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <!-- HEADER -->
+                        <div style="border-bottom: 3px solid black; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; background: white; color: black;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                ${logoHtml}
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 14px; font-weight: 900; font-style: italic; letter-spacing: -0.05em; text-transform: uppercase; line-height: 1; color: black;">
+                                        ${branding.word1} <span style="color: ${themeColor}; font-style: italic; letter-spacing: normal;">${branding.word2}</span>
+                                    </span>
+                                    <span style="font-size: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; font-style: italic; color: #475569;">
+                                        Official Municipal Logistics
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: 0.1em; border: 2px solid black; padding: 4px 8px; color: black; background: white; line-height: 1;">
+                                Waybill
+                            </div>
+                        </div>
+
+                        <!-- QR CODE -->
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 12px; border-bottom: 2px dashed black;">
+                            <div style="width: 140px; height: 140px; background: white; padding: 6px; border: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${transaction.id}" alt="Tracking QR" style="width: 100%; height: 100%;" />
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
+                                <span style="font-size: 11px; font-weight: 900; font-style: italic; letter-spacing: 0.25em; font-family: monospace; color: black;">
+                                    ${transaction.id.slice(-12).toUpperCase()}
+                                </span>
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-top: 2px;">
+                                    Transaction Tracking Reference
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- LOGISTICS DATA -->
+                        <div style="padding: 10px 12px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; border-bottom: 3px solid black;">
+                            <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b;">Recipient Name</span>
+                                    <span class="text-wrap" style="font-size: 10px; font-weight: 900; text-transform: uppercase; font-style: italic; line-height: 1.1; color: black;">
+                                        ${resident.firstName || ''} ${resident.lastName || ''}
+                                    </span>
+                                </div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b;">Contact Number</span>
+                                    <span style="font-size: 9px; font-weight: 700; font-style: italic; letter-spacing: 0.05em; color: black;">
+                                        ${deliveryAddr?.contactNumber || resident.contactNumber || "--"}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b;">Delivery Address</span>
+                                <span class="text-wrap" style="font-size: 8px; font-weight: 700; text-transform: uppercase; line-height: 1.2; font-style: italic; color: black;">
+                                    ${addressHtml}
+                                </span>
+                                ${landmarkHtml}
+                            </div>
+                        </div>
+
+                        <!-- SERVICE & PAYMENT -->
+                        <div style="padding: 8px 12px; background: #f8fafc; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; border-bottom: 3px solid black;">
+                            <div style="display: flex; flex-direction: column; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: black;">Payment Type</span>
+                                <span class="text-wrap" style="font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; color: black; line-height: 1;">
+                                    ${(transaction.paymentType || '').replace(/_/g, " ")}
+                                </span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: black;">Service</span>
+                                <span class="text-wrap" style="font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; color: black; line-height: 1.1;">
+                                    ${transaction.type?.name || ''}
+                                </span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; text-align: right; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: black;">Amount Due</span>
+                                <span style="font-size: 9px; font-weight: 900; font-style: italic; letter-spacing: -0.05em; color: ${themeColor};">
+                                    ₱${amountDue}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- FOOTNOTE -->
+                        <div style="padding: 12px; font-style: italic; box-sizing: border-box;">
+                            <div style="border-top: 1.5px dotted black; padding-top: 8px;">
+                                <p class="text-wrap" style="font-size: 6px; font-weight: 700; text-transform: uppercase; line-height: 1.4; color: #475569; margin: 0;">
+                                    * Official document for municipal logistics use only. Handle with extreme care.
+                                    If document is damaged, please report immediately to the Treasury Office.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+            </html>
+        `;
+
+        doc.open();
+        doc.write(waybillHtml);
+        doc.close();
+
+        // Print once iframe finishes loading
+        iframe.onload = () => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            // Cleanup the frame after print dialog is closed
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
+        };
     };
 
     const hasVerification = !!((transaction?.paymentType === "E_PAYMENT" || transaction?.paymentType === "BANK_TRANSFER") || (transaction?.status === "DELIVERED" && transaction?.podUrl));
@@ -1249,7 +1463,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         hasVerification,
         hasDispute,
         isRequirementsAlone,
-        handleViewFile
+        handleViewFile,
+        deliveryAddr,
+        fiscal
     };
 
     if (isBusinessPermit) {

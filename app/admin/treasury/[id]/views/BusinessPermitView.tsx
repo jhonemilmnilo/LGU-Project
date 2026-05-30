@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import LightboxView from "../components/LightboxView";
-import PrintWaybill from "../components/PrintWaybill";
 import ResidentIdentityProfile from "../components/ResidentIdentityProfile";
 import TransactionInfoCard from "../components/TransactionInfoCard";
 import RejectionRevisionControls from "../components/RejectionRevisionControls";
@@ -785,14 +784,6 @@ export default function BusinessPermitView({
                 handleRequestRevision={handleRequestRevision}
             />
 
-            <PrintWaybill
-                transaction={transaction}
-                resident={resident}
-                deliveryAddr={deliveryAddr}
-                fiscal={fiscal}
-                branding={branding}
-                themeColor={themeColor}
-            />
         </div>
     );
 }

@@ -1101,7 +1101,9 @@ export default function RequestHubPage() {
                                                         ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
                                                         : (request.status === "PAID"
                                                             ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
-                                                            : (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
+                                                            : (["REJECTED", "FOR_REVISION"].includes(request.status)
+                                                                ? (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)
+                                                                : `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
                                                 </p>
                                             </div>
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
