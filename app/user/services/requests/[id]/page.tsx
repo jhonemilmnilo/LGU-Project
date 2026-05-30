@@ -1303,8 +1303,11 @@ export default function RequestHubPage() {
                                                     >
                                                         <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
                                                         <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
-                                                            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 scale-75 group-hover/doc:scale-100 transition-transform duration-300">
-                                                                <Search className="w-4 h-4 text-white" />
+                                                            <div
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] scale-75 group-hover/doc:scale-100 transition-transform duration-300"
+                                                            >
+                                                                <span>View</span>
                                                             </div>
                                                         </div>
                                                         <div className="absolute bottom-2 left-2 right-2">
