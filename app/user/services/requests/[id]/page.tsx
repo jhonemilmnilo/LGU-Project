@@ -63,6 +63,28 @@ const checkIsPdf = (url: string | null) => {
     return url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf") || url.includes(".pdf?");
 };
 
+const checkIsFileUrl = (value: string | null) => {
+    if (!value) return false;
+    return /^(https?:\/\/|blob:|data:)/i.test(value);
+};
+
+const getPaymongoPaymentIdFromAdditionalData = (additionalData: any) => {
+    const paymongo = additionalData?.paymongo || {};
+    const lastPayment = paymongo?.lastPayment || {};
+    const payments =
+        lastPayment?.data?.attributes?.payments ||
+        lastPayment?.attributes?.payments ||
+        lastPayment?.data?.payments ||
+        [];
+
+    const payment = Array.isArray(payments) ? payments[0] : null;
+    return payment?.id || payment?.data?.id || null;
+};
+
+const isPaymongoPaymentId = (value: unknown) => {
+    return typeof value === "string" && value.startsWith("pay_");
+};
+
 // Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
 function formatPHDate(date: string | Date): string {
     return new Intl.DateTimeFormat("en-PH", {
@@ -115,6 +137,7 @@ export default function RequestHubPage() {
 
     const [request, setRequest] = useState<any>(null);
     const [copied, setCopied] = useState(false);
+    const [paymentRefCopied, setPaymentRefCopied] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isFinalizing, setIsFinalizing] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
@@ -255,7 +278,7 @@ export default function RequestHubPage() {
                     if (req.fulfillmentType) setLocalFulfillment(req.fulfillmentType);
                     if (req.paymentType) setLocalPayment(req.paymentType);
                     if (req.additionalData?.gcashReferenceNo) setGcashReferenceNo(req.additionalData.gcashReferenceNo);
-                    if (req.paymentReference) {
+                    if (checkIsFileUrl(req.paymentReference)) {
                         setPaymentProofPreview(req.paymentReference);
                     } else if (req.status === "UNPAID" && req.additionalData?.previousPaymentProofs?.length > 0) {
                         const prevs = req.additionalData.previousPaymentProofs;
@@ -587,6 +610,13 @@ export default function RequestHubPage() {
     const isPermitNewReleasedOrDelivered = isBusinessPermit &&
         ["RELEASED", "DELIVERED"].includes(request?.status) &&
         !!request?.businessPermit?.permitNumber;
+    const paymentProofUrl = checkIsFileUrl(request?.paymentReference) ? request.paymentReference : null;
+    const paymongoPaymentId = getPaymongoPaymentIdFromAdditionalData(additionalData);
+    const paymentReferenceNumber =
+        additionalData?.gcashReferenceNo ||
+        paymongoPaymentId ||
+        (isPaymongoPaymentId(additionalData?.paymongo?.paymentId) ? additionalData.paymongo.paymentId : null) ||
+        (isPaymongoPaymentId(request?.paymentReference) ? request.paymentReference : null);
 
     const isReportAllowed = useMemo(() => {
         if (!request || request.status !== "DELIVERED") return false;
@@ -633,10 +663,10 @@ export default function RequestHubPage() {
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
         const additionalTax = cedulaType === "JURIDICAL" ? Math.floor(totalBasis / 5000) * 2.00 : Math.floor(totalBasis / 1000) * 1.00;
         const subtotal = basicTax + additionalTax;
-        
+
         const savedDeliveryFee = Number(request.fiscalSnapshot?.deliveryFee || 0);
         const cleanTotalAmount = Math.max(0, (Number(request.totalAmount) || 0) - savedDeliveryFee);
-        
+
         const totalWithPenalty = cleanTotalAmount || subtotal;
         const penaltyAmount = Math.max(0, totalWithPenalty - subtotal);
         const finalTotal = totalWithPenalty + dFee;
@@ -1404,8 +1434,8 @@ export default function RequestHubPage() {
                                     </div>
 
                                     <div className="space-y-6">
-                                        {/* Payment Proof Card - Visible if paymentReference exists */}
-                                        {request.paymentReference && (
+                                        {/* Payment Proof Card - Visible only when paymentReference is an uploaded file URL */}
+                                        {paymentProofUrl && (
                                             <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><Wallet className="w-24 h-24" /></div>
                                                 <div className="relative z-10 space-y-6">
@@ -1419,9 +1449,9 @@ export default function RequestHubPage() {
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <Button
                                                             onClick={async () => {
-                                                                if (!request.paymentReference) return;
+                                                                if (!paymentProofUrl) return;
                                                                 try {
-                                                                    const response = await fetch(request.paymentReference);
+                                                                    const response = await fetch(paymentProofUrl);
                                                                     const blob = await response.blob();
                                                                     const url = window.URL.createObjectURL(blob);
                                                                     const link = document.createElement("a");
@@ -1447,8 +1477,8 @@ export default function RequestHubPage() {
                                                             variant="outline"
                                                             className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
                                                         >
-                                                            <a
-                                                                href={request.paymentReference}
+                                                                <a
+                                                                href={paymentProofUrl}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                             >
@@ -1457,6 +1487,40 @@ export default function RequestHubPage() {
                                                             </a>
                                                         </Button>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!paymentProofUrl && paymentReferenceNumber && (
+                                            <div className="bg-white dark:bg-white/[0.03] p-5 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xl space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                                                        <Hash className="w-4 h-4" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Payment Reference</p>
+                                                        <p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1 text-slate-900 dark:text-white">Reference Number</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 dark:bg-black/30 border border-slate-100 dark:border-white/10 p-3">
+                                                    <p className="flex-1 min-w-0 font-mono text-xs md:text-sm font-black text-slate-800 dark:text-slate-100 truncate">
+                                                        {paymentReferenceNumber}
+                                                    </p>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={async () => {
+                                                            await navigator.clipboard.writeText(String(paymentReferenceNumber));
+                                                            setPaymentRefCopied(true);
+                                                            toast.success("Payment reference copied!");
+                                                            setTimeout(() => setPaymentRefCopied(false), 1800);
+                                                        }}
+                                                        className="h-10 w-10 rounded-xl shrink-0"
+                                                        title="Copy Payment Reference"
+                                                    >
+                                                        {paymentRefCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                                                    </Button>
                                                 </div>
                                             </div>
                                         )}

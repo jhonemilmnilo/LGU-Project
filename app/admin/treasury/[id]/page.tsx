@@ -405,7 +405,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     */
 
     const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string }[]>([
-        { label: "Mayor's Permit Fee", amount: "" }
+        { label: "Add a Additional Fee", amount: "" }
     ]);
 
     const addFeeLineItem = () => {
