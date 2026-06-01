@@ -51,7 +51,7 @@ export function AccommodationCards() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white dark:bg-[#151b2b] p-6 rounded-2xl border border-slate-200 dark:border-[#2a3040] shadow-sm hover:shadow-md transition-shadow group"
+                    className="bg-white dark:bg-[#151b2b] p-6 rounded-2xl border-none shadow-md shadow-slate-200/50 dark:shadow-none hover:shadow-md transition-shadow group"
                 >
                     <div className="flex items-center justify-between">
                         <div>

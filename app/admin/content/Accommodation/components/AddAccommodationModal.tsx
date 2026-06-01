@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, type CSSProperties } from "react";
 import { UploadCloud, Save, Building2, MapPin, Globe, CreditCard, List } from "lucide-react";
 import { useAccommodation } from "../providers/AccommodationProvider";
 import { useAccommodationForm } from "../hooks/useAccommodationForm";
@@ -9,8 +9,7 @@ import {
     DialogContent,
     DialogDescription,
     DialogHeader,
-    DialogTitle,
-    DialogFooter
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AddAccommodationModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useAccommodation();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay, themeColor } = useAccommodation();
     const { handleSubmit, loading } = useAccommodationForm();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -43,11 +42,14 @@ export function AddAccommodationModal() {
             }}
         >
             <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-slate-50 dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
+                <div className="relative flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
                     {/* Header */}
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
+                    <DialogHeader
+                        className="p-8 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
                         <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-primary rounded-lg shadow-lg shadow-primary/20">
+                            <div className="p-2 rounded-lg shadow-lg" style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}>
                                 <Building2 className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -62,7 +64,7 @@ export function AddAccommodationModal() {
                     </DialogHeader>
 
                     {/* Scrollable Form Body */}
-                    <div className="p-6 overflow-y-auto custom-scrollbar">
+                    <div className="p-6 pb-28 overflow-y-auto custom-scrollbar">
                         <form id="accommodationForm" onSubmit={handleSubmit} className="space-y-6">
 
                             {/* Inner Boxed Container */}
@@ -82,10 +84,13 @@ export function AddAccommodationModal() {
                                         <div className="space-y-2">
                                             <Label htmlFor="type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Type of Stay <span className="text-red-500">*</span></Label>
                                             <Select name="type" defaultValue={editingData?.type || "Resort"}>
-                                                <SelectTrigger className="h-11 bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040]">
+                                                <SelectTrigger
+                                                    className="!w-full !h-11 min-h-11 bg-white dark:bg-[#0f1117] border-slate-300 dark:border-[#2a3040]"
+                                                    style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                                                >
                                                     <SelectValue placeholder="Select type" />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                                <SelectContent position="popper" className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                                     <SelectItem value="Resort">Resort</SelectItem>
                                                     <SelectItem value="Hotel">Hotel</SelectItem>
                                                     <SelectItem value="Homestay">Homestay</SelectItem>
@@ -158,7 +163,7 @@ export function AddAccommodationModal() {
 
                                 {/* Section 4: Image */}
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-2 text-primary">
+                                    <div className="flex items-center gap-2" style={{ color: themeColor }}>
                                         <UploadCloud className="w-4 h-4" />
                                         <input type="hidden" name="storageFolder" value="accommodations" />
                                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Accommodation Image</h3>
@@ -170,7 +175,11 @@ export function AddAccommodationModal() {
                                             value={editingData?.barangay || currentBarangay || ""} 
                                         />
                                     )}
-                                    <label htmlFor="imageFile" className="border-2 border-dashed border-slate-300 dark:border-[#2a3040] rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-all cursor-pointer group relative overflow-hidden min-h-[200px]">
+                                    <label
+                                        htmlFor="imageFile"
+                                        className="border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center hover:bg-slate-100 dark:hover:bg-[#2a3040]/30 transition-all cursor-pointer group relative overflow-hidden min-h-[200px]"
+                                        style={{ borderColor: `${themeColor}40` }}
+                                    >
                                         {imagePreview ? (
                                             <div className="absolute inset-0 w-full h-full">
                                                 { }
@@ -182,8 +191,8 @@ export function AddAccommodationModal() {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                                                    <UploadCloud className="w-8 h-8 text-primary dark:text-primary" />
+                                                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500" style={{ backgroundColor: `${themeColor}1a` }}>
+                                                    <UploadCloud className="w-8 h-8" style={{ color: themeColor }} />
                                                 </div>
                                                 <p className="text-slate-900 dark:text-slate-200 font-bold text-lg mb-1 tracking-tight">Click to upload photo</p>
                                                 <p className="text-slate-500 dark:text-slate-500 text-sm">Support PNG, JPG or WEBP for resort highlights</p>
@@ -211,21 +220,13 @@ export function AddAccommodationModal() {
                         </form>
                     </div>
 
-                    {/* Footer Actions */}
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
+                    <div className="absolute left-0 right-0 bottom-0 z-50 p-6 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent dark:from-[#0f1117] dark:via-[#0f1117]/95">
                         <Button
                             type="submit"
                             form="accommodationForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full h-12 text-white font-bold shadow-lg rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 "Saving..."
@@ -236,7 +237,7 @@ export function AddAccommodationModal() {
                                 </>
                             )}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
