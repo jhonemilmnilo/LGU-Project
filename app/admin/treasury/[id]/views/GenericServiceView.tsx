@@ -7,6 +7,7 @@ import {
     ArrowLeft,
     Upload,
     Camera,
+    FileText,
     BadgeCheck,
     Plus,
     Trash2,
@@ -32,6 +33,32 @@ import TransactionInfoCard from "../components/TransactionInfoCard";
 import RejectionRevisionControls from "../components/RejectionRevisionControls";
 import { TreasuryViewProps } from "./types";
 import { cn } from "@/lib/utils";
+
+const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
+const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg"];
+
+function getFileExtension(url: string) {
+    try {
+        const cleanPath = new URL(url).pathname;
+        return cleanPath.split(".").pop()?.toLowerCase() || "";
+    } catch {
+        return url.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase() || "";
+    }
+}
+
+function isDocumentFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:application/pdf")) return true;
+    return documentExtensions.includes(getFileExtension(url));
+}
+
+function isImageFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:image/") || lower.startsWith("blob:")) return true;
+    const extension = getFileExtension(url);
+    if (imageExtensions.includes(extension)) return true;
+    return !isDocumentFile(url);
+}
 
 export default function GenericServiceView(props: TreasuryViewProps) {
     const {
@@ -412,15 +439,37 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                         className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
                                     >
                                         {doc.url ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                                            isImageFile(doc.url) ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                                            ) : (
+                                                <>
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-white dark:from-[#111827] dark:to-[#0b1220]" />
+                                                    <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
+                                                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-center">
+                                                            <FileText className="w-7 h-7 text-primary" />
+                                                        </div>
+                                                        <div className="text-center min-w-0">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                                                                {getFileExtension(doc.url).toUpperCase() || "DOC"} File
+                                                            </p>
+                                                            <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-slate-800 dark:text-white truncate max-w-[220px]">
+                                                                {doc.label}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
+                                                        Open Document
+                                                    </div>
+                                                </>
+                                            )
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-1.5 p-4">
-                                                <span className="text-xl">📁</span>
+                                                <Camera className="w-6 h-6 mx-auto" />
                                                 <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
                                             </div>
                                         )}
-                                        {doc.url && (
+                                        {doc.url && isImageFile(doc.url) && (
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
                                                 <div 
                                                     style={{ backgroundColor: themeColor }}

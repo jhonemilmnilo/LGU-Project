@@ -79,6 +79,17 @@ export default function BploDetailPage({ params }: PageProps) {
     const [isRejecting, setIsRejecting] = useState(false);
     const [isRequestingRevision, setIsRequestingRevision] = useState(false);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
+    const [eCopyPreview, setECopyPreview] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!eCopyFile) {
+            setECopyPreview(null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(eCopyFile);
+        setECopyPreview(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [eCopyFile]);
     const [isResolvingDispute, setIsResolvingDispute] = useState(false);
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
@@ -95,8 +106,13 @@ export default function BploDetailPage({ params }: PageProps) {
             const res = await getTransactionById(id);
             if (res.success && res.data) {
                 setTransaction(res.data);
-                if (res.data.businessPermit?.permitNumber) {
-                    setPermitNumberInput(res.data.businessPermit.permitNumber);
+                const addData = res.data.additionalData || {};
+                const isRenew = addData.businessType === "RENEWAL" || addData.businessType === "RENEW";
+                if (isRenew) {
+                    const prevPermit = res.data.businessPermit?.permitNumber || addData.permitNumber || addData.existingPermitNumber || addData.existingPermitNo || "";
+                    setPermitNumberInput(prevPermit);
+                } else {
+                    setPermitNumberInput("");
                 }
                 // Initialize editable fee items from fiscalSnapshot.lineItems first,
                 // then fall back to transaction type defaultFees.
@@ -182,9 +198,9 @@ export default function BploDetailPage({ params }: PageProps) {
     };
 
     const handleRelease = useCallback(async () => {
-        const isNewPermit = (transaction?.additionalData as any)?.businessType === "NEW";
-        if (isNewPermit && !permitNumberInput) {
-            toast.error("Permit Number is required for brand new permits.");
+        const isRenewal = (transaction?.additionalData as any)?.businessType === "RENEWAL" || (transaction?.additionalData as any)?.businessType === "RENEW";
+        if (!isRenewal && !permitNumberInput) {
+            toast.error("License Business Permit Number is required.");
             return;
         }
 
@@ -821,7 +837,18 @@ export default function BploDetailPage({ params }: PageProps) {
 
                                 {/* Process & Release phase actions */}
                                 {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
-                                    <div className="space-y-4">
+                                    <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
+                                        {/* Card header */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-xl" style={{ backgroundColor: `${themeColor}15` }}>
+                                                <FileText className="w-4 h-4" style={{ color: themeColor }} />
+                                            </div>
+                                            <div>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Permit Issuance</span>
+                                                <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Release Details</span>
+                                            </div>
+                                        </div>
+
                                         {isRenewal ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
                                                 <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
@@ -840,19 +867,105 @@ export default function BploDetailPage({ params }: PageProps) {
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Digital Permit Upload (Optional)</Label>
-                                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
-                                                <label className="cursor-pointer block space-y-2">
-                                                    <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
-                                                    <Input
-                                                        type="file"
-                                                        accept="image/*,application/pdf"
-                                                        onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
-                                                        className="hidden"
-                                                    />
-                                                </label>
-                                                {eCopyFile && <p className="text-[10px] font-mono text-emerald-500 mt-2">Selected: {eCopyFile.name}</p>}
-                                            </div>
+                                            
+                                            {!(eCopyFile || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) ? (
+                                                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
+                                                    <label className="cursor-pointer block space-y-2">
+                                                        <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
+                                                        <Input
+                                                            type="file"
+                                                            accept="image/*,application/pdf"
+                                                            onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
+                                                            className="hidden"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setECopyFile(null);
+                                                            setTransaction((prev: any) => prev ? { ...prev, eCopyUrl: "" } : null);
+                                                        }}
+                                                        className="text-xs font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1 rounded-xl h-auto"
+                                                    >
+                                                        ✕ Clear / Change File
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {/* PREVIEW CONTAINER */}
+                                            {(eCopyPreview || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) && (
+                                                <div className="mt-4">
+                                                    {(() => {
+                                                        const isPdf = eCopyFile
+                                                            ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
+                                                            : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
+                                                        
+                                                        const targetUrl = eCopyPreview || transaction.eCopyUrl;
+
+                                                        if (isPdf) {
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setViewerUrl(targetUrl);
+                                                                        setViewerTitle("Digital Permit PDF");
+                                                                        setViewerOpen(true);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                                >
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                            📕
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Digital Permit PDF</p>
+                                                                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div 
+                                                                        style={{ color: themeColor, borderColor: `${themeColor}40` }}
+                                                                        className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
+                                                                    >
+                                                                        Open PDF ➔
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setViewerUrl(targetUrl);
+                                                                    setViewerTitle("Digital Permit Document");
+                                                                    setViewerOpen(true);
+                                                                }}
+                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
+                                                            >
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={targetUrl}
+                                                                    alt="Digital Permit Preview"
+                                                                    className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                                />
+                                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                    <div
+                                                                        style={{ backgroundColor: themeColor }}
+                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                                    >
+                                                                        <span>View</span>
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-2">

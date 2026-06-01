@@ -13,6 +13,17 @@ interface DocumentViewerModalProps {
     title: string;
     themeColor?: string;
 }
+
+const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
+
+function getFileExtension(value: string) {
+    try {
+        const cleanPath = new URL(value).pathname;
+        return cleanPath.split(".").pop()?.toLowerCase() || "";
+    } catch {
+        return value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase() || "";
+    }
+}
  
 export default function DocumentViewerModal({
     isOpen,
@@ -88,24 +99,51 @@ export default function DocumentViewerModal({
         }
         return false;
     }, [file, fileUrl, fetchedType, title]);
+
+    const fileExtension = React.useMemo(() => {
+        if (file?.name) return getFileExtension(file.name);
+        if (fileUrl) return getFileExtension(fileUrl);
+        return "";
+    }, [file, fileUrl]);
+
+    const isDocument = React.useMemo(() => {
+        if (isPdf) return true;
+        if (file) {
+            if (file.type.startsWith("image/")) return false;
+            return documentExtensions.includes(fileExtension) || file.type.startsWith("application/");
+        }
+        if (fetchedType) {
+            if (fetchedType.startsWith("image/")) return false;
+            return fetchedType.startsWith("application/") || fetchedType.startsWith("text/");
+        }
+        return documentExtensions.includes(fileExtension);
+    }, [file, fetchedType, fileExtension, isPdf]);
+
+    const isImage = !isDocument;
+
+    const officeViewerUrl = React.useMemo(() => {
+        if (!activeUrl || isPdf || !["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(fileExtension)) return null;
+        if (!/^https?:\/\//i.test(activeUrl)) return null;
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(activeUrl)}`;
+    }, [activeUrl, fileExtension, isPdf]);
  
     // Interactive Handlers
     const handleWheel = (e: React.WheelEvent) => {
-        if (isPdf) return;
+        if (!isImage) return;
         e.preventDefault();
         const newScale = Math.min(Math.max(scale - e.deltaY * 0.0015, 0.4), 8);
         setScale(newScale);
     };
  
     const handlePointerDown = (e: React.PointerEvent) => {
-        if (isPdf) return;
+        if (!isImage) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         setIsDragging(true);
         setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     };
  
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isDragging || isPdf) return;
+        if (!isDragging || !isImage) return;
         setPosition({
             x: e.clientX - dragStart.x,
             y: e.clientY - dragStart.y
@@ -113,7 +151,7 @@ export default function DocumentViewerModal({
     };
  
     const handlePointerUp = () => {
-        if (isPdf) return;
+        if (!isImage) return;
         setIsDragging(false);
     };
  
@@ -154,7 +192,7 @@ export default function DocumentViewerModal({
                         <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0">
-                                    {isPdf ? (
+                                    {isDocument ? (
                                         <FileText className="w-5 h-5 text-primary" style={{ color: themeColor }} />
                                     ) : (
                                         <Eye className="w-5 h-5 text-primary" style={{ color: themeColor }} />
@@ -170,7 +208,7 @@ export default function DocumentViewerModal({
                             
                             <div className="flex items-center gap-2">
                                 {/* Visualizer Controls - Only for Images */}
-                                {!isPdf && (
+                                {isImage && (
                                     <div className="hidden sm:flex items-center gap-1 bg-slate-50 dark:bg-white/5 rounded-xl p-1 border border-slate-100 dark:border-white/5 mr-2">
                                         <Button
                                             onClick={() => setScale(prev => Math.min(prev + 0.25, 8))}
@@ -248,6 +286,39 @@ export default function DocumentViewerModal({
                                     className="w-full h-full rounded-2xl border-0 bg-white"
                                     title="PDF Document Viewer"
                                 />
+                            ) : isDocument ? (
+                                officeViewerUrl ? (
+                                    <iframe
+                                        src={officeViewerUrl}
+                                        className="w-full h-full rounded-2xl border-0 bg-white"
+                                        title="Office Document Viewer"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center p-8">
+                                        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl">
+                                            <div className="mx-auto w-20 h-20 rounded-3xl bg-white/10 border border-white/10 flex items-center justify-center">
+                                                <FileText className="w-10 h-10" style={{ color: themeColor }} />
+                                            </div>
+                                            <p className="mt-6 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+                                                {fileExtension.toUpperCase() || "Document"} File
+                                            </p>
+                                            <h4 className="mt-2 text-xl font-black italic uppercase tracking-tight text-white">
+                                                {title}
+                                            </h4>
+                                            <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+                                                This file type cannot be previewed directly in the browser. Open it in a new tab to view or download the submitted document.
+                                            </p>
+                                            <Button
+                                                onClick={() => window.open(activeUrl, "_blank")}
+                                                className="mt-6 h-11 rounded-xl px-6 text-xs font-black uppercase tracking-wider text-white"
+                                                style={{ backgroundColor: themeColor }}
+                                            >
+                                                <Download className="w-4 h-4 mr-2" />
+                                                Open Document
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )
                             ) : (
                                 <div 
                                     className="w-full h-full flex items-center justify-center relative active:cursor-grabbing overflow-hidden cursor-grab"

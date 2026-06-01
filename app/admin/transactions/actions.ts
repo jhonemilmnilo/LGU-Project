@@ -1277,11 +1277,11 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             result.totalAmount += itemsSum;
         }
 
-        // Determine New Status
-        // If it is a Business Permit and being evaluated from inspection/reinspection phase, set status to FOR_PROCESSING.
-        // Otherwise, follow the standard logic:
+        // Determine New Status.
+        // New BPLO requests that pass inspection move to Treasury requesting.
+        // Re-inspection keeps the existing later-phase flow and returns to processing.
         let newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
-        if (isBusinessPermit && ["FOR_INSPECTION", "FOR_REINSPECTION"].includes(transaction.status)) {
+        if (isBusinessPermit && transaction.status === "FOR_REINSPECTION") {
             newStatus = "FOR_PROCESSING";
         }
 
@@ -1699,9 +1699,12 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             const existingPermitNo = additionalData?.permitNumber || additionalData?.existingPermitNumber || additionalData?.existingPermitNo;
 
             if (!transaction.businessPermit) {
+                if (!isRenewal && !ctcNumber?.trim()) {
+                    return { success: false, error: "Permit Number is required for new business permits." };
+                }
                 const generatedPermitNo = (isRenewal && existingPermitNo)
                     ? existingPermitNo.trim()
-                    : (ctcNumber?.trim() || `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`);
+                    : ctcNumber.trim();
                 await (prisma.businessPermit.create as any)({
                     data: {
                         transactionId: id,

@@ -14,6 +14,17 @@ interface DocumentViewerModalProps {
     themeColor?: string;
 }
 
+const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
+
+function getFileExtension(value: string) {
+    try {
+        const cleanPath = new URL(value).pathname;
+        return cleanPath.split(".").pop()?.toLowerCase() || "";
+    } catch {
+        return value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase() || "";
+    }
+}
+
 export default function DocumentViewerModal({
     isOpen,
     onClose,
@@ -76,6 +87,33 @@ export default function DocumentViewerModal({
         return false;
     }, [file, fileUrl, fetchedType, title]);
 
+    const fileExtension = React.useMemo(() => {
+        if (file?.name) return getFileExtension(file.name);
+        if (fileUrl) return getFileExtension(fileUrl);
+        return "";
+    }, [file, fileUrl]);
+
+    const isDocument = React.useMemo(() => {
+        if (isPdf) return true;
+        if (file) {
+            if (file.type.startsWith("image/")) return false;
+            return documentExtensions.includes(fileExtension) || file.type.startsWith("application/");
+        }
+        if (fetchedType) {
+            if (fetchedType.startsWith("image/")) return false;
+            return fetchedType.startsWith("application/") || fetchedType.startsWith("text/");
+        }
+        return documentExtensions.includes(fileExtension);
+    }, [file, fetchedType, fileExtension, isPdf]);
+
+    const isImage = !isDocument;
+
+    const officeViewerUrl = React.useMemo(() => {
+        if (!activeUrl || isPdf || !["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(fileExtension)) return null;
+        if (!/^https?:\/\//i.test(activeUrl)) return null;
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(activeUrl)}`;
+    }, [activeUrl, fileExtension, isPdf]);
+
     // Zoom helpers
     const zoomIn = () => setZoom(z => Math.min(z + 0.25, 4));
     const zoomOut = () => setZoom(z => Math.max(z - 0.25, 0.25));
@@ -83,11 +121,11 @@ export default function DocumentViewerModal({
 
     // Drag handlers
     const onMouseDown = useCallback((e: React.MouseEvent) => {
-        if (isPdf) return;
+        if (!isImage) return;
         setIsDragging(true);
         dragStart.current = { x: e.clientX, y: e.clientY, px: position.x, py: position.y };
         e.preventDefault();
-    }, [isPdf, position]);
+    }, [isImage, position]);
 
     const onMouseMove = useCallback((e: React.MouseEvent) => {
         if (!isDragging || !dragStart.current) return;
@@ -103,10 +141,10 @@ export default function DocumentViewerModal({
 
     // Touch drag handlers
     const onTouchStart = useCallback((e: React.TouchEvent) => {
-        if (isPdf || e.touches.length !== 1) return;
+        if (!isImage || e.touches.length !== 1) return;
         const t = e.touches[0];
         dragStart.current = { x: t.clientX, y: t.clientY, px: position.x, py: position.y };
-    }, [isPdf, position]);
+    }, [isImage, position]);
 
     const onTouchMove = useCallback((e: React.TouchEvent) => {
         if (!dragStart.current || e.touches.length !== 1) return;
@@ -121,11 +159,11 @@ export default function DocumentViewerModal({
 
     // Scroll wheel zoom
     const onWheel = useCallback((e: React.WheelEvent) => {
-        if (isPdf) return;
+        if (!isImage) return;
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
         setZoom(z => Math.min(Math.max(z + delta, 0.25), 4));
-    }, [isPdf]);
+    }, [isImage]);
 
     return (
         <AnimatePresence>
@@ -159,7 +197,7 @@ export default function DocumentViewerModal({
                         <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0">
-                                    {isPdf
+                                    {isDocument
                                         ? <FileText className="w-4 h-4" style={{ color: themeColor }} />
                                         : <Eye className="w-4 h-4" style={{ color: themeColor }} />
                                     }
@@ -171,8 +209,8 @@ export default function DocumentViewerModal({
                             </div>
 
                             <div className="flex items-center gap-2">
-                                {/* Image controls — shown only for non-PDF */}
-                                {!isPdf && (
+                                {/* Image controls — shown only for images */}
+                                {isImage && (
                                     <>
                                         {/* Zoom Out */}
                                         <button
@@ -252,7 +290,7 @@ export default function DocumentViewerModal({
                         <div
                             ref={containerRef}
                             className="flex-1 relative overflow-hidden bg-[#0c0f16]"
-                            style={{ cursor: isPdf ? "default" : isDragging ? "grabbing" : "grab" }}
+                            style={{ cursor: isImage ? (isDragging ? "grabbing" : "grab") : "default" }}
                             onMouseDown={onMouseDown}
                             onMouseMove={onMouseMove}
                             onMouseUp={onMouseUp}
@@ -268,6 +306,39 @@ export default function DocumentViewerModal({
                                     className="w-full h-full border-0 bg-white"
                                     title="PDF Document Viewer"
                                 />
+                            ) : isDocument ? (
+                                officeViewerUrl ? (
+                                    <iframe
+                                        src={officeViewerUrl}
+                                        className="w-full h-full border-0 bg-white"
+                                        title="Office Document Viewer"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center p-8">
+                                        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl">
+                                            <div className="mx-auto w-20 h-20 rounded-3xl bg-white/10 border border-white/10 flex items-center justify-center">
+                                                <FileText className="w-10 h-10" style={{ color: themeColor }} />
+                                            </div>
+                                            <p className="mt-6 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+                                                {fileExtension.toUpperCase() || "Document"} File
+                                            </p>
+                                            <h4 className="mt-2 text-xl font-black italic uppercase tracking-tight text-white">
+                                                {title}
+                                            </h4>
+                                            <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+                                                This file type cannot be previewed directly in the browser. Open it in a new tab to view or download the submitted document.
+                                            </p>
+                                            <Button
+                                                onClick={() => window.open(activeUrl, "_blank")}
+                                                className="mt-6 h-11 rounded-xl px-6 text-xs font-black uppercase tracking-wider text-white"
+                                                style={{ backgroundColor: themeColor }}
+                                            >
+                                                <Download className="w-4 h-4 mr-2" />
+                                                Open Document
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center select-none">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
