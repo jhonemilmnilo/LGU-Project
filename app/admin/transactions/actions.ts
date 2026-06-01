@@ -1114,7 +1114,6 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
     try {
         const sanitizedId = sanitizeString(id);
         const sanitizedAdminNotes = adminNotes ? sanitizeString(adminNotes) : undefined;
-<<<<<<< Updated upstream
         const sanitizedBpFeeLineItems = bpFeeLineItems
             ? bpFeeLineItems
                 .map(item => ({
@@ -1123,15 +1122,9 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 }))
                 .filter(item => item.label && Number.isFinite(item.amount) && item.amount > 0)
             : undefined;
-=======
-        const sanitizedBpFeeLineItems = bpFeeLineItems ? bpFeeLineItems.map(item => ({
-            label: sanitizeString(item.label),
-            amount: Number(item.amount)
-        })) : undefined;
         const sanitizedRegistryBookVerification = registryBookVerification ? sanitizeString(registryBookVerification) : undefined;
         const sanitizedScannedDocUrl = scannedDocUrl ? sanitizeString(scannedDocUrl) : undefined;
         const sanitizedOrSeriesNumber = orSeriesNumber ? sanitizeString(orSeriesNumber) : undefined;
->>>>>>> Stashed changes
 
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
