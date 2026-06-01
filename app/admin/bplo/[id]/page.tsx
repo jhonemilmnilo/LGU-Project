@@ -300,7 +300,7 @@ export default function BploDetailPage({ params }: PageProps) {
         }
 
         const validLogo = branding.logo && (branding.logo.startsWith('/') || branding.logo.startsWith('http') || branding.logo.startsWith('data:'))
-            ? branding.logo 
+            ? branding.logo
             : "/placeholder.png";
 
         const logoHtml = branding.logo ? `
@@ -339,8 +339,8 @@ export default function BploDetailPage({ params }: PageProps) {
         ` : '';
 
         const rawFiscal = transaction.fiscalSnapshot;
-        const fiscal = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
-        const amountDue = (fiscal?.totalAmount || transaction.totalAmount || 0).toLocaleString();
+        const fiscalSnapshot = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
+        const amountDue = (Number(transaction.totalAmount) || Number(fiscalSnapshot.totalAmount) || 0).toLocaleString();
 
         const waybillHtml = `
             <!DOCTYPE html>
@@ -474,7 +474,7 @@ export default function BploDetailPage({ params }: PageProps) {
                             <div style="border-top: 1.5px dotted black; padding-top: 8px;">
                                 <p class="text-wrap" style="font-size: 6px; font-weight: 700; text-transform: uppercase; line-height: 1.4; color: #475569; margin: 0;">
                                     * Official document for municipal logistics use only. Handle with extreme care.
-                                    If document is damaged, please report immediately to the Treasury Office.
+                                    If document is damaged, please report immediately to the BPLO Office.
                                 </p>
                             </div>
                         </div>
@@ -544,7 +544,6 @@ export default function BploDetailPage({ params }: PageProps) {
     const additional = transaction.additionalData || {};
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const isRenewal = additional.businessType === "RENEWAL" || additional.businessType === "RENEW";
-    const isReadOnlyStatus = ["FOR_REQUESTING", "UNPAID", "PAID", "EVALUATED"].includes(transaction.status);
 
     const evidenceDocs = [
         { url: additional.ownerIdUrl, label: "Owner's Valid ID" },
@@ -715,7 +714,7 @@ export default function BploDetailPage({ params }: PageProps) {
                             {isBreakdownExpanded && (() => {
                                 const rawFiscal = transaction.fiscalSnapshot;
                                 const fiscalSnapshot = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
-                                const isInspectionAssessment = transaction.status === "FOR_INSPECTION" && !isReadOnlyStatus;
+                                const isInspectionAssessment = transaction.status === "FOR_INSPECTION";
                                 const lineItems: any[] = fiscalSnapshot.lineItems || [];
                                 const defaultFees: any[] = transaction.type?.defaultFees || [];
                                 const positiveLineItems = lineItems.filter((i: any) => Number(i.amount) > 0);
@@ -1085,9 +1084,9 @@ export default function BploDetailPage({ params }: PageProps) {
                         const paymentRef = transaction.paymentReference && !isValidUrl(transaction.paymentReference) ? transaction.paymentReference : null;
                         const additionalPaymentId = (transaction.additionalData as any)?.paymentId || (transaction.additionalData as any)?.id || (transaction.additionalData as any)?.payment_id;
                         const refNo = gcashRef || paymentRef || additionalPaymentId;
-                        
+
                         if (!hasImage && !refNo) return null;
-                        
+
                         return (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
                                 <div className="flex items-center gap-3">
@@ -1134,18 +1133,16 @@ export default function BploDetailPage({ params }: PageProps) {
                                                 <Hash className="w-3.5 h-3.5 text-primary" />
                                                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Reference No.</span>
                                             </div>
-                                            {!isReadOnlyStatus && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(refNo);
-                                                        toast.success("Reference number copied!");
-                                                    }}
-                                                    className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
-                                                >
-                                                    <Copy className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(refNo);
+                                                    toast.success("Reference number copied!");
+                                                }}
+                                                className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
+                                            >
+                                                <Copy className="w-3.5 h-3.5" />
+                                            </button>
                                         </div>
                                         <p className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">
                                             {refNo}
@@ -1157,40 +1154,7 @@ export default function BploDetailPage({ params }: PageProps) {
                     })()}
 
                     {/* EXECUTIVE ACTIONS */}
-                    {!isReadOnlyStatus && (
                     <div className="space-y-4 pt-4">
-                        {isRejecting || isRequestingRevision ? (
-                            <div className="bg-white dark:bg-[#151b28] p-8 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl space-y-4 animate-in slide-in-from-bottom-4">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary italic">Decision Rationale Remarks</Label>
-                                <Textarea
-                                    ref={remarksRef}
-                                    value={remarks}
-                                    onChange={(e) => setRemarks(e.target.value)}
-                                    placeholder="Explain decision detail..."
-                                    className="min-h-[100px] rounded-2xl focus-visible:ring-primary border-slate-100 dark:border-white/10"
-                                />
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={isRejecting ? handleReject : handleRequestRevision}
-                                        disabled={actionLoading}
-                                        className={cn(
-                                            "flex-1 h-11 text-white rounded-xl text-xs font-black uppercase italic tracking-wider",
-                                            isRejecting ? "bg-rose-600 hover:bg-rose-700" : "bg-amber-500 hover:bg-amber-600"
-                                        )}
-                                    >
-                                        Confirm
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => { setIsRejecting(false); setIsRequestingRevision(false); }}
-                                        className="flex-1 h-11 rounded-xl text-xs font-bold"
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
                                 {/* Inspection phase actions */}
                                 {(transaction.status === "FOR_INSPECTION" || transaction.status === "FOR_REINSPECTION") && (
                                     <div className="space-y-4">
@@ -1236,8 +1200,6 @@ export default function BploDetailPage({ params }: PageProps) {
                                             </div>
                                         </div>
 
-                                        {transaction.status !== "FOR_PICKING" && (
-                                            <>
                                         {isRenewal ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
                                                 <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
@@ -1356,47 +1318,38 @@ export default function BploDetailPage({ params }: PageProps) {
                                                 </div>
                                             )}
                                         </div>
-                                            </>
-                                        )}
 
-                                        {transaction.status !== "FOR_PICKING" && (
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sticker Number (Optional)</Label>
-                                                <Input
-                                                    value={stickerNumber}
-                                                    onChange={(e) => setStickerNumber(e.target.value)}
-                                                    placeholder="Enter Sticker Number..."
-                                                    className="h-12 rounded-xl text-sm font-bold"
-                                                />
-                                            </div>
-                                        )}
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sticker Number (Optional)</Label>
+                                            <Input
+                                                value={stickerNumber}
+                                                onChange={(e) => setStickerNumber(e.target.value)}
+                                                placeholder="Enter Sticker Number..."
+                                                className="h-12 rounded-xl text-sm font-bold"
+                                            />
+                                        </div>
 
-                                        {(transaction.status === "FOR_PICKING" || (transaction.fulfillmentType === "DELIVERY" && transaction.status === "FOR_PROCESSING")) && (
+                                        {transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "DELIVERY" && (
                                             <Button
                                                 type="button"
                                                 onClick={handlePrintWaybill}
                                                 variant="outline"
-                                                className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                                className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
                                             >
                                                 Generate & Print Waybill
                                             </Button>
                                         )}
 
-                                        {transaction.status !== "FOR_PICKING" && (
-                                            <Button
-                                                onClick={handleRelease}
-                                                disabled={actionLoading}
-                                                className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
-                                            >
-                                                Update & Release Permit
-                                            </Button>
-                                        )}
+                                        <Button
+                                            onClick={handleRelease}
+                                            disabled={actionLoading}
+                                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
+                                        >
+                                            Update & Release Permit
+                                        </Button>
                                     </div>
                                 )}
-                            </>
-                        )}
                     </div>
-                    )}
                 </div>
             </main>
 
@@ -1427,6 +1380,78 @@ export default function BploDetailPage({ params }: PageProps) {
                             <Button
                                 variant="outline"
                                 onClick={() => setDisputeModalOpen(false)}
+                                className="flex-1 h-11 rounded-xl text-xs font-bold"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Request Revision Modal */}
+            <Dialog open={isRequestingRevision} onOpenChange={setIsRequestingRevision}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-[#0f1117] rounded-3xl border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black uppercase italic tracking-tight">
+                            Request Revision
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <Label className="text-xs font-black text-amber-500 uppercase">Reason for Revision Request</Label>
+                        <Textarea
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
+                            placeholder="Provide details about the required revision..."
+                            className="min-h-[100px] rounded-xl"
+                        />
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={handleRequestRevision}
+                                disabled={actionLoading}
+                                className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider"
+                            >
+                                Send Request
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsRequestingRevision(false)}
+                                className="flex-1 h-11 rounded-xl text-xs font-bold"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Decline/Reject Modal */}
+            <Dialog open={isRejecting} onOpenChange={setIsRejecting}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-[#0f1117] rounded-3xl border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black uppercase italic tracking-tight text-rose-600">
+                            Decline Request
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <Label className="text-xs font-black text-rose-500 uppercase">Reason for Decline / Rejection</Label>
+                        <Textarea
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
+                            placeholder="Explain reason for decline..."
+                            className="min-h-[100px] rounded-xl"
+                        />
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={handleReject}
+                                disabled={actionLoading}
+                                className="flex-1 h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider"
+                            >
+                                Decline Request
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsRejecting(false)}
                                 className="flex-1 h-11 rounded-xl text-xs font-bold"
                             >
                                 Cancel

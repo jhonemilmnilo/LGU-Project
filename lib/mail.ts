@@ -1,4 +1,6 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailProps {
     type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET" | "PROCESSING";
@@ -16,21 +18,12 @@ interface SendEmailProps {
  * Reuses existing Gmail SMTP configuration from .env
  */
 export async function sendEmail({ type, to, name, remarks, transactionId, amount, resetLink, serviceName }: SendEmailProps) {
-    const emailUser = process.env.EMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS;
+    const resendApiKey = process.env.RESEND_API_KEY;
 
-    if (!emailPass || !emailUser) {
-        console.warn("Skipping email: EMAIL_USER or EMAIL_PASS not configured in .env");
-        return { success: false, error: "Email credentials not configured." };
+    if (!resendApiKey) {
+        console.warn("Skipping email: RESEND_API_KEY not configured in .env");
+        return { success: false, error: "Resend API key not configured." };
     }
-
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: emailUser,
-            pass: emailPass,
-        },
-    });
 
     console.log(`[MAIL] Sending email of type: ${type} to: ${to}`);
 
@@ -441,17 +434,24 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
     }
 
     try {
-        const info = await transporter.sendMail({
-            from: `"LGU ${municipalityName}" <${emailUser}>`,
-            to,
+        const fromEmail = process.env.SENDER_EMAIL || "onboarding@resend.dev";
+
+        const { data, error } = await resend.emails.send({
+            from: `LGU ${municipalityName} <${fromEmail}>`,
+            to: [to],
             subject,
             html: htmlBody,
         });
 
-        console.log(`Email (${type}) sent successfully to ${to}: ${info.messageId}`);
+        if (error) {
+            console.error("Resend failed:", error);
+            return { success: false, error: error.message || "Failed to send email." };
+        }
+
+        console.log(`Email (${type}) sent successfully to ${to}: ${data?.id}`);
         return { success: true };
     } catch (error: any) {
-        console.error("Nodemailer failed:", error);
+        console.error("Resend execution failed:", error);
         return { success: false, error: error.message || "Failed to send email." };
     }
 }
