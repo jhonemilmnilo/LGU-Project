@@ -1042,7 +1042,7 @@ export default function RequestHubPage() {
                                                     {/* Previous payment proofs list */}
                                                     {(() => {
                                                         const prevProofs = [...(additionalData.previousPaymentProofs || request?.previousPaymentProofs || [])];
-                                                        
+
                                                         // If paymentProofFile is present (meaning they selected a new file):
                                                         // - The new file is shown in the upload snapshot container.
                                                         // - All elements inside prevProofs (including the latest rejected one) should show in the Previous Submissions list!
@@ -1050,9 +1050,9 @@ export default function RequestHubPage() {
                                                         // - The latest rejected one is currently displayed in the upload snapshot container.
                                                         // - So we must remove it from the Previous Submissions list to avoid duplication!
                                                         const hasNewUpload = !!paymentProofFile;
-                                                        
-                                                        const visibleProofs = hasNewUpload 
-                                                            ? prevProofs 
+
+                                                        const visibleProofs = hasNewUpload
+                                                            ? prevProofs
                                                             : prevProofs.slice(0, -1); // Hide the latest one from previous list since it is currently showing in the main upload box
 
                                                         if (visibleProofs && visibleProofs.length > 0) {

@@ -85,4 +85,12 @@ export interface TreasuryViewProps {
     hasDispute: boolean;
     isRequirementsAlone: boolean;
     handleViewFile?: (url: string | null, title: string) => void;
+    registryBookVerification?: string;
+    setRegistryBookVerification?: Dispatch<SetStateAction<string>>;
+    birthRegDocFile?: File | null;
+    setBirthRegDocFile?: Dispatch<SetStateAction<File | null>>;
+    birthRegDocPreview?: string | null;
+    setBirthRegDocPreview?: Dispatch<SetStateAction<string | null>>;
+    orSeriesNumber?: string;
+    setOrSeriesNumber?: Dispatch<SetStateAction<string>>;
 }
