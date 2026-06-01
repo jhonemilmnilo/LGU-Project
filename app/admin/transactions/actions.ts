@@ -906,9 +906,9 @@ export async function getTransactionById(id: string) {
         }
 
         return { success: true, data: transaction as any };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Fetch transaction by id error:", error);
-        return { success: false, error: "Failed to fetch transaction details" };
+        return { success: false, error: error?.message || "Failed to fetch transaction details" };
     }
 }
 
@@ -1110,7 +1110,7 @@ export async function submitTransaction(formData: FormData) {
 /**
  * Evaluate a Cedula Transaction (Treasury Staff side)
  */
-export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string, bpFeeLineItems?: { label: string; amount: number }[]) {
+export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string, bpFeeLineItems?: { label: string; amount: number }[], registryBookVerification?: string, scannedDocUrl?: string, orSeriesNumber?: string) {
     try {
         const sanitizedId = sanitizeString(id);
         const sanitizedAdminNotes = adminNotes ? sanitizeString(adminNotes) : undefined;
@@ -1122,6 +1122,9 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 }))
                 .filter(item => item.label && Number.isFinite(item.amount) && item.amount > 0)
             : undefined;
+        const sanitizedRegistryBookVerification = registryBookVerification ? sanitizeString(registryBookVerification) : undefined;
+        const sanitizedScannedDocUrl = scannedDocUrl ? sanitizeString(scannedDocUrl) : undefined;
+        const sanitizedOrSeriesNumber = orSeriesNumber ? sanitizeString(orSeriesNumber) : undefined;
 
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
@@ -1292,6 +1295,12 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 totalAmount: result!.totalAmount, // This is the Base Tax + Penalty
                 processedBy: user.id,
                 rejectionRemarks: sanitizedAdminNotes,
+                additionalData: {
+                    ...(additionalData || {}),
+                    ...(sanitizedRegistryBookVerification ? { registryBookVerification: sanitizedRegistryBookVerification } : {}),
+                    ...(sanitizedScannedDocUrl ? { scannedDocUrl: sanitizedScannedDocUrl } : {}),
+                    ...(sanitizedOrSeriesNumber ? { orSeriesNumber: sanitizedOrSeriesNumber } : {})
+                },
                 fiscalSnapshot: {
                     basicTax: result!.basicTax,
                     additionalTax: result!.additionalTax,
@@ -1500,6 +1509,8 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
         const id = formData.get("id") as string;
         const remarks = formData.get("remarks") as string;
         const receiptFile = formData.get("receiptFile") as File;
+        const orFile = formData.get("orFile") as File;
+        const orSeriesNumber = formData.get("orSeriesNumber") as string;
 
         const sanitizedId = sanitizeString(id);
         const sanitizedRemarks = remarks ? sanitizeString(remarks) : undefined;
@@ -1512,17 +1523,26 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         let treasuryReceiptUrl = undefined;
-        if (receiptFile && receiptFile.size > 0) {
+        if (receiptFile && (receiptFile as any).size > 0) {
             const timestamp = Date.now();
-            const path = `treasury/receipts/${sanitizedId}/${timestamp}-${receiptFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            const path = `treasury/receipts/${sanitizedId}/${timestamp}-${(receiptFile as any).name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
             treasuryReceiptUrl = await uploadFile(receiptFile, path);
+        }
+
+        let orDocumentUrl = undefined;
+        if (orFile && (orFile as any).size > 0) {
+            const timestamp = Date.now();
+            const path = `treasury/or/${sanitizedId}/${timestamp}-${(orFile as any).name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            orDocumentUrl = await uploadFile(orFile, path);
         }
 
         const currentAdditionalData = (transaction.additionalData as any) || {};
         const updatedAdditionalData = {
             ...currentAdditionalData,
             ...(sanitizedRemarks && { treasuryRemarks: sanitizedRemarks }),
-            ...(treasuryReceiptUrl && { treasuryReceiptUrl })
+            ...(treasuryReceiptUrl && { treasuryReceiptUrl }),
+            ...(orSeriesNumber && { orSeriesNumber: sanitizeString(orSeriesNumber) }),
+            ...(orDocumentUrl && { orDocumentUrl })
         };
 
         const updatedTransaction = await prisma.transaction.update({

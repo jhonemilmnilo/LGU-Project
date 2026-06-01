@@ -7,7 +7,8 @@ import {
     LayoutDashboard, Users, Newspaper,
     Briefcase, MapPin, Map,
     UtensilsCrossed, Calendar, Phone, FolderKanban, BedDouble, AlertTriangle, Settings, Megaphone, UserCheck,
-    ChevronDown, ChevronUp, LogOut, Search, Info, Church, CreditCard, Truck, HardHat, Moon, Sun
+    ChevronDown, ChevronUp, LogOut, Search, Info, Church, CreditCard, Truck, HardHat, Moon, Sun,
+    FileText
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -54,6 +55,7 @@ export function Sidebar({
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
     const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+    const [isRegistrarOpen, setIsRegistrarOpen] = React.useState(pathname.startsWith("/admin/registrar"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
@@ -66,7 +68,8 @@ export function Sidebar({
         setIsSettingsOpen(pathname.startsWith("/admin/settings"));
         setIsAboutOpen(pathname.startsWith("/admin/about"));
         setIsBarangaysOpen(pathname.startsWith("/admin/barangays"));
-        setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+            setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+            setIsRegistrarOpen(pathname.startsWith("/admin/registrar"));
     }, [pathname]);
 
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -168,6 +171,18 @@ export function Sidebar({
         // { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
         {
+            label: "Registrar Hub",
+            icon: FileText,
+            category: "Registrar",
+            isDropdown: true,
+            isOpen: isRegistrarOpen,
+            onToggle: () => setIsRegistrarOpen(!isRegistrarOpen),
+            subItems: [
+                { href: "/admin/registrar", label: "Verify & Bill Requests" },
+                { href: "/admin/registrar/release-documents", label: "Release Documents" },
+            ]
+        },
+        {
             label: "Treasury Hub",
             icon: LayoutDashboard,
             category: "Treasury",
@@ -228,6 +243,12 @@ export function Sidebar({
         if (department.toUpperCase() === "BPLO") {
             menuItems = [
                 { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
+            ];
+        } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL REGISTRY") {
+            const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
+            menuItems = [
+                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+                ...(registrarHubItem ? [registrarHubItem] : [])
             ];
         } else {
             menuItems = [

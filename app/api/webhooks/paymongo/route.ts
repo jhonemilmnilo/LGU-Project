@@ -82,7 +82,7 @@ async function verifySignature(header: string | null, secret: string, payload: s
       }
 
       // Fallback string compare
-      if (sig === hex || sig === b64 || sig === header) {
+      if (sig === hex || sig === b64 || sig === header) { 
         console.log("[PayMongo Webhook] verifySignature: string fallback match");
         return true;
       }
