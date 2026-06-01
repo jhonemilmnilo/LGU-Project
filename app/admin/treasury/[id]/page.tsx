@@ -265,6 +265,20 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [orFile, setOrFile] = useState<File | null>(null);
     const [orPreview, setOrPreview] = useState<string | null>(null);
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
+    const [registryBookVerification, setRegistryBookVerification] = useState<string>("");
+    const [birthRegDocFile, setBirthRegDocFile] = useState<File | null>(null);
+    const [birthRegDocPreview, setBirthRegDocPreview] = useState<string | null>(null);
+    const [orSeriesNumber, setOrSeriesNumber] = useState<string>("");
+
+    useEffect(() => {
+        if (!birthRegDocFile) {
+            setBirthRegDocPreview(null);
+            return;
+        }
+        const url = URL.createObjectURL(birthRegDocFile);
+        setBirthRegDocPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [birthRegDocFile]);
 
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
@@ -1151,7 +1165,40 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 }
             }
 
-            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend);
+            let uploadedDocUrl = "";
+            if (isLCR) {
+                if (!registryBookVerification) {
+                    toast.error("Registry Book Verification Form Choice is required before approving.");
+                    setActionLoading(false);
+                    return;
+                }
+                if (typeCode === "LCR_BIRTH_REG") {
+                    if (!orSeriesNumber) {
+                        toast.error("O.R. Series Number is required before approving.");
+                        setActionLoading(false);
+                        return;
+                    }
+                    if (!birthRegDocFile) {
+                        toast.error("Scanned / required document is required before approving.");
+                        setActionLoading(false);
+                        return;
+                    }
+
+                    // Upload the birth registration document
+                    const formData = new FormData();
+                    formData.append("file", birthRegDocFile);
+                    const uploadRes = await uploadECopyAction(formData);
+                    if (uploadRes.success) {
+                        uploadedDocUrl = uploadRes.data as string;
+                    } else {
+                        toast.error("Birth registration document upload failed.");
+                        setActionLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber);
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -1163,19 +1210,40 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
+            // If already PAID, proceed directly to processing (no need to re-upload receipts)
+            if (transaction.status === "PAID") {
+                const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                if (rel.success) {
+                    toast.success("Proceeding to Processing");
+                    fetchTransaction();
+                } else {
+                    toast.error(rel.error || "Failed to proceed to processing");
+                }
+                return;
+            }
+
+            // Otherwise, confirm the payment (upload receipt/or if provided) then proceed to processing
             const formData = new FormData();
             formData.append("id", transaction.id);
             if (remarks) formData.append("remarks", remarks);
             if (receiptFile) formData.append("receiptFile", receiptFile);
+            if (orSeriesNumber) formData.append("orSeriesNumber", orSeriesNumber);
+            if (orFile) formData.append("orFile", orFile);
 
             const res = await confirmTransactionPaymentWithReceipt(formData);
-            if (res.success) { 
-                toast.success("Payment Confirmed"); 
+            if (res.success) {
+                toast.success("Payment Confirmed");
                 setReceiptFile(null);
                 setReceiptPreview(null);
-                fetchTransaction(); 
-            }
-            else toast.error(res.error || "Failed");
+                // Immediately proceed to processing after confirmation
+                const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                if (rel.success) {
+                    toast.success("Proceeding to Processing");
+                } else {
+                    toast.error(rel.error || "Failed to proceed to processing");
+                }
+                fetchTransaction();
+            } else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
 
@@ -1502,7 +1570,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         setReceiptFile,
         receiptPreview,
         setReceiptPreview,
-        handleReceiptFileSelect
+        handleReceiptFileSelect,
+        registryBookVerification,
+        setRegistryBookVerification,
+        birthRegDocFile,
+        setBirthRegDocFile,
+        birthRegDocPreview,
+        setBirthRegDocPreview,
+        orSeriesNumber,
+        setOrSeriesNumber
     };
 
     if (isBusinessPermit) {
