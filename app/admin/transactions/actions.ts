@@ -1114,10 +1114,14 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
     try {
         const sanitizedId = sanitizeString(id);
         const sanitizedAdminNotes = adminNotes ? sanitizeString(adminNotes) : undefined;
-        const sanitizedBpFeeLineItems = bpFeeLineItems ? bpFeeLineItems.map(item => ({
-            label: sanitizeString(item.label),
-            amount: Number(item.amount)
-        })) : undefined;
+        const sanitizedBpFeeLineItems = bpFeeLineItems
+            ? bpFeeLineItems
+                .map(item => ({
+                    label: sanitizeString(item.label),
+                    amount: Number(item.amount)
+                }))
+                .filter(item => item.label && Number.isFinite(item.amount) && item.amount > 0)
+            : undefined;
 
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
@@ -1137,8 +1141,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const isBuildingPermit = transaction.type.code.startsWith("BUILDING_PERMIT");
         const isLCR = transaction.type.code.startsWith("LCR_");
 
-        // ADMIN_AIDE can only evaluate Business Permits in FOR_INSPECTION status
-        if (isBusinessPermit && isUserAdminAide(user) && (transaction.status as any) !== "FOR_INSPECTION") {
+        // ADMIN_AIDE can only evaluate Business Permits in the inspection phases (FOR_INSPECTION or FOR_REINSPECTION)
+        if (isBusinessPermit && isUserAdminAide(user) && !["FOR_INSPECTION", "FOR_REINSPECTION"].includes(transaction.status as any)) {
             return { success: false, error: "Forbidden: Admin Aides can only process Business Permits in the inspection phase." };
         }
 
@@ -1192,30 +1196,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         };
 
         if (isBusinessPermit || isBuildingPermit) {
-            if (isUserAdminAide(user) && isBusinessPermit) {
-                if (sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
-                    const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
-                    const deliveryFee = transaction.fulfillmentType === "DELIVERY"
-                        ? (deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || 0)
-                        : 0;
-                    const total = itemsSum + deliveryFee;
-                    result = {
-                        basicTax: itemsSum,
-                        additionalTax: 0,
-                        penalty: 0,
-                        deliveryFee: deliveryFee,
-                        totalAmount: total
-                    };
-                } else {
-                    result = {
-                        basicTax: 0,
-                        additionalTax: 0,
-                        penalty: 0,
-                        deliveryFee: 0,
-                        totalAmount: 0
-                    };
-                }
-            } else if (sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
+            if (sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
                 const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
                 const deliveryFee = transaction.fulfillmentType === "DELIVERY"
                     ? (deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || 0)
@@ -1297,8 +1278,12 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         }
 
         // Determine New Status
-        // If it is an ADMIN_AIDE pre-screening a Business Permit, the status should be set to FOR_REQUESTING
-        const newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
+        // If it is a Business Permit and being evaluated from inspection/reinspection phase, set status to FOR_PROCESSING.
+        // Otherwise, follow the standard logic:
+        let newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
+        if (isBusinessPermit && ["FOR_INSPECTION", "FOR_REINSPECTION"].includes(transaction.status)) {
+            newStatus = "FOR_PROCESSING";
+        }
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id: sanitizedId },
@@ -1317,19 +1302,30 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 }
             } as any,
             include: { user: true }
-        }) as any;
+        }) as any; 
 
-        // Trigger email notification for payment
-        if (updatedTransaction.user?.email && newStatus === "EVALUATED") {
+        // Trigger email notification for payment / processing
+        if (updatedTransaction.user?.email) {
             const resident = updatedTransaction.residentSnapshot as any;
-            await sendEmail({
-                type: "FOR_PAYMENT",
-                to: updatedTransaction.user.email,
-                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
-                transactionId: sanitizedId.slice(-8).toUpperCase(),
-                amount: result!.totalAmount,
-                remarks: sanitizedAdminNotes
-            });
+            if (newStatus === "EVALUATED") {
+                await sendEmail({
+                    type: "FOR_PAYMENT",
+                    to: updatedTransaction.user.email,
+                    name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                    transactionId: sanitizedId.slice(-8).toUpperCase(),
+                    amount: result!.totalAmount,
+                    remarks: sanitizedAdminNotes
+                });
+            } else if (newStatus === "FOR_PROCESSING") {
+                await sendEmail({
+                    type: "PROCESSING",
+                    to: updatedTransaction.user.email,
+                    name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                    transactionId: sanitizedId.slice(-8).toUpperCase(),
+                    remarks: sanitizedAdminNotes,
+                    serviceName: updatedTransaction.type?.name || "Business Permit"
+                });
+            }
         }
 
         revalidatePath("/admin/treasury");
