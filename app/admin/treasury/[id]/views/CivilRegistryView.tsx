@@ -10,7 +10,8 @@ import {
     AlertCircle,
     RotateCw,
     ExternalLink,
-    Upload
+    Upload,
+    Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,20 +156,20 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Registry Book Verification Status</span>
                                         <p className="text-sm font-black italic uppercase text-slate-700 dark:text-slate-200">
                                             {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
-                                             additional.registryBookVerification === "FORM_1B" ? "Form 1B (Record Not Available)" :
-                                             additional.registryBookVerification === "FORM_1C" ? "Form 1C (Record Destroyed)" :
-                                             additional.registryBookVerification}
+                                                additional.registryBookVerification === "FORM_1B" ? "Form 1B (Record Not Available)" :
+                                                    additional.registryBookVerification === "FORM_1C" ? "Form 1C (Record Destroyed)" :
+                                                        additional.registryBookVerification}
                                         </p>
                                     </div>
                                     <Badge className={cn(
                                         "px-4.5 py-2 rounded-full font-black uppercase text-[10px] tracking-wider italic text-white shadow-md border-none",
                                         additional.registryBookVerification === "FORM_1A" ? "bg-emerald-500 hover:bg-emerald-500 shadow-emerald-500/10" :
-                                        additional.registryBookVerification === "FORM_1B" ? "bg-amber-500 hover:bg-amber-500 shadow-amber-500/10" :
-                                        "bg-rose-500 hover:bg-rose-500 shadow-rose-500/10"
+                                            additional.registryBookVerification === "FORM_1B" ? "bg-amber-500 hover:bg-amber-500 shadow-amber-500/10" :
+                                                "bg-rose-500 hover:bg-rose-500 shadow-rose-500/10"
                                     )}>
                                         {additional.registryBookVerification === "FORM_1A" ? "Record Found" :
-                                         additional.registryBookVerification === "FORM_1B" ? "Not Available" :
-                                         "Destroyed"}
+                                            additional.registryBookVerification === "FORM_1B" ? "Not Available" :
+                                                "Destroyed"}
                                     </Badge>
                                 </div>
                             )}
@@ -488,8 +489,19 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {evidenceDocs.map((doc, i) => (
-                                    <div key={i} className="p-4 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between group">
+                                {evidenceDocs
+                                    .filter(doc => {
+                                        const isLcrBirthCertifiedCopy = 
+                                            transaction.type?.code === "LCR_BIRTH" || 
+                                            transaction.type?.name?.includes("Birth Certificate (Certified Copy)");
+                                        if (isLcrBirthCertifiedCopy && transaction.status === "FOR_REQUESTING") {
+                                            // Hide pending attachments since they are not relevant to Birth Certificate (Certified Copy) requesting phase
+                                            if (!doc.url) return false;
+                                        }
+                                        return true;
+                                    })
+                                    .map((doc, i) => (
+                                        <div key={i} className="p-4 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between group">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
                                                 <FileText className="w-4 h-4" />
@@ -666,7 +678,11 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
                                     <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
                                     <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                                        ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        {displayTotal > 0 ? (
+                                            `₱${displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                                        ) : (
+                                            "TBD (Upon Evaluation)"
+                                        )}
                                     </span>
                                 </div>
                             </div>
@@ -711,94 +727,15 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Actions & Endorsements</p>
                                 </div>
 
-                                {( ["FOR_REQUESTING", "UNDER_REVIEW", "EVALUATED"].includes(transaction.status) ) && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || (transaction.type?.category === "Civil Registry")) && (
+                                {(["FOR_REQUESTING", "UNDER_REVIEW", "EVALUATED"].includes(transaction.status)) && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || (transaction.type?.category === "Civil Registry")) && (
                                     <div className="space-y-4">
                                         {transaction.status === "EVALUATED" ? (
-                                            // EVALUATED: Upload O.R & Mark as Paid flow
-                                            <div className="space-y-4">
-                                                <div className="space-y-3 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-2">
-                                                        Upload Official Treasury Receipt
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={orSeriesNumber || additional?.orSeriesNumber || ""}
-                                                        onChange={(e) => setOrSeriesNumber?.(e.target.value)}
-                                                        placeholder="Enter O.R. Series Number..."
-                                                        className="w-full h-11 px-4 rounded-xl border border-slate-150 dark:border-white/5 bg-white dark:bg-[#151b28]/60 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-primary transition-all"
-                                                    />
+                                            <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
+                                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 mx-auto">
+                                                    <Clock className="w-6 h-6 animate-pulse" />
                                                 </div>
-
-                                                <div className="space-y-3 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-2">
-                                                        Attach Scanned Official Receipt (O.R.) <span className="text-rose-500 font-extrabold">*Required</span>
-                                                    </label>
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf,image/*"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0] || null;
-                                                            setOrFile?.(file);
-                                                            if (file) {
-                                                                const url = URL.createObjectURL(file);
-                                                                setOrPreview?.(url);
-                                                            } else {
-                                                                setOrPreview?.(null);
-                                                            }
-                                                        }}
-                                                        className="hidden"
-                                                        id="or-doc-upload"
-                                                    />
-                                                    <label
-                                                        htmlFor="or-doc-upload"
-                                                        className={cn(
-                                                            "flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer",
-                                                            orFile ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-200 dark:border-white/10 hover:border-primary/30"
-                                                        )}
-                                                    >
-                                                        {orFile ? (
-                                                            <div className="flex flex-col items-center justify-center text-primary/60 group-hover:text-primary transition-colors p-4">
-                                                                <Check className="w-6 h-6 text-emerald-500" />
-                                                                <span className="text-[9px] font-black uppercase italic tracking-widest mt-1 truncate max-w-[200px]">
-                                                                    {orFile.name}
-                                                                </span>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
-                                                                <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
-                                                                    Upload Scanned O.R. Document
-                                                                </span>
-                                                            </>
-                                                        )}
-                                                    </label>
-                                                </div>
-
-                                                {/* Treasury receipt upload removed per request */}
-
-                                                <Button
-                                                    onClick={handleConfirmPayment}
-                                                    disabled={actionLoading || !orFile || !(orSeriesNumber || additional?.orSeriesNumber)}
-                                                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
-                                                >
-                                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                                    Upload O.R. & Mark as Paid
-                                                </Button>
-
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
-                                                    >
-                                                        Request Revision
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
-                                                    >
-                                                        Decline
-                                                    </Button>
-                                                </div>
+                                                <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Assessment Sent</h4>
+                                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Assessment has been submitted. Waiting for the citizen to complete GCash payment or walk-in transaction.</p>
                                             </div>
                                         ) : (
                                             // Original: FOR_REQUESTING / UNDER_REVIEW -> Approve & Send Assessment
@@ -933,7 +870,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 )}
 
                                 {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {/* Proof of Payment Lightbox */}
                                         {transaction.paymentReference && (
                                             <div className="space-y-3">
@@ -967,24 +904,99 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             </div>
                                         )}
 
-                                        <Button
-                                            onClick={handleConfirmPayment}
-                                            disabled={actionLoading}
-                                            className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all"
-                                        >
-                                            {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : (transaction.status === "PAID" ? "Confirm & Proceed to Processing" : "Confirm Payment Received")}
-                                        </Button>
+                                        {/* Upload Official Treasury Receipt section */}
+                                        <div className="space-y-4 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-1">
+                                                Upload Official Treasury Receipt
+                                            </span>
+
+                                            {/* O.R. Series Number input */}
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
+                                                    O.R. Series Number <span className="text-rose-500 font-extrabold">*Required</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={orSeriesNumber || ""}
+                                                    onChange={(e) => setOrSeriesNumber?.(e.target.value)}
+                                                    placeholder="Enter O.R. Series Number..."
+                                                    className="w-full h-11 px-4 rounded-xl border border-slate-150 dark:border-white/5 bg-white dark:bg-[#151b28]/60 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-primary transition-all"
+                                                />
+                                            </div>
+
+                                            {/* Scanned O.R. file upload */}
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
+                                                    Attach Scanned Official Receipt (O.R.) <span className="text-rose-500 font-extrabold">*Required</span>
+                                                </label>
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        setOrFile?.(file);
+                                                        if (file) {
+                                                            const url = URL.createObjectURL(file);
+                                                            setOrPreview?.(url);
+                                                        } else {
+                                                            setOrPreview?.(null);
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                    id="or-document-upload-paid"
+                                                />
+                                                <label
+                                                    htmlFor="or-document-upload-paid"
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer",
+                                                        orFile ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-200 dark:border-white/10 hover:border-primary/30"
+                                                    )}
+                                                >
+                                                    {orFile ? (
+                                                        <div className="flex flex-col items-center justify-center text-primary/60 group-hover:text-primary transition-colors p-4">
+                                                            <Check className="w-6 h-6 text-emerald-500" />
+                                                            <span className="text-[9px] font-black uppercase italic tracking-widest mt-1 truncate max-w-[200px]">
+                                                                {orFile.name}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
+                                                            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
+                                                                Upload Scanned O.R. Document
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        </div>
 
                                         <Button
-                                            variant="outline"
-                                            onClick={handleDeclinePaymentProof}
-                                            disabled={actionLoading}
-                                            className="w-full h-12 rounded-2xl border-red-500/20 text-red-500 hover:bg-red-500/5 font-black uppercase tracking-wider text-[10px]"
+                                            onClick={handleConfirmPayment}
+                                            disabled={actionLoading || !orSeriesNumber || !orFile}
+                                            className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
                                         >
-                                            Reject Payment (Dispute / Invalid)
+                                            {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                            Upload O.R. & Mark as Paid
                                         </Button>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
+                                            >
+                                                Request Revision
+                                            </Button>
+                                            <Button
+                                                onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
+                                            >
+                                                Decline
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
+
 
                                 {transaction.status === "FOR_PROCESSING" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (() => {
                                     const isReleaseDisabled = actionLoading || (!eCopyFile && !transaction.eCopyUrl);

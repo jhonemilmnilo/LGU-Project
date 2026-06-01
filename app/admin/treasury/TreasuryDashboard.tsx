@@ -209,6 +209,23 @@ export default function TreasuryDashboard() {
         // Specific service name filter: match selected service from dropdown if set
         const matchesService = !serviceFilter || serviceFilter === "ALL" || tx.type?.name === serviceFilter;
 
+        // For Birth Certificate (Certified Copy) requesting phase, only the Registrar department should see it
+        const isLcrBirthCertifiedCopy = tx.type?.code === "LCR_BIRTH" || tx.type?.name?.includes("Birth Certificate (Certified Copy)");
+        if (isLcrBirthCertifiedCopy && tx.status === "FOR_REQUESTING") {
+            const isRegistrar = userRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
+            if (!isRegistrar) {
+                return false;
+            }
+        }
+
+        // During the verify & issue O.R. phase (PAID/PENDING_PAYMENT_VERIFICATION), the Registrar department cannot see it yet
+        if (isLcrBirthCertifiedCopy && ["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(tx.status)) {
+            const isRegistrar = userRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
+            if (isRegistrar) {
+                return false;
+            }
+        }
+
         // For Building Permits, Treasury only needs to see EVALUATED, UNPAID, PAID, and REJECTED
         const isBuildingPermitTx = tx.type?.code?.startsWith("BUILDING_PERMIT") || tx.type?.name?.toUpperCase().includes("BUILDING PERMIT");
         if (isBuildingPermitTx) {

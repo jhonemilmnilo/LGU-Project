@@ -434,6 +434,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
+    const isLcrBirthCertifiedCopy = typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.includes("Birth Certificate (Certified Copy)"));
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
     const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
@@ -606,7 +607,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleRelease = useCallback(async () => {
 
         // CTC or Permit Number required for all initial processing phases (Only for non-Business Permits)
-        const ctcRequired = !isBusinessPermit && !["PAID", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        const ctcRequired = !isBusinessPermit && !isLcrBirthCertifiedCopy && !["PAID", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
         if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
             toast.error("CTC Number Required");
             return;
@@ -666,7 +667,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -879,8 +880,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
             { id: "PAID", label: "PAID" },
-            { id: "FOR_PROCESSING", label: "PROCESSING" },
         ];
+        if (isLcrBirthCertifiedCopy) {
+            stepsList.push({ id: "VERIFY_OR", label: "VERIFY & ISSUE O.R." });
+        }
+        stepsList.push({ id: "FOR_PROCESSING", label: "PROCESSING" });
         if (transaction.fulfillmentType === "DELIVERY") {
             stepsList.push(
                 { id: "FOR_PICKING", label: "FOR PICKING" },
@@ -930,7 +934,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return true;
     });
 
-    const getEffectiveStatus = (s: string) => s;
+    const getEffectiveStatus = (s: string) => {
+        if (isLcrBirthCertifiedCopy && (s === "PAID" || s === "PENDING_PAYMENT_VERIFICATION")) {
+            return "VERIFY_OR";
+        }
+        return s;
+    };
     let currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     if (isBuildingPermit) {
@@ -975,8 +984,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
             const docs: { url?: string | null; label: string }[] = [];
 
+            // --- Birth Certificate Request (Certified Copy) ---
+            if (typeCode === "LCR_BIRTH") {
+                docs.push({ url: additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl, label: "Government ID (Front)" });
+                docs.push({ url: additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl, label: "Government ID (Back)" });
+                return docs;
+            }
+
             // --- Birth Registration ---
-            if (typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH") {
+            if (typeCode === "LCR_BIRTH_REG") {
                 if (regType === "LATE") {
                     docs.push({ url: additional.negativePSA, label: "Negative Certification from PSA" });
                     docs.push({ url: additional.colb, label: "Certificate of Live Birth (COLB)" });
@@ -992,8 +1008,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 }
             }
 
+            // --- Death Certificate Request (Certified Copy) ---
+            if (typeCode === "LCR_DEATH") {
+                docs.push({ url: additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl, label: "Government ID (Front)" });
+                docs.push({ url: additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl, label: "Government ID (Back)" });
+                return docs;
+            }
+
             // --- Death Registration ---
-            if (typeCode === "LCR_DEATH_REG" || typeCode === "LCR_DEATH") {
+            if (typeCode === "LCR_DEATH_REG") {
                 if (regType === "LATE") {
                     docs.push({ url: additional.psaNegative, label: "PSA Negative Certification" });
                     docs.push({ url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" });
@@ -1210,8 +1233,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
-            // If already PAID, proceed directly to processing (no need to re-upload receipts)
-            if (transaction.status === "PAID") {
+            // If already PAID and no O.R. document/number is provided, proceed directly to processing
+            if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
                 const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success("Proceeding to Processing");

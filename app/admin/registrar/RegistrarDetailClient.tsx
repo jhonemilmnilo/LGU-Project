@@ -373,6 +373,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
+    const isLcrBirthCertifiedCopy = typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.includes("Birth Certificate (Certified Copy)"));
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
     const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
@@ -530,7 +531,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
     };
 
     const handleRelease = useCallback(async () => {
-        const ctcRequired = !isBusinessPermit && !["PAID", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
+        const ctcRequired = !isBusinessPermit && !isLcrBirthCertifiedCopy && !["PAID", "FOR_CLAIM", "FOR_PICKING", "RELEASED"].includes(transaction?.status);
         if (ctcRequired && !ctcNumber && !transaction?.cedula?.ctcNumber) {
             toast.error("CTC Number Required");
             return;
@@ -588,7 +589,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -949,6 +950,33 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
 
     if (!transaction) return <div className="p-20 text-center dark:text-white">Protocol Error: Transaction Inaccessible</div>;
 
+    const isRegistrar = rawUserRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
+    if (isLcrBirthCertifiedCopy && isRegistrar && ["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+        return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-6">
+                <div className="p-6 rounded-[2.5rem] bg-white dark:bg-[#151b28] border border-amber-500/20 shadow-2xl relative">
+                    <span className="text-6xl animate-pulse">🔒</span>
+                </div>
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-black italic tracking-tighter text-slate-800 dark:text-white uppercase leading-none">
+                        Access Restricted
+                    </h1>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 italic">
+                        Treasury Verification In Progress
+                    </p>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
+                    This request is currently under Treasury payment verification and O.R. issuance. The Registrar department cannot access this request until the official receipt is successfully issued by the Treasury.
+                </p>
+                <Link href="/admin/registrar">
+                    <Button variant="outline" className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-xs tracking-wider transition-all active:scale-95">
+                        Back to Registrar Dashboard
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
+
     if (transaction.isCancelled) {
         return (
             <div className="min-h-screen bg-white dark:bg-[#0c111d] flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
@@ -1030,19 +1058,25 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
         if (isLCR) {
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
-            const baseFee = (isMarriageReg && !isLate)
-                ? 0
-                : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
+            const isBirthCert = typeCode === "LCR_BIRTH" || isLcrBirthCertifiedCopy;
+            const baseFee = isBirthCert
+                ? 115
+                : (isMarriageReg && !isLate)
+                    ? 0
+                    : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
             const typeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
                 : 0;
             const miscFee = isLate ? 300 : 0;
-            const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0)
-                ? Number(transaction.totalAmount)
-                : baseFee + deliveryFeeUsed + miscFee;
+            const isNotEvaluated = ["FOR_REQUESTING", "UNDER_REVIEW"].includes(transaction.status);
+            const total = isNotEvaluated
+                ? 0
+                : (transaction.totalAmount && Number(transaction.totalAmount) > 0)
+                    ? Number(transaction.totalAmount)
+                    : baseFee + deliveryFeeUsed + miscFee;
             return {
-                basicTax: baseFee,
+                basicTax: isNotEvaluated ? 0 : baseFee,
                 additionalTax: 0,
                 penalty: 0,
                 deliveryFee: deliveryFeeUsed,
@@ -1099,8 +1133,11 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
             { id: "PAID", label: "PAID" },
-            { id: "FOR_PROCESSING", label: "PROCESSING" },
         ];
+        if (isLcrBirthCertifiedCopy) {
+            stepsList.push({ id: "VERIFY_OR", label: "VERIFY & ISSUE O.R." });
+        }
+        stepsList.push({ id: "FOR_PROCESSING", label: "PROCESSING" });
         if (transaction.fulfillmentType === "DELIVERY") {
             stepsList.push(
                 { id: "FOR_PICKING", label: "FOR PICKING" },
@@ -1148,7 +1185,12 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
         return true;
     });
 
-    const getEffectiveStatus = (s: string) => s;
+    const getEffectiveStatus = (s: string) => {
+        if (isLcrBirthCertifiedCopy && (s === "PAID" || s === "PENDING_PAYMENT_VERIFICATION")) {
+            return "VERIFY_OR";
+        }
+        return s;
+    };
     let currentStepIdx = steps.findIndex(s => s.id === getEffectiveStatus(transaction.status));
 
     if (isBuildingPermit) {
@@ -1191,7 +1233,15 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
 
             const docs: { url?: string | null; label: string }[] = [];
 
-            if (typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH") {
+            // --- Birth Certificate Request (Certified Copy) ---
+            if (typeCode === "LCR_BIRTH") {
+                docs.push({ url: additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl, label: "Government ID (Front)" });
+                docs.push({ url: additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl, label: "Government ID (Back)" });
+                return docs;
+            }
+
+            // --- Birth Registration ---
+            if (typeCode === "LCR_BIRTH_REG") {
                 if (regType === "LATE") {
                     docs.push({ url: additional.negativePSA, label: "Negative Certification from PSA" });
                     docs.push({ url: additional.colb, label: "Certificate of Live Birth (COLB)" });
@@ -1207,7 +1257,15 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
                 }
             }
 
-            if (typeCode === "LCR_DEATH_REG" || typeCode === "LCR_DEATH") {
+            // --- Death Certificate Request (Certified Copy) ---
+            if (typeCode === "LCR_DEATH") {
+                docs.push({ url: additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl, label: "Government ID (Front)" });
+                docs.push({ url: additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl, label: "Government ID (Back)" });
+                return docs;
+            }
+
+            // --- Death Registration ---
+            if (typeCode === "LCR_DEATH_REG") {
                 if (regType === "LATE") {
                     docs.push({ url: additional.psaNegative, label: "PSA Negative Certification" });
                     docs.push({ url: additional.affidavitOfDelay, label: "Affidavit of Delayed Registration" });

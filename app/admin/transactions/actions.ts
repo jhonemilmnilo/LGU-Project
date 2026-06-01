@@ -1254,10 +1254,13 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const additional = transaction.additionalData as any || {};
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
+            const isBirthCert = typeCode === "LCR_BIRTH";
 
-            const baseFee = (isMarriageReg && !isLate)
-                ? 0
-                : Number(transaction.type?.baseFee || 0);
+            const baseFee = isBirthCert
+                ? 115
+                : (isMarriageReg && !isLate)
+                    ? 0
+                    : Number(transaction.type?.baseFee || 0);
             const feeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || feeDelivery;
 

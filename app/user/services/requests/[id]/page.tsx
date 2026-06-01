@@ -1145,7 +1145,7 @@ export default function RequestHubPage() {
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Date Submitted</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{formatPHDate(request.createdAt)}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Payment</p><p className="text-base md:text-xl font-semibold text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Payment</p><p className="text-base md:text-xl font-semibold text-primary italic leading-tight uppercase">{((request.type?.code === "LCR_BIRTH" || request.type?.code?.startsWith("LCR_")) && ["FOR_REQUESTING", "UNDER_REVIEW"].includes(request.status)) ? "TBD" : (request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS")}</p></div>
                                             </div>
                                         </div>
                                     </Card>
@@ -1237,7 +1237,11 @@ export default function RequestHubPage() {
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
                                                 <Separator className="bg-white/10" />
                                                 <div className="flex items-end justify-between">
-                                                    <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                                                    {((request.type?.code === "LCR_BIRTH" || request.type?.code?.startsWith("LCR_")) && ["FOR_REQUESTING", "UNDER_REVIEW"].includes(request.status)) ? (
+                                                        <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary/60 italic leading-tight">TBD</p></div>
+                                                    ) : (
+                                                        <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                                                    )}
                                                     <ShieldCheck className="w-6 h-6 text-primary/40" />
                                                 </div>
                                             </div>
