@@ -98,7 +98,8 @@ import {
     cancelTransaction,
     requestReturnOrRefund,
     resubmitTransaction,
-    checkPaymongoPaymentStatus
+    checkPaymongoPaymentStatus,
+    saveLogisticsDetails
 } from "@/app/admin/transactions/actions";
 import Link from "next/link";
 
@@ -190,7 +191,7 @@ export default function RequestHubPage() {
                 if (res.success && res.data) {
                     let req = res.data;
 
-                    if (req.status === "UNPAID") {
+                    if (req.status === "UNPAID" || req.status === "EVALUATED") {
                         try {
                             // Retry up to 3 times with delays — PayMongo may not settle the payment immediately after redirect
                             const MAX_RETRIES = 3;
@@ -413,6 +414,30 @@ export default function RequestHubPage() {
         }
     };
 
+    const handleSaveLogisticsForPaymongo = async (): Promise<boolean> => {
+        try {
+            const res = await saveLogisticsDetails(
+                id,
+                localFulfillment,
+                localPayment,
+                address,
+                localLat,
+                localLng,
+                address.landmark
+            );
+            if (res.success) {
+                return true;
+            } else {
+                toast.error(res.error || "Failed to secure logistics configuration");
+                return false;
+            }
+        } catch (error) {
+            console.error("Save logistics error before PayMongo:", error);
+            toast.error("Failed to secure logistics configuration");
+            return false;
+        }
+    };
+
     const handleCancel = async () => {
         setCancelConfirmOpen(false);
         setIsCancelling(true);
@@ -580,19 +605,23 @@ export default function RequestHubPage() {
 
         // Handle Civil Registry (Usually simple total or evaluated amount)
         if (isCivilRegistry) {
-            const finalTotal = (Number(request.totalAmount) || 0) + dFee;
+            const savedDeliveryFee = Number(request.fiscalSnapshot?.deliveryFee || 0);
+            const cleanBase = Math.max(0, (Number(request.totalAmount) || 0) - savedDeliveryFee);
+            const finalTotal = cleanBase + dFee;
             return { basicTax: 0, additionalTax: 0, penaltyAmount: 0, deliveryFee: dFee, finalTotal, cedulaType: "INDIVIDUAL" };
         }
 
         const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
 
         if (fiscal) {
+            const savedDeliveryFee = Number(fiscal.deliveryFee || 0);
+            const cleanBaseAmount = Math.max(0, (Number(fiscal.totalAmount) || 0) - savedDeliveryFee);
             return {
                 basicTax: fiscal.basicTax || 0,
                 additionalTax: fiscal.additionalTax || 0,
                 penaltyAmount: fiscal.penaltyCharge || 0,
                 deliveryFee: dFee,
-                finalTotal: (fiscal.totalAmount || 0) + dFee,
+                finalTotal: cleanBaseAmount + dFee,
                 cedulaType,
                 lineItems: fiscal.lineItems
             };
@@ -604,8 +633,12 @@ export default function RequestHubPage() {
         const basicTax = cedulaType === "JURIDICAL" ? 500.00 : 5.00;
         const additionalTax = cedulaType === "JURIDICAL" ? Math.floor(totalBasis / 5000) * 2.00 : Math.floor(totalBasis / 1000) * 1.00;
         const subtotal = basicTax + additionalTax;
-        const totalWithPenalty = Number(request.totalAmount) || subtotal;
-        const penaltyAmount = totalWithPenalty - subtotal;
+        
+        const savedDeliveryFee = Number(request.fiscalSnapshot?.deliveryFee || 0);
+        const cleanTotalAmount = Math.max(0, (Number(request.totalAmount) || 0) - savedDeliveryFee);
+        
+        const totalWithPenalty = cleanTotalAmount || subtotal;
+        const penaltyAmount = Math.max(0, totalWithPenalty - subtotal);
         const finalTotal = totalWithPenalty + dFee;
 
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
@@ -966,6 +999,7 @@ export default function RequestHubPage() {
                                                         type="gcash"
                                                         label={`Pay ₱${((computation?.finalTotal ?? Number(request?.totalAmount) ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })} via GCash`}
                                                         transactionId={request?.id || id}
+                                                        onBeforeCheckout={handleSaveLogisticsForPaymongo}
                                                         className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] md:text-[10px] rounded-xl"
                                                         style={{ backgroundColor: themeColor }}
                                                     />

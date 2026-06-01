@@ -14,6 +14,8 @@ import {
     Upload,
     Camera,
     Hash,
+    Plus,
+    Trash2,
     ChevronDown,
     ChevronUp,
     Copy
@@ -48,7 +50,36 @@ interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+type FeeItem = {
+    label: string;
+    amount: string;
+};
 
+const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
+const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg"];
+
+function getFileExtension(url: string) {
+    try {
+        const cleanPath = new URL(url).pathname;
+        return cleanPath.split(".").pop()?.toLowerCase() || "";
+    } catch {
+        return url.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase() || "";
+    }
+}
+
+function isDocumentFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:application/pdf")) return true;
+    return documentExtensions.includes(getFileExtension(url));
+}
+
+function isImageFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:image/") || lower.startsWith("blob:")) return true;
+    const extension = getFileExtension(url);
+    if (imageExtensions.includes(extension)) return true;
+    return !isDocumentFile(url);
+}
 
 export default function BploDetailPage({ params }: PageProps) {
     const { id } = use(params);
@@ -79,6 +110,17 @@ export default function BploDetailPage({ params }: PageProps) {
     const [isRejecting, setIsRejecting] = useState(false);
     const [isRequestingRevision, setIsRequestingRevision] = useState(false);
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
+    const [eCopyPreview, setECopyPreview] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!eCopyFile) {
+            setECopyPreview(null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(eCopyFile);
+        setECopyPreview(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [eCopyFile]);
     const [isResolvingDispute, setIsResolvingDispute] = useState(false);
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
@@ -87,7 +129,7 @@ export default function BploDetailPage({ params }: PageProps) {
     const [isBusinessRecordExpanded, setIsBusinessRecordExpanded] = useState(true);
     const [isRequirementsExpanded, setIsRequirementsExpanded] = useState(true);
     const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
-    const [feeItems, setFeeItems] = useState<{ label: string; amount: string }[]>([]);
+    const [feeItems, setFeeItems] = useState<FeeItem[]>([]);
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -95,8 +137,13 @@ export default function BploDetailPage({ params }: PageProps) {
             const res = await getTransactionById(id);
             if (res.success && res.data) {
                 setTransaction(res.data);
-                if (res.data.businessPermit?.permitNumber) {
-                    setPermitNumberInput(res.data.businessPermit.permitNumber);
+                const addData = res.data.additionalData || {};
+                const isRenew = addData.businessType === "RENEWAL" || addData.businessType === "RENEW";
+                if (isRenew) {
+                    const prevPermit = res.data.businessPermit?.permitNumber || addData.permitNumber || addData.existingPermitNumber || addData.existingPermitNo || "";
+                    setPermitNumberInput(prevPermit);
+                } else {
+                    setPermitNumberInput("");
                 }
                 // Initialize editable fee items from fiscalSnapshot.lineItems first,
                 // then fall back to transaction type defaultFees.
@@ -104,10 +151,10 @@ export default function BploDetailPage({ params }: PageProps) {
                 const snap = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
                 const existingItems: any[] = snap.lineItems || [];
                 const defaults: any[] = res.data.type?.defaultFees || [];
-                const initFees = existingItems.length > 0
+                const initFees: FeeItem[] = existingItems.length > 0
                     ? existingItems.map((i: any) => ({ label: i.label, amount: String(i.amount ?? "") }))
                     : defaults.length > 0
-                        ? defaults.map((f: any) => ({ label: f.label, amount: String(f.amount ?? "") }))
+                        ? defaults.map((f: any) => ({ label: f.label, amount: "" }))
                         : [{ label: "Mayor's Permit Fee", amount: "" }];
                 setFeeItems(initFees);
             } else {
@@ -130,6 +177,17 @@ export default function BploDetailPage({ params }: PageProps) {
     }, [fetchTransaction]);
 
     const handleEvaluate = async () => {
+        const hasIncompleteFee = feeItems.some(f => f.label.trim() && f.amount.trim() === "");
+        const hasAmountWithoutLabel = feeItems.some(f => !f.label.trim() && f.amount.trim() !== "");
+        if (hasIncompleteFee) {
+            toast.error("Please enter an amount for every fee line, or remove empty additional fees.");
+            return;
+        }
+        if (hasAmountWithoutLabel) {
+            toast.error("Please add a label for every additional fee amount.");
+            return;
+        }
+
         setActionLoading(true);
         try {
             const deliveryFee = transaction.fulfillmentType === "DELIVERY" ? (transaction.type.deliveryFee || 0) : 0;
@@ -182,9 +240,9 @@ export default function BploDetailPage({ params }: PageProps) {
     };
 
     const handleRelease = useCallback(async () => {
-        const isNewPermit = (transaction?.additionalData as any)?.businessType === "NEW";
-        if (isNewPermit && !permitNumberInput) {
-            toast.error("Permit Number is required for brand new permits.");
+        const isRenewal = (transaction?.additionalData as any)?.businessType === "RENEWAL" || (transaction?.additionalData as any)?.businessType === "RENEW";
+        if (!isRenewal && !permitNumberInput) {
+            toast.error("License Business Permit Number is required.");
             return;
         }
 
@@ -224,6 +282,18 @@ export default function BploDetailPage({ params }: PageProps) {
         } finally {
             setIsResolvingDispute(false);
         }
+    };
+
+    const updateFeeItem = (index: number, field: keyof Pick<FeeItem, "label" | "amount">, value: string) => {
+        setFeeItems(items => items.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    };
+
+    const addFeeItem = () => {
+        setFeeItems(items => [...items, { label: "", amount: "" }]);
+    };
+
+    const removeFeeItem = (index: number) => {
+        setFeeItems(items => items.filter((_, i) => i !== index));
     };
 
     useEffect(() => {
@@ -415,6 +485,7 @@ export default function BploDetailPage({ params }: PageProps) {
                             {isBreakdownExpanded && (() => {
                                 const rawFiscal = transaction.fiscalSnapshot;
                                 const fiscalSnapshot = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
+                                const isInspectionAssessment = transaction.status === "FOR_INSPECTION";
                                 const lineItems: any[] = fiscalSnapshot.lineItems || [];
                                 const defaultFees: any[] = transaction.type?.defaultFees || [];
                                 const positiveLineItems = lineItems.filter((i: any) => Number(i.amount) > 0);
@@ -442,6 +513,73 @@ export default function BploDetailPage({ params }: PageProps) {
                                         : computedItems.length > 0
                                             ? computedItems
                                             : positiveDefaultFees.map((f: any) => ({ label: f.label, amount: Number(f.amount) || 0 }));
+
+                                if (isInspectionAssessment) {
+                                    const editableTotal = feeItems.reduce((total, item) => total + (Number(item.amount) || 0), 0);
+
+                                    return (
+                                        <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="rounded-2xl border border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] p-4 space-y-3">
+                                                {feeItems.map((item, idx) => (
+                                                    <div key={idx} className="grid grid-cols-12 gap-3 items-end">
+                                                        <div className="col-span-12 md:col-span-7 space-y-1.5">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                                Fee label
+                                                            </Label>
+                                                            <Input
+                                                                value={item.label}
+                                                                onChange={(e) => updateFeeItem(idx, "label", e.target.value)}
+                                                                placeholder="Enter additional fee label"
+                                                                className="h-11 rounded-xl bg-white dark:bg-[#101725] text-xs font-black"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-9 md:col-span-4 space-y-1.5">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                                Amount
+                                                            </Label>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={item.amount}
+                                                                onChange={(e) => updateFeeItem(idx, "amount", e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="h-11 rounded-xl bg-white dark:bg-[#101725] text-xs font-black"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-3 md:col-span-1">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => removeFeeItem(idx)}
+                                                                className="h-11 w-full rounded-xl border-slate-200 dark:border-white/10 text-slate-400 hover:text-red-500 hover:border-red-200"
+                                                                title="Remove fee"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={addFeeItem}
+                                                    className="w-full h-11 rounded-xl border-dashed border-slate-300 dark:border-white/15 text-xs font-black uppercase tracking-wider"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Add Additional Fee
+                                                </Button>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-white/10 text-base font-black text-primary italic">
+                                                <span>Total Amount to Assess</span>
+                                                <span>₱{editableTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
 
                                 return (
                                     <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -614,20 +752,42 @@ export default function BploDetailPage({ params }: PageProps) {
                                         className="group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition-all select-none aspect-video text-left w-full block"
                                     >
                                         {doc.url ? (
-                                            <>
-                                                <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-all" />
-                                                <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
-                                                    {doc.label}
-                                                </div>
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                    <div
-                                                        style={{ backgroundColor: themeColor }}
-                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
-                                                    >
-                                                        <span>View</span>
+                                            isImageFile(doc.url) ? (
+                                                <>
+                                                    <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-all" />
+                                                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
+                                                        {doc.label}
                                                     </div>
-                                                </div>
-                                            </>
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                        <div
+                                                            style={{ backgroundColor: themeColor }}
+                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                        >
+                                                            <span>View</span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-white dark:from-[#111827] dark:to-[#0b1220]" />
+                                                    <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
+                                                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-center">
+                                                            <FileText className="w-7 h-7 text-primary" />
+                                                        </div>
+                                                        <div className="text-center min-w-0">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                                                                {getFileExtension(doc.url).toUpperCase() || "DOC"} File
+                                                            </p>
+                                                            <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-slate-800 dark:text-white truncate max-w-[220px]">
+                                                                {doc.label}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
+                                                        Open Document
+                                                    </div>
+                                                </>
+                                            )
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-1.5 p-4">
                                                 <Camera className="w-6 h-6 mx-auto" />
@@ -821,7 +981,18 @@ export default function BploDetailPage({ params }: PageProps) {
 
                                 {/* Process & Release phase actions */}
                                 {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
-                                    <div className="space-y-4">
+                                    <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
+                                        {/* Card header */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-xl" style={{ backgroundColor: `${themeColor}15` }}>
+                                                <FileText className="w-4 h-4" style={{ color: themeColor }} />
+                                            </div>
+                                            <div>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Permit Issuance</span>
+                                                <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Release Details</span>
+                                            </div>
+                                        </div>
+
                                         {isRenewal ? (
                                             <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
                                                 <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
@@ -840,19 +1011,105 @@ export default function BploDetailPage({ params }: PageProps) {
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Digital Permit Upload (Optional)</Label>
-                                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
-                                                <label className="cursor-pointer block space-y-2">
-                                                    <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
-                                                    <Input
-                                                        type="file"
-                                                        accept="image/*,application/pdf"
-                                                        onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
-                                                        className="hidden"
-                                                    />
-                                                </label>
-                                                {eCopyFile && <p className="text-[10px] font-mono text-emerald-500 mt-2">Selected: {eCopyFile.name}</p>}
-                                            </div>
+                                            
+                                            {!(eCopyFile || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) ? (
+                                                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
+                                                    <label className="cursor-pointer block space-y-2">
+                                                        <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
+                                                        <Input
+                                                            type="file"
+                                                            accept="image/*,application/pdf"
+                                                            onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
+                                                            className="hidden"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setECopyFile(null);
+                                                            setTransaction((prev: any) => prev ? { ...prev, eCopyUrl: "" } : null);
+                                                        }}
+                                                        className="text-xs font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1 rounded-xl h-auto"
+                                                    >
+                                                        ✕ Clear / Change File
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {/* PREVIEW CONTAINER */}
+                                            {(eCopyPreview || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) && (
+                                                <div className="mt-4">
+                                                    {(() => {
+                                                        const isPdf = eCopyFile
+                                                            ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
+                                                            : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
+                                                        
+                                                        const targetUrl = eCopyPreview || transaction.eCopyUrl;
+
+                                                        if (isPdf) {
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setViewerUrl(targetUrl);
+                                                                        setViewerTitle("Digital Permit PDF");
+                                                                        setViewerOpen(true);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                                >
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                            📕
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Digital Permit PDF</p>
+                                                                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div 
+                                                                        style={{ color: themeColor, borderColor: `${themeColor}40` }}
+                                                                        className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
+                                                                    >
+                                                                        Open PDF ➔
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setViewerUrl(targetUrl);
+                                                                    setViewerTitle("Digital Permit Document");
+                                                                    setViewerOpen(true);
+                                                                }}
+                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
+                                                            >
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={targetUrl}
+                                                                    alt="Digital Permit Preview"
+                                                                    className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                                />
+                                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                    <div
+                                                                        style={{ backgroundColor: themeColor }}
+                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                                    >
+                                                                        <span>View</span>
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-2">

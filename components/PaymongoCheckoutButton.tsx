@@ -12,9 +12,10 @@ interface Props {
   className?: string;
   style?: React.CSSProperties;
   transactionId?: string | null;
+  onBeforeCheckout?: () => Promise<boolean>;
 }
 
-export default function PaymongoCheckoutButton({ amount = 0, type = "gcash", label = "Pay with GCash", className, style, transactionId }: Props) {
+export default function PaymongoCheckoutButton({ amount = 0, type = "gcash", label = "Pay with GCash", className, style, transactionId, onBeforeCheckout }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -24,6 +25,14 @@ export default function PaymongoCheckoutButton({ amount = 0, type = "gcash", lab
     }
     setLoading(true);
     try {
+      if (onBeforeCheckout) {
+        const proceed = await onBeforeCheckout();
+        if (!proceed) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const res = await fetch("/api/paymongo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

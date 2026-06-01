@@ -1280,11 +1280,11 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             result.totalAmount += itemsSum;
         }
 
-        // Determine New Status
-        // If it is a Business Permit and being evaluated from inspection/reinspection phase, set status to FOR_PROCESSING.
-        // Otherwise, follow the standard logic:
+        // Determine New Status.
+        // New BPLO requests that pass inspection move to Treasury requesting.
+        // Re-inspection keeps the existing later-phase flow and returns to processing.
         let newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
-        if (isBusinessPermit && ["FOR_INSPECTION", "FOR_REINSPECTION"].includes(transaction.status)) {
+        if (isBusinessPermit && transaction.status === "FOR_REINSPECTION") {
             newStatus = "FOR_PROCESSING";
         }
 
@@ -1383,8 +1383,16 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
             return { success: false, error: "Transaction is not in evaluation phase" };
         }
 
-        // Recalculate total amount if delivery is selected
-        let finalAmount = Number(transaction.totalAmount);
+        const fiscal = (typeof transaction.fiscalSnapshot === "string" ? JSON.parse(transaction.fiscalSnapshot) : transaction.fiscalSnapshot) as any || {};
+        const baseAmount = Number(fiscal.basicTax || 0) + Number(fiscal.additionalTax || 0) + Number(fiscal.penaltyCharge || fiscal.penalty || 0);
+        
+        // Subtract any previously saved delivery fee to get a clean base amount
+        const existingDeliveryFee = Number(fiscal.deliveryFee || 0);
+        const resolvedBase = baseAmount > 0 
+            ? baseAmount 
+            : Math.max(0, Number(transaction.totalAmount) - existingDeliveryFee);
+            
+        let finalAmount = resolvedBase;
         if (fulfillmentType === "DELIVERY") {
             let actualDeliveryFee = transaction.type.deliveryFee || 0;
             const barangayName = deliveryAddress?.barangay;
@@ -1718,9 +1726,12 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
             const existingPermitNo = additionalData?.permitNumber || additionalData?.existingPermitNumber || additionalData?.existingPermitNo;
 
             if (!transaction.businessPermit) {
+                if (!isRenewal && !ctcNumber?.trim()) {
+                    return { success: false, error: "Permit Number is required for new business permits." };
+                }
                 const generatedPermitNo = (isRenewal && existingPermitNo)
                     ? existingPermitNo.trim()
-                    : (ctcNumber?.trim() || `BP-${now.getFullYear()}-${id.slice(-6).toUpperCase()}`);
+                    : ctcNumber.trim();
                 await (prisma.businessPermit.create as any)({
                     data: {
                         transactionId: id,
@@ -2228,9 +2239,30 @@ export async function getBploTransactions(status?: string) {
                 where.isCancelled = false;
             }
         } else {
-            // Default statuses BPLO can handle/see
+            // Default statuses BPLO can handle/see (all statuses)
             where.status = {
-                in: ["FOR_INSPECTION", "FOR_PROCESSING", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RETURNED", "REFUNDED", "DISPUTE_REJECTED", "RELEASED", "DELIVERED", "REJECTED"]
+                in: [
+                    "DRAFT",
+                    "FOR_REQUESTING",
+                    "FOR_REVISION",
+                    "FOR_INSPECTION",
+                    "FOR_REINSPECTION",
+                    "FOR_PROCESSING",
+                    "EVALUATED",
+                    "FOR_CLAIM",
+                    "FOR_PICKING",
+                    "IN_ROUTE",
+                    "DELIVERED",
+                    "UNPAID",
+                    "PAID",
+                    "RELEASED",
+                    "REJECTED",
+                    "RETURN_REQUESTED",
+                    "REFUND_REQUESTED",
+                    "RETURNED",
+                    "REFUNDED",
+                    "DISPUTE_REJECTED"
+                ]
             };
             where.isCancelled = false;
         }
@@ -4254,5 +4286,86 @@ export async function checkPaymongoPaymentStatus(id: string) {
     } catch (err) {
         console.error("checkPaymongoPaymentStatus error:", err);
         return { success: false, error: "Internal server error" };
+    }
+}
+
+/**
+ * Save Logistics Details for a transaction (Resident side before PayMongo checkout)
+ */
+export async function saveLogisticsDetails(
+    transactionId: string, 
+    fulfillmentType: "PICK_UP" | "DELIVERY" | "E_COPY", 
+    paymentType: string,
+    deliveryAddress: any, 
+    deliveryLat: number | null, 
+    deliveryLng: number | null, 
+    deliveryLandmark: string
+) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: transactionId },
+            include: { type: true }
+        });
+
+        if (!transaction || transaction.userId !== session.user.id) {
+            return { success: false, error: "Transaction not found" };
+        }
+
+        // Recalculate total amount if delivery is selected
+        let actualDeliveryFee = 0;
+        if (fulfillmentType === "DELIVERY") {
+            actualDeliveryFee = transaction.type.deliveryFee || 0;
+            const barangayName = deliveryAddress?.barangay;
+
+            if (barangayName) {
+                const brgy = await prisma.barangayInfo.findUnique({
+                    where: { name: barangayName }
+                }) as any;
+
+                if (brgy && brgy.deliveryFee > 0) {
+                    actualDeliveryFee = brgy.deliveryFee;
+                }
+            }
+        }
+
+        const fiscal = (typeof transaction.fiscalSnapshot === "string" ? JSON.parse(transaction.fiscalSnapshot) : transaction.fiscalSnapshot) as any || {};
+        // Do not add lineItems sum again because they are already accumulated inside basicTax!
+        const baseAmount = Number(fiscal.basicTax || 0) + Number(fiscal.additionalTax || 0) + Number(fiscal.penaltyCharge || 0);
+        
+        // Subtract any previously saved delivery fee to prevent accumulation on re-clicks
+        const existingDeliveryFee = Number(fiscal.deliveryFee || 0);
+        const resolvedBase = baseAmount > 0 
+            ? baseAmount 
+            : Math.max(0, Number(transaction.totalAmount) - existingDeliveryFee);
+            
+        const totalWithLogistics = resolvedBase + actualDeliveryFee;
+
+        await prisma.transaction.update({
+            where: { id: transactionId },
+            data: {
+                fulfillmentType,
+                paymentType: paymentType as any,
+                deliveryAddress: fulfillmentType === "DELIVERY" ? deliveryAddress : null,
+                deliveryLat: fulfillmentType === "DELIVERY" ? deliveryLat : null,
+                deliveryLng: fulfillmentType === "DELIVERY" ? deliveryLng : null,
+                deliveryLandmark: fulfillmentType === "DELIVERY" ? deliveryLandmark : null,
+                totalAmount: totalWithLogistics,
+                fiscalSnapshot: {
+                    ...fiscal,
+                    deliveryFee: actualDeliveryFee,
+                    totalAmount: totalWithLogistics
+                },
+                updatedAt: new Date()
+            } as any
+        });
+
+        revalidatePath("/user/services/requests");
+        return { success: true };
+    } catch (error) {
+        console.error("Save logistics details error:", error);
+        return { success: false, error: "Failed to save logistics details" };
     }
 }
