@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET" | "PROCESSING";
     to: string;
     name: string;
     remarks?: string | null;
@@ -404,6 +404,35 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 </div>
 
                 <p style="color: #64748b; font-size: 13px;">The original transaction record remains final. If you have further questions, please visit the Municipal Treasury Office personally.</p>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "PROCESSING") {
+        subject = `Update: Your Request is now in Process - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryBlue}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">⚙️</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request in Process</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We would like to inform you that your request for **${serviceName || "Business Permit"}** (Ref ID: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) is now being officially processed by LGU Mapandan.</p>
+                
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
+                    <p style="color: #1e40af; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Current Status: Processing</p>
+                    <p style="color: #1e40af; font-size: 13px; margin: 8px 0 0 0; opacity: 0.8;">Your request is currently being processed by our office. We will send you another update once it is ready or if we need further details.</p>
+                </div>
+
+                ${remarks ? `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 32px;">
+                    <p style="color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Assessor Notes</p>
+                    <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5; font-style: italic;">"${remarks}"</p>
+                </div>` : ""}
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
