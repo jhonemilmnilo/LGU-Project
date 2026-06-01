@@ -1397,10 +1397,9 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         // Determine next status: 
         // - All PICK_UP go to FOR_PROCESSING
         // - DELIVERY with CASH_ON_DELIVERY also goes to FOR_PROCESSING
-        const isForProcessing = fulfillmentType === "PICK_UP" || (fulfillmentType === "DELIVERY" && paymentType === "CASH_ON_DELIVERY");
-        let newStatus = isForProcessing ? "FOR_PROCESSING" : "PAID";
+        let newStatus = (fulfillmentType === "PICK_UP" || paymentType === "CASH_ON_DELIVERY") ? "FOR_PROCESSING" : "UNPAID";
         if (paymentType === "E_PAYMENT" || paymentType === "BANK_TRANSFER") {
-            newStatus = "PAID";
+            newStatus = "UNPAID";
         }
 
         const updatedTransaction = await prisma.transaction.update({
