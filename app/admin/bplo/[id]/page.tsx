@@ -59,7 +59,6 @@ export default function BploDetailPage({ params }: PageProps) {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
-    const [viewerFile, setViewerFile] = useState<File | null>(null);
 
     const safeFormatDate = (dateStr: any) => {
         if (!dateStr) return "—";
@@ -82,7 +81,7 @@ export default function BploDetailPage({ params }: PageProps) {
     const [eCopyFile, setECopyFile] = useState<File | null>(null);
     const [isResolvingDispute, setIsResolvingDispute] = useState(false);
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
-    const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
+    const [disputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
     const [isBusinessRecordExpanded, setIsBusinessRecordExpanded] = useState(true);
@@ -309,8 +308,6 @@ export default function BploDetailPage({ params }: PageProps) {
     });
 
     const currentStepIdx = steps.findIndex(s => s.id === transaction.status);
-    const hasDispute = !!(transaction.status?.includes("RETURN") || transaction.status?.includes("REFUND") || transaction.status === "DISPUTE_REJECTED");
-
     return (
         <div
             className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
