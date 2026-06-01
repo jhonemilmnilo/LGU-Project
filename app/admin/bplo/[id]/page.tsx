@@ -14,6 +14,8 @@ import {
     Upload,
     Camera,
     Hash,
+    Plus,
+    Trash2,
     ChevronDown,
     ChevronUp,
     Copy
@@ -48,7 +50,36 @@ interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+type FeeItem = {
+    label: string;
+    amount: string;
+};
 
+const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
+const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg"];
+
+function getFileExtension(url: string) {
+    try {
+        const cleanPath = new URL(url).pathname;
+        return cleanPath.split(".").pop()?.toLowerCase() || "";
+    } catch {
+        return url.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase() || "";
+    }
+}
+
+function isDocumentFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:application/pdf")) return true;
+    return documentExtensions.includes(getFileExtension(url));
+}
+
+function isImageFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:image/") || lower.startsWith("blob:")) return true;
+    const extension = getFileExtension(url);
+    if (imageExtensions.includes(extension)) return true;
+    return !isDocumentFile(url);
+}
 
 export default function BploDetailPage({ params }: PageProps) {
     const { id } = use(params);
@@ -98,7 +129,7 @@ export default function BploDetailPage({ params }: PageProps) {
     const [isBusinessRecordExpanded, setIsBusinessRecordExpanded] = useState(true);
     const [isRequirementsExpanded, setIsRequirementsExpanded] = useState(true);
     const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
-    const [feeItems, setFeeItems] = useState<{ label: string; amount: string }[]>([]);
+    const [feeItems, setFeeItems] = useState<FeeItem[]>([]);
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -120,10 +151,10 @@ export default function BploDetailPage({ params }: PageProps) {
                 const snap = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
                 const existingItems: any[] = snap.lineItems || [];
                 const defaults: any[] = res.data.type?.defaultFees || [];
-                const initFees = existingItems.length > 0
+                const initFees: FeeItem[] = existingItems.length > 0
                     ? existingItems.map((i: any) => ({ label: i.label, amount: String(i.amount ?? "") }))
                     : defaults.length > 0
-                        ? defaults.map((f: any) => ({ label: f.label, amount: String(f.amount ?? "") }))
+                        ? defaults.map((f: any) => ({ label: f.label, amount: "" }))
                         : [{ label: "Mayor's Permit Fee", amount: "" }];
                 setFeeItems(initFees);
             } else {
@@ -146,6 +177,17 @@ export default function BploDetailPage({ params }: PageProps) {
     }, [fetchTransaction]);
 
     const handleEvaluate = async () => {
+        const hasIncompleteFee = feeItems.some(f => f.label.trim() && f.amount.trim() === "");
+        const hasAmountWithoutLabel = feeItems.some(f => !f.label.trim() && f.amount.trim() !== "");
+        if (hasIncompleteFee) {
+            toast.error("Please enter an amount for every fee line, or remove empty additional fees.");
+            return;
+        }
+        if (hasAmountWithoutLabel) {
+            toast.error("Please add a label for every additional fee amount.");
+            return;
+        }
+
         setActionLoading(true);
         try {
             const deliveryFee = transaction.fulfillmentType === "DELIVERY" ? (transaction.type.deliveryFee || 0) : 0;
@@ -240,6 +282,18 @@ export default function BploDetailPage({ params }: PageProps) {
         } finally {
             setIsResolvingDispute(false);
         }
+    };
+
+    const updateFeeItem = (index: number, field: keyof Pick<FeeItem, "label" | "amount">, value: string) => {
+        setFeeItems(items => items.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    };
+
+    const addFeeItem = () => {
+        setFeeItems(items => [...items, { label: "", amount: "" }]);
+    };
+
+    const removeFeeItem = (index: number) => {
+        setFeeItems(items => items.filter((_, i) => i !== index));
     };
 
     useEffect(() => {
@@ -431,6 +485,7 @@ export default function BploDetailPage({ params }: PageProps) {
                             {isBreakdownExpanded && (() => {
                                 const rawFiscal = transaction.fiscalSnapshot;
                                 const fiscalSnapshot = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
+                                const isInspectionAssessment = transaction.status === "FOR_INSPECTION";
                                 const lineItems: any[] = fiscalSnapshot.lineItems || [];
                                 const defaultFees: any[] = transaction.type?.defaultFees || [];
                                 const positiveLineItems = lineItems.filter((i: any) => Number(i.amount) > 0);
@@ -458,6 +513,73 @@ export default function BploDetailPage({ params }: PageProps) {
                                         : computedItems.length > 0
                                             ? computedItems
                                             : positiveDefaultFees.map((f: any) => ({ label: f.label, amount: Number(f.amount) || 0 }));
+
+                                if (isInspectionAssessment) {
+                                    const editableTotal = feeItems.reduce((total, item) => total + (Number(item.amount) || 0), 0);
+
+                                    return (
+                                        <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="rounded-2xl border border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] p-4 space-y-3">
+                                                {feeItems.map((item, idx) => (
+                                                    <div key={idx} className="grid grid-cols-12 gap-3 items-end">
+                                                        <div className="col-span-12 md:col-span-7 space-y-1.5">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                                Fee label
+                                                            </Label>
+                                                            <Input
+                                                                value={item.label}
+                                                                onChange={(e) => updateFeeItem(idx, "label", e.target.value)}
+                                                                placeholder="Enter additional fee label"
+                                                                className="h-11 rounded-xl bg-white dark:bg-[#101725] text-xs font-black"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-9 md:col-span-4 space-y-1.5">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                                Amount
+                                                            </Label>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                value={item.amount}
+                                                                onChange={(e) => updateFeeItem(idx, "amount", e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="h-11 rounded-xl bg-white dark:bg-[#101725] text-xs font-black"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-3 md:col-span-1">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => removeFeeItem(idx)}
+                                                                className="h-11 w-full rounded-xl border-slate-200 dark:border-white/10 text-slate-400 hover:text-red-500 hover:border-red-200"
+                                                                title="Remove fee"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={addFeeItem}
+                                                    className="w-full h-11 rounded-xl border-dashed border-slate-300 dark:border-white/15 text-xs font-black uppercase tracking-wider"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Add Additional Fee
+                                                </Button>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-white/10 text-base font-black text-primary italic">
+                                                <span>Total Amount to Assess</span>
+                                                <span>₱{editableTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
 
                                 return (
                                     <div className="mt-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -630,20 +752,42 @@ export default function BploDetailPage({ params }: PageProps) {
                                         className="group relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition-all select-none aspect-video text-left w-full block"
                                     >
                                         {doc.url ? (
-                                            <>
-                                                <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-all" />
-                                                <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
-                                                    {doc.label}
-                                                </div>
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                    <div
-                                                        style={{ backgroundColor: themeColor }}
-                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
-                                                    >
-                                                        <span>View</span>
+                                            isImageFile(doc.url) ? (
+                                                <>
+                                                    <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-all" />
+                                                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
+                                                        {doc.label}
                                                     </div>
-                                                </div>
-                                            </>
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                        <div
+                                                            style={{ backgroundColor: themeColor }}
+                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                        >
+                                                            <span>View</span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-white dark:from-[#111827] dark:to-[#0b1220]" />
+                                                    <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
+                                                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 shadow-sm flex items-center justify-center">
+                                                            <FileText className="w-7 h-7 text-primary" />
+                                                        </div>
+                                                        <div className="text-center min-w-0">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                                                                {getFileExtension(doc.url).toUpperCase() || "DOC"} File
+                                                            </p>
+                                                            <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-slate-800 dark:text-white truncate max-w-[220px]">
+                                                                {doc.label}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
+                                                        Open Document
+                                                    </div>
+                                                </>
+                                            )
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-1.5 p-4">
                                                 <Camera className="w-6 h-6 mx-auto" />
