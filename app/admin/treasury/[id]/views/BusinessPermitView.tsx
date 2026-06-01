@@ -833,7 +833,7 @@ export default function BusinessPermitView({
                                                         }
                                                         className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                                     >
-                                                        {actionLoading ? "Submitting..." : ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Ready for Reinspection" : (transaction.status === "FOR_REINSPECTION" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document")}
+                                                        {actionLoading ? "Submitting..." : ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Payment Received" : (transaction.status === "FOR_REINSPECTION" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document")}
                                                     </Button>
                                                     {transaction.status === "PAID" && (
                                                         <div className="flex gap-2 w-full mb-2">

@@ -1311,7 +1311,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                 }
             } as any,
             include: { user: true }
-        }) as any; 
+        }) as any;
 
         // Trigger email notification for payment / processing
         if (updatedTransaction.user?.email) {
@@ -1385,13 +1385,13 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
 
         const fiscal = (typeof transaction.fiscalSnapshot === "string" ? JSON.parse(transaction.fiscalSnapshot) : transaction.fiscalSnapshot) as any || {};
         const baseAmount = Number(fiscal.basicTax || 0) + Number(fiscal.additionalTax || 0) + Number(fiscal.penaltyCharge || fiscal.penalty || 0);
-        
+
         // Subtract any previously saved delivery fee to get a clean base amount
         const existingDeliveryFee = Number(fiscal.deliveryFee || 0);
-        const resolvedBase = baseAmount > 0 
-            ? baseAmount 
+        const resolvedBase = baseAmount > 0
+            ? baseAmount
             : Math.max(0, Number(transaction.totalAmount) - existingDeliveryFee);
-            
+
         let finalAmount = resolvedBase;
         if (fulfillmentType === "DELIVERY") {
             let actualDeliveryFee = transaction.type.deliveryFee || 0;
@@ -1660,8 +1660,9 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         // Let's check what the valid transaction statuses are in schema/prisma: "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED", etc.
         // Let's modify targetStatus:
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
-        const targetStatus = (isBusinessPermit && ["FOR_PROCESSING", "PAID"].includes(transaction.status as any))
-            ? "FOR_REINSPECTION"
+        const isBusinessPermitTreasuryHandoff = isBusinessPermit && user.role === "TREASURY_STAFF" && ["PAID", "FOR_PROCESSING"].includes(transaction.status as any);
+        const targetStatus = isBusinessPermit
+            ? (isBusinessPermitTreasuryHandoff ? "FOR_REINSPECTION" : (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM"))
             : (transaction.status as any) === "PAID"
                 ? "FOR_PROCESSING"
                 : isInitialRelease
@@ -1719,7 +1720,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         const isPickupCashInitial = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING";
 
         // Handle either BPLO or Cedula lifecycle
-        if (isBusinessPermit) {
+        if (isBusinessPermit && !isBusinessPermitTreasuryHandoff) {
             const isRenewal = transaction.type.code === "BUSINESS_PERMIT_RENEW" ||
                 additionalData?.businessType === "RENEWAL" ||
                 additionalData?.businessType === "RENEW";
@@ -4133,13 +4134,13 @@ export async function checkPaymongoPaymentStatus(id: string) {
                     });
 
                     // Update Transaction
-                    const updatedAdditional = { 
-                        ...additional, 
-                        paymongo: { 
-                            ...additional.paymongo, 
-                            paymentId, 
-                            lastPayment: csdata 
-                        } 
+                    const updatedAdditional = {
+                        ...additional,
+                        paymongo: {
+                            ...additional.paymongo,
+                            paymentId,
+                            lastPayment: csdata
+                        }
                     };
                     const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
                     if (isPaid) {
@@ -4190,7 +4191,7 @@ export async function checkPaymongoPaymentStatus(id: string) {
                     if (billingSource.name) billing.name = billingSource.name;
                     if (billingSource.email) billing.email = billingSource.email;
                     if (billingSource.phone) billing.phone = billingSource.phone;
-                    
+
                     if (attrs?.metadata?.payerName || attrs?.metadata?.name) billing.name = attrs.metadata.payerName || attrs.metadata.name;
                     if (attrs?.metadata?.payerEmail || attrs?.metadata?.email) billing.email = attrs.metadata.payerEmail || attrs.metadata.email;
                     if (attrs?.metadata?.payerPhone || attrs?.metadata?.phone) billing.phone = attrs.metadata.payerPhone || attrs.metadata.phone;
@@ -4225,7 +4226,7 @@ export async function checkPaymongoPaymentStatus(id: string) {
                     const payment = payData?.data;
                     const payAttrs = payment?.attributes || {};
                     const paymentStatus = payAttrs?.status; // e.g. "succeeded" or "paid"
-                    
+
                     // Map payment status to database format
                     const isPaid = paymentStatus === "succeeded" || paymentStatus === "paid" || paymentStatus === "success";
                     const mappedStatus = isPaid ? "PAID" : "PENDING";
@@ -4252,13 +4253,13 @@ export async function checkPaymongoPaymentStatus(id: string) {
                     });
 
                     // Update Transaction
-                    const updatedAdditional = { 
-                        ...additional, 
-                        paymongo: { 
-                            ...additional.paymongo, 
-                            paymentId, 
-                            lastPayment: payData 
-                        } 
+                    const updatedAdditional = {
+                        ...additional,
+                        paymongo: {
+                            ...additional.paymongo,
+                            paymentId,
+                            lastPayment: payData
+                        }
                     };
                     const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
                     if (isPaid) {
@@ -4293,12 +4294,12 @@ export async function checkPaymongoPaymentStatus(id: string) {
  * Save Logistics Details for a transaction (Resident side before PayMongo checkout)
  */
 export async function saveLogisticsDetails(
-    transactionId: string, 
-    fulfillmentType: "PICK_UP" | "DELIVERY" | "E_COPY", 
+    transactionId: string,
+    fulfillmentType: "PICK_UP" | "DELIVERY" | "E_COPY",
     paymentType: string,
-    deliveryAddress: any, 
-    deliveryLat: number | null, 
-    deliveryLng: number | null, 
+    deliveryAddress: any,
+    deliveryLat: number | null,
+    deliveryLng: number | null,
     deliveryLandmark: string
 ) {
     try {
@@ -4334,13 +4335,13 @@ export async function saveLogisticsDetails(
         const fiscal = (typeof transaction.fiscalSnapshot === "string" ? JSON.parse(transaction.fiscalSnapshot) : transaction.fiscalSnapshot) as any || {};
         // Do not add lineItems sum again because they are already accumulated inside basicTax!
         const baseAmount = Number(fiscal.basicTax || 0) + Number(fiscal.additionalTax || 0) + Number(fiscal.penaltyCharge || 0);
-        
+
         // Subtract any previously saved delivery fee to prevent accumulation on re-clicks
         const existingDeliveryFee = Number(fiscal.deliveryFee || 0);
-        const resolvedBase = baseAmount > 0 
-            ? baseAmount 
+        const resolvedBase = baseAmount > 0
+            ? baseAmount
             : Math.max(0, Number(transaction.totalAmount) - existingDeliveryFee);
-            
+
         const totalWithLogistics = resolvedBase + actualDeliveryFee;
 
         await prisma.transaction.update({
