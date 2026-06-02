@@ -31,7 +31,11 @@ interface TourismContextType {
     setEditingData: (data: Tourism | null) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    selectedStatus: string;
+    setSelectedStatus: (status: string) => void;
     currentBarangay?: string | null;
+    activeBarangays?: string[];
+    themeColor: string;
 }
 
 const TourismContext = createContext<TourismContextType | undefined>(undefined);
@@ -39,22 +43,40 @@ const TourismContext = createContext<TourismContextType | undefined>(undefined);
 export function TourismProvider({
     children,
     initialData,
-    currentBarangay
+    currentBarangay,
+    activeBarangays = []
 }: {
     children: React.ReactNode;
     initialData: Tourism[];
     currentBarangay?: string | null;
+    activeBarangays?: string[];
 }) {
     const [tourismData, setTourismData] = useState<Tourism[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-     
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [selectedStatus, setSelectedStatus] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setTourismData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <TourismContext.Provider
@@ -68,7 +90,11 @@ export function TourismProvider({
                 setEditingData,
                 selectedCategory,
                 setSelectedCategory,
-                currentBarangay
+                selectedStatus,
+                setSelectedStatus,
+                currentBarangay,
+                activeBarangays,
+                themeColor
             }}
         >
             {children}

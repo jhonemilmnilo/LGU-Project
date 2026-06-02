@@ -18,5 +18,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
         orderBy: { createdAt: "desc" },
     });
 
-    return <TourismPage initialData={tourismSpots as any} currentBarangay={currentBarangay} />;
+    const activeBarangays = await prisma.barangayInfo.findMany({
+        orderBy: { name: "asc" },
+        select: { name: true }
+    });
+
+    return (
+        <TourismPage 
+            initialData={tourismSpots as any} 
+            currentBarangay={currentBarangay}
+            activeBarangays={isBarangayAdmin ? [] : activeBarangays.map(b => b.name)}
+        />
+    );
 }

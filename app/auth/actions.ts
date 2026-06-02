@@ -152,6 +152,23 @@ export async function requestPasswordReset(email: string) {
             return { success: true };
         }
 
+        // Check if there is an active token created in the last 60 seconds
+        const recentToken = await prisma.passwordResetToken.findFirst({
+            where: {
+                email: emailClean,
+                createdAt: {
+                    gt: new Date(Date.now() - 60 * 1000), // 60 seconds ago
+                },
+            },
+        });
+
+        if (recentToken) {
+            return {
+                success: false,
+                error: "Please wait 60 seconds before requesting another reset link.",
+            };
+        }
+
         // Delete any previous unused tokens for this email
         await prisma.passwordResetToken.deleteMany({ where: { email: emailClean } });
 

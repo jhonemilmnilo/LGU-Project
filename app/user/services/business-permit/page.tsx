@@ -238,7 +238,6 @@ function FilePreview({ file, onClick }: { file: File; onClick?: () => void }) {
         </div>
     );
 }
-
 export default function BusinessPermitWizardPage() {
     const router = useRouter();
     const { hydrateDraft, hydrateDraftFiles, persistDraft, persistDraftFile, clearDraft } = useDraft<FormState>("emapandan_bp_draft");
@@ -303,15 +302,12 @@ export default function BusinessPermitWizardPage() {
     const [viewerFile, setViewerFile] = useState<File | null>(null);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
-
     const openViewer = (file: File | null, url: string | null, title: string) => {
         setViewerFile(file);
         setViewerUrl(url);
         setViewerTitle(title);
         setViewerOpen(true);
     };
-
-
 
     // --- INITIALIZATION & DRAFT HYDRATION ---
     useEffect(() => {
@@ -389,6 +385,7 @@ export default function BusinessPermitWizardPage() {
                             setRevisionId(revId);
                             setRevisionTx(tx);
                             isRevisionMode = true;
+                            setCurrentStep("USER_IDENTITY");
 
                             // Prepopulate values from existing transaction additionalData
                             const addData = tx.additionalData as any;
@@ -666,6 +663,8 @@ export default function BusinessPermitWizardPage() {
     };
 
     const canNavigate = (targetStep: Step) => {
+        if (targetStep === "PATHWAY" && revisionId) return false;
+
         const targetIdx = STEPS.findIndex(s => s.id === targetStep);
         const currentIdx = STEPS.findIndex(s => s.id === currentStep);
 
@@ -939,21 +938,14 @@ export default function BusinessPermitWizardPage() {
 
             {/* Revision Remarks Alert Banner */}
             {revisionTx && (
-                <div className="bg-primary/5 border border-primary/20 p-6 rounded-[2rem] flex flex-col md:flex-row gap-4 md:items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="space-y-1.5 text-left">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest font-sans">
+                <div className="bg-rose-500/5 dark:bg-rose-500/[0.02] border border-rose-500/20 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-3 text-left">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-500 text-[8px] font-black uppercase tracking-widest font-sans border border-rose-500/20">
                             ⚠️ Attention: Revision Needed
                         </span>
-                        <h4 className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white italic">
-                            Transaction Reference: <span className="font-mono text-primary font-bold">{revisionTx.id.slice(-8).toUpperCase()}</span>
-                        </h4>
-                        <div className="text-xs text-primary dark:text-primary/90 font-bold bg-primary/[0.02] border border-primary/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
+                        <div className="text-sm text-slate-800 dark:text-slate-200 font-bold bg-white dark:bg-slate-900/60 border border-rose-500/10 p-5 rounded-2xl italic font-sans leading-relaxed shadow-sm">
                             &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
                         </div>
-                    </div>
-                    <div className="shrink-0 text-left md:text-right">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                        <p className="text-xs font-black text-primary uppercase tracking-widest italic">Action Required</p>
                     </div>
                 </div>
             )}
@@ -968,6 +960,7 @@ export default function BusinessPermitWizardPage() {
                         <div
                             key={idx}
                             onClick={() => {
+                                if (step.id === "PATHWAY" && revisionId) return; // Completely block tab navigation
                                 if (canNavigate(step.id)) {
                                     setCurrentStep(step.id);
                                 } else {

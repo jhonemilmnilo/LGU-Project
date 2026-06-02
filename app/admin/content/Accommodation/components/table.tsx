@@ -25,13 +25,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function AccommodationTable() {
-    const { accommodationData, searchTerm, setEditingData, setIsAddModalOpen } = useAccommodation();
+    const { accommodationData, searchTerm, selectedType, selectedStatus, setEditingData, setIsAddModalOpen } = useAccommodation();
 
-    const filteredData = accommodationData.filter((item: Accommodation) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.type?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredData = accommodationData.filter((item: Accommodation) => {
+        const query = searchTerm.toLowerCase();
+        const matchesSearch =
+            item.name.toLowerCase().includes(query) ||
+            item.address.toLowerCase().includes(query) ||
+            item.type?.toLowerCase().includes(query);
+        const matchesType = selectedType === "All" || item.type === selectedType;
+        const matchesStatus =
+            selectedStatus === "All" ||
+            (selectedStatus === "Published" && item.isPublished) ||
+            (selectedStatus === "Draft" && !item.isPublished);
+
+        return matchesSearch && matchesType && matchesStatus;
+    });
 
     return (
         <div className="overflow-x-auto">
