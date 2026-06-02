@@ -439,7 +439,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
-    const isLcrBirthCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_PSA_ENDORSEMENT" || (transaction?.type?.name && transaction.type.name.includes("Birth Certificate (Certified Copy)"));
+    const isLcrCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_DEATH" || typeCode === "LCR_MARRIAGE" || typeCode === "LCR_PSA_ENDORSEMENT" || (transaction?.type?.name && (transaction.type.name.includes("Birth Certificate") || transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Marriage Certificate"))) || false;
+    const isLcrBirthCertifiedCopy = isLcrCertifiedCopy;
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
     const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
