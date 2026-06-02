@@ -7,7 +7,7 @@ import { ZoomIn, ZoomOut, RotateCw, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-export default function LightboxView({ src, alt, label }: { src: string; alt: string; label: string }) {
+export default function LightboxView({ src, alt, label, isPdf: isPdfOverride }: { src: string; alt: string; label: string; isPdf?: boolean }) {
     const [scale, setScale] = useState(1);
     const [rotate, setRotate] = useState(0);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -15,11 +15,21 @@ export default function LightboxView({ src, alt, label }: { src: string; alt: st
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     const isPdf = useMemo(() => {
+        if (typeof isPdfOverride === "boolean") return isPdfOverride;
         if (src) {
-            return src.toLowerCase().endsWith(".pdf") || src.includes("application/pdf") || src.includes(".pdf?");
+            const lowerSrc = src.toLowerCase();
+            return (
+                lowerSrc.endsWith(".pdf") ||
+                lowerSrc.includes("application/pdf") ||
+                lowerSrc.includes(".pdf?") ||
+                (lowerSrc.startsWith("blob:") && (
+                    label.toLowerCase().includes("pdf") ||
+                    alt.toLowerCase().includes("pdf")
+                ))
+            );
         }
         return false;
-    }, [src]);
+    }, [src, isPdfOverride, label, alt]);
 
     const handleWheel = (e: React.WheelEvent) => {
         const delta = e.deltaY < 0 ? 0.15 : -0.15;

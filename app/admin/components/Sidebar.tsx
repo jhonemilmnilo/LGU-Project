@@ -55,7 +55,6 @@ export function Sidebar({
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
     const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
-    const [isRegistrarOpen, setIsRegistrarOpen] = React.useState(pathname.startsWith("/admin/registrar"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
@@ -69,7 +68,6 @@ export function Sidebar({
         setIsAboutOpen(pathname.startsWith("/admin/about"));
         setIsBarangaysOpen(pathname.startsWith("/admin/barangays"));
             setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
-            setIsRegistrarOpen(pathname.startsWith("/admin/registrar"));
     }, [pathname]);
 
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -170,18 +168,7 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         // { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        {
-            label: "Registrar Hub",
-            icon: FileText,
-            category: "Registrar",
-            isDropdown: true,
-            isOpen: isRegistrarOpen,
-            onToggle: () => setIsRegistrarOpen(!isRegistrarOpen),
-            subItems: [
-                { href: "/admin/registrar", label: "Verify & Bill Requests" },
-                { href: "/admin/registrar/release-documents", label: "Release Documents" },
-            ]
-        },
+        { href: "/admin/registrar", label: "Registrar Hub", icon: FileText, category: "Registrar" },
         {
             label: "Treasury Hub",
             icon: LayoutDashboard,
