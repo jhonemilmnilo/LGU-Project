@@ -279,6 +279,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
 
                             <div className="flex items-center gap-3 justify-end">
                                 <Button
+                                    type="button"
                                     variant="outline"
                                     onClick={() => { if (onDecline) onDecline(); onClose(); }}
                                     className="h-9 sm:h-10 px-4 sm:px-5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest italic"
@@ -286,6 +287,7 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                     Decline
                                 </Button>
                                 <Button
+                                    type="button"
                                     onClick={onAccept}
                                     disabled={!hasReadPrivacy || !hasReadTerms}
                                     className={cn(

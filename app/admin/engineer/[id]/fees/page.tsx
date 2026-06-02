@@ -401,10 +401,14 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Building Permit Fee (₱) *</Label>
                                 <Input 
-                                    type="number" 
+                                    type="number"
+                                    min="0"
                                     placeholder="0.00" 
                                     value={buildingFee} 
-                                    onChange={(e) => setBuildingFee(e.target.value)} 
+                                    onChange={(e) => {
+                                        if (Number(e.target.value) < 0) return;
+                                        setBuildingFee(e.target.value);
+                                    }} 
                                     disabled={isViewOnly}
                                     className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
                                 />
@@ -413,10 +417,14 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Electrical Permit Fee (₱) *</Label>
                                 <Input 
-                                    type="number" 
+                                    type="number"
+                                    min="0"
                                     placeholder="0.00" 
                                     value={electricalFee} 
-                                    onChange={(e) => setElectricalFee(e.target.value)} 
+                                    onChange={(e) => {
+                                        if (Number(e.target.value) < 0) return;
+                                        setElectricalFee(e.target.value);
+                                    }} 
                                     disabled={isViewOnly}
                                     className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
                                 />
@@ -425,10 +433,14 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sanitary Permit Fee (₱) *</Label>
                                 <Input 
-                                    type="number" 
+                                    type="number"
+                                    min="0"
                                     placeholder="0.00" 
                                     value={sanitaryFee} 
-                                    onChange={(e) => setSanitaryFee(e.target.value)} 
+                                    onChange={(e) => {
+                                        if (Number(e.target.value) < 0) return;
+                                        setSanitaryFee(e.target.value);
+                                    }} 
                                     disabled={isViewOnly}
                                     className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
                                 />
@@ -465,10 +477,12 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                             className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 flex-1" 
                                         />
                                         <Input 
-                                            type="number" 
+                                            type="number"
+                                            min="0"
                                             placeholder="0.00" 
                                             value={charge.amount} 
                                             onChange={(e) => {
+                                                if (Number(e.target.value) < 0) return;
                                                 const newCharges = [...engineerMunicipalCharges];
                                                 newCharges[index].amount = e.target.value;
                                                 setEngineerMunicipalCharges(newCharges);
@@ -626,8 +640,8 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                     )}
                 </div>
 
-                {/* Right Column */}
-                <div className="col-span-12 lg:col-span-4 space-y-8">
+                {/* Right Column: Workflow Tracking & Executive Actions */}
+                <div className="col-span-12 lg:col-span-4 space-y-8 sticky top-16 self-start">
                     {/* Workflow Step Tracker */}
                     <div className="bg-[#151b28] rounded-[2rem] p-8 border border-white/5 space-y-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Workflow Tracking</h3>
