@@ -8,22 +8,26 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Switch } from "@/components/ui/switch";
 import { Edit2, Trash2, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 export function OfficialsTable() {
     const { 
         officialsData, searchTerm, setEditingData, 
         setIsAddModalOpen, selectedPosition, selectedCategory,
-        selectedBarangay
+        selectedStatus, selectedBarangay, themeColor
     } = useOfficials();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
     const filteredData = (officialsData as any[]).filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.position.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesPosition = selectedPosition === "All" || item.position === selectedPosition;
         const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+        const matchesStatus = selectedStatus === "All" || 
+            (selectedStatus === "Active" && item.isActive) ||
+            (selectedStatus === "Inactive" && !item.isActive);
         
         // Barangay Filtering Logic
         let matchesBarangay = false;
@@ -33,7 +37,7 @@ export function OfficialsTable() {
             matchesBarangay = item.barangay === selectedBarangay;
         }
 
-        return matchesSearch && matchesPosition && matchesCategory && matchesBarangay;
+        return matchesSearch && matchesPosition && matchesCategory && matchesStatus && matchesBarangay;
     }).sort((a, b) => a.order - b.order);
 
      
@@ -87,18 +91,18 @@ export function OfficialsTable() {
         <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
-                    <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
-                        <TableHead className="w-[80px]">Photo</TableHead>
-                        <TableHead className="w-[300px] font-bold text-slate-900 dark:text-slate-100 h-12">Name & Contact</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Position</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Hierarchy</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Active</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100">Actions</TableHead>
+                    <TableRow className="bg-slate-50/50 dark:bg-[#1e2330] hover:bg-slate-50 dark:hover:bg-[#1e2330] border-y border-slate-200 dark:border-[#2a3040]">
+                        <TableHead className="w-[80px] font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Photo</TableHead>
+                        <TableHead className="w-[300px] font-bold text-slate-900 dark:text-slate-100 h-12 text-xs uppercase tracking-widest">Name & Contact</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Position</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center text-xs uppercase tracking-widest">Hierarchy</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center text-xs uppercase tracking-widest">Active</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-primary/10/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-[#202635] transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell>
                                 <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                                     {item.imageUrl ? (
@@ -118,7 +122,7 @@ export function OfficialsTable() {
                             <TableCell>
                                 <div className="flex flex-col gap-1.5">
                                     <div className="flex items-center text-slate-700 dark:text-slate-300 font-semibold text-sm">
-                                        <ShieldCheck className="w-4 h-4 mr-1.5 text-primary" />
+                                        <ShieldCheck className="w-4 h-4 mr-1.5" style={{ color: themeColor }} />
                                         {item.position}
                                     </div>
                                     <span className={cn(
@@ -142,6 +146,7 @@ export function OfficialsTable() {
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isActive)}
                                     disabled={togglingId === item.id}
                                     className="data-[state=checked]:bg-primary"
+                                    style={{ "--tw-bg-opacity": "1", backgroundColor: item.isActive ? themeColor : undefined } as CSSProperties}
                                 />
                             </TableCell>
                             <TableCell className="text-right">
@@ -154,6 +159,7 @@ export function OfficialsTable() {
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
                                                     className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-blue-900/50"
+                                                    style={{ color: themeColor }}
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>

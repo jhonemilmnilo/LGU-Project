@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
 
 interface SendEmailProps {
@@ -17,11 +17,12 @@ interface SendEmailProps {
  * Reuses existing Gmail SMTP configuration from .env
  */
 export async function sendEmail({ type, to, name, remarks, transactionId, amount, resetLink, serviceName }: SendEmailProps) {
-    const resendApiKey = process.env.RESEND_API_KEY;
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS;
 
-    if (!resendApiKey) {
-        console.warn("Skipping email: RESEND_API_KEY not configured in .env");
-        return { success: false, error: "Resend API key not configured." };
+    if (!emailUser || !emailPass) {
+        console.warn("Skipping email: EMAIL_USER or EMAIL_PASS not configured in .env");
+        return { success: false, error: "Gmail SMTP credentials not configured." };
     }
 
     console.log(`[MAIL] Sending email of type: ${type} to: ${to}`);
@@ -433,25 +434,30 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
     }
 
     try {
-        const fromEmail = process.env.SENDER_EMAIL || "onboarding@resend.dev";
-        const resend = new Resend(resendApiKey);
+        // Automatically sanitize the Google App Password by removing any spaces
+        const sanitizedPass = emailPass.replace(/\s+/g, "");
 
-        const { data, error } = await resend.emails.send({
-            from: `LGU ${municipalityName} <${fromEmail}>`,
-            to: [to],
-            subject,
-            html: htmlBody,
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: emailUser,
+                pass: sanitizedPass,
+            },
         });
 
-        if (error) {
-            console.error("Resend failed:", error);
-            return { success: false, error: error.message || "Failed to send email." };
-        }
+        const mailOptions = {
+            from: `"LGU ${municipalityName}" <${emailUser}>`,
+            to: to,
+            subject,
+            html: htmlBody,
+        };
 
-        console.log(`Email (${type}) sent successfully to ${to}: ${data?.id}`);
+        const info = await transporter.sendMail(mailOptions);
+
+        console.log(`Email (${type}) sent successfully to ${to}: ${info.messageId}`);
         return { success: true };
     } catch (error: any) {
-        console.error("Resend execution failed:", error);
+        console.error("Gmail SMTP execution failed:", error);
         return { success: false, error: error.message || "Failed to send email." };
     }
 }

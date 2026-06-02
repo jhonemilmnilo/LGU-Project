@@ -74,7 +74,7 @@ export interface TreasuryViewProps {
     removeFeeLineItem: (index: number) => void;
     updateFeeLineItem: (index: number, field: "label" | "amount", value: string) => void;
     safeFormatDate: (dateStr: any) => string;
-    declaredValue: number;
+    declaredValue: number | string;
     declaredLabel: string;
     calcResult: any;
     displayTotal: number;
@@ -84,7 +84,7 @@ export interface TreasuryViewProps {
     hasVerification: boolean;
     hasDispute: boolean;
     isRequirementsAlone: boolean;
-    handleViewFile?: (url: string | null, title: string) => void;
+    handleViewFile?: (url: string | null, title: string, docs?: { url?: string | null; label: string }[], index?: number) => void;
     registryBookVerification?: string;
     setRegistryBookVerification?: Dispatch<SetStateAction<string>>;
     birthRegDocFile?: File | null;

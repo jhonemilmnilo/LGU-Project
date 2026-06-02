@@ -27,14 +27,14 @@ export function OfficialsPage({ initialData, barangays, managedBarangay }: Offic
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs mb-2 bg-slate-100 dark:bg-slate-800/50 w-fit px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
-                            <Home size={12} className="text-primary" />
+                            <Home size={12} style={{ color: 'var(--primary-theme)' }} />
                             <span className="opacity-50">/</span>
                             <span>Management</span>
                             <span className="opacity-50">/</span>
-                            <span className="text-primary dark:text-primary font-bold">Members of the Council</span>
+                            <span className="font-bold" style={{ color: 'var(--primary-theme)' }}>Members of the Council</span>
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic flex items-center">
-                            <Users className="mr-3 text-primary w-10 h-10" />
+                            <Users className="mr-3 w-10 h-10" style={{ color: 'var(--primary-theme)' }} />
                             Council Officials
                         </h1>
                         <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Manage the profiles, roles, and hierarchy of the municipal government leaders.</p>

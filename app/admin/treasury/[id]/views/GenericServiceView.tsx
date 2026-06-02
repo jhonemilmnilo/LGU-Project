@@ -226,11 +226,11 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                 <div className="grid grid-cols-4 gap-4">
                                     <div 
                                         className="bg-[#f8fafd] dark:bg-white/5 p-4 rounded-2xl space-y-1 cursor-help"
-                                        title={`₱${declaredValue.toLocaleString()}`}
+                                        title={transaction.isStudent ? String(declaredValue) : `₱${Number(declaredValue).toLocaleString()}`}
                                     >
                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
-                                        <p className="text-xl font-black italic tracking-tighter dark:text-slate-200 truncate">
-                                            ₱{declaredValue.toLocaleString()}
+                                        <p className="text-base font-black italic tracking-tighter dark:text-slate-200 truncate">
+                                            {transaction.isStudent ? String(declaredValue) : `₱${Number(declaredValue).toLocaleString()}`}
                                         </p>
                                     </div>
                                     <div 
@@ -345,7 +345,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                             </span>
                                                             <input
                                                                 type="text"
-                                                                placeholder="Fee Description"
+                                                                placeholder={transaction.isStudent ? "Add a Additional fee here" : "Fee Description"}
                                                                 value={item.label}
                                                                 onChange={(e) => updateFeeLineItem(idx, 'label', e.target.value)}
                                                                 className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
@@ -435,7 +435,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                 {evidenceDocs.map((doc, idx) => (
                                     <div 
                                         key={idx}
-                                        onClick={() => doc.url && handleViewFile?.(doc.url, doc.label)}
+                                        onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
                                         className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
                                     >
                                         {doc.url ? (
@@ -484,6 +484,23 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                             </div>
                         )}
                     </div>
+
+                    {/* DYNAMIC REASON OF REQUEST */}
+                    {transaction.isStudent && (
+                        <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6 animate-in fade-in duration-300">
+                            <div>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                    Purpose / Reason of Request
+                                </span>
+                                <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-800 dark:text-white mt-1">Student Request Purpose</h3>
+                            </div>
+                            <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                <p className="text-sm font-bold text-slate-750 dark:text-slate-200 leading-relaxed italic">
+                                    &ldquo;{additional.purpose || "No reason specified."}&rdquo;
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* RIGHT COLUMN: Timeline & Logistics — sticky */}
@@ -630,7 +647,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                             {/* REVISION + REJECT — side by side */}
                             <div className="flex gap-3">
                                 <Button
-                                        onClick={() => {
+                                    onClick={() => {
                                         setRemarks("");
                                         setIsRequestingRevision(true);
                                     }}
@@ -701,7 +718,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                     return (
                                                         <div className="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
                                                             <div className="flex items-center justify-between gap-4">
-                                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">GCash Reference No.</span>
+                                                                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">GCash Reference No.</span>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {

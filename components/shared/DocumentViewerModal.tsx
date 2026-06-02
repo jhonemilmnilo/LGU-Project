@@ -1,10 +1,10 @@
 "use client";
-
-import React, { useEffect, useRef, useState, useCallback } from "react";
+ 
+import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Eye, FileText, Download, ZoomIn, ZoomOut, RotateCw, RotateCcw, Maximize2 } from "lucide-react";
+import { X, Eye, FileText, Download, ZoomIn, ZoomOut, RotateCw, RotateCcw, RefreshCw, Move, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+ 
 interface DocumentViewerModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -12,10 +12,22 @@ interface DocumentViewerModalProps {
     fileUrl: string | null;
     title: string;
     themeColor?: string;
+    documents?: { url?: string | null; label: string }[];
+    initialIndex?: number;
 }
-
+ 
 const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
+const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg"];
 
+function isImageFile(url: string) {
+    const lower = url.toLowerCase();
+    if (lower.startsWith("data:image/") || lower.startsWith("blob:")) return true;
+    const ext = getFileExtension(lower);
+    if (imageExtensions.includes(ext)) return true;
+    if (documentExtensions.includes(ext)) return false;
+    return true; 
+}
+ 
 function getFileExtension(value: string) {
     try {
         const cleanPath = new URL(value).pathname;
@@ -24,75 +36,111 @@ function getFileExtension(value: string) {
         return value.split("?")[0].split("#")[0].split(".").pop()?.toLowerCase() || "";
     }
 }
-
+ 
 export default function DocumentViewerModal({
     isOpen,
     onClose,
     file,
     fileUrl,
     title,
-    themeColor = "var(--primary-theme)"
+    themeColor = "var(--primary-theme)",
+    documents,
+    initialIndex
 }: DocumentViewerModalProps) {
-
-    const [fetchedType, setFetchedType] = useState<string | null>(null);
-    const [zoom, setZoom] = useState(1);
-    const [rotation, setRotation] = useState(0);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const dragStart = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Lock body scroll when open
+    
+    // Lock document.body background scrolling when modal is open
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = "hidden";
         } else {
             document.body.style.overflow = "";
         }
-        return () => { document.body.style.overflow = ""; };
+        return () => {
+            document.body.style.overflow = "";
+        };
     }, [isOpen]);
-
-    // Reset view state every time modal opens
+ 
+    const [fetchedType, setFetchedType] = React.useState<string | null>(null);
+    const [currentIndex, setCurrentIndex] = React.useState(0);
+ 
+    // Image Manipulation States
+    const [scale, setScale] = React.useState(1);
+    const [rotation, setRotation] = React.useState(0);
+    const [position, setPosition] = React.useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = React.useState(false);
+    const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
+ 
+    // Reset States on open/close and sync indexes
     useEffect(() => {
         if (isOpen) {
-            setZoom(1);
+            setScale(1);
             setRotation(0);
             setPosition({ x: 0, y: 0 });
+ 
+            if (documents && documents.length > 0) {
+                if (typeof initialIndex === "number" && initialIndex >= 0 && initialIndex < documents.length) {
+                    setCurrentIndex(initialIndex);
+                } else {
+                    const matchIndex = documents.findIndex(doc => doc.url === fileUrl);
+                    setCurrentIndex(matchIndex !== -1 ? matchIndex : 0);
+                }
+            } else {
+                setCurrentIndex(0);
+            }
         }
-    }, [isOpen, fileUrl]);
-
+    }, [isOpen, initialIndex, documents, fileUrl]);
+ 
+    const currentDoc = React.useMemo(() => {
+        if (documents && documents.length > 0 && currentIndex >= 0 && currentIndex < documents.length) {
+            return documents[currentIndex];
+        }
+        return null;
+    }, [documents, currentIndex]);
+ 
+    const activeUrl = React.useMemo(() => {
+        if (file) {
+            return URL.createObjectURL(file);
+        }
+        return currentDoc ? currentDoc.url : fileUrl;
+    }, [file, currentDoc, fileUrl]);
+ 
+    const activeTitle = currentDoc ? currentDoc.label : title;
+ 
     useEffect(() => {
-        if (fileUrl && fileUrl.startsWith("blob:")) {
-            fetch(fileUrl)
+        if (activeUrl && activeUrl.startsWith("blob:")) {
+            fetch(activeUrl)
                 .then(res => res.blob())
                 .then(blob => setFetchedType(blob.type))
                 .catch(() => {});
         } else {
             setFetchedType(null);
         }
-    }, [fileUrl]);
-
-    const activeUrl = React.useMemo(() => {
-        if (file) return URL.createObjectURL(file);
-        return fileUrl;
-    }, [file, fileUrl]);
-
+    }, [activeUrl]);
+ 
     const isPdf = React.useMemo(() => {
-        if (file) return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-        if (fetchedType) return fetchedType === "application/pdf";
-        if (fileUrl) {
-            if (fileUrl.toLowerCase().endsWith(".pdf") || fileUrl.includes("application/pdf") || fileUrl.includes(".pdf?")) return true;
+        if (file) {
+            return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
         }
-        if (title && title.toLowerCase().includes("pdf")) return true;
+        if (fetchedType) {
+            return fetchedType === "application/pdf";
+        }
+        if (activeUrl) {
+            if (activeUrl.toLowerCase().endsWith(".pdf") || activeUrl.includes("application/pdf") || activeUrl.includes(".pdf?")) {
+                return true;
+            }
+        }
+        if (activeTitle && activeTitle.toLowerCase().includes("pdf")) {
+            return true;
+        }
         return false;
-    }, [file, fileUrl, fetchedType, title]);
-
+    }, [file, activeUrl, fetchedType, activeTitle]);
+ 
     const fileExtension = React.useMemo(() => {
         if (file?.name) return getFileExtension(file.name);
-        if (fileUrl) return getFileExtension(fileUrl);
+        if (activeUrl) return getFileExtension(activeUrl);
         return "";
-    }, [file, fileUrl]);
-
+    }, [file, activeUrl]);
+ 
     const isDocument = React.useMemo(() => {
         if (isPdf) return true;
         if (file) {
@@ -105,212 +153,231 @@ export default function DocumentViewerModal({
         }
         return documentExtensions.includes(fileExtension);
     }, [file, fetchedType, fileExtension, isPdf]);
-
+ 
     const isImage = !isDocument;
-
+ 
     const officeViewerUrl = React.useMemo(() => {
         if (!activeUrl || isPdf || !["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(fileExtension)) return null;
         if (!/^https?:\/\//i.test(activeUrl)) return null;
         return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(activeUrl)}`;
     }, [activeUrl, fileExtension, isPdf]);
-
-    // Zoom helpers
-    const zoomIn = () => setZoom(z => Math.min(z + 0.25, 4));
-    const zoomOut = () => setZoom(z => Math.max(z - 0.25, 0.25));
-    const resetView = () => { setZoom(1); setRotation(0); setPosition({ x: 0, y: 0 }); };
-
-    // Drag handlers
-    const onMouseDown = useCallback((e: React.MouseEvent) => {
+ 
+    // Interactive Handlers
+    const handleWheel = (e: React.WheelEvent) => {
         if (!isImage) return;
+        e.preventDefault();
+        const newScale = Math.min(Math.max(scale - e.deltaY * 0.0015, 0.4), 8);
+        setScale(newScale);
+    };
+ 
+    const handlePointerDown = (e: React.PointerEvent) => {
+        if (!isImage) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
         setIsDragging(true);
-        dragStart.current = { x: e.clientX, y: e.clientY, px: position.x, py: position.y };
-        e.preventDefault();
-    }, [isImage, position]);
-
-    const onMouseMove = useCallback((e: React.MouseEvent) => {
-        if (!isDragging || !dragStart.current) return;
-        const dx = e.clientX - dragStart.current.x;
-        const dy = e.clientY - dragStart.current.y;
-        setPosition({ x: dragStart.current.px + dx, y: dragStart.current.py + dy });
-    }, [isDragging]);
-
-    const onMouseUp = useCallback(() => {
-        setIsDragging(false);
-        dragStart.current = null;
-    }, []);
-
-    // Touch drag handlers
-    const onTouchStart = useCallback((e: React.TouchEvent) => {
-        if (!isImage || e.touches.length !== 1) return;
-        const t = e.touches[0];
-        dragStart.current = { x: t.clientX, y: t.clientY, px: position.x, py: position.y };
-    }, [isImage, position]);
-
-    const onTouchMove = useCallback((e: React.TouchEvent) => {
-        if (!dragStart.current || e.touches.length !== 1) return;
-        const t = e.touches[0];
-        const dx = t.clientX - dragStart.current.x;
-        const dy = t.clientY - dragStart.current.y;
-        setPosition({ x: dragStart.current.px + dx, y: dragStart.current.py + dy });
-        e.preventDefault();
-    }, []);
-
-    const onTouchEnd = useCallback(() => { dragStart.current = null; }, []);
-
-    // Scroll wheel zoom
-    const onWheel = useCallback((e: React.WheelEvent) => {
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    };
+ 
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!isDragging || !isImage) return;
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+ 
+    const handlePointerUp = () => {
         if (!isImage) return;
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom(z => Math.min(Math.max(z + delta, 0.25), 4));
-    }, [isImage]);
-
+        setIsDragging(false);
+    };
+ 
+    const handleReset = () => {
+        setScale(1);
+        setRotation(0);
+        setPosition({ x: 0, y: 0 });
+    };
+ 
+    const handleDownload = async () => {
+        if (!activeUrl) return;
+        try {
+            const response = await fetch(activeUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            
+            const cleanTitle = activeTitle.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "document";
+            const ext = fileExtension || (blob.type.includes("pdf") ? "pdf" : blob.type.split("/")[1] || "bin");
+            link.download = `${cleanTitle}.${ext}`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Direct download failed, falling back to new tab:", error);
+            window.open(activeUrl, "_blank");
+        }
+    };
+ 
     return (
         <AnimatePresence>
             {isOpen && activeUrl && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6">
-                    {/* Backdrop */}
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+                    {/* Backdrop Overlay */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-slate-950/85 backdrop-blur-md"
+                        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md"
                     />
-
-                    {/* Modal Window */}
+ 
+                    {/* Modal Window Container */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 15 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                        transition={{ type: "spring", duration: 0.45 }}
-                        className="relative w-full max-w-5xl bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10"
-                        style={{ height: "88vh" }}
+                        transition={{ type: "spring", duration: 0.5 }}
+                        className="relative w-full max-w-4xl bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col z-10 h-[85vh]"
                     >
                         {/* Ambient Glow */}
-                        <div
+                        <div 
                             className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-36 blur-[80px] rounded-full opacity-10 pointer-events-none"
                             style={{ backgroundColor: themeColor }}
                         />
-
-                        {/* Header */}
-                        <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10 shrink-0">
+ 
+                        {/* Modal Header */}
+                        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10 shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0">
-                                    {isDocument
-                                        ? <FileText className="w-4 h-4" style={{ color: themeColor }} />
-                                        : <Eye className="w-4 h-4" style={{ color: themeColor }} />
-                                    }
+                                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center border border-slate-100 dark:border-white/5 shrink-0">
+                                    {isDocument ? (
+                                        <FileText className="w-5 h-5 text-primary" style={{ color: themeColor }} />
+                                    ) : (
+                                        <Eye className="w-5 h-5 text-primary" style={{ color: themeColor }} />
+                                    )}
                                 </div>
                                 <div>
-                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic block leading-none">Document Viewer</span>
-                                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-tight">{title}</h3>
+                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic block leading-none">Document Visualizer</span>
+                                    <h3 className="text-sm sm:text-base font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-tight">
+                                        {activeTitle}
+                                    </h3>
                                 </div>
                             </div>
-
+                            
                             <div className="flex items-center gap-2">
-                                {/* Image controls — shown only for images */}
+                                {/* Visualizer Controls - Only for Images */}
                                 {isImage && (
-                                    <>
-                                        {/* Zoom Out */}
-                                        <button
-                                            onClick={zoomOut}
-                                            className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all"
-                                            title="Zoom Out"
-                                        >
-                                            <ZoomOut className="w-3.5 h-3.5" />
-                                        </button>
-
-                                        {/* Zoom Level */}
-                                        <div className="px-2 h-8 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-500 dark:text-slate-400 min-w-[44px] tabular-nums">
-                                            {Math.round(zoom * 100)}%
-                                        </div>
-
-                                        {/* Zoom In */}
-                                        <button
-                                            onClick={zoomIn}
-                                            className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all"
+                                    <div className="hidden sm:flex items-center gap-1 bg-slate-50 dark:bg-white/5 rounded-xl p-1 border border-slate-100 dark:border-white/5 mr-2">
+                                        <Button
+                                            onClick={() => setScale(prev => Math.min(prev + 0.25, 8))}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                                             title="Zoom In"
                                         >
-                                            <ZoomIn className="w-3.5 h-3.5" />
-                                        </button>
-
-                                        <div className="w-px h-5 bg-slate-200 dark:bg-white/10" />
-
-                                        {/* Rotate CCW */}
-                                        <button
-                                            onClick={() => setRotation(r => r - 90)}
-                                            className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all"
-                                            title="Rotate Left"
+                                            <ZoomIn className="w-4.5 h-4.5" />
+                                        </Button>
+                                        <Button
+                                            onClick={() => setScale(prev => Math.max(prev - 0.25, 0.4))}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                            title="Zoom Out"
                                         >
-                                            <RotateCcw className="w-3.5 h-3.5" />
-                                        </button>
-
-                                        {/* Rotate CW */}
-                                        <button
-                                            onClick={() => setRotation(r => r + 90)}
-                                            className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all"
-                                            title="Rotate Right"
+                                            <ZoomOut className="w-4.5 h-4.5" />
+                                        </Button>
+                                        <Button
+                                            onClick={() => setRotation(prev => prev - 90)}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                            title="Rotate Counter-Clockwise"
                                         >
-                                            <RotateCw className="w-3.5 h-3.5" />
-                                        </button>
-
-                                        {/* Reset */}
-                                        <button
-                                            onClick={resetView}
-                                            className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all"
-                                            title="Reset View"
+                                            <RotateCcw className="w-4.5 h-4.5" />
+                                        </Button>
+                                        <Button
+                                            onClick={() => setRotation(prev => prev + 90)}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                            title="Rotate Clockwise"
                                         >
-                                            <Maximize2 className="w-3.5 h-3.5" />
-                                        </button>
-
-                                        <div className="w-px h-5 bg-slate-200 dark:bg-white/10" />
-                                    </>
+                                            <RotateCw className="w-4.5 h-4.5" />
+                                        </Button>
+                                        <Button
+                                            onClick={handleReset}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                            title="Reset Changes"
+                                        >
+                                            <RefreshCw className="w-4.5 h-4.5" />
+                                        </Button>
+                                    </div>
                                 )}
-
+ 
                                 <Button
-                                    onClick={() => window.open(activeUrl, "_blank")}
+                                    onClick={handleDownload}
                                     variant="ghost"
                                     size="icon"
-                                    className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-slate-400 hover:text-primary transition-all"
-                                    title="Open in new tab"
+                                    className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all shrink-0"
+                                    title="Download document"
                                 >
                                     <Download className="w-4 h-4" />
                                 </Button>
                                 <button
                                     onClick={onClose}
-                                    className="w-8 h-8 rounded-full bg-slate-50 hover:bg-red-50 dark:bg-white/5 dark:hover:bg-red-500/10 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
+                                    className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
-
+ 
                         {/* Content Body */}
-                        <div
-                            ref={containerRef}
-                            className="flex-1 relative overflow-hidden bg-[#0c0f16]"
-                            style={{ cursor: isImage ? (isDragging ? "grabbing" : "grab") : "default" }}
-                            onMouseDown={onMouseDown}
-                            onMouseMove={onMouseMove}
-                            onMouseUp={onMouseUp}
-                            onMouseLeave={onMouseUp}
-                            onTouchStart={onTouchStart}
-                            onTouchMove={onTouchMove}
-                            onTouchEnd={onTouchEnd}
-                            onWheel={onWheel}
+                        <div 
+                            className="flex-grow bg-slate-100/50 dark:bg-black/40 flex items-center justify-center overflow-hidden relative select-none"
+                            onWheel={handleWheel}
                         >
+                            {/* Floating Previous Navigation Button */}
+                            {documents && documents.length > 1 && currentIndex > 0 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCurrentIndex(prev => prev - 1);
+                                        handleReset();
+                                    }}
+                                    className="absolute left-4 z-30 w-12 h-12 rounded-full bg-slate-900/80 hover:bg-slate-900/90 text-white backdrop-blur-md flex items-center justify-center border border-white/10 hover:scale-105 transition-all shadow-xl active:scale-95"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </button>
+                            )}
+
+                            {/* Floating Next Navigation Button */}
+                            {documents && documents.length > 1 && currentIndex < documents.length - 1 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCurrentIndex(prev => prev + 1);
+                                        handleReset();
+                                    }}
+                                    className="absolute right-4 z-30 w-12 h-12 rounded-full bg-slate-900/80 hover:bg-slate-900/90 text-white backdrop-blur-md flex items-center justify-center border border-white/10 hover:scale-105 transition-all shadow-xl active:scale-95"
+                                >
+                                    <ChevronRight className="w-6 h-6" />
+                                </button>
+                            )}
+
                             {isPdf ? (
                                 <iframe
                                     src={`${activeUrl}#toolbar=0&navpanes=0`}
-                                    className="w-full h-full border-0 bg-white"
+                                    className="w-full h-full rounded-2xl border-0 bg-white"
                                     title="PDF Document Viewer"
                                 />
                             ) : isDocument ? (
                                 officeViewerUrl ? (
                                     <iframe
                                         src={officeViewerUrl}
-                                        className="w-full h-full border-0 bg-white"
+                                        className="w-full h-full rounded-2xl border-0 bg-white"
                                         title="Office Document Viewer"
                                     />
                                 ) : (
@@ -323,45 +390,123 @@ export default function DocumentViewerModal({
                                                 {fileExtension.toUpperCase() || "Document"} File
                                             </p>
                                             <h4 className="mt-2 text-xl font-black italic uppercase tracking-tight text-white">
-                                                {title}
+                                                {activeTitle}
                                             </h4>
                                             <p className="mt-3 text-sm text-slate-400 leading-relaxed">
                                                 This file type cannot be previewed directly in the browser. Open it in a new tab to view or download the submitted document.
                                             </p>
                                             <Button
-                                                onClick={() => window.open(activeUrl, "_blank")}
+                                                onClick={handleDownload}
                                                 className="mt-6 h-11 rounded-xl px-6 text-xs font-black uppercase tracking-wider text-white"
                                                 style={{ backgroundColor: themeColor }}
                                             >
                                                 <Download className="w-4 h-4 mr-2" />
-                                                Open Document
+                                                Download Document
                                             </Button>
                                         </div>
                                     </div>
                                 )
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center select-none">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={activeUrl}
-                                        alt={title}
-                                        draggable={false}
+                                <div 
+                                    className="w-full h-full flex items-center justify-center relative active:cursor-grabbing overflow-hidden cursor-grab"
+                                    onPointerDown={handlePointerDown}
+                                    onPointerMove={handlePointerMove}
+                                    onPointerUp={handlePointerUp}
+                                    onPointerLeave={handlePointerUp}
+                                    style={{ touchAction: "none" }}
+                                >
+                                    {/* Action instructions overlay */}
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/80 text-white backdrop-blur-md px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest pointer-events-none z-20 flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+                                        <Move className="w-3.5 h-3.5 text-primary" />
+                                        <span>Drag to Pan • Scroll to Zoom</span>
+                                    </div>
+ 
+                                    <motion.div
+                                        className="relative flex items-center justify-center pointer-events-none"
                                         style={{
-                                            transform: `translate(${position.x}px, ${position.y}px) scale(${zoom}) rotate(${rotation}deg)`,
-                                            transition: isDragging ? "none" : "transform 0.15s ease",
-                                            maxWidth: "100%",
-                                            maxHeight: "100%",
-                                            objectFit: "contain",
-                                            borderRadius: "8px",
-                                            userSelect: "none",
-                                            pointerEvents: "none",
+                                            x: position.x,
+                                            y: position.y,
+                                            scale,
+                                            rotate: rotation,
                                         }}
-                                    />
+                                        transition={{ type: "spring", stiffness: 400, damping: 40 }}
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={activeUrl}
+                                            alt={activeTitle}
+                                            className="max-w-[85vw] max-h-[60vh] object-contain rounded-2xl shadow-2xl select-none"
+                                            draggable={false}
+                                        />
+                                    </motion.div>
                                 </div>
                             )}
                         </div>
 
-
+                        {/* Modal Footer / Document Indicators */}
+                        {documents && documents.length > 1 && (
+                            <div className="p-4 bg-slate-50 dark:bg-slate-950/80 border-t border-slate-100 dark:border-white/5 relative z-10 shrink-0 flex flex-col gap-2 overflow-x-auto">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 italic">
+                                        Requirement Index ({currentIndex + 1} of {documents.length})
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3 overflow-x-auto py-2 scrollbar-none">
+                                    {documents.map((doc, idx) => {
+                                        const isActive = idx === currentIndex;
+                                        const hasDoc = !!doc.url;
+                                        const isImg = hasDoc && isImageFile(doc.url!);
+                                        
+                                        return (
+                                            <button
+                                                key={idx}
+                                                disabled={!hasDoc}
+                                                onClick={() => {
+                                                    setCurrentIndex(idx);
+                                                    handleReset();
+                                                }}
+                                                className={`relative w-24 h-16 rounded-xl overflow-hidden shrink-0 transition-all active:scale-95 border-2 ${
+                                                    isActive
+                                                        ? "scale-105 shadow-md"
+                                                        : hasDoc
+                                                        ? "border-transparent opacity-60 hover:opacity-100 hover:scale-102"
+                                                        : "opacity-20 cursor-not-allowed border-transparent"
+                                                }`}
+                                                style={isActive ? { borderColor: themeColor, boxShadow: `0 0 12px ${themeColor}40` } : undefined}
+                                                title={doc.label}
+                                            >
+                                                {hasDoc ? (
+                                                    isImg ? (
+                                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                                        <img 
+                                                            src={doc.url!} 
+                                                            alt={doc.label} 
+                                                            className="w-full h-full object-cover" 
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-slate-200 dark:bg-white/5 flex flex-col items-center justify-center gap-1 p-1">
+                                                            <FileText className="w-5 h-5 text-slate-400" />
+                                                            <span className="text-[7px] font-black uppercase text-slate-500 truncate max-w-full">
+                                                                {getFileExtension(doc.url!).toUpperCase() || "DOC"}
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div className="w-full h-full bg-slate-300 dark:bg-slate-900 flex items-center justify-center">
+                                                        <span className="text-[8px] font-black uppercase text-slate-400">Empty</span>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Text Overlay for Labels */}
+                                                <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 backdrop-blur-[1px] py-0.5 px-1 text-center text-white text-[7px] font-black uppercase tracking-wider truncate">
+                                                    {doc.label}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 </div>
             )}

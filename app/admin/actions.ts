@@ -2638,6 +2638,44 @@ export async function deleteUser(userId: string) {
             return { success: false, error: "User account not found" };
         }
 
+        // Delete associated accounts
+        await prisma.account.deleteMany({ where: { userId } }).catch((err: any) => {
+            console.warn("Could not delete associated accounts:", err);
+        });
+
+        // Delete associated sessions
+        await prisma.session.deleteMany({ where: { userId } }).catch((err: any) => {
+            console.warn("Could not delete associated sessions:", err);
+        });
+
+        // Delete associated reports to satisfy the Report_userId_fkey constraint
+        await (prisma as any).report.deleteMany({ where: { userId } }).catch((err: any) => {
+            console.warn("Could not delete associated reports:", err);
+        });
+
+        // Unlink associated resident profile instead of deleting it, keeping resident records intact
+        await (prisma as any).resident.updateMany({
+            where: { userId },
+            data: { userId: null }
+        }).catch((err: any) => {
+            console.warn("Could not unlink resident profile:", err);
+        });
+
+        // Delete transaction dependent child records to satisfy integrity constraints
+        await (prisma as any).cedula.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+        await (prisma as any).businessPermit.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+        await (prisma as any).buildingPermit.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+        await (prisma as any).birthCertificateRequest.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+        await (prisma as any).deathCertificateRequest.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+        await (prisma as any).marriageCertificateRequest.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+        await (prisma as any).payment.deleteMany({ where: { transaction: { userId } } }).catch(() => {});
+
+        // Delete transactions where the user is the resident
+        await (prisma as any).transaction.deleteMany({ where: { userId } }).catch((err: any) => {
+            console.warn("Could not delete associated transactions:", err);
+        });
+
+        // Finally, delete the user account safely
         await prisma.user.delete({
             where: { id: userId }
         });

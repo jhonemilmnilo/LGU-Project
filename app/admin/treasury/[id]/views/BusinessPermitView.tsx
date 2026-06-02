@@ -461,7 +461,7 @@ export default function BusinessPermitView({
                                     {evidenceDocs.map((doc, idx) => (
                                         <div 
                                             key={idx}
-                                            onClick={() => doc.url && handleViewFile?.(doc.url, doc.label)}
+                                            onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
                                             className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
                                         >
                                             {doc.url ? (

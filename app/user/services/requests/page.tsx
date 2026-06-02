@@ -213,10 +213,6 @@ export default function UserServiceRequestsPage() {
                                         </h3>
                                         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-slate-400">
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.createdAt ? formatPHDate(req.createdAt) : "N/A"}</span>
-                                            <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
-                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{style.label}</span>
-                                            <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
-                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic truncate max-w-[80px] md:max-w-none">#{req.id.slice(-6).toUpperCase()}</span>
                                         </div>
                                     </div>
                                 </div>

@@ -8,17 +8,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Switch } from "@/components/ui/switch";
 import { Edit2, Trash2, Phone, PhoneCall, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 export function HotlinesTable() {
-    const { hotlinesData, searchTerm, setEditingData, setIsAddModalOpen, selectedCategory } = useHotlines();
+    const { hotlinesData, searchTerm, setEditingData, setIsAddModalOpen, selectedCategory, selectedStatus, themeColor } = useHotlines();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
     const filteredData = hotlinesData.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-        return matchesSearch && matchesCategory;
+        const matchesStatus = selectedStatus === "All" || 
+            (selectedStatus === "Active" && item.isActive) ||
+            (selectedStatus === "Hidden" && !item.isActive);
+        return matchesSearch && matchesCategory && matchesStatus;
     }).sort((a, b) => a.order - b.order);
 
     const handleEdit = (item: Hotline) => {
@@ -69,24 +73,24 @@ export function HotlinesTable() {
         <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
-                    <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
-                        <TableHead className="w-[300px] font-bold text-slate-900 dark:text-slate-100 h-12">Agency / Location</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Contact Numbers</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Category</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Active</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100">Actions</TableHead>
+                    <TableRow className="bg-slate-50/50 dark:bg-[#1e2330] hover:bg-slate-50 dark:hover:bg-[#1e2330] border-y border-slate-200 dark:border-[#2a3040]">
+                        <TableHead className="w-[300px] font-bold text-slate-900 dark:text-slate-100 h-12 text-xs uppercase tracking-widest">Agency / Location</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Contact Numbers</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Category</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center text-xs uppercase tracking-widest">Active</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-primary/10/50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-[#202635] transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell className="font-medium">
                                 <div className="flex flex-col space-y-1">
                                     <span className="text-slate-900 dark:text-white font-bold leading-tight">{item.name}</span>
                                     {item.address && (
                                         <div className="flex items-center text-xs text-slate-500">
-                                            <MapPin className="w-3" />
-                                            <span className="ml-1 line-clamp-1">{item.address}</span>
+                                            <MapPin className="w-3 h-3 mr-1" style={{ color: themeColor }} />
+                                            <span className="line-clamp-1">{item.address}</span>
                                         </div>
                                     )}
                                 </div>
@@ -95,13 +99,13 @@ export function HotlinesTable() {
                                 <div className="flex flex-col space-y-1">
                                     {item.mobileNumber && (
                                         <div className="flex items-center text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                            <Phone className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                                            <Phone className="w-3.5 h-3.5 mr-2" style={{ color: themeColor }} />
                                             {item.mobileNumber}
                                         </div>
                                     )}
                                     {item.telephone && (
                                         <div className="flex items-center text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                            <PhoneCall className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                                            <PhoneCall className="w-3.5 h-3.5 mr-2" style={{ color: themeColor }} />
                                             {item.telephone}
                                         </div>
                                     )}
@@ -118,6 +122,7 @@ export function HotlinesTable() {
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isActive)}
                                     disabled={togglingId === item.id}
                                     className="data-[state=checked]:bg-primary"
+                                    style={{ "--tw-bg-opacity": "1", backgroundColor: item.isActive ? themeColor : undefined } as CSSProperties}
                                 />
                             </TableCell>
                             <TableCell className="text-right">
@@ -130,6 +135,7 @@ export function HotlinesTable() {
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
                                                     className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-blue-900/50"
+                                                    style={{ color: themeColor }}
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>

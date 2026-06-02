@@ -26,6 +26,9 @@ interface HotlinesContextType {
     setEditingData: (data: Hotline | null) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    selectedStatus: string;
+    setSelectedStatus: (status: string) => void;
+    themeColor: string;
 }
 
 const HotlinesContext = createContext<HotlinesContextType | undefined>(undefined);
@@ -36,10 +39,27 @@ export function HotlinesProvider({ children, initialData }: { children: ReactNod
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingData, setEditingData] = useState<Hotline | null>(null);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [selectedStatus, setSelectedStatus] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setHotlinesData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <HotlinesContext.Provider
@@ -54,6 +74,9 @@ export function HotlinesProvider({ children, initialData }: { children: ReactNod
                 setEditingData,
                 selectedCategory,
                 setSelectedCategory,
+                selectedStatus,
+                setSelectedStatus,
+                themeColor,
             }}
         >
             {children}

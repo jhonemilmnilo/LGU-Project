@@ -2,7 +2,7 @@
 
 import { useJobs } from "../providers/JobsProvider";
 import { useJobsForm } from "../hooks/useJobsForm";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import {
     Dialog,
     DialogContent,
@@ -16,10 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Briefcase, GraduationCap, Building2, Calendar, MapPin, Globe, Plus, Trash2 } from "lucide-react";
+import { Loader2, Briefcase, GraduationCap, Building2, Calendar, Globe, Plus, Trash2 } from "lucide-react";
 
 export function AddJobModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay } = useJobs();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, currentBarangay, themeColor } = useJobs();
     const { handleSubmit, loading } = useJobsForm();
     const [links, setLinks] = useState<{ label: string; url: string }[]>([]);
 
@@ -72,32 +72,45 @@ export function AddJobModal() {
     return (
         <Dialog open={isAddModalOpen} onOpenChange={(open) => {
             setIsAddModalOpen(open);
-            if (!open) setEditingData(null);
+            if (!open) {
+                setEditingData(null);
+                setLinks([]);
+            }
         }}>
-            <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
+            <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-[2.5rem]">
                 <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
-                        <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-primary rounded-lg">
-                                <Briefcase className="w-5 h-5 text-white" />
+                    <DialogHeader
+                        className="p-6 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040] relative overflow-hidden"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
+                        <div className="flex items-center space-x-3">
+                            <div 
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" 
+                                style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}
+                            >
+                                <Briefcase className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                                     {editingData ? "Edit Job Posting" : "Post New Job"}
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
+                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic text-sm">
                                     Create an open application for a position in the municipal government.
                                 </DialogDescription>
                             </div>
                         </div>
                     </DialogHeader>
 
-                    <div className="p-8 overflow-y-auto custom-scrollbar">
+                    <div className="p-10 overflow-y-auto custom-scrollbar">
                         <form id="jobForm" onSubmit={handleSubmit} className="space-y-8">
                             <input type="hidden" name="linksJson" value={JSON.stringify(links)} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                 {/* Left Column: Basic Details */}
                                 <div className="space-y-6">
+                                    <div className="flex items-center space-x-2" style={{ color: themeColor }}>
+                                        <Building2 className="w-4 h-4" />
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Position Details</h3>
+                                    </div>
                                     {(currentBarangay || editingData?.barangay) && (
                                         <input 
                                             type="hidden" 
@@ -106,36 +119,38 @@ export function AddJobModal() {
                                         />
                                     )}
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest">Job Title</Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Job Title</Label>
                                         <Input
                                             name="title"
                                             required
                                             defaultValue={editingData?.title}
                                             placeholder="e.g. Municipal Engineer"
-                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic focus:ring-2"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center text-xs uppercase tracking-widest">
-                                                <Building2 className="w-3 h-3 mr-1" /> Office
-                                            </Label>
+                                        <div className="space-y-2 min-w-0">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Office / Department</Label>
                                             <Input
                                                 name="department"
                                                 required
                                                 defaultValue={editingData?.department}
                                                 placeholder="e.g. Mayor's Office"
-                                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest">Type</Label>
+                                        <div className="space-y-2 min-w-0">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Employment Type</Label>
                                             <Select name="employmentType" defaultValue={editingData?.employmentType || "Permanent"}>
-                                                <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                                                <SelectTrigger
+                                                    className="!w-full !h-14 min-h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px] focus:ring-2"
+                                                    style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                                                >
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                                <SelectContent position="popper" className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                                     {employmentTypes.map(type => (
                                                         <SelectItem key={type} value={type}>{type}</SelectItem>
                                                     ))}
@@ -144,175 +159,167 @@ export function AddJobModal() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label className="text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest">Salary</Label>
-                                            <Input
-                                                name="salary"
-                                                defaultValue={editingData?.salary || ""}
-                                                placeholder="Optional"
-                                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center text-xs uppercase tracking-widest">
-                                                <MapPin className="w-3 h-3 mr-1" /> Location
-                                            </Label>
-                                            <Input
-                                                name="location"
-                                                defaultValue={editingData?.location || ""}
-                                                placeholder="Optional"
-                                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
-                                            />
-                                        </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Salary</Label>
+                                        <Input
+                                            name="salary"
+                                            defaultValue={editingData?.salary || ""}
+                                            placeholder="Optional"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
+                                        />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center text-xs uppercase tracking-widest">
-                                            <MapPin className="w-3 h-3 mr-1" /> Embed Map URL
-                                        </Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Location</Label>
+                                        <Input
+                                            name="location"
+                                            defaultValue={editingData?.location || ""}
+                                            placeholder="Optional"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Embed Map URL</Label>
                                         <Input
                                             name="mapUrl"
                                             defaultValue={editingData?.mapUrl || ""}
                                             placeholder="https://www.google.com/maps/embed?pb=..."
-                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center text-xs uppercase tracking-widest">
-                                            <Calendar className="w-3 h-3 mr-1" /> Deadline
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                            <Calendar className="w-3 h-3" /> Deadline
                                         </Label>
                                         <Input
                                             type="datetime-local"
                                             name="deadline"
                                             defaultValue={formatDateForInput(editingData?.deadline)}
-                                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Right Column: Description & Qualifications */}
                                 <div className="space-y-6">
+                                    <div className="flex items-center space-x-2" style={{ color: themeColor }}>
+                                        <GraduationCap className="w-4 h-4" />
+                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Requirements</h3>
+                                    </div>
+
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest">Job Description</Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Job Description</Label>
                                         <Textarea
                                             name="description"
                                             required
                                             defaultValue={editingData?.description}
                                             placeholder="..."
-                                            className="min-h-[80px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
+                                            className="min-h-[80px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center text-xs uppercase tracking-widest">
-                                            <GraduationCap className="w-3 h-3 mr-1" /> Qualifications
-                                        </Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Qualifications</Label>
                                         <Textarea
                                             name="qualifications"
                                             required
                                             defaultValue={editingData?.qualifications}
                                             placeholder="..."
-                                            className="min-h-[80px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
+                                            className="min-h-[80px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-widest">Requirements</Label>
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Requirements</Label>
                                         <Textarea
                                             name="requirements"
                                             required
                                             defaultValue={editingData?.requirements}
                                             placeholder="..."
-                                            className="min-h-[60px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
+                                            className="min-h-[60px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                                         />
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Bottom Dynamic Links Section */}
-                            <div className="pt-6 border-t border-slate-200 dark:border-[#2a3040]">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-1.5 bg-primary/10 rounded-md">
-                                            <Globe className="w-4 h-4 text-primary" />
-                                        </div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-primary">External Links & Socials</h3>
-                                    </div>
-                                    <Button 
-                                        type="button" 
-                                        onClick={addLink}
-                                        variant="outline"
-                                        className="h-9 px-4 border-primary/20 text-primary hover:bg-primary/5 font-bold rounded-xl flex items-center gap-2"
-                                    >
-                                        <Plus className="w-4 h-4" /> Add Link
-                                    </Button>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-4">
-                                    {links.length === 0 ? (
-                                        <div className="p-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-center">
-                                            <p className="text-slate-400 text-sm font-medium">No links added. Add maps, facebook, or websites.</p>
-                                        </div>
-                                    ) : (
-                                        links.map((link, index) => (
-                                            <div key={index} className="flex gap-4 items-end animate-in fade-in slide-in-from-top-2 duration-200">
-                                                <div className="flex-1 grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-[#1a1f2e] rounded-xl border border-slate-200 dark:border-[#2a3040]">
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Label</Label>
-                                                        <Input
-                                                            value={link.label}
-                                                            onChange={(e) => updateLink(index, "label", e.target.value)}
-                                                            placeholder="e.g. Facebook"
-                                                            className="h-10 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040]"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">URL</Label>
-                                                        <Input
-                                                            value={link.url}
-                                                            onChange={(e) => updateLink(index, "url", e.target.value)}
-                                                            placeholder="https://..."
-                                                            className="h-10 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040]"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    onClick={() => removeLink(index)}
-                                                    className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 mb-4"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                    {/* Links Section moved inside scrollable form */}
+                                    <div className="pt-4 border-t border-slate-200 dark:border-[#2a3040]">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2" style={{ color: themeColor }}>
+                                                <Globe className="w-4 h-4" />
+                                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">External Links</h3>
                                             </div>
-                                        ))
-                                    )}
+                                            <Button 
+                                                type="button" 
+                                                onClick={addLink}
+                                                variant="outline"
+                                                className="h-9 px-4 font-bold rounded-xl flex items-center gap-2"
+                                                style={{ borderColor: `${themeColor}40`, color: themeColor }}
+                                            >
+                                                <Plus className="w-4 h-4" /> Add Link
+                                            </Button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {links.length === 0 ? (
+                                                <div className="p-6 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-center">
+                                                    <p className="text-slate-400 text-sm font-medium">No links added. Add maps, facebook, or websites.</p>
+                                                </div>
+                                            ) : (
+                                                links.map((link, index) => (
+                                                    <div key={index} className="flex gap-4 items-end animate-in fade-in slide-in-from-top-2 duration-200">
+                                                        <div className="flex-1 grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-[#1a1f2e] rounded-xl border border-slate-200 dark:border-[#2a3040]">
+                                                            <div className="space-y-1.5">
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Label</Label>
+                                                                <Input
+                                                                    value={link.label}
+                                                                    onChange={(e) => updateLink(index, "label", e.target.value)}
+                                                                    placeholder="e.g. Facebook"
+                                                                    className="h-10 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040]"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">URL</Label>
+                                                                <Input
+                                                                    value={link.url}
+                                                                    onChange={(e) => updateLink(index, "url", e.target.value)}
+                                                                    placeholder="https://..."
+                                                                    className="h-10 bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040]"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            onClick={() => removeLink(index)}
+                                                            className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 mb-4"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
                         </form>
                     </div>
 
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
+                    <DialogFooter className="p-6 pt-0 bg-white dark:bg-[#0f1117] border-none shrink-0">
                         <Button
                             type="submit"
                             form="jobForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full h-12 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                             ) : (
-                                editingData ? "Update Job" : "Post Job"
+                                editingData ? "Apply Changes" : "Post Job"
                             )}
                         </Button>
                     </DialogFooter>
