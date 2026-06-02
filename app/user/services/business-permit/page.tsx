@@ -936,20 +936,6 @@ export default function BusinessPermitWizardPage() {
                 </div>
             </div>
 
-            {/* Revision Remarks Alert Banner */}
-            {revisionTx && (
-                <div className="bg-rose-500/5 dark:bg-rose-500/[0.02] border border-rose-500/20 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="space-y-3 text-left">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-500 text-[8px] font-black uppercase tracking-widest font-sans border border-rose-500/20">
-                            ⚠️ Attention: Revision Needed
-                        </span>
-                        <div className="text-sm text-slate-800 dark:text-slate-200 font-bold bg-white dark:bg-slate-900/60 border border-rose-500/10 p-5 rounded-2xl italic font-sans leading-relaxed shadow-sm">
-                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Progress Stepper */}
             <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2">
                 {STEPS.map((step, idx) => {
@@ -993,6 +979,20 @@ export default function BusinessPermitWizardPage() {
 
             {/* Secure Idle Inactivity Timer */}
             <SecureIdleTimer />
+
+            {/* Revision Remarks Alert Banner — sticky, rides with user inside the form */}
+            {revisionTx && (
+                <div className="sticky top-[64px] z-30 bg-white/80 dark:bg-[#11131a]/80 backdrop-blur-md border border-rose-500/20 rounded-2xl shadow-sm px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-500 text-[8px] font-black uppercase tracking-widest font-sans border border-rose-500/20 shrink-0 w-fit">
+                            ⚠️ Attention: Revision Needed
+                        </span>
+                        <p className="text-[11px] text-slate-700 dark:text-slate-300 font-bold italic font-sans leading-snug line-clamp-2">
+                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Step Content */}
             <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">

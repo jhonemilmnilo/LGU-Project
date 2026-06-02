@@ -609,20 +609,6 @@ export default function CedulaApplicationPage() {
             </div>
         </div>
 
-            {/* Revision Remarks Alert Banner */}
-            {revisionTx && (
-                <div className="bg-red-600 dark:bg-red-800/80 border border-red-600/30 p-6 rounded-[2rem] shadow-lg shadow-red-500/5 animate-in fade-in slide-in-from-top-4 duration-300 text-white">
-                    <div className="space-y-1.5 text-left w-full">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest font-sans">
-                            ⚠️ Attention: Revision Needed
-                        </span>
-                        <div className="text-xs text-white font-bold bg-white/10 border border-white/15 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
-                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Progress Stepper */}
             <div className="grid grid-cols-4 gap-1.5 md:gap-4 relative px-1 md:px-2">
                 {STEPS.map((step, idx) => {
@@ -678,6 +664,20 @@ export default function CedulaApplicationPage() {
                     );
                 })}
             </div>
+
+            {/* Revision Remarks Alert Banner — sticky, rides with user inside the form */}
+            {revisionTx && (
+                <div className="sticky top-[64px] z-30 bg-white/80 dark:bg-[#11131a]/80 backdrop-blur-md border border-rose-500/20 rounded-2xl shadow-sm px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-500 text-[8px] font-black uppercase tracking-widest font-sans border border-rose-500/20 shrink-0 w-fit">
+                            ⚠️ Attention: Revision Needed
+                        </span>
+                        <p className="text-[11px] text-slate-700 dark:text-slate-300 font-bold italic font-sans leading-snug line-clamp-2">
+                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Step Content */}
             <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">
@@ -939,7 +939,7 @@ export default function CedulaApplicationPage() {
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                                    <div className={cn("grid grid-cols-1 gap-6 md:gap-10", !formData.isStudent && "md:grid-cols-2")}>
                                         <div className="space-y-6 md:space-y-8">
                                             {formData.isStudent ? (
                                                 <div className="space-y-2 md:space-y-3">
@@ -1118,31 +1118,7 @@ export default function CedulaApplicationPage() {
                                             )}
                                         </div>
 
-                                        {formData.isStudent ? (
-                                            <div className="bg-slate-900 dark:bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group/calc transition-transform flex flex-col justify-between min-h-[300px]">
-                                                <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10">
-                                                    <GraduationCap className="w-24 h-24 md:w-32 md:h-32 rotate-12 text-primary" />
-                                                </div>
-                                                <div className="space-y-4 relative z-10">
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-[8px] font-black uppercase tracking-widest font-sans">
-                                                        🎓 Student Pathway Active
-                                                    </span>
-                                                    <h3 className="text-xl font-bold uppercase tracking-tighter italic">Flat-Rate Assessment</h3>
-                                                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-wide leading-relaxed text-slate-400">
-                                                        Students are exempt from declaring gross income or property holdings. The Treasury Office will review your uploaded student credentials and apply the standard student fee (default: <span className="text-primary font-black">₱25.00</span>).
-                                                    </p>
-                                                </div>
-                                                <div className="pt-6 border-t border-white/10 flex justify-between items-end relative z-10">
-                                                    <div className="space-y-1 mb-1 md:mb-2 text-left">
-                                                        <span className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary italic">Estimated Total</span>
-                                                        <p className="text-[7px] md:text-[8px] font-bold text-white/40 uppercase tracking-tighter italic leading-none">
-                                                            * Assessed by Treasury
-                                                        </p>
-                                                    </div>
-                                                    <span className="text-xl md:text-2xl font-black italic tracking-tighter text-white uppercase animate-pulse">PENDING ASSESSMENT</span>
-                                                </div>
-                                            </div>
-                                        ) : (
+                                        {!formData.isStudent && (
                                             <div className="bg-slate-900 dark:bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group/calc transition-transform">
                                                 <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10">
                                                     <Calculator className="w-24 h-24 md:w-32 md:h-32 rotate-12" />
