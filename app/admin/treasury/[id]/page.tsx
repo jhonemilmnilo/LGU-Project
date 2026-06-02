@@ -1195,8 +1195,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         try {
             let itemsToSend: { label: string; amount: number }[] | undefined = undefined;
 
-            if ((isBusinessPermit || transaction.isStudent) && userRole !== "ADMIN_AIDE") {
-                // Business Permit / Student Cedula: at least one valid fee is required
+            if (isBusinessPermit && !transaction.isStudent && userRole !== "ADMIN_AIDE") {
+                // Business Permit: at least one valid fee is required
                 const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "");
                 if (validItems.length === 0) {
                     toast.error("Please add at least one valid fee line item.");

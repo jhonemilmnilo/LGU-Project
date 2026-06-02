@@ -667,14 +667,16 @@ export default function CedulaApplicationPage() {
 
             {/* Revision Remarks Alert Banner — sticky, rides with user inside the form */}
             {revisionTx && (
-                <div className="sticky top-[64px] z-30 bg-white/80 dark:bg-[#11131a]/80 backdrop-blur-md border border-rose-500/20 rounded-2xl shadow-sm px-4 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-500 text-[8px] font-black uppercase tracking-widest font-sans border border-rose-500/20 shrink-0 w-fit">
-                            ⚠️ Attention: Revision Needed
-                        </span>
-                        <p className="text-[11px] text-slate-700 dark:text-slate-300 font-bold italic font-sans leading-snug line-clamp-2">
+                <div className="sticky top-[64px] z-30 bg-[#8c0a0a] dark:bg-[#5c0606] border border-[#a81616] p-6 rounded-[2rem] shadow-xl shadow-red-950/20 text-white animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center">
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 dark:bg-black/30 text-amber-300 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest font-sans shrink-0 w-fit shadow-inner">
+                                ⚠️ Attention: Revision Needed
+                            </span>
+                        </div>
+                        <div className="text-xs text-white font-bold bg-white/10 dark:bg-black/20 border border-white/15 p-4 rounded-xl italic font-sans leading-relaxed shadow-inner">
                             &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
-                        </p>
+                        </div>
                     </div>
                 </div>
             )}
