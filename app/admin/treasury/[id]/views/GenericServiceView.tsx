@@ -697,7 +697,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                 {/* Reference Number with Copy Button */}
                                                 {(() => {
                                                     const refNo = additional.gcashReferenceNo || (transaction as any).gcashReferenceNo || (transaction.paymentReference && !(transaction.paymentReference.startsWith("http") || transaction.paymentReference.startsWith("/")) ? transaction.paymentReference : null) || additional.paymentReference || "N/A";
-                                                    if (refNo === "N/A") return null;
+                                                    if (refNo === "N/A" || refNo.toLowerCase() === "n/a" || refNo.toLowerCase() === "na") return null;
                                                     return (
                                                         <div className="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
                                                             <div className="flex items-center justify-between gap-4">

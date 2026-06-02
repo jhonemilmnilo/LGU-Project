@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { supabase } from "@/lib/supabase";
 
 const STATUS_TABS = [
     { value: "ALL", label: "All Status", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
@@ -117,9 +118,6 @@ export default function TreasuryDashboard() {
     // Listen to query param category filter changes
     useEffect(() => {
         setServiceFilter(null);
-        if (categoryParam && categoryParam !== "ALL") {
-            setSortBy("service");
-        }
     }, [categoryParam]);
 
     // Memoize the filtered list of services based on the search query for optimal performance
@@ -184,6 +182,55 @@ export default function TreasuryDashboard() {
         setServiceFilter(null);
     }, [status]);
 
+    // Realtime Supabase Subscription for new transactions
+    useEffect(() => {
+        if (!supabase) return;
+
+        console.log("Subscribing to Supabase Realtime 'Transaction' table...");
+        const channel = supabase
+            .channel("realtime-treasury-filings")
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "Transaction",
+                },
+                async (payload: any) => {
+                    const newTx = payload.new;
+                    console.log("Realtime INSERT caught:", newTx);
+
+                    // Fetch the latest transactions to hydrate client state fully with joins
+                    fetchTransactions();
+
+                    // Parse resident snapshot to show applicant's name
+                    let applicantName = "Someone";
+                    try {
+                        const snap = typeof newTx.residentSnapshot === "string"
+                            ? JSON.parse(newTx.residentSnapshot)
+                            : newTx.residentSnapshot;
+                        if (snap && (snap.firstName || snap.lastName)) {
+                            applicantName = `${snap.firstName || ""} ${snap.lastName || ""}`.trim();
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse residentSnapshot from payload:", e);
+                    }
+
+                    // Display a premium notification
+                    toast.info(`A new request has been submitted by ${applicantName}!`, {
+                        description: `Reference ID: ${newTx.id.slice(-8).toUpperCase()}`,
+                        duration: 7000,
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log("Unsubscribing from Supabase Realtime 'Transaction' table...");
+            supabase.removeChannel(channel);
+        };
+    }, [fetchTransactions]);
+
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -226,6 +273,11 @@ export default function TreasuryDashboard() {
             }
         }
 
+        // For the Birth Certificate (Certified Copy) only, if the status is FOR_PROCESSING, do not display it in treasury
+        if (isLcrBirthCertifiedCopy && tx.status === "FOR_PROCESSING") {
+            return false;
+        }
+
         // For Building Permits, Treasury only needs to see EVALUATED, UNPAID, PAID, and REJECTED
         const isBuildingPermitTx = tx.type?.code?.startsWith("BUILDING_PERMIT") || tx.type?.name?.toUpperCase().includes("BUILDING PERMIT");
         if (isBuildingPermitTx) {
@@ -257,16 +309,6 @@ export default function TreasuryDashboard() {
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );
-
-    // Toggles sorting direction for the service column
-    const handleServiceSortToggle = () => {
-        if (sortBy === "service") {
-            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
-        } else {
-            setSortBy("service");
-            setSortDirection("asc");
-        }
-    };
 
     // Resets any dynamic service filtering when explicit date sorting is toggled
     const handleDateHeaderClick = () => {
@@ -305,9 +347,9 @@ export default function TreasuryDashboard() {
                             {/* Right controls: Status dropdown + Refresh */}
                             <div className="flex items-center gap-3">
                                 <div className="hidden sm:block">
-                                    <Select 
-                                        value={serviceFilter ?? "ALL"} 
-                                        onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}
+                                    <Select
+                                        value={serviceFilter ?? "ALL"}
+                                        onValueChange={(v) => { setServiceFilter(v === "ALL" ? null : v); }}
                                         onOpenChange={(open) => { if (!open) setServiceSearch(""); }}
                                     >
                                         <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
@@ -379,154 +421,133 @@ export default function TreasuryDashboard() {
                                             <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
                                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant</TableHead>
                                             <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">
-                                                <div className="flex items-center gap-2">
-                                                    {/* Sort Trigger */}
-                                                    <button
-                                                        onClick={handleServiceSortToggle}
-                                                        className="flex items-center gap-1.5 hover:text-primary transition-colors focus:outline-none font-bold"
-                                                    >
-                                                        <span>Service</span>
-                                                        <span className={cn(
-                                                            "transition-colors duration-200 font-black text-[10px]",
-                                                            sortBy === "service"
-                                                                ? "text-blue-600 dark:text-blue-400 font-bold"
-                                                                : "text-slate-300 dark:text-slate-600"
-                                                        )}>
-                                                            {sortBy === "service"
-                                                                ? (sortDirection === "asc" ? "▲" : "▼")
-                                                                : "⇅"
-                                                            }
-                                                        </span>
-                                                    </button>
-
-                                                    {/* Service filter moved to the top controls for better UX */}
-                                                </div>
+                                                <span>Service</span>
                                             </TableHead>
                                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
                                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>
                                             <TableHead className="font-bold text-slate-700 dark:text-slate-300">Status</TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none hover:text-primary transition-colors py-5"
                                                 onClick={handleDateHeaderClick}
                                             >
-                                            <div className="flex items-center gap-1.5 group">
-                                                <span>Date</span>
-                                                <span className={cn(
-                                                    "transition-colors duration-200 font-black text-[10px]",
-                                                    sortBy === "date" 
-                                                        ? "text-blue-600 dark:text-blue-400 font-bold" 
-                                                        : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400"
-                                                )}>
-                                                    {sortBy === "date" 
-                                                        ? (sortDirection === "asc" ? "▲" : "▼") 
-                                                        : "⇅"
-                                                    }
-                                                </span>
-                                            </div>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
-                                        Array(5).fill(0).map((_, i) => (
-                                            <TableRow key={i} className="animate-pulse">
-                                                <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : paginatedTransactions.length > 0 ? (
-                                        paginatedTransactions.map((tx, index) => (
-                                            <TableRow 
-                                                key={tx.id} 
-                                                onClick={() => router.push(`/admin/treasury/${tx.id}`)}
-                                                className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
-                                            >
-                                                <TableCell className="py-4">
-                                                    <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
-                                                            {(() => {
-                                                                const rs = getResidentSnapshot(tx);
-                                                                return `${rs.firstName || 'Unknown'} ${rs.lastName || 'Applicant'}`;
-                                                            })()}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
-                                                            {tx.type?.requiresBusinessName 
-                                                                ? `Business: ${tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY"}` 
-                                                                : "Registered Resident"}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">
-                                                        {tx.type?.name}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">{tx.fulfillmentType}</span>
-                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="font-bold text-slate-900 dark:text-white">
-                                                        {tx.totalAmount > 0 ? `₱${tx.totalAmount.toLocaleString()}` : "–"}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
+                                                <div className="flex items-center gap-1.5 group">
+                                                    <span>Date</span>
                                                     <span className={cn(
-                                                        "text-[10px] font-black uppercase italic tracking-wider",
-                                                        tx.isCancelled ? "text-red-600" : ({
-                                                            "FOR_REQUESTING": "text-amber-600",
-                                                            "FOR_REVISION": "text-amber-600",
-                                                            "EVALUATED": "text-blue-600",
-                                                            "FOR_CLAIM": "text-indigo-600",
-                                                            "FOR_PICKING": "text-pink-600",
-                                                            "IN_ROUTE": "text-orange-600",
-                                                            "DELIVERED": "text-teal-600",
-                                                            "FOR_PROCESSING": "text-sky-600",
-                                                            "PAID": "text-emerald-600",
-                                                            "RELEASED": "text-slate-600",
-                                                            "REJECTED": "text-red-600",
-                                                            "RETURN_REQUESTED": "text-orange-500",
-                                                            "REFUND_REQUESTED": "text-orange-500",
-                                                            "RETURNED": "text-slate-500",
-                                                            "REFUNDED": "text-slate-500",
-                                                            "DISPUTE_REJECTED": "text-red-700",
-                                                        } as Record<string, string>)[tx.status] || "text-slate-500"
+                                                        "transition-colors duration-200 font-black text-[10px]",
+                                                        sortBy === "date"
+                                                            ? "text-blue-600 dark:text-blue-400 font-bold"
+                                                            : "text-slate-300 dark:text-slate-600 group-hover:text-slate-400"
                                                     )}>
-                                                        {tx.isCancelled ? "CANCELLED" : tx.status?.replace(/_/g, " ")}
+                                                        {sortBy === "date"
+                                                            ? (sortDirection === "asc" ? "▲" : "▼")
+                                                            : "⇅"
+                                                        }
                                                     </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                                {/* Always show transaction update date and time */}
+                                                </div>
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            Array(5).fill(0).map((_, i) => (
+                                                <TableRow key={i} className="animate-pulse">
+                                                    <TableCell colSpan={7} className="h-20 text-center"><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded mx-8" /></TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : paginatedTransactions.length > 0 ? (
+                                            paginatedTransactions.map((tx, index) => (
+                                                <TableRow
+                                                    key={tx.id}
+                                                    onClick={() => router.push(`/admin/treasury/${tx.id}`)}
+                                                    className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
+                                                >
+                                                    <TableCell className="py-4">
+                                                        <span className="text-xs font-black font-mono tracking-widest text-primary">{(currentPage - 1) * itemsPerPage + index + 1}</span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-slate-900 dark:text-white uppercase leading-tight">
                                                                 {(() => {
-                                                                    const source = tx.updatedAt;
-                                                                    const f = formatDateTime(source);
-                                                                    return (
-                                                                        <>
-                                                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{f.date}</span>
-                                                                            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{f.time}</span>
-                                                                        </>
-                                                                    );
+                                                                    const rs = getResidentSnapshot(tx);
+                                                                    return `${rs.firstName || 'Unknown'} ${rs.lastName || 'Applicant'}`;
                                                                 })()}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase italic mt-0.5">
+                                                                {tx.type?.requiresBusinessName
+                                                                    ? `Business: ${tx.businessName || (tx.additionalData as any)?.businessName || "UNNAMED ENTITY"}`
+                                                                    : "Registered Resident"}
+                                                            </span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="text-xs font-bold uppercase text-blue-600 dark:text-blue-400">
+                                                            {tx.type?.name}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">{tx.fulfillmentType}</span>
+                                                            <span className="text-[10px] text-slate-500 font-bold uppercase">{tx.paymentType?.replace("_", " ")}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="font-bold text-slate-900 dark:text-white">
+                                                            {tx.totalAmount > 0 ? `₱${tx.totalAmount.toLocaleString()}` : "–"}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className={cn(
+                                                            "text-[10px] font-black uppercase italic tracking-wider",
+                                                            tx.isCancelled ? "text-red-600" : ({
+                                                                "FOR_REQUESTING": "text-amber-600",
+                                                                "FOR_REVISION": "text-amber-600",
+                                                                "EVALUATED": "text-blue-600",
+                                                                "FOR_CLAIM": "text-indigo-600",
+                                                                "FOR_PICKING": "text-pink-600",
+                                                                "IN_ROUTE": "text-orange-600",
+                                                                "DELIVERED": "text-teal-600",
+                                                                "FOR_PROCESSING": "text-sky-600",
+                                                                "PAID": "text-emerald-600",
+                                                                "RELEASED": "text-slate-600",
+                                                                "REJECTED": "text-red-600",
+                                                                "RETURN_REQUESTED": "text-orange-500",
+                                                                "REFUND_REQUESTED": "text-orange-500",
+                                                                "RETURNED": "text-slate-500",
+                                                                "REFUNDED": "text-slate-500",
+                                                                "DISPUTE_REJECTED": "text-red-700",
+                                                            } as Record<string, string>)[tx.status] || "text-slate-500"
+                                                        )}>
+                                                            {tx.isCancelled ? "CANCELLED" : tx.status?.replace(/_/g, " ")}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            {/* Always show transaction update date and time */}
+                                                            {(() => {
+                                                                const source = tx.updatedAt;
+                                                                const f = formatDateTime(source);
+                                                                return (
+                                                                    <>
+                                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{f.date}</span>
+                                                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{f.time}</span>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="h-[400px] text-center">
+                                                    <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
+                                                        <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
+                                                        <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>
+                                                        <p className="mt-2">Try adjusting your filters or search term.</p>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="h-[400px] text-center">
-                                                <div className="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400">
-                                                    <Archive className="w-16 h-16 mb-4 text-slate-300 dark:text-slate-600" />
-                                                    <p className="text-xl font-bold text-slate-700 dark:text-slate-300">No transactions found</p>
-                                                    <p className="mt-2">Try adjusting your filters or search term.</p>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
+                                        )}
                                     </TableBody>
                                 </Table>
                             </div>

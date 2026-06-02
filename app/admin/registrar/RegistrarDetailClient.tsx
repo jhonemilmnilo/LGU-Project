@@ -377,7 +377,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
     const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
-    
+
     const safeFormatDate = (dateStr: any) => {
         if (!dateStr) return "N/A";
         const d = new Date(dateStr);
@@ -557,7 +557,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
                 formData.append("file", eCopyFile);
                 const uploadRes = await uploadECopyAction(formData);
                 if (uploadRes.success) eCopyUrl = uploadRes.data as string;
-                else { toast.error("E-Copy upload failed"); setActionLoading(false); return; }
+                else { toast.error(uploadRes.error || "E-Copy upload failed"); setActionLoading(false); return; }
             }
 
             let orUrl = "";
@@ -566,7 +566,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
                 formData.append("file", orFile);
                 const uploadRes = await uploadECopyAction(formData);
                 if (uploadRes.success) orUrl = uploadRes.data as string;
-                else { toast.error("Official Receipt upload failed"); setActionLoading(false); return; }
+                else { toast.error(uploadRes.error || "Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
             const res = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, stickerNumber);
@@ -635,12 +635,14 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
             }
 
             let uploadedDocUrl = "";
-            if (isLCR) {
+            if (isLCR && typeCode === "LCR_BIRTH") {
                 if (!registryBookVerification) {
                     toast.error("Registry Book Verification Form Choice is required before approving.");
                     setActionLoading(false);
                     return;
                 }
+            }
+            if (isLCR) {
                 if (typeCode === "LCR_BIRTH_REG") {
                     if (!orSeriesNumber) {
                         toast.error("O.R. Series Number is required before approving.");
@@ -755,7 +757,7 @@ export default function RegistrarDetailClient({ initialTransaction }: Props) {
         }
 
         const validLogo = branding.logo && (branding.logo.startsWith('/') || branding.logo.startsWith('http') || branding.logo.startsWith('data:'))
-            ? branding.logo 
+            ? branding.logo
             : "/placeholder.png";
 
         const logoHtml = branding.logo ? `

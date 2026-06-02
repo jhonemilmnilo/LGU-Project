@@ -137,6 +137,10 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             resident={resident}
                             safeFormatDate={props.safeFormatDate}
                             themeColor={themeColor}
+                            titleColorText="Informant"
+                            titleWhiteText="Profile"
+                            subtitleText="Verified Requester / Informant Data Dossier"
+                            relationship={additional.relationship}
                         />
 
                         {/* Primary LCR Specific Details Panel */}
@@ -150,7 +154,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 </h3>
                             </div>
 
-                            {additional.registryBookVerification && (
+                            {additional.registryBookVerification && transaction.type?.code === "LCR_BIRTH" && (
                                 <div className="p-6 rounded-3xl border bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 flex items-center justify-between gap-4 animate-in fade-in duration-300">
                                     <div className="space-y-1">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Registry Book Verification Status</span>
@@ -264,7 +268,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                 <div className="space-y-1">
                                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Death</span>
                                                     <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {transaction.deathRegistration?.placeOfEvent || additional.placeOfDeath || "N/A"}
+                                                        {transaction.deathRegistration?.placeOfEvent || additional.placeOfEvent || additional.placeOfDeath || "N/A"}
                                                     </p>
                                                 </div>
                                             </div>
@@ -305,33 +309,8 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 <div className="space-y-6">
                                     {isDeath ? (
                                         <>
-                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Informant & Parental Dossier</h4>
+                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Dossier</h4>
                                             <div className="space-y-4">
-                                                {/* Informant Details */}
-                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
-                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Informant Profile</span>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400">Name</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                {additional.informantFirstName ? `${additional.informantFirstName} ${additional.informantLastName}` : "N/A"}
-                                                            </p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400">Relationship</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                {additional.relationship || "N/A"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="pt-2 border-t border-slate-100 dark:border-white/5">
-                                                        <span className="text-[8px] uppercase tracking-wider text-slate-400">Contact Number</span>
-                                                        <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                            {additional.contactNumber || "N/A"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
                                                 {/* Parents */}
                                                 <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
                                                     <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Parental Matrix</span>
@@ -448,38 +427,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
-                        {/* Resident Identity Profile */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                            <div>
-                                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                    Resident <span className="text-primary">Identity Profile</span>
-                                </h2>
-                                <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
-                                    Verified Citizen Data Dossier
-                                </p>
-                            </div>
 
-                            <div className="grid grid-cols-12 gap-x-6 gap-y-6">
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Full Name</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {resident && resident.firstName ? `${resident.firstName} ${resident.middleName ? resident.middleName + ' ' : ''}${resident.lastName}` : "--"}
-                                    </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Contact Number</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {resident?.contactNumber || "--"}
-                                    </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Barangay</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase">
-                                        {resident?.barangay || "--"}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Evidence Uploads & Attachments */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
@@ -489,19 +437,8 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {evidenceDocs
-                                    .filter(doc => {
-                                        const isLcrBirthCertifiedCopy = 
-                                            transaction.type?.code === "LCR_BIRTH" || 
-                                            transaction.type?.name?.includes("Birth Certificate (Certified Copy)");
-                                        if (isLcrBirthCertifiedCopy && transaction.status === "FOR_REQUESTING") {
-                                            // Hide pending attachments since they are not relevant to Birth Certificate (Certified Copy) requesting phase
-                                            if (!doc.url) return false;
-                                        }
-                                        return true;
-                                    })
-                                    .map((doc, i) => (
-                                        <div key={i} className="p-4 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between group">
+                                {evidenceDocs.map((doc, i) => (
+                                    <div key={i} className="p-4 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between group">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
                                                 <FileText className="w-4 h-4" />
@@ -741,42 +678,44 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             // Original: FOR_REQUESTING / UNDER_REVIEW -> Approve & Send Assessment
                                             <>
                                                 {/* Registry Book Verification Choices */}
-                                                <div className="space-y-3 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                                    <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-1">
-                                                        Registry Book Verification <span className="text-rose-500 font-extrabold">*Required</span>
-                                                    </label>
-                                                    <div className="grid grid-cols-1 gap-2.5">
-                                                        {[
-                                                            { id: "FORM_1A", title: "Form 1A", desc: "Record Found", activeColor: "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-                                                            { id: "FORM_1B", title: "Form 1B", desc: "Record Not Available", activeColor: "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-                                                            { id: "FORM_1C", title: "Form 1C", desc: "Record Destroyed", activeColor: "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400" }
-                                                        ].map((opt) => {
-                                                            const isSelected = registryBookVerification === opt.id;
-                                                            return (
-                                                                <button
-                                                                    key={opt.id}
-                                                                    type="button"
-                                                                    onClick={() => setRegistryBookVerification?.(opt.id)}
-                                                                    className={cn(
-                                                                        "flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 active:scale-98 select-none",
-                                                                        isSelected ? opt.activeColor + " shadow-md font-bold" : "border-slate-150 dark:border-white/5 text-slate-500 dark:text-slate-400 bg-white dark:bg-[#151b28]/60 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                                    )}
-                                                                >
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-xs font-black uppercase tracking-wider">{opt.title}</span>
-                                                                        <span className="text-[10px] italic opacity-85 mt-0.5">{opt.desc}</span>
-                                                                    </div>
-                                                                    <div className={cn(
-                                                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                        isSelected ? "border-current bg-current/15" : "border-slate-300 dark:border-white/10"
-                                                                    )}>
-                                                                        {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
+                                                {transaction.type?.code === "LCR_BIRTH" && (
+                                                    <div className="space-y-3 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                                        <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-1">
+                                                            Registry Book Verification <span className="text-rose-500 font-extrabold">*Required</span>
+                                                        </label>
+                                                        <div className="grid grid-cols-1 gap-2.5">
+                                                            {[
+                                                                { id: "FORM_1A", title: "Form 1A", desc: "Record Found", activeColor: "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                                                                { id: "FORM_1B", title: "Form 1B", desc: "Record Not Available", activeColor: "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+                                                                { id: "FORM_1C", title: "Form 1C", desc: "Record Destroyed", activeColor: "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400" }
+                                                            ].map((opt) => {
+                                                                const isSelected = registryBookVerification === opt.id;
+                                                                return (
+                                                                    <button
+                                                                        key={opt.id}
+                                                                        type="button"
+                                                                        onClick={() => setRegistryBookVerification?.(opt.id)}
+                                                                        className={cn(
+                                                                            "flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 active:scale-98 select-none",
+                                                                            isSelected ? opt.activeColor + " shadow-md font-bold" : "border-slate-150 dark:border-white/5 text-slate-500 dark:text-slate-400 bg-white dark:bg-[#151b28]/60 hover:bg-slate-50 dark:hover:bg-white/5"
+                                                                        )}
+                                                                    >
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-black uppercase tracking-wider">{opt.title}</span>
+                                                                            <span className="text-[10px] italic opacity-85 mt-0.5">{opt.desc}</span>
+                                                                        </div>
+                                                                        <div className={cn(
+                                                                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                            isSelected ? "border-current bg-current/15" : "border-slate-300 dark:border-white/10"
+                                                                        )}>
+                                                                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                )}
 
                                                 {/* Birth Registration Additional Fields */}
                                                 {transaction.type?.code === "LCR_BIRTH_REG" && (
@@ -872,7 +811,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
                                     <div className="space-y-4">
                                         {/* Proof of Payment Lightbox */}
-                                        {transaction.paymentReference && (
+                                        {transaction.paymentReference && additional?.gcashReferenceNo && additional.gcashReferenceNo.toLowerCase() !== "n/a" && additional.gcashReferenceNo.toLowerCase() !== "na" && (
                                             <div className="space-y-3">
                                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Payment Proof Reference</label>
                                                 <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl space-y-3">

@@ -157,15 +157,6 @@ export default function BploDashboard() {
         currentPage * itemsPerPage
     );
 
-    const handleServiceSortToggle = () => {
-        if (sortBy === "service") {
-            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
-        } else {
-            setSortBy("service");
-            setSortDirection("asc");
-        }
-    };
-
     const handleDateHeaderClick = () => {
         setServiceFilter(null);
         if (sortBy === "date") {
@@ -202,7 +193,7 @@ export default function BploDashboard() {
                                 <div className="hidden sm:block">
                                     <Select 
                                         value={serviceFilter ?? "ALL"} 
-                                        onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}
+                                        onValueChange={(v) => { setServiceFilter(v === "ALL" ? null : v); }}
                                         onOpenChange={(open) => { if (!open) setServiceSearch(""); }}
                                     >
                                         <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
@@ -263,18 +254,7 @@ export default function BploDashboard() {
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant Business</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">
-                                            <button
-                                                onClick={handleServiceSortToggle}
-                                                className="flex items-center gap-1.5 hover:text-primary transition-colors focus:outline-none font-bold"
-                                            >
-                                                <span>Permit Service</span>
-                                                <span className={cn(
-                                                    "transition-colors duration-200 font-black text-[10px]",
-                                                    sortBy === "service" ? "text-primary font-bold" : "text-slate-300"
-                                                )}>
-                                                    {sortBy === "service" ? (sortDirection === "asc" ? "▲" : "▼") : "⇅"}
-                                                </span>
-                                            </button>
+                                            <span>Permit Service</span>
                                         </TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Fulfillment</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Permit Status</TableHead>
