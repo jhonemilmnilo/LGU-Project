@@ -256,9 +256,10 @@ export default function TreasuryDashboard() {
         // Specific service name filter: match selected service from dropdown if set
         const matchesService = !serviceFilter || serviceFilter === "ALL" || tx.type?.name === serviceFilter;
 
-        // For Birth Certificate (Certified Copy) requesting phase, only the Registrar department should see it
+        // For Birth Certificate / Birth Registration evaluation phases, only the Registrar department should see it
         const isLcrBirthCertifiedCopy = tx.type?.code === "LCR_BIRTH" || tx.type?.name?.includes("Birth Certificate (Certified Copy)");
-        if (isLcrBirthCertifiedCopy && tx.status === "FOR_REQUESTING") {
+        const isLcrBirthRegistration = tx.type?.code === "LCR_BIRTH_REG" || tx.type?.name?.includes("Birth Registration");
+        if ((isLcrBirthCertifiedCopy || isLcrBirthRegistration) && ["FOR_REQUESTING", "EVALUATED", "FOR_PROCESSING"].includes(tx.status)) {
             const isRegistrar = userRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
             if (!isRegistrar) {
                 return false;

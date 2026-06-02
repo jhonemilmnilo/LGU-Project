@@ -124,6 +124,7 @@ import {
     saveLogisticsDetails
 } from "@/app/admin/transactions/actions";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
     ssr: false,
@@ -382,6 +383,42 @@ export default function RequestHubPage() {
 
         initialize();
     }, [id, router]);
+
+    // Realtime Supabase Subscription for request status/detail updates
+    useEffect(() => {
+        if (!supabase || !id) return;
+
+        console.log(`Subscribing to Supabase Realtime for transaction ${id}...`);
+        const channel = supabase
+            .channel(`realtime-request-${id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "Transaction",
+                    filter: `id=eq.${id}`,
+                },
+                async (payload: any) => {
+                    console.log("Realtime update caught for request:", payload);
+                    // Re-fetch request details
+                    try {
+                        const res = await getTransactionById(id);
+                        if (res.success && res.data) {
+                            setRequest(res.data);
+                        }
+                    } catch (err) {
+                        console.error("Failed to reload request in realtime:", err);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log(`Unsubscribing from Supabase Realtime for transaction ${id}...`);
+            supabase.removeChannel(channel);
+        };
+    }, [id]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -1477,7 +1514,7 @@ export default function RequestHubPage() {
                                                             variant="outline"
                                                             className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
                                                         >
-                                                                <a
+                                                            <a
                                                                 href={paymentProofUrl}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
@@ -1588,7 +1625,7 @@ export default function RequestHubPage() {
                                                 const formType = additionalData.registryBookVerification || "FORM_1A";
                                                 const config = getVerificationConfig(formType);
                                                 return (
-                                                    <div 
+                                                    <div
                                                         className={cn(
                                                             "p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:scale-[1.01] w-full text-left bg-white dark:bg-slate-900/40",
                                                             config.borderColor,
@@ -1601,7 +1638,7 @@ export default function RequestHubPage() {
                                                         <div className="relative z-10 space-y-6">
                                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                                                 <div className="flex items-center gap-4">
-                                                                    <div 
+                                                                    <div
                                                                         className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
                                                                         style={{ backgroundColor: config.themeColor }}
                                                                     >
@@ -1620,7 +1657,7 @@ export default function RequestHubPage() {
                                                                     {formType.replace(/_/g, " ")}
                                                                 </Badge>
                                                             </div>
-                                                            
+
                                                             <div className="p-5 bg-white/50 dark:bg-[#121620]/60 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm">
                                                                 <p className="text-xs md:text-sm font-bold italic text-slate-700 dark:text-slate-200 leading-relaxed">
                                                                     &ldquo;{config.description}&rdquo;
@@ -1654,7 +1691,7 @@ export default function RequestHubPage() {
                                                                     <Button
                                                                         onClick={handleECopyDownload}
                                                                         className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                        style={{ 
+                                                                        style={{
                                                                             backgroundColor: config.themeColor,
                                                                             boxShadow: `0 10px 20px -5px ${config.themeColor}30`
                                                                         }}

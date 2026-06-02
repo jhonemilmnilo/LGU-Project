@@ -93,6 +93,24 @@ const STEPS = [
     { id: "SUBMIT", label: "Submit", icon: CheckCircle2 },
 ];
 
+const REGISTRY_SECTIONS = [
+    {
+        title: "Birth Registry Services",
+        subtitle: "Registration & Certified True Copy Requests",
+        items: ["BIRTH_REG", "BIRTH_REQ"]
+    },
+    {
+        title: "Death Registry Services",
+        subtitle: "Registration & Certified True Copy Requests",
+        items: ["DEATH", "DEATH_REQ"]
+    },
+    {
+        title: "Marriage Registry & Licenses",
+        subtitle: "License Applications, Registrations & Certified Copies",
+        items: ["MARRIAGE_LICENSE", "MARRIAGE", "MARRIAGE_REQ"]
+    }
+];
+
 export default function CivilRegistryPage() {
     const [themeColor, setThemeColor] = React.useState("theme_color");
 
@@ -216,57 +234,83 @@ export default function CivilRegistryPage() {
                         </p>
                     </div>
 
-                    {/* Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                        {REGISTRY_TYPES.map((type) => {
-                            const Icon = type.icon;
-                            
-                            const cardContent = (
-                                <div className={cn(
-                                    "p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border-2 transition-all duration-300 text-left relative group select-none overflow-hidden flex flex-col justify-between min-h-[220px] cursor-pointer bg-white/40 dark:bg-white/5 backdrop-blur-md border-slate-200 dark:border-white/10 hover:border-primary/40 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/5",
-                                    !type.available && "opacity-60 cursor-not-allowed"
-                                )}>
-                                    <div className="flex justify-between items-start w-full">
-                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 theme-icon-bg">
-                                            <Icon className="w-5 h-5 stroke-[2.5] theme-icon-text" />
-                                        </div>
-                                        {!type.available ? (
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-full">
-                                                Coming Soon
-                                            </span>
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center transition-colors theme-bg-hover group-hover:text-white border border-slate-100 dark:border-white/10 text-slate-900 dark:text-white">
-                                                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-1.5 mt-6">
-                                        <h4 className="text-base md:text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-tight">
-                                            {type.label}
-                                        </h4>
-                                        <p className="text-[9px] md:text-[10px] font-bold uppercase italic tracking-widest text-slate-400 dark:text-slate-500 leading-relaxed">
-                                            {type.description}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-
-                            if (type.available) {
-                                return (
-                                    <Link href={type.href} key={type.id} className="block h-full">
-                                        {cardContent}
-                                    </Link>
-                                );
-                            }
+                    {/* Civil Registry Sections */}
+                    <div className="space-y-16 max-w-6xl mx-auto w-full">
+                        {REGISTRY_SECTIONS.map((section) => {
+                            const sectionItems = section.items
+                                .map(id => REGISTRY_TYPES.find(t => t.id === id))
+                                .filter(Boolean) as typeof REGISTRY_TYPES;
 
                             return (
-                                <div
-                                    key={type.id}
-                                    onClick={() => toast.info(`${type.label} is currently under development.`)}
-                                    className="block h-full"
-                                >
-                                    {cardContent}
+                                <div key={section.title} className="space-y-6">
+                                    {/* Section Header */}
+                                    <div className="flex items-center gap-4 border-b border-slate-100 dark:border-white/5 pb-4 select-none">
+                                        <div className="w-1.5 h-8 rounded-full transition-colors duration-500" style={{ backgroundColor: themeColor }} />
+                                        <div>
+                                            <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-slate-800 dark:text-slate-100 leading-none">
+                                                {section.title}
+                                            </h3>
+                                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-2 italic">
+                                                {section.subtitle}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Cards Grid for Section */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {sectionItems.map((type) => {
+                                            const Icon = type.icon;
+                                            
+                                            const cardContent = (
+                                                <div className={cn(
+                                                    "p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border-2 transition-all duration-300 text-left relative group select-none overflow-hidden flex flex-col justify-between min-h-[220px] cursor-pointer bg-white/40 dark:bg-white/5 backdrop-blur-md border-slate-200 dark:border-white/10 hover:border-primary/40 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/5",
+                                                    !type.available && "opacity-60 cursor-not-allowed"
+                                                )}>
+                                                    <div className="flex justify-between items-start w-full">
+                                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 theme-icon-bg">
+                                                            <Icon className="w-5 h-5 stroke-[2.5] theme-icon-text" />
+                                                        </div>
+                                                        {!type.available ? (
+                                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-full">
+                                                                Coming Soon
+                                                            </span>
+                                                        ) : (
+                                                            <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center transition-colors theme-bg-hover group-hover:text-white border border-slate-100 dark:border-white/10 text-slate-900 dark:text-white">
+                                                                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-1.5 mt-6">
+                                                        <h4 className="text-base md:text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-tight">
+                                                            {type.label}
+                                                        </h4>
+                                                        <p className="text-[9px] md:text-[10px] font-bold uppercase italic tracking-widest text-slate-400 dark:text-slate-500 leading-relaxed">
+                                                            {type.description}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+
+                                            if (type.available) {
+                                                return (
+                                                    <Link href={type.href} key={type.id} className="block h-full">
+                                                        {cardContent}
+                                                    </Link>
+                                                );
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={type.id}
+                                                    onClick={() => toast.info(`${type.label} is currently under development.`)}
+                                                    className="block h-full"
+                                                >
+                                                    {cardContent}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             );
                         })}

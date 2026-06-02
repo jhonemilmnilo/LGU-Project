@@ -170,18 +170,7 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         // { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        {
-            label: "Registrar Hub",
-            icon: FileText,
-            category: "Registrar",
-            isDropdown: true,
-            isOpen: isRegistrarOpen,
-            onToggle: () => setIsRegistrarOpen(!isRegistrarOpen),
-            subItems: [
-                { href: "/admin/registrar", label: "Verify & Bill Requests" },
-                { href: "/admin/registrar/release-documents", label: "Release Documents" },
-            ]
-        },
+        { href: "/admin/registrar", label: "Registrar Hub", icon: FileText, category: "Registrar" },
         {
             label: "Treasury Hub",
             icon: LayoutDashboard,

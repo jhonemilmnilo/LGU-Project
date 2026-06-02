@@ -476,8 +476,10 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                 if ((fileLike as any).size && (fileLike as any).size > 0) {
                     // Use a standard bucket and specific folder
                     const url = await processFileUpload(fileLike, `lcr/${registryType.toLowerCase()}`);
+                    if (!url) {
+                        return { success: false, error: `Failed to upload required document: ${key}. Please check your connection and try again.` };
+                    }
                     files[key] = url;
-                    if (!url) console.warn(`[submitCivilRegistryTransaction] upload returned null for key=${key}`);
                 }
             }
         }
@@ -1721,6 +1723,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         const now = new Date();
         const isPickupCashInitial = transaction.fulfillmentType === "PICK_UP" && transaction.paymentType === "CASH" && transaction.status === "FOR_PROCESSING";
+        const isLCR = transaction.type.code.startsWith("LCR_");
 
         // Handle either BPLO or Cedula lifecycle
         if (isBusinessPermit && !isBusinessPermitTreasuryHandoff) {
@@ -1768,7 +1771,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                     }
                 });
             }
-        } else {
+        } else if (!isLCR) {
             if (!transaction.cedula) {
                 if (!ctcNumber && !isPickupCashInitial && transaction.status !== "PAID") {
                     return { success: false, error: "CTC Number is required for this transaction type." };
@@ -1803,7 +1806,6 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         // If this is a Local Civil Registry (LCR) service, ensure a BirthCertificateRegistry
         // or DeathRegistration entry is created when releasing the document so it appears in official registry tables.
-        const isLCR = transaction.type.code.startsWith("LCR_");
         if (isLCR) {
             const typeCode = (transaction.type.code || "").toUpperCase();
             if (typeCode === "LCR_BIRTH") {

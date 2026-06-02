@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getUserTransactions } from "@/app/admin/transactions/actions";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabase";
 
 export default function UserServiceRequestsPage() {
     const router = useRouter();
@@ -61,6 +62,41 @@ export default function UserServiceRequestsPage() {
             }
         }
         fetchRequests();
+    }, []);
+
+    // Realtime Supabase Subscription for user requests
+    useEffect(() => {
+        if (!supabase) return;
+
+        console.log("Subscribing to Supabase Realtime 'Transaction' table for requests page...");
+        const channel = supabase
+            .channel("realtime-user-filings")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "Transaction",
+                },
+                async (payload: any) => {
+                    console.log("Realtime change caught on requests page:", payload);
+                    // Dynamically reload list
+                    try {
+                        const res = await getUserTransactions();
+                        if (res.success) {
+                            setRequests(res.data || []);
+                        }
+                    } catch (err) {
+                        console.error("Failed to reload requests in realtime:", err);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log("Unsubscribing from Supabase Realtime...");
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const getStatusStyle = (req: any) => {

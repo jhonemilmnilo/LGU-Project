@@ -114,6 +114,8 @@ interface FormState {
         middleName: string;
         lastName: string;
         suffix: string;
+        sex: string;
+        birthTime: string;
     }[];
     dateOfEvent: string;
     placeOfEvent: string;
@@ -181,7 +183,7 @@ export default function BirthRegistrationPage() {
     const [form, setForm] = useState<FormState>({
         typeId: "",
         registryType: "BIRTH_REG",
-        children: [{ firstName: "", middleName: "", lastName: "", suffix: "" }],
+        children: [{ firstName: "", middleName: "", lastName: "", suffix: "", sex: "", birthTime: "" }],
         dateOfEvent: "",
         placeOfEvent: "",
         fatherFirstName: "",
@@ -384,6 +386,8 @@ export default function BirthRegistrationPage() {
                     middleName: resident.middleName || "",
                     lastName: resident.lastName || "",
                     suffix: resident.suffix || "",
+                    sex: resident.gender?.toUpperCase() || "",
+                    birthTime: "",
                 }],
                 placeOfEvent: resident.placeOfBirth || resident.municipality || prev.placeOfEvent,
                 dateOfEvent: resident.dateOfBirth ? new Date(resident.dateOfBirth).toISOString().split('T')[0] : prev.dateOfEvent,
@@ -458,7 +462,7 @@ export default function BirthRegistrationPage() {
             if (currentChildren.length < count) {
                 // Add more
                 for (let i = currentChildren.length; i < count; i++) {
-                    currentChildren.push({ firstName: "", middleName: "", lastName: "", suffix: "" });
+                    currentChildren.push({ firstName: "", middleName: "", lastName: "", suffix: "", sex: "", birthTime: "" });
                 }
             } else if (currentChildren.length > count) {
                 // Remove extra
@@ -719,6 +723,10 @@ export default function BirthRegistrationPage() {
             form.children.forEach((c, i) => {
                 if (!c.firstName) errs[`children.${i}.firstName`] = "Please enter first name.";
                 if (!c.lastName) errs[`children.${i}.lastName`] = "Please enter last name.";
+                if (!c.sex) errs[`children.${i}.sex`] = "Please select sex.";
+                if (form.birthType !== "SINGLE" && !c.birthTime) {
+                    errs[`children.${i}.birthTime`] = "Please enter exact time of birth.";
+                }
             });
             if (!form.dateOfEvent) {
                 errs.dateOfEvent = "Please select date of birth.";
@@ -1339,7 +1347,7 @@ export default function BirthRegistrationPage() {
                                                     </div>
 
                                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                        <div className="space-y-2">
+                                                        <div className="space-y-2 col-span-1">
                                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Suffix</Label>
                                                             <Input
                                                                 className="rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all uppercase font-medium"
@@ -1348,6 +1356,44 @@ export default function BirthRegistrationPage() {
                                                                 onChange={(e) => handleChildNameChange(index, 'suffix', e.target.value)}
                                                             />
                                                         </div>
+                                                        <div className="space-y-2 col-span-1">
+                                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Sex <span className="text-red-500">*</span></Label>
+                                                            <Select
+                                                                value={child.sex || ""}
+                                                                onValueChange={(val) => handleChildNameChange(index, 'sex', val)}
+                                                            >
+                                                                <SelectTrigger className={cn(
+                                                                    "h-12 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-xs text-left px-3 transition-all font-medium uppercase text-slate-800 dark:text-slate-100",
+                                                                    (errors[`children.${index}.sex`]) && "border-red-500/50 bg-red-50/10"
+                                                                )}>
+                                                                    <SelectValue placeholder="Select sex" />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl border-slate-200 dark:border-white/10 italic">
+                                                                    <SelectItem value="MALE">MALE</SelectItem>
+                                                                    <SelectItem value="FEMALE">FEMALE</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            {(errors[`children.${index}.sex`]) && (
+                                                                <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors[`children.${index}.sex`]}</p>
+                                                            )}
+                                                        </div>
+                                                        {form.birthType !== "SINGLE" && (
+                                                            <div className="space-y-2 col-span-1 md:col-span-2">
+                                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Exact Time of Birth <span className="text-red-500">*</span></Label>
+                                                                <Input
+                                                                    type="time"
+                                                                    className={cn(
+                                                                        "rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 h-12 transition-all font-medium",
+                                                                        (errors[`children.${index}.birthTime`]) && "border-red-500/50 bg-red-50/10"
+                                                                    )}
+                                                                    value={child.birthTime || ""}
+                                                                    onChange={(e) => handleChildNameChange(index, 'birthTime', e.target.value)}
+                                                                />
+                                                                {(errors[`children.${index}.birthTime`]) && (
+                                                                    <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors[`children.${index}.birthTime`]}</p>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
