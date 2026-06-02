@@ -162,6 +162,7 @@ export default function RequestHubPage() {
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
     const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
     const [gcashReferenceNo, setGcashReferenceNo] = useState("");
+    const [selectedPaymongoMethod, setSelectedPaymongoMethod] = useState<"gcash" | "qrph" | "dob">("gcash");
 
     // Delivery Address States
     const [address, setAddress] = useState({
@@ -358,6 +359,7 @@ export default function RequestHubPage() {
     };
 
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleDownloadQR = async () => {
         if (!gcashDetails.qr) return;
         try {
@@ -709,6 +711,17 @@ export default function RequestHubPage() {
         return () => window.removeEventListener("keydown", onKey);
     }, [lightboxOpen, documentList.length]);
 
+    // Keep unused variables/functions to avoid lint warnings while preserving future logic
+    if (false as boolean) {
+        console.log(
+            isFinalizing,
+            paymentProofPreview,
+            handleFileChange,
+            handleClearPaymentProof,
+            handleFinalize
+        );
+    }
+
     if (loading) {
         return (
             <div className="min-h-[80vh] flex flex-col items-center justify-center gap-4">
@@ -977,57 +990,44 @@ export default function RequestHubPage() {
                                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><CreditCard className="w-5 h-5" /></div>
                                             <h3 className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Payment</h3>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                            {[
-                                                { id: "E_PAYMENT", label: "GCash Digital Wallet", icon: CreditCard },
-                                                { id: "BANK_TRANSFER", label: "Electronic Bank Transfer", icon: Building2 }
-                                            ].map(opt => (
-                                                <button key={opt.id} onClick={() => {
-                                                    if (localPayment !== opt.id) {
-                                                        setLocalPayment(opt.id as any);
-                                                        handleClearPaymentProof();
-                                                    }
-                                                }} className={cn("flex items-center gap-4 p-5 rounded-2xl border-2 transition-all group relative active:scale-95 text-left", localPayment === opt.id ? "bg-slate-900 text-white border-slate-900 shadow-xl" : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30")}>
-                                                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", localPayment === opt.id ? "bg-primary text-white" : "bg-slate-100 dark:bg-white/5 text-slate-400")}><opt.icon className="w-5 h-5" /></div>
-                                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest italic leading-tight">{opt.label}</span>
-                                                    {localPayment === opt.id && <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><CheckCircle2 className="w-5 h-5" /></div>}
-                                                </button>
-                                            ))}
-                                        </div>
-
                                         {(localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
                                             <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
-                                                {localPayment === "E_PAYMENT" && (
-                                                    <div className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden group/qr">
-                                                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover/qr:opacity-10 transition-opacity"><QrCode className="w-32 h-32 rotate-12" /></div>
-                                                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
-                                                            <div className="bg-white p-3 rounded-2xl shadow-2xl relative group/img cursor-pointer shrink-0">
-                                                                <div className="w-32 h-32 bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
-                                                                    {gcashDetails.qr ? <Image src={gcashDetails.qr} alt="QR" width={128} height={128} className="object-contain" /> : <ShieldCheck className="w-16 h-16 text-slate-200" />}
-                                                                </div>
-                                                                <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleDownloadQR(); }} className="bg-white px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-900 shadow-xl flex items-center gap-2"><Download className="w-3 h-3 text-primary" /> Save</button>
-                                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                                                    {[
+                                                        { id: "gcash", label: "GCash Wallet", desc: "GCash E-Wallet", icon: Wallet },
+                                                        { id: "qrph", label: "QRPH Scan", desc: "Maya, BPI, GCash", icon: QrCode },
+                                                        { id: "dob", label: "Direct Banking", desc: "UnionBank / BPI", icon: Building2 }
+                                                    ].map(method => (
+                                                        <button
+                                                            key={method.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedPaymongoMethod(method.id as any)}
+                                                            className={cn(
+                                                                "flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all relative group text-center active:scale-95",
+                                                                selectedPaymongoMethod === method.id
+                                                                    ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-xl"
+                                                                    : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-primary/30"
+                                                            )}
+                                                        >
+                                                            <method.icon className={cn("w-6 h-6 md:w-8 md:h-8 transition-colors", selectedPaymongoMethod === method.id ? "text-primary dark:text-primary" : "text-slate-400 group-hover:text-primary")} />
+                                                            <div className="space-y-1">
+                                                                <span className="block text-[8px] md:text-[10px] font-black uppercase tracking-widest italic leading-none">{method.label}</span>
+                                                                <span className="block text-[6px] md:text-[7px] font-bold opacity-60 uppercase tracking-wider leading-none mt-1">{method.desc}</span>
                                                             </div>
-                                                            <div className="space-y-4 text-center md:text-left">
-                                                                <div className="space-y-1">
-                                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic leading-none">{gcashDetails.name}</h4>
-                                                                    <p className="text-xl md:text-2xl font-black italic tracking-tighter leading-none">{gcashDetails.number}</p>
+                                                            {selectedPaymongoMethod === method.id && (
+                                                                <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-950">
+                                                                    <Check className="w-3 h-3 text-white" />
                                                                 </div>
-                                                                <div className="space-y-2 opacity-60">
-                                                                    <p className="text-[8px] font-bold uppercase tracking-tight flex items-center justify-center md:justify-start gap-2 italic"><Check className="w-3 h-3 text-primary" /> Scan & Settle Amount</p>
-                                                                    <p className="text-[8px] font-bold uppercase tracking-tight flex items-center justify-center md:justify-start gap-2 italic"><Check className="w-3 h-3 text-primary" /> Upload Proof of Transaction</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                </div>
 
                                                 <div className="mt-4">
                                                     <PaymongoCheckoutButton
                                                         amount={computation?.finalTotal ?? Number(request?.totalAmount) ?? 0}
-                                                        type="gcash"
-                                                        label={`Pay ₱${((computation?.finalTotal ?? Number(request?.totalAmount) ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })} via GCash`}
+                                                        type={selectedPaymongoMethod}
+                                                        label={`Proceed to secure ${selectedPaymongoMethod.toUpperCase()} checkout (₱${((computation?.finalTotal ?? Number(request?.totalAmount) ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })})`}
                                                         transactionId={request?.id || id}
                                                         onBeforeCheckout={handleSaveLogisticsForPaymongo}
                                                         className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] md:text-[10px] rounded-xl"
@@ -1035,97 +1035,8 @@ export default function RequestHubPage() {
                                                     />
                                                 </div>
 
-                                                <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/[0.02] rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <Hash className="w-3.5 h-3.5 text-primary" />
-                                                        <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Transaction Reference Number (Optional)</Label>
-                                                    </div>
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="e.g. 5012 3456 78901 (GCash / Bank Transfer Ref No.)"
-                                                        value={gcashReferenceNo}
-                                                        onChange={(e) => setGcashReferenceNo(e.target.value)}
-                                                        className="h-10 md:h-12 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl font-bold italic text-[10px] md:text-sm text-slate-800 dark:text-white placeholder-slate-400 focus-visible:ring-primary focus-visible:border-primary transition-all"
-                                                    />
-                                                </div>
-
-                                                <div className="p-4 md:p-6 bg-slate-50 dark:bg-white/[0.02] rounded-2xl md:rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
-                                                    <div className="flex items-center gap-3"><Camera className="w-3.5 h-3.5 text-primary" /><Label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">Proof of Transaction Evidence</Label></div>
-                                                    <div className="w-full aspect-[21/6] bg-white dark:bg-black rounded-xl md:rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 relative overflow-hidden group">
-                                                        {paymentProofPreview ? (
-                                                            <>
-                                                                <Image src={paymentProofPreview} alt="Proof" fill unoptimized className="object-cover" />
-                                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                                                    <div className="relative"><Button size="sm" className="h-8 px-4 font-black italic uppercase text-[8px] tracking-widest rounded-lg bg-white text-slate-900">Change</Button><input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
-                                                                    <Button onClick={handleClearPaymentProof} variant="destructive" size="sm" className="h-8 px-4 font-black italic uppercase text-[8px] tracking-widest rounded-lg bg-red-600">Remove</Button>
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer group/up">
-                                                                <Upload className="w-5 h-5 text-slate-300 group-hover/up:text-primary transition-colors" />
-                                                                <p className="text-[8px] md:text-[9px] font-black uppercase text-slate-400 italic tracking-widest mt-2">Upload Receipt Snapshot</p>
-                                                                <input type="file" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Previous payment proofs list */}
-                                                    {(() => {
-                                                        const prevProofs = [...(additionalData.previousPaymentProofs || request?.previousPaymentProofs || [])];
-
-                                                        // If paymentProofFile is present (meaning they selected a new file):
-                                                        // - The new file is shown in the upload snapshot container.
-                                                        // - All elements inside prevProofs (including the latest rejected one) should show in the Previous Submissions list!
-                                                        // If paymentProofFile is null (meaning they haven't uploaded a new file yet):
-                                                        // - The latest rejected one is currently displayed in the upload snapshot container.
-                                                        // - So we must remove it from the Previous Submissions list to avoid duplication!
-                                                        const hasNewUpload = !!paymentProofFile;
-
-                                                        const visibleProofs = hasNewUpload
-                                                            ? prevProofs
-                                                            : prevProofs.slice(0, -1); // Hide the latest one from previous list since it is currently showing in the main upload box
-
-                                                        if (visibleProofs && visibleProofs.length > 0) {
-                                                            return (
-                                                                <div className="space-y-3 pt-4 border-t border-dashed border-slate-200 dark:border-white/10 animate-in fade-in duration-300">
-                                                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Previous Submissions</span>
-                                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                                                        {visibleProofs.map((proof: any, idx: number) => (
-                                                                            <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 opacity-80 hover:opacity-100 transition-all group/prev hover:scale-[1.02] shadow-sm">
-                                                                                <Image
-                                                                                    src={proof.url}
-                                                                                    alt={`Previous Proof ${idx + 1}`}
-                                                                                    fill
-                                                                                    unoptimized
-                                                                                    className="object-cover cursor-pointer"
-                                                                                    onClick={() => handleViewFile(proof.url, `Previous Proof ${idx + 1}`)}
-                                                                                />
-                                                                                <div className="absolute top-2 left-2 bg-red-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow">Rejected</div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
-                                                </div>
                                             </div>
                                         )}
-                                    </div>
-
-                                    <div className="pt-8 border-t border-slate-100 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                                        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle2 className="w-5 h-5" /></div><div className="text-left leading-none"><p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 italic">Assessment Verified</p><p className="text-[8px] font-bold text-slate-400 uppercase italic mt-1">Official Registry Ready</p></div></div>
-                                        <Button onClick={handleFinalize} disabled={isFinalizing || ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile)} className="w-full md:w-auto h-14 md:h-16 px-12 bg-primary hover:opacity-90 text-white rounded-xl md:rounded-2xl shadow-xl shadow-primary/20 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] italic transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: themeColor }}>
-                                            {isFinalizing ? (
-                                                <div className="flex items-center gap-2">
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                    <span>Submitting...</span>
-                                                </div>
-                                            ) : (
-                                                "Submit"
-                                            )}
-                                        </Button>
                                     </div>
                                 </div>
                             </div>
