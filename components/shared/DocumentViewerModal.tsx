@@ -66,7 +66,7 @@ export default function DocumentViewerModal({
             fetch(fileUrl)
                 .then(res => res.blob())
                 .then(blob => setFetchedType(blob.type))
-                .catch(() => {});
+                .catch(() => { });
         } else {
             setFetchedType(null);
         }
@@ -118,6 +118,29 @@ export default function DocumentViewerModal({
     const zoomIn = () => setZoom(z => Math.min(z + 0.25, 4));
     const zoomOut = () => setZoom(z => Math.max(z - 0.25, 0.25));
     const resetView = () => { setZoom(1); setRotation(0); setPosition({ x: 0, y: 0 }); };
+
+    const handleDownload = async () => {
+        if (!activeUrl) return;
+        try {
+            const response = await fetch(activeUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            
+            const cleanTitle = title.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "document";
+            const ext = fileExtension || (blob.type.includes("pdf") ? "pdf" : blob.type.split("/")[1] || "bin");
+            link.download = `${cleanTitle}.${ext}`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Direct download failed, falling back to new tab:", error);
+            window.open(activeUrl, "_blank");
+        }
+    };
 
     // Drag handlers
     const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -269,11 +292,11 @@ export default function DocumentViewerModal({
                                 )}
 
                                 <Button
-                                    onClick={() => window.open(activeUrl, "_blank")}
+                                    onClick={handleDownload}
                                     variant="ghost"
                                     size="icon"
                                     className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-slate-400 hover:text-primary transition-all"
-                                    title="Open in new tab"
+                                    title="Download document"
                                 >
                                     <Download className="w-4 h-4" />
                                 </Button>
@@ -329,12 +352,12 @@ export default function DocumentViewerModal({
                                                 This file type cannot be previewed directly in the browser. Open it in a new tab to view or download the submitted document.
                                             </p>
                                             <Button
-                                                onClick={() => window.open(activeUrl, "_blank")}
+                                                onClick={handleDownload}
                                                 className="mt-6 h-11 rounded-xl px-6 text-xs font-black uppercase tracking-wider text-white"
                                                 style={{ backgroundColor: themeColor }}
                                             >
                                                 <Download className="w-4 h-4 mr-2" />
-                                                Open Document
+                                                Download Document
                                             </Button>
                                         </div>
                                     </div>

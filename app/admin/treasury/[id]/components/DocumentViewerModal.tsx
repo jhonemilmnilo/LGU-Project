@@ -161,6 +161,29 @@ export default function DocumentViewerModal({
         setPosition({ x: 0, y: 0 });
     };
  
+    const handleDownload = async () => {
+        if (!activeUrl) return;
+        try {
+            const response = await fetch(activeUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            
+            const cleanTitle = title.trim().replace(/[^a-zA-Z0-9\-_]/g, "_") || "document";
+            const ext = fileExtension || (blob.type.includes("pdf") ? "pdf" : blob.type.split("/")[1] || "bin");
+            link.download = `${cleanTitle}.${ext}`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Direct download failed, falling back to new tab:", error);
+            window.open(activeUrl, "_blank");
+        }
+    };
+ 
     return (
         <AnimatePresence>
             {isOpen && activeUrl && (
@@ -259,10 +282,11 @@ export default function DocumentViewerModal({
                                 )}
  
                                 <Button
-                                    onClick={() => window.open(activeUrl, "_blank")}
+                                    onClick={handleDownload}
                                     variant="ghost"
                                     size="icon"
                                     className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-primary transition-all shrink-0"
+                                    title="Download document"
                                 >
                                     <Download className="w-4 h-4" />
                                 </Button>
@@ -309,12 +333,12 @@ export default function DocumentViewerModal({
                                                 This file type cannot be previewed directly in the browser. Open it in a new tab to view or download the submitted document.
                                             </p>
                                             <Button
-                                                onClick={() => window.open(activeUrl, "_blank")}
+                                                onClick={handleDownload}
                                                 className="mt-6 h-11 rounded-xl px-6 text-xs font-black uppercase tracking-wider text-white"
                                                 style={{ backgroundColor: themeColor }}
                                             >
                                                 <Download className="w-4 h-4 mr-2" />
-                                                Open Document
+                                                Download Document
                                             </Button>
                                         </div>
                                     </div>

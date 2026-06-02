@@ -135,6 +135,9 @@ export default function BploDetailPage({ params }: PageProps) {
     const [isRequirementsExpanded, setIsRequirementsExpanded] = useState(true);
     const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
     const [feeItems, setFeeItems] = useState<FeeItem[]>([]);
+    const isReadOnly = transaction
+        ? ["PAID", "FOR_REQUESTING", "REJECTED", "EVALUATED", "UNPAID", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(transaction.status)
+        : false;
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -143,13 +146,10 @@ export default function BploDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 setTransaction(res.data);
                 const addData = res.data.additionalData || {};
-                const isRenew = addData.businessType === "RENEWAL" || addData.businessType === "RENEW";
-                if (isRenew) {
-                    const prevPermit = res.data.businessPermit?.permitNumber || addData.permitNumber || addData.existingPermitNumber || addData.existingPermitNo || "";
-                    setPermitNumberInput(prevPermit);
-                } else {
-                    setPermitNumberInput("");
-                }
+                const prevPermit = res.data.businessPermit?.permitNumber || addData.permitNumber || addData.existingPermitNumber || addData.existingPermitNo || "";
+                setPermitNumberInput(prevPermit);
+                const prevSticker = res.data.businessPermit?.stickerNumber || addData.stickerNumber || "";
+                setStickerNumber(prevSticker);
                 // Initialize editable fee items from fiscalSnapshot.lineItems first,
                 // then fall back to transaction type defaultFees.
                 const rawFiscal = res.data.fiscalSnapshot;
@@ -1186,7 +1186,6 @@ export default function BploDetailPage({ params }: PageProps) {
                                     </div>
                                 )}
 
-                                {/* Process & Release phase actions */}
                                 {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
                                     <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
                                         {/* Card header */}
@@ -1200,155 +1199,167 @@ export default function BploDetailPage({ params }: PageProps) {
                                             </div>
                                         </div>
 
-                                        {isRenewal ? (
-                                            <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
-                                                <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">License Business Permit Number</Label>
-                                                <Input
-                                                    value={permitNumberInput}
-                                                    onChange={(e) => setPermitNumberInput(e.target.value)}
-                                                    placeholder="Enter Permit Number..."
-                                                    className="h-12 rounded-xl text-sm font-bold"
-                                                />
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Digital Permit Upload (Optional)</Label>
-
-                                            {!(eCopyFile || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) ? (
-                                                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
-                                                    <label className="cursor-pointer block space-y-2">
-                                                        <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
-                                                        <Input
-                                                            type="file"
-                                                            accept="image/*,application/pdf"
-                                                            onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
-                                                            className="hidden"
-                                                        />
-                                                    </label>
-                                                </div>
-                                            ) : (
-                                                <div className="flex justify-end">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setECopyFile(null);
-                                                            setTransaction((prev: any) => prev ? { ...prev, eCopyUrl: "" } : null);
-                                                        }}
-                                                        className="text-xs font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1 rounded-xl h-auto"
-                                                    >
-                                                        ✕ Clear / Change File
-                                                    </Button>
-                                                </div>
-                                            )}
-
-                                            {/* PREVIEW CONTAINER */}
-                                            {(eCopyPreview || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) && (
-                                                <div className="mt-4">
-                                                    {(() => {
-                                                        const isPdf = eCopyFile
-                                                            ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
-                                                            : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
-
-                                                        const targetUrl = eCopyPreview || transaction.eCopyUrl;
-
-                                                        if (isPdf) {
-                                                            return (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setViewerUrl(targetUrl);
-                                                                        setViewerTitle("Digital Permit PDF");
-                                                                        setViewerOpen(true);
-                                                                    }}
-                                                                    className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
-                                                                >
-                                                                    <div className="flex items-center gap-4">
-                                                                        <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
-                                                                            📕
-                                                                        </div>
-                                                                        <div className="space-y-1">
-                                                                            <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Digital Permit PDF</p>
-                                                                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        style={{ color: themeColor, borderColor: `${themeColor}40` }}
-                                                                        className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
-                                                                    >
-                                                                        Open PDF ➔
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        }
-                                                        return (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setViewerUrl(targetUrl);
-                                                                    setViewerTitle("Digital Permit Document");
-                                                                    setViewerOpen(true);
-                                                                }}
-                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
-                                                            >
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img
-                                                                    src={targetUrl}
-                                                                    alt="Digital Permit Preview"
-                                                                    className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
-                                                                />
-                                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                    <div
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
-                                                                    >
-                                                                        <span>View</span>
-                                                                    </div>
-                                                                </div>
-                                                            </button>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sticker Number (Optional)</Label>
-                                            <Input
-                                                value={stickerNumber}
-                                                onChange={(e) => setStickerNumber(e.target.value)}
-                                                placeholder="Enter Sticker Number..."
-                                                className="h-12 rounded-xl text-sm font-bold"
-                                            />
-                                        </div>
-
-                                        {transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "DELIVERY" && (
-                                            <Button
-                                                type="button"
-                                                onClick={handlePrintWaybill}
-                                                variant="outline"
-                                                className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
-                                            >
-                                                Generate & Print Waybill
-                                            </Button>
-                                        )}
-
-                                        <Button
-                                            onClick={handleRelease}
-                                            disabled={actionLoading}
-                                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
-                                        >
-                                            Update & Release Permit
-                                        </Button>
+                                {isRenewal ? (
+                                    <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
+                                        <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">License Business Permit Number</Label>
+                                        <Input
+                                            value={permitNumberInput}
+                                            onChange={(e) => setPermitNumberInput(e.target.value)}
+                                            placeholder={isReadOnly ? "No Permit Number" : "Enter Permit Number..."}
+                                            className="h-12 rounded-xl text-sm font-bold"
+                                            readOnly={isReadOnly}
+                                            disabled={isReadOnly}
+                                        />
                                     </div>
                                 )}
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Digital Permit Upload (Optional)</Label>
+
+                                    {isReadOnly && !(eCopyFile || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) ? (
+                                        <div className="border border-slate-100 dark:border-white/5 rounded-2xl p-4 bg-slate-50/50 dark:bg-white/[0.02] text-center text-xs text-slate-400 font-bold italic">
+                                            No digital permit copy uploaded.
+                                        </div>
+                                    ) : !(eCopyFile || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) ? (
+                                        <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
+                                            <label className="cursor-pointer block space-y-2">
+                                                <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*,application/pdf"
+                                                    onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-end">
+                                            {!isReadOnly && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setECopyFile(null);
+                                                        setTransaction((prev: any) => prev ? { ...prev, eCopyUrl: "" } : null);
+                                                    }}
+                                                    className="text-xs font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1 rounded-xl h-auto"
+                                                >
+                                                    ✕ Clear / Change File
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* PREVIEW CONTAINER */}
+                                    {(eCopyPreview || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) && (
+                                        <div className="mt-4">
+                                            {(() => {
+                                                const isPdf = eCopyFile
+                                                    ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
+                                                    : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
+
+                                                const targetUrl = eCopyPreview || transaction.eCopyUrl;
+
+                                                if (isPdf) {
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setViewerUrl(targetUrl);
+                                                                setViewerTitle("Digital Permit PDF");
+                                                                setViewerOpen(true);
+                                                            }}
+                                                            className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                    📕
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Digital Permit PDF</p>
+                                                                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                style={{ color: themeColor, borderColor: `${themeColor}40` }}
+                                                                className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
+                                                            >
+                                                                Open PDF ➔
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                }
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setViewerUrl(targetUrl);
+                                                            setViewerTitle("Digital Permit Document");
+                                                            setViewerOpen(true);
+                                                        }}
+                                                        className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
+                                                    >
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img
+                                                            src={targetUrl}
+                                                            alt="Digital Permit Preview"
+                                                            className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                        />
+                                                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                            <div
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                            >
+                                                                <span>View</span>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sticker Number (Optional)</Label>
+                                    <Input
+                                        value={stickerNumber}
+                                        onChange={(e) => setStickerNumber(e.target.value)}
+                                        placeholder={isReadOnly ? "No Sticker Number" : "Enter Sticker Number..."}
+                                        className="h-12 rounded-xl text-sm font-bold"
+                                        readOnly={isReadOnly}
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+
+                                {transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "DELIVERY" && (
+                                    <Button
+                                        type="button"
+                                        onClick={handlePrintWaybill}
+                                        variant="outline"
+                                        className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                    >
+                                        Generate & Print Waybill
+                                    </Button>
+                                )}
+
+                                {!isReadOnly && (
+                                    <Button
+                                        onClick={handleRelease}
+                                        disabled={actionLoading}
+                                        className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
+                                    >
+                                        Update & Release Permit
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>

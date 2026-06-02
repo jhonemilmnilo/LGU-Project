@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const STATUS_TABS = [
     { value: "ALL", label: "All Status", color: "text-slate-600", activeColor: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
@@ -115,6 +116,56 @@ export default function BploDashboard() {
     useEffect(() => {
         fetchTransactions();
     }, [fetchTransactions]);
+
+    useEffect(() => {
+        if (!supabase) return;
+
+        const channel = supabase
+            .channel("bplo-realtime")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "Transaction",
+                },
+                (payload: any) => {
+                    const newRow = payload.new;
+                    if (!newRow) return;
+
+                    // Detect transitions into FOR_INSPECTION or FOR_REINSPECTION
+                    if (newRow.status === "FOR_INSPECTION" || newRow.status === "FOR_REINSPECTION") {
+                        // Check if it's a BPLO transaction (usually has businessName or starts with a business permit type)
+                        const isBplo = !!newRow.businessName || (newRow.additionalData && (newRow.additionalData as any).businessName);
+                        
+                        if (isBplo) {
+                            const refId = String(newRow.id).slice(-8).toUpperCase();
+                            const bizName = newRow.businessName || (newRow.additionalData && (newRow.additionalData as any).businessName) || "New Commercial Application";
+                            const statusText = newRow.status === "FOR_INSPECTION" ? "Inspection" : "Re-inspection";
+
+                            toast.info(`Application ${refId} (${bizName}) is now pending ${statusText.toLowerCase()}.`, {
+                                duration: 10000,
+                                description: "The dashboard list has been updated in real-time.",
+                                action: {
+                                    label: "Evaluate",
+                                    onClick: () => {
+                                        router.push(`/admin/bplo/${newRow.id}`);
+                                    }
+                                }
+                            });
+
+                            // Re-fetch transactions to reflect the realtime update instantly!
+                            fetchTransactions();
+                        }
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [fetchTransactions, router]);
 
     useEffect(() => {
         if (currentPage !== 1) {

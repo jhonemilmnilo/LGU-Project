@@ -1515,6 +1515,14 @@ export default function BusinessPermitWizardPage() {
                                     <div className="border-b border-slate-100 dark:border-white/5 pb-4">
                                         <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">Required Document Checklist</h2>
                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Provide the required legal registrations and clearances to complete your submission</p>
+                                        
+                                        <div className="mt-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 text-amber-500 animate-in fade-in duration-300">
+                                            <ShieldAlert className="w-5 h-5 shrink-0 animate-pulse" />
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase tracking-wider italic">Notice for Multiple Pages/Images</p>
+                                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400">If your document has more than 1 image/page, please compile them into a single PDF file before uploading.</p>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
