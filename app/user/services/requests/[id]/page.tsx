@@ -772,7 +772,7 @@ export default function RequestHubPage() {
                 { label: "Financial Evidence", url: addData.proofOfIncomeUrl },
             ];
         return docs.filter(d => !!d.url) as { label: string; url: string }[];
-    }, [request, isBusinessPermit]);
+    }, [request, isBusinessPermit, isBuildingPermit]);
 
     // Keyboard navigation for lightbox
     useEffect(() => {

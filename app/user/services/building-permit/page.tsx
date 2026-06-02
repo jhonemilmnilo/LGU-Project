@@ -74,7 +74,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDraft } from "@/hooks/useDraft";
-import { saveDraftFile, clearDraftFiles } from "@/lib/draftDb";
+import { clearDraftFiles } from "@/lib/draftDb";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 
 const STEPS = [
