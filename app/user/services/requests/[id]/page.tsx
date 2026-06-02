@@ -1308,7 +1308,9 @@ export default function RequestHubPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
-                                                <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Financial Declarations</h4>
+                                                <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">
+                                                    {request.isStudent ? "Student Status" : "Financial Declarations"}
+                                                </h4>
                                                 <div className="grid grid-cols-2 gap-6 md:gap-8">
                                                     {request.type?.code.startsWith("BUSINESS_PERMIT") ? (
                                                         <>
@@ -1325,6 +1327,23 @@ export default function RequestHubPage() {
                                                                     <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
                                                                     <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
                                                                         Expires {format(new Date(request.businessPermit.expiryDate), "MMM d, yyyy")}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : request.isStudent ? (
+                                                        <>
+                                                            <div className="space-y-1">
+                                                                {/* <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Application Pathway</p> */}
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20 shrink-0 w-fit mt-1 italic shadow-sm">
+                                                                    🎓 Student Request
+                                                                </span>
+                                                            </div>
+                                                            {request.cedula?.expiryDate && (
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                    <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                        Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
                                                                     </p>
                                                                 </div>
                                                             )}
