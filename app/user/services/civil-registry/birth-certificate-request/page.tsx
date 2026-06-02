@@ -417,7 +417,6 @@ export default function CivilRegistryPage() {
     const handleAcceptPolicy = () => { setPolicyOpen(false); setPolicyAccepted(true); };
 
     const selectedType = REGISTRY_TYPES.find(t => t.id === form.registryType);
-    const dbType = availableTypes.find(t => t.code === `LCR_${form.registryType}`);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         if (e.target.files && e.target.files[0]) {
@@ -484,7 +483,7 @@ export default function CivilRegistryPage() {
                 idType: form.idTypeOverride || resident?.idType,
                 idFrontUrl: resident?.idFrontUrl,
                 idBackUrl: resident?.idBackUrl,
-                totalAmount: dbType?.baseFee || 150 // Only base fee, no delivery fee yet
+                totalAmount: 0 // No payment amount until evaluated by Registrar
             };
 
             formData.append("additionalData", JSON.stringify(additionalData));
@@ -1267,10 +1266,7 @@ export default function CivilRegistryPage() {
                                             </div>
                                         </>
                                     )}
-                                    <div className="space-y-1 text-right">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Process Fee</span>
-                                        <p className="text-2xl font-black text-blue-500 italic">₱{(dbType?.baseFee || 150).toLocaleString()}</p>
-                                    </div>
+
                                 </div>
 
                                 {/* ID Submission Section */}
@@ -1502,6 +1498,18 @@ export default function CivilRegistryPage() {
                 </AnimatePresence>
             </Card>
 
+            {/* Info Section */}
+            <div className="grid grid-cols-1 gap-6">
+                <Card className="p-6 rounded-[2rem] border-slate-200/50 dark:border-white/5 bg-blue-500/5 border-l-4 border-l-blue-500">
+                    <div className="flex gap-4">
+                        <Info className="w-5 h-5 text-blue-500 shrink-0" />
+                        <div className="space-y-1">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">Requirements</h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">Certified true copies require a valid government ID and an authorization letter if the applicant is not the document owner.</p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 }

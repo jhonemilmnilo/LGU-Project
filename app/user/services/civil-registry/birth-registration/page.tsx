@@ -20,9 +20,9 @@ import {
     Search,
     CheckCircle2,
     Users,
-    AlertCircle,
     Eye,
-    ChevronDown
+    ChevronDown,
+    Trash2
 } from "lucide-react";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Button } from "@/components/ui/button";
@@ -544,6 +544,142 @@ export default function BirthRegistrationPage() {
         }
     };
 
+    const handleRemoveFile = (key: string) => {
+        setForm(prev => {
+            const nextFiles = { ...prev.files };
+            const nextPreviews = { ...prev.previews };
+            delete nextFiles[key];
+            delete nextPreviews[key];
+            return {
+                ...prev,
+                files: nextFiles,
+                previews: nextPreviews
+            };
+        });
+        saveDraftFile(STORAGE_KEY, key, null).catch(err => {
+            console.error("Failed to delete draft file in IndexedDB:", err);
+        });
+        toast.success("File removed successfully.");
+    };
+
+    const renderDocCard = (doc: { key: string; label: string }) => {
+        const file = form.files[doc.key] || null;
+        const preview = form.previews[doc.key] || null;
+        const isPdf = checkIsPdf(file, preview);
+
+        return (
+            <div key={doc.key} className="group relative flex flex-col justify-between bg-[#ffffff] dark:bg-[#0f111a] border border-slate-200/60 dark:border-white/5 rounded-3xl p-5 transition-all duration-300 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/[0.04] hover:-translate-y-0.5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider italic leading-tight">
+                        {doc.label} <span className="text-red-500">*</span>
+                    </span>
+                    <div className="shrink-0">
+                        {file || preview ? (
+                            <span className="text-[8px] font-black uppercase text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20 flex items-center gap-1">
+                                <Check className="w-2.5 h-2.5" /> Ready
+                            </span>
+                        ) : (
+                            <span className="text-[8px] font-black uppercase text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20">
+                                Required
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-black/10 transition-colors duration-300">
+                    {file || preview ? (
+                        <div className="relative w-full h-full flex items-center justify-center group/preview">
+                            {isPdf ? (
+                                <div className="flex flex-col items-center justify-center w-full h-full bg-red-500/[0.03] dark:bg-red-500/[0.01] border border-red-500/10 rounded-2xl p-4 transition-transform duration-300 group-hover/preview:scale-[1.02]">
+                                    <div className="p-4 bg-red-500/10 rounded-2xl mb-2 text-red-500">
+                                        <FileText className="w-8 h-8 animate-pulse" />
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-red-500 bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">PDF READY</span>
+                                    <span className="text-[7px] text-slate-400 font-bold uppercase mt-2 tracking-widest">Document Secure</span>
+                                </div>
+                            ) : preview ? (
+                                <img
+                                    src={preview}
+                                    alt={doc.label}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-[1.03]"
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center w-full h-full bg-blue-500/[0.03] dark:bg-blue-500/[0.01] border border-blue-500/10 rounded-2xl p-4">
+                                    <FileText className="w-8 h-8 text-blue-500" />
+                                </div>
+                            )}
+
+                            {/* Glassmorphic hover overlay */}
+                            <div className="absolute inset-0 bg-slate-950/65 opacity-0 group-hover/preview:opacity-100 transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm z-20">
+                                <button
+                                    type="button"
+                                    onClick={() => handleViewFile(file || null, preview || null, doc.label)}
+                                    className="h-8 px-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1 transition-all border border-white/10 active:scale-95 shadow-lg"
+                                >
+                                    <Eye className="w-3 h-3" />
+                                    Preview
+                                </button>
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        onChange={(e) => handleFileChange(e, doc.key)}
+                                        className="absolute inset-0 opacity-0 cursor-pointer z-30"
+                                        accept="image/*,.pdf"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="h-8 px-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1 transition-all border border-transparent active:scale-95 shadow-lg shadow-blue-500/20"
+                                    >
+                                        <Upload className="w-3 h-3" />
+                                        Replace
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveFile(doc.key)}
+                                    className="h-8 w-8 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg flex items-center justify-center border border-red-500/20 transition-all active:scale-95"
+                                    title="Delete Upload"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="relative w-full h-full rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-slate-800 dark:hover:border-white/35 transition-all duration-300 flex flex-col items-center justify-center p-4 bg-slate-50/30 dark:bg-white/[0.02] hover:bg-slate-100/50 dark:hover:bg-white/[0.04] group">
+                            <input
+                                type="file"
+                                onChange={(e) => handleFileChange(e, doc.key)}
+                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                accept="image/*,.pdf"
+                            />
+                            <div className="p-3 bg-slate-200/50 dark:bg-white/5 text-slate-600 dark:text-slate-400 rounded-2xl transition-all duration-300 group-hover:bg-slate-900 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-black group-hover:scale-105 shadow-sm">
+                                <Upload className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 italic mt-3 transition-colors duration-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                                Click to Upload
+                            </span>
+                            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-1">
+                                Supports JPG, PNG, PDF (Max 5MB)
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {file && (
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 animate-fade-in">
+                        <span className="text-[8px] font-bold text-slate-400 max-w-[200px] truncate leading-none flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                            {file.name}
+                        </span>
+                        <span className="text-[7px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-0.5 rounded shadow-sm shrink-0">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const toggleSupportingEvidence = (val: string) => {
         setForm(prev => {
             const current = prev.supportingEvidenceTypes || [];
@@ -584,7 +720,16 @@ export default function BirthRegistrationPage() {
                 if (!c.firstName) errs[`children.${i}.firstName`] = "Please enter first name.";
                 if (!c.lastName) errs[`children.${i}.lastName`] = "Please enter last name.";
             });
-            if (!form.dateOfEvent) errs.dateOfEvent = "Please select date of birth.";
+            if (!form.dateOfEvent) {
+                errs.dateOfEvent = "Please select date of birth.";
+            } else {
+                const birthDate = new Date(form.dateOfEvent);
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                if (birthDate > today) {
+                    errs.dateOfEvent = "Date of birth cannot be in the future.";
+                }
+            }
             if (!form.placeOfEvent) errs.placeOfEvent = "Please enter place of birth.";
         }
 
@@ -1090,51 +1235,10 @@ export default function BirthRegistrationPage() {
                                         </div>
                                     </div>
 
-                                    {/* Parents' Marital Status */}
-                                    <div className="pt-4 border-t border-slate-100 dark:border-white/5">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Parents&apos; Marital Status <span className="text-red-500">*</span></Label>
-                                        <div className="mt-2 flex items-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setForm(p => ({ ...p, parentsMarried: true }))}
-                                                className={cn(
-                                                    "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                                                    form.parentsMarried === true ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200",
-                                                    (errors.parentsMarried && typeof form.parentsMarried === 'undefined') ? "ring-2 ring-red-400/60 border-red-500" : ""
-                                                )}
-                                                aria-pressed={form.parentsMarried === true}
-                                            >
-                                                Married
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setForm(p => ({ ...p, parentsMarried: false }))}
-                                                className={cn(
-                                                    "px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                                                    form.parentsMarried === false ? "bg-blue-600 text-white" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200",
-                                                    (errors.parentsMarried && typeof form.parentsMarried === 'undefined') ? "ring-2 ring-red-400/60 border-red-500" : ""
-                                                )}
-                                                aria-pressed={form.parentsMarried === false}
-                                            >
-                                                Not Married
-                                            </button>
-                                        </div>
-                                        <p className="text-[9px] text-slate-500 italic mt-2">If not married, the required documents will change accordingly.</p>
-                                        {errors.parentsMarried && (
-                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse mt-2">{errors.parentsMarried}</p>
-                                        )}
-                                    </div>
-
                                     <div className="flex justify-end pt-6">
                                         <Button
                                             onClick={() => {
                                                 if (!validateStep("IDENTITY")) return;
-                                                if (typeof form.parentsMarried === 'undefined') {
-                                                    setErrors(prev => ({ ...prev, parentsMarried: "Please indicate parents' marital status before proceeding." }));
-                                                    setShowErrors(true);
-                                                    toast.error("Please indicate parents' marital status before proceeding.");
-                                                    return;
-                                                }
                                                 setCurrentStep("DETAILS");
                                             }}
                                             className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
@@ -1260,6 +1364,7 @@ export default function BirthRegistrationPage() {
                                                         (errors.dateOfEvent) && "border-red-500/50 bg-red-50/10"
                                                     )}
                                                     value={form.dateOfEvent}
+                                                    max={new Date().toISOString().split('T')[0]}
                                                     onChange={(e) => handleDateOfEventChange(e.target.value)}
                                                 />
                                                 {errors.dateOfEvent && (
@@ -1333,6 +1438,41 @@ export default function BirthRegistrationPage() {
                                     <div className="space-y-2">
                                         <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight">Parental Information</h2>
                                         <p className="text-xs text-slate-500 font-medium italic">Provide the full names of the child&apos;s parents</p>
+                                    </div>
+
+                                    {/* Parents' Marital Status */}
+                                    <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Parents&apos; Marital Status <span className="text-red-500">*</span></Label>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm(p => ({ ...p, parentsMarried: true }))}
+                                                className={cn(
+                                                    "px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
+                                                    form.parentsMarried === true ? "bg-blue-600 text-white shadow-blue-500/20" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
+                                                    errors.parentsMarried ? "ring-2 ring-red-400/60 border-red-500" : ""
+                                                )}
+                                                aria-pressed={form.parentsMarried === true}
+                                            >
+                                                Married
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm(p => ({ ...p, parentsMarried: false }))}
+                                                className={cn(
+                                                    "px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm",
+                                                    form.parentsMarried === false ? "bg-blue-600 text-white shadow-blue-500/20" : "bg-white dark:bg-slate-900 text-slate-600 border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800",
+                                                    errors.parentsMarried ? "ring-2 ring-red-400/60 border-red-500" : ""
+                                                )}
+                                                aria-pressed={form.parentsMarried === false}
+                                            >
+                                                Not Married
+                                            </button>
+                                        </div>
+                                        <p className="text-[9px] text-slate-400 font-semibold italic">If not married, the required documents will change accordingly.</p>
+                                        {errors.parentsMarried && (
+                                            <p className="text-[9px] font-black text-red-500 uppercase italic tracking-widest ml-1 animate-pulse">{errors.parentsMarried}</p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-6">
@@ -1604,164 +1744,23 @@ export default function BirthRegistrationPage() {
                                                     <p className="text-[10px] text-slate-500 italic">Select parents&apos; marital status — required documents adjust automatically.</p>
                                                 </div>
 
-                                                {/* Modern Inline Alert */}
-                                                <div className="bg-blue-500/5 border border-blue-500/10 p-5 rounded-2xl flex items-start gap-3">
-                                                    <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] font-black uppercase tracking-wider text-blue-500">Document Upload Notice</p>
-                                                        <p className="text-xs font-bold italic text-blue-500/80 leading-normal">
-                                                            Please ensure all files are clear and readable before proceeding. Any blurry, altered, or incorrect documents will result in an immediate rejection or revision request.
-                                                        </p>
-                                                    </div>
-                                                </div>
 
-                                                <div id="documents-section" className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
+
+                                                <div id="documents-section" className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
                                                     {form.registrationType === "STANDARD" ? (
                                                         (form.parentsMarried ? [
                                                             { key: "marriageCertificate", label: "Marriage Certificate of Parents" },
                                                             { key: "municipalForm102", label: "Municipal Form 102" }
                                                         ] : [
                                                             { key: "communityTaxCertificate", label: "Community Tax Certificate" }
-                                                        ]).map((doc) => (
-                                                            <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
-                                                                <div className="flex items-center gap-3">
-                                                                    {form.files[doc.key] || form.previews[doc.key] ? (
-                                                                        <div
-                                                                            onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
-                                                                            className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
-                                                                        >
-                                                                            {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
-                                                                                <FileText className="w-5 h-5 text-red-500 animate-pulse" />
-                                                                            ) : form.previews[doc.key] ? (
-                                                                                <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
-                                                                            ) : (
-                                                                                <FileText className="w-5 h-5 text-blue-500" />
-                                                                            )}
-                                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
-                                                                                <Eye className="w-4 h-4 text-white" />
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
-                                                                            <FileText className="w-5 h-5 text-slate-300" />
-                                                                        </div>
-                                                                    )}
-                                                                    <div
-                                                                        onClick={() => {
-                                                                            if (form.files[doc.key] || form.previews[doc.key]) {
-                                                                                handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
-                                                                            }
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex flex-col gap-0.5 select-none",
-                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
-                                                                        )}
-                                                                    >
-                                                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
-                                                                        <span className={cn(
-                                                                            "text-[8px] font-black uppercase tracking-[0.2em] italic",
-                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
-                                                                        )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? (
-                                                                                <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
-                                                                                    <span>Uploaded (Click to Preview)</span>
-                                                                                    <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
-                                                                                        {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
-                                                                                    </span>
-                                                                                </span>
-                                                                            ) : "Pending"}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="relative">
-                                                                    <input
-                                                                        type="file"
-                                                                        onChange={(e) => handleFileChange(e, doc.key)}
-                                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                                        accept="image/*,.pdf"
-                                                                    />
-                                                                    <div className={cn(
-                                                                        "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                        (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
-                                                                    )}>
-                                                                        {(form.files[doc.key] || form.previews[doc.key]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <>
-                                                            {[
-                                                                { key: "negativePSA", label: "Negative Certification from PSA" },
-                                                                { key: "colb", label: "Certificate of Live Birth (COLB)" },
-                                                                { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" }
-                                                            ].map((doc) => (
-                                                                <div key={doc.key} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
-                                                                    <div className="flex items-center gap-3">
-                                                                        {form.files[doc.key] || form.previews[doc.key] ? (
-                                                                            <div
-                                                                                onClick={() => handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label)}
-                                                                                className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
-                                                                            >
-                                                                                {checkIsPdf(form.files[doc.key], form.previews[doc.key]) ? (
-                                                                                    <FileText className="w-5 h-5 text-red-500 animate-pulse" />
-                                                                                ) : form.previews[doc.key] ? (
-                                                                                    <img src={form.previews[doc.key]!} alt="Preview" className="w-full h-full object-cover" />
-                                                                                ) : (
-                                                                                    <FileText className="w-5 h-5 text-blue-500" />
-                                                                                )}
-                                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
-                                                                                    <Eye className="w-4 h-4 text-white" />
-                                                                                </div>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
-                                                                                <FileText className="w-5 h-5 text-slate-300" />
-                                                                            </div>
-                                                                        )}
-                                                                        <div
-                                                                            onClick={() => {
-                                                                                if (form.files[doc.key] || form.previews[doc.key]) {
-                                                                                    handleViewFile(form.files[doc.key] || null, form.previews[doc.key] || null, doc.label);
-                                                                                }
-                                                                            }}
-                                                                            className={cn(
-                                                                                "flex flex-col gap-0.5 select-none",
-                                                                                (form.files[doc.key] || form.previews[doc.key]) ? "cursor-pointer hover:opacity-80" : ""
-                                                                            )}
-                                                                        >
-                                                                            <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{doc.label} <span className="text-red-500">*</span></span>
-                                                                            <span className={cn(
-                                                                                "text-[8px] font-black uppercase tracking-[0.2em] italic",
-                                                                                (form.files[doc.key] || form.previews[doc.key]) ? "text-green-500" : "text-blue-500/50"
-                                                                            )}>
-                                                                                {(form.files[doc.key] || form.previews[doc.key]) ? (
-                                                                                    <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
-                                                                                        <span>Uploaded (Click to Preview)</span>
-                                                                                        <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
-                                                                                            {form.files[doc.key] ? (form.files[doc.key] as File).name : "document.png"}
-                                                                                        </span>
-                                                                                    </span>
-                                                                                ) : "Pending"}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="relative">
-                                                                        <input
-                                                                            type="file"
-                                                                            onChange={(e) => handleFileChange(e, doc.key)}
-                                                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                                            accept="image/*,.pdf"
-                                                                        />
-                                                                        <div className={cn(
-                                                                            "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                            (form.files[doc.key] || form.previews[doc.key]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
-                                                                        )}>
-                                                                            {(form.files[doc.key] || form.previews[doc.key]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                        ]).map((doc) => renderDocCard(doc))
+                                                     ) : (
+                                                         <>
+                                                             {[
+                                                                 { key: "negativePSA", label: "Negative Certification from PSA" },
+                                                                 { key: "colb", label: "Certificate of Live Birth (COLB)" },
+                                                                 { key: "affidavitDelayed", label: "Affidavit of Delayed Registration" }
+                                                             ].map((doc) => renderDocCard(doc))}
 
                                                             <div className="col-span-1 md:col-span-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4">
                                                                 <div className="space-y-3 w-full">
@@ -1810,74 +1809,7 @@ export default function BirthRegistrationPage() {
                                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                                                                                 {['supportingEvidence1', 'supportingEvidence2'].map((k, idx) => {
                                                                                     const selectedLabel = EVIDENCE_LABELS[form.supportingEvidenceTypes[idx]] || (k === 'supportingEvidence1' ? 'Supporting Evidence 1' : 'Supporting Evidence 2');
-
-                                                                                    return (
-                                                                                        <div key={k} className="group relative flex items-center justify-between bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 transition-all hover:border-blue-500/50">
-                                                                                            <div className="flex items-center gap-3">
-                                                                                                {form.files[k] || form.previews[k] ? (
-                                                                                                    <div
-                                                                                                        onClick={() => handleViewFile(form.files[k] || null, form.previews[k] || null, selectedLabel)}
-                                                                                                        className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all flex items-center justify-center bg-slate-50 dark:bg-white/5 relative group/thumb"
-                                                                                                    >
-                                                                                                        {checkIsPdf(form.files[k], form.previews[k]) ? (
-                                                                                                            <FileText className="w-5 h-5 text-red-500 animate-pulse" />
-                                                                                                        ) : form.previews[k] ? (
-                                                                                                            <img src={form.previews[k]!} alt="Preview" className="w-full h-full object-cover" />
-                                                                                                        ) : (
-                                                                                                            <FileText className="w-5 h-5 text-blue-500" />
-                                                                                                        )}
-                                                                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity">
-                                                                                                            <Eye className="w-4 h-4 text-white" />
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                ) : (
-                                                                                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
-                                                                                                        <FileText className="w-5 h-5 text-slate-300" />
-                                                                                                    </div>
-                                                                                                )}
-                                                                                                <div
-                                                                                                    onClick={() => {
-                                                                                                        if (form.files[k] || form.previews[k]) {
-                                                                                                            handleViewFile(form.files[k] || null, form.previews[k] || null, selectedLabel);
-                                                                                                        }
-                                                                                                    }}
-                                                                                                    className={cn(
-                                                                                                        "flex flex-col gap-0.5 select-none",
-                                                                                                        (form.files[k] || form.previews[k]) ? "cursor-pointer hover:opacity-80" : ""
-                                                                                                    )}
-                                                                                                >
-                                                                                                    <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase italic">{selectedLabel} <span className="text-red-500">*</span></span>
-                                                                                                    <span className={cn(
-                                                                                                        "text-[8px] font-black uppercase tracking-[0.2em] italic",
-                                                                                                        (form.files[k] || form.previews[k]) ? "text-green-500" : "text-blue-500/50"
-                                                                                                    )}>
-                                                                                                        {(form.files[k] || form.previews[k]) ? (
-                                                                                                            <span className="flex flex-col gap-0.5 max-w-[200px] sm:max-w-[300px]">
-                                                                                                                <span>Uploaded (Click to Preview)</span>
-                                                                                                                <span className="text-[7px] text-slate-400 dark:text-slate-500 truncate lowercase font-medium tracking-normal">
-                                                                                                                    {form.files[k] ? (form.files[k] as File).name : "document.png"}
-                                                                                                                </span>
-                                                                                                            </span>
-                                                                                                        ) : "Pending"}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div className="relative">
-                                                                                                <input
-                                                                                                    type="file"
-                                                                                                    onChange={(e) => handleFileChange(e, k)}
-                                                                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                                                                    accept="image/*,.pdf"
-                                                                                                />
-                                                                                                <div className={cn(
-                                                                                                    "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
-                                                                                                    (form.files[k] || form.previews[k]) ? "bg-green-500 border-green-500 text-white" : "border-slate-200 dark:border-white/10 text-slate-300"
-                                                                                                )}>
-                                                                                                    {(form.files[k] || form.previews[k]) ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-slate-300" />}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    );
+                                                                                    return renderDocCard({ key: k, label: selectedLabel });
                                                                                 })}
                                                                             </div>
                                                                         ) : (

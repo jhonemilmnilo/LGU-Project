@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
+import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import {
   Book,
   CheckCircle,
@@ -33,7 +34,8 @@ import {
   Hourglass,
   Receipt,
   Check,
-  Hash
+  Hash,
+  UserCheck
 } from "lucide-react";
 
 import {
@@ -71,6 +73,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useDraft } from "@/hooks/useDraft";
+import { clearDraftFiles } from "@/lib/draftDb";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 
 const STEPS = [
   { id: "GUIDE", label: "Guide", icon: ClipboardList },
@@ -97,6 +102,10 @@ export default function BuildingPermitPage() {
   const [gcashReferenceNo, setGcashReferenceNo] = useState("");
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewerTitle, setViewerTitle] = useState("");
+
   const isEditable = !selectedApplication || isRevision;
 
   const [signatureData, setSignatureData] = useState<string | null>(null);
@@ -110,8 +119,80 @@ export default function BuildingPermitPage() {
     estimatedCost: "",
     newIdFile: null as File | null,
     tctFile: null as File | null,
+    otherOccupancyUse: "",
   });
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [maxStepIdx, setMaxStepIdx] = useState(0);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+
+  const { hydrateDraft, persistDraft, hydrateDraftFiles, persistDraftFile } = useDraft<any>("building_permit_draft");
+
+  useEffect(() => {
+    hydrateDraft(() => {}, (parsed: any) => {
+      if (parsed) {
+        if (parsed.formData) {
+          setFormData(prev => ({...prev, ...parsed.formData}));
+        }
+        if (parsed.currentStep) setCurrentStep(parsed.currentStep);
+        if (parsed.idChoice) setIdChoice(parsed.idChoice);
+        if (parsed.signatureData) setSignatureData(parsed.signatureData);
+        if (parsed.activeDocTab) setActiveDocTab(parsed.activeDocTab);
+      }
+    });
+
+    hydrateDraftFiles((files) => {
+      const reqs: Record<number, File> = {};
+      const perms: Record<number, File> = {};
+      let nIdFile: File | null = null;
+      let tFile: File | null = null;
+
+      Object.entries(files).forEach(([key, file]) => {
+        if (key.startsWith("req_")) {
+          reqs[parseInt(key.split("_")[1])] = file;
+        } else if (key.startsWith("permit_")) {
+          perms[parseInt(key.split("_")[1])] = file;
+        } else if (key === "newIdFile") {
+          nIdFile = file;
+        } else if (key === "tctFile") {
+          tFile = file;
+        }
+      });
+
+      if (Object.keys(reqs).length > 0) setUploadedRequirements(prev => ({...prev, ...reqs}));
+      if (Object.keys(perms).length > 0) setUploadedPermits(prev => ({...prev, ...perms}));
+      if (nIdFile || tFile) {
+        setFormData(prev => ({
+          ...prev,
+          ...(nIdFile && {newIdFile: nIdFile}),
+          ...(tFile && {tctFile: tFile})
+        }));
+      }
+    });
+  }, [hydrateDraft, hydrateDraftFiles]);
+
+  useEffect(() => {
+    if (loading) return;
+    persistDraft({
+      formData: {
+        descriptionOfWork: formData.descriptionOfWork,
+        occupancyUse: formData.occupancyUse,
+        estimatedCost: formData.estimatedCost,
+        otherOccupancyUse: formData.otherOccupancyUse,
+      },
+      currentStep,
+      idChoice,
+      signatureData,
+      activeDocTab,
+    });
+  }, [formData.descriptionOfWork, formData.occupancyUse, formData.estimatedCost, formData.otherOccupancyUse, currentStep, idChoice, signatureData, activeDocTab, loading, persistDraft]);
+
+  useEffect(() => {
+    const currentStepIdx = STEPS.findIndex(s => s.id === currentStep);
+    if (currentStepIdx > maxStepIdx) {
+      setMaxStepIdx(currentStepIdx);
+    }
+  }, [currentStep, maxStepIdx]);
 
   const requirementsProgress = selectedApplication
     ? new Set([
@@ -143,23 +224,19 @@ export default function BuildingPermitPage() {
     "Electrical & Sanitary Permit",
     "Adjoining Owners Confirmation",
     "Locational Clearance",
-    "2 Affidavits",
     "Affidavit of Consent",
     "Affidavit of Adjoining Owners",
-    "Signed & Sealed Plans",
-    "Fire Safety Clearance"
+    "Signed & Sealed Plans"
   ];
 
   const permitTypesList = [
-    "1. Building Permit",
-    "2. Electrical Permit",
-    "3. Plumbing Permit",
-    "4. Sanitary Permit",
-    "5. Excavation & Ground Preparation Permit",
-    "6. Fencing Permit (if any)",
-    "7. Affidavit Form",
-    "8. Scaffolding Permit",
-    "9. Mechanical Permit"
+    "1. Electrical Permit",
+    "2. Plumbing Permit",
+    "3. Sanitary Permit",
+    "4. Excavation & Ground Preparation Permit",
+    "5. Fencing Permit (if any)",
+    "6. Scaffolding Permit",
+    "7. Mechanical Permit"
   ];
 
   useEffect(() => {
@@ -174,7 +251,10 @@ export default function BuildingPermitPage() {
         }
         if (permitsRes.success && permitsRes.data.length > 0) {
           setExistingApplications(permitsRes.data);
-          setCurrentStep("EXISTING");
+          const hasDraft = localStorage.getItem("building_permit_draft");
+          if (!hasDraft) {
+            setCurrentStep("EXISTING");
+          }
         }
       } catch (err) {
         console.error(err);
@@ -190,7 +270,8 @@ export default function BuildingPermitPage() {
       const addData = selectedApplication.additionalData as any || {};
       setFormData({
         descriptionOfWork: addData.descriptionOfWork || "",
-        occupancyUse: addData.occupancyUse || "Residential (Single Family)",
+        occupancyUse: addData.occupancyUse?.startsWith("Other") ? "Other" : (addData.occupancyUse || "Residential (Single Family)"),
+        otherOccupancyUse: addData.occupancyUse?.startsWith("Other") ? addData.occupancyUse.replace("Other - ", "") : "",
         estimatedCost: addData.estimatedCost || "",
         newIdFile: null,
         tctFile: null,
@@ -488,23 +569,6 @@ export default function BuildingPermitPage() {
     },
     {
       id: 12,
-      title: "Fire Safety clearance",
-      office: "BFP Office",
-      icon: <Flame className="w-5 h-5 text-red-500" />,
-      steps: [
-        "Go to the Bureau of Fire Protection (BFP) station serving Mapandan (usually in Lingayen or nearby).",
-        "Submit your Architectural and Electrical plans for fire safety evaluation.",
-        "Fill out the Fire Safety Evaluation/Clearance application form.",
-        "The Fire Safety Inspector will review for compliance with fire code (exits, sprinklers, fire alarms).",
-        "Pay the Fire Safety Clearance fee (varies based on floor area/occupancy).",
-        "Claim the Fire Safety Evaluation Clearance (FSEC) certificate."
-      ],
-      infoType: "important",
-      infoLabel: "Required for",
-      infoText: "Commercial buildings, apartments, and high-occupancy residential structures."
-    },
-    {
-      id: 13,
       title: "Affidavit of adjoining lot owners",
       office: "Adjoining Lot Owners / Notary",
       icon: <Handshake className="w-5 h-5 text-blue-500" />,
@@ -553,16 +617,18 @@ export default function BuildingPermitPage() {
   };
 
   const handleSubmit = async () => {
-    if (requirementsProgress < 13 || permitsProgress < 9 || !signatureData) {
+    if (requirementsProgress < 12 || permitsProgress < 8 || !signatureData || !privacyAccepted) {
       setShowValidationErrors(true);
-      if (requirementsProgress < 13) {
-        toast.warning("Please ensure ALL 13 required documents are provided.");
+      if (requirementsProgress < 12) {
+        toast.warning("Please ensure ALL 12 required documents are provided.");
         setActiveDocTab("REQUIREMENTS");
-      } else if (permitsProgress < 9) {
-        toast.warning("Please ensure ALL 9 required permits are provided.");
+      } else if (permitsProgress < 8) {
+        toast.warning("Please ensure ALL 8 required permits are provided.");
         setActiveDocTab("PERMITS");
-      } else {
+      } else if (!signatureData) {
         toast.warning("Please provide your digital signature before submitting.");
+      } else {
+        toast.warning("Please accept the Data Privacy and Terms Agreement.");
       }
       return;
     }
@@ -571,7 +637,12 @@ export default function BuildingPermitPage() {
     try {
       const data = new FormData();
       data.append("descriptionOfWork", formData.descriptionOfWork);
-      data.append("occupancyUse", formData.occupancyUse);
+      
+      const finalOccupancy = formData.occupancyUse === "Other" 
+        ? `Other - ${formData.otherOccupancyUse}` 
+        : formData.occupancyUse;
+      data.append("occupancyUse", finalOccupancy);
+      
       data.append("estimatedCost", formData.estimatedCost);
       if (formData.newIdFile && idChoice === "UPLOAD") {
         data.append("newIdFile", formData.newIdFile);
@@ -598,6 +669,8 @@ export default function BuildingPermitPage() {
         if (!isRevision) {
           await saveTransactionSignature(result.transactionId!, signatureData);
         }
+        localStorage.removeItem("building_permit_draft");
+        await clearDraftFiles("building_permit_draft");
         // Fetch the updated data so the application becomes read-only and back button works
         const permitsRes = await getExistingBuildingPermits();
         if (permitsRes.success) {
@@ -621,6 +694,14 @@ export default function BuildingPermitPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32 font-sans">
       <SecureIdleTimer />
+      <DocumentViewerModal
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          file={null}
+          fileUrl={viewerUrl}
+          title={viewerTitle}
+          themeColor="var(--primary-theme)"
+      />
       
       {/* Header / Breadcrumb */}
       <div className="space-y-4 md:space-y-10">
@@ -666,14 +747,20 @@ export default function BuildingPermitPage() {
         <div className="grid grid-cols-6 gap-1.5 md:gap-4 relative px-1 md:px-2">
         {STEPS.map((step, idx) => {
           const isActive = currentStep === step.id;
-          const isCompleted = STEPS.findIndex(s => s.id === currentStep) > idx;
+          const isCompleted = idx <= maxStepIdx;
           const Icon = step.icon;
           return (
             <div
               key={idx}
+              onClick={() => {
+                if (isCompleted) {
+                  setCurrentStep(step.id);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
               className={cn(
                 "flex flex-col items-center gap-2 md:gap-3 relative z-10 font-black cursor-pointer group",
-                !isActive && !isCompleted && "cursor-not-allowed opacity-50"
+                !isCompleted && "cursor-not-allowed opacity-50"
               )}
             >
               <div className={cn(
@@ -718,12 +805,20 @@ export default function BuildingPermitPage() {
                     setSelectedApplication(app);
                     setFormData({
                        descriptionOfWork: app.additionalData?.descriptionOfWork || "",
-                       occupancyUse: app.additionalData?.occupancyUse || "Residential (Single Family)",
+                       occupancyUse: app.additionalData?.occupancyUse?.startsWith("Other") ? "Other" : (app.additionalData?.occupancyUse || "Residential (Single Family)"),
+                       otherOccupancyUse: app.additionalData?.occupancyUse?.startsWith("Other") ? app.additionalData.occupancyUse.replace("Other - ", "") : "",
                        estimatedCost: app.additionalData?.estimatedCost || "",
                        newIdFile: null,
                        tctFile: null
                     });
                     setIsRevision(false);
+                    let newMaxIdx = 3;
+                    if (["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(app.status)) {
+                      newMaxIdx = 5;
+                    } else if (["EVALUATED", "UNPAID", "PAID", "TREASURY_REVISION"].includes(app.status)) {
+                      newMaxIdx = 4;
+                    }
+                    setMaxStepIdx(newMaxIdx);
                     setCurrentStep("EVALUATION");
                   }}
                   className="bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10 transition-all group"
@@ -785,6 +880,7 @@ export default function BuildingPermitPage() {
                     setFormData({
                       descriptionOfWork: "",
                       occupancyUse: "Residential (Single Family)",
+                      otherOccupancyUse: "",
                       estimatedCost: "",
                       newIdFile: null,
                       tctFile: null,
@@ -950,8 +1046,11 @@ export default function BuildingPermitPage() {
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
             {/* Header */}
             <div className="space-y-3 md:space-y-4 text-center mb-8">
-                <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight">Profile & <span className="text-primary italic">Purpose</span></h2>
-                <p className="text-slate-500 font-medium italic text-xs md:text-lg uppercase tracking-widest max-w-2xl mx-auto">Provide the basic details and verify your identity.</p>
+                <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight flex items-center justify-center gap-4">
+                  <UserCheck className="w-10 h-10 md:w-12 md:h-12 text-slate-800 dark:text-white" />
+                  <span className="text-slate-800 dark:text-white">Profile <span className="text-primary italic">Evaluation</span></span>
+                </h2>
+                <p className="text-slate-500 font-medium italic text-xs md:text-lg uppercase tracking-widest max-w-2xl mx-auto">Verify your identity and provide the necessary details. Fields marked with <span className="text-red-500 font-bold text-lg">*</span> are required.</p>
             </div>
 
             {loading ? (
@@ -1014,7 +1113,9 @@ export default function BuildingPermitPage() {
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary opacity-50 group-hover:opacity-100 transition-opacity rounded-l-2xl"></div>
                   <div className="flex items-center gap-2 mb-4">
                     <Book className="w-5 h-5 text-primary" />
-                    <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter text-lg md:text-xl italic">Government ID</h3>
+                    <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter text-lg md:text-xl italic">
+                      Government ID <span className="text-red-500 text-xl">*</span>
+                    </h3>
                   </div>
                   {!isEditable ? (
                     <div>
@@ -1123,23 +1224,89 @@ export default function BuildingPermitPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="bg-white dark:bg-black/20 rounded-xl border border-dashed border-slate-300 dark:border-white/20 p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer overflow-hidden">
-                          {formData.newIdFile && formData.newIdFile.type.startsWith("image/") ? (
-                            <div className="w-full h-full absolute inset-0 opacity-60">
-                              <img src={URL.createObjectURL(formData.newIdFile)} alt="Preview" className="w-full h-full object-contain" />
-                            </div>
-                          ) : isRevision && !formData.newIdFile && selectedApplication?.additionalData?.documents?.newIdFile && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(selectedApplication.additionalData.documents.newIdFile) ? (
-                            <div className="w-full h-full absolute inset-0 opacity-60">
-                              <img src={selectedApplication.additionalData.documents.newIdFile} alt="Preview" className="w-full h-full object-contain" />
-                            </div>
-                          ) : null}
-                          <Upload className="w-8 h-8 text-slate-400 mb-2 z-10" />
-                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10">
-                            {formData.newIdFile ? formData.newIdFile.name : (isRevision && selectedApplication?.additionalData?.documents?.newIdFile ? "Click to replace uploaded ID" : "Click to upload (JPG/PNG/PDF, max 5MB)")}
-                          </p>
+                        <div className={cn("bg-white dark:bg-black/20 rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer overflow-hidden", (showValidationErrors && idChoice === "UPLOAD" && !formData.newIdFile && !selectedApplication?.additionalData?.documents?.newIdFile) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-300 dark:border-white/20")}>
+                          {(() => {
+                            if (formData.newIdFile && formData.newIdFile.type.startsWith("image/")) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
+                                  <img src={URL.createObjectURL(formData.newIdFile)} alt="Preview" className="w-full h-full object-contain" />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <Upload className="w-6 h-6 text-white mb-2" />
+                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.newIdFile!), '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Image
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else if (isRevision && !formData.newIdFile && selectedApplication?.additionalData?.documents?.newIdFile && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(selectedApplication.additionalData.documents.newIdFile)) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
+                                  <img src={selectedApplication.additionalData.documents.newIdFile} alt="Preview" className="w-full h-full object-contain" />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <Upload className="w-6 h-6 text-white mb-2" />
+                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.newIdFile, '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Image
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else if (formData.newIdFile) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
+                                  <FileText className="w-10 h-10 text-primary mb-2" />
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">{formData.newIdFile.name}</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.newIdFile!), '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Document
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else if (isRevision && !formData.newIdFile && selectedApplication?.additionalData?.documents?.newIdFile) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
+                                  <FileText className="w-10 h-10 text-primary mb-2" />
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">Existing Document</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.newIdFile, '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Document
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <>
+                                <Upload className="w-8 h-8 text-slate-400 mb-2 z-10 pointer-events-none" />
+                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10 pointer-events-none px-2">
+                                  Click to upload (JPG/PNG/PDF, max 5MB)
+                                </p>
+                              </>
+                            );
+                          })()}
                           <input 
                             type="file" 
-                            accept=".jpg,.jpeg,.png,.pdf"
+                            accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
                             className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -1147,9 +1314,11 @@ export default function BuildingPermitPage() {
                                 toast.error("File size exceeds 5MB limit.");
                                 e.target.value = "";
                                 setFormData({...formData, newIdFile: null});
+                                persistDraftFile("newIdFile", null);
                                 return;
                               }
                               setFormData({...formData, newIdFile: file || null});
+                              persistDraftFile("newIdFile", file || null);
                             }}
                           />
                         </div>
@@ -1168,9 +1337,11 @@ export default function BuildingPermitPage() {
 
                   <div className="space-y-8">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">a. Description of work to be covered by the permit applied for</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        a. Description of work to be covered by the permit applied for <span className="text-red-500 text-lg">*</span>
+                      </label>
                       <textarea 
-                        className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px]"
+                        className={cn("w-full bg-white dark:bg-black/20 border rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none min-h-[100px]", (showValidationErrors && !formData.descriptionOfWork) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10")}
                         value={formData.descriptionOfWork}
                         onChange={e => setFormData({...formData, descriptionOfWork: e.target.value})}
                         disabled={!isEditable}
@@ -1178,7 +1349,9 @@ export default function BuildingPermitPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">b. Certified true copy of the TCT covering a lot on which the proposed work is to be done</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        b. Certified true copy of the TCT covering a lot on which the proposed work is to be done <span className="text-red-500 text-lg">*</span>
+                      </label>
                       {!isEditable ? (
                         <div className="bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm">
                           {(() => {
@@ -1210,23 +1383,89 @@ export default function BuildingPermitPage() {
                           })()}
                         </div>
                       ) : (
-                        <div className="bg-white dark:bg-black/20 rounded-xl border border-dashed border-slate-300 dark:border-white/20 p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer overflow-hidden">
-                          {formData.tctFile && formData.tctFile.type.startsWith("image/") ? (
-                            <div className="w-full h-full absolute inset-0 opacity-60">
-                              <img src={URL.createObjectURL(formData.tctFile)} alt="Preview" className="w-full h-full object-contain" />
-                            </div>
-                          ) : isRevision && !formData.tctFile && selectedApplication?.additionalData?.documents?.tctFile && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(selectedApplication.additionalData.documents.tctFile) ? (
-                            <div className="w-full h-full absolute inset-0 opacity-60">
-                              <img src={selectedApplication.additionalData.documents.tctFile} alt="Preview" className="w-full h-full object-contain" />
-                            </div>
-                          ) : null}
-                          <Upload className="w-8 h-8 text-slate-400 mb-2 z-10" />
-                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10">
-                            {formData.tctFile ? formData.tctFile.name : (isRevision && selectedApplication?.additionalData?.documents?.tctFile ? "Click to replace uploaded TCT" : "Click to upload certified true copy of TCT (PDF/JPG/PNG)")}
-                          </p>
+                        <div className={cn("bg-white dark:bg-black/20 rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer overflow-hidden", (showValidationErrors && !formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-300 dark:border-white/20")}>
+                          {(() => {
+                            if (formData.tctFile && formData.tctFile.type.startsWith("image/")) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
+                                  <img src={URL.createObjectURL(formData.tctFile)} alt="Preview" className="w-full h-full object-contain" />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <Upload className="w-6 h-6 text-white mb-2" />
+                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.tctFile!), '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Image
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else if (isRevision && !formData.tctFile && selectedApplication?.additionalData?.documents?.tctFile && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(selectedApplication.additionalData.documents.tctFile)) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
+                                  <img src={selectedApplication.additionalData.documents.tctFile} alt="Preview" className="w-full h-full object-contain" />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <Upload className="w-6 h-6 text-white mb-2" />
+                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.tctFile, '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Image
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else if (formData.tctFile) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
+                                  <FileText className="w-10 h-10 text-primary mb-2" />
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">{formData.tctFile.name}</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.tctFile!), '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Document
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else if (isRevision && !formData.tctFile && selectedApplication?.additionalData?.documents?.tctFile) {
+                              return (
+                                <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
+                                  <FileText className="w-10 h-10 text-primary mb-2" />
+                                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">Existing Document</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                    <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.tctFile, '_blank'); }}
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    >
+                                      Preview Document
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <>
+                                <Upload className="w-8 h-8 text-slate-400 mb-2 z-10 pointer-events-none" />
+                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10 pointer-events-none px-2">
+                                  Click to upload certified true copy of TCT (PDF/JPG/PNG)
+                                </p>
+                              </>
+                            );
+                          })()}
                           <input 
                             type="file" 
-                            accept=".jpg,.jpeg,.png,.pdf"
+                            accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
                             className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -1234,9 +1473,11 @@ export default function BuildingPermitPage() {
                                 toast.error("File size exceeds 5MB limit.");
                                 e.target.value = "";
                                 setFormData({...formData, tctFile: null});
+                                persistDraftFile("tctFile", null);
                                 return;
                               }
                               setFormData({...formData, tctFile: file || null});
+                              persistDraftFile("tctFile", file || null);
                             }}
                           />
                         </div>
@@ -1244,16 +1485,19 @@ export default function BuildingPermitPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">c. The use of the occupancy for which the proposed work is intended</label>
-                      <Select 
-                        value={formData.occupancyUse}
-                        onValueChange={value => setFormData({...formData, occupancyUse: value})}
-                        disabled={!isEditable}
-                      >
-                        <SelectTrigger className="w-full h-auto bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer">
-                          <SelectValue placeholder="Select occupancy use" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-[#11131a] border-slate-200 dark:border-white/10 rounded-xl">
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        c. The use of the occupancy for which the proposed work is intended <span className="text-red-500 text-lg">*</span>
+                      </label>
+                      <div className={cn("rounded-xl transition-all", (showValidationErrors && !formData.occupancyUse) ? "border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "")}>
+                        <Select 
+                          value={formData.occupancyUse}
+                          onValueChange={value => setFormData({...formData, occupancyUse: value})}
+                          disabled={!isEditable}
+                        >
+                          <SelectTrigger className="w-full h-auto bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer">
+                            <SelectValue placeholder="Select occupancy use" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white dark:bg-[#11131a] border-slate-200 dark:border-white/10 rounded-xl">
                           <SelectItem value="Residential (Single Family)">Residential (Single Family)</SelectItem>
                           <SelectItem value="Residential (Multi-Family)">Residential (Multi-Family)</SelectItem>
                           <SelectItem value="Commercial - Retail">Commercial - Retail</SelectItem>
@@ -1264,19 +1508,41 @@ export default function BuildingPermitPage() {
                           <SelectItem value="Agricultural">Agricultural</SelectItem>
                           <SelectItem value="Institutional (School/Church/Hospital)">Institutional (School/Church/Hospital)</SelectItem>
                           <SelectItem value="Mixed Use">Mixed Use</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
+                      {formData.occupancyUse === "Other" && (
+                        <div className="mt-3">
+                          <input 
+                            type="text"
+                            placeholder="Please specify occupancy use"
+                            className={cn("w-full bg-white dark:bg-black/20 border rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none", (showValidationErrors && formData.occupancyUse === "Other" && !formData.otherOccupancyUse) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10")}
+                            value={formData.otherOccupancyUse}
+                            onChange={e => setFormData({...formData, otherOccupancyUse: e.target.value})}
+                            disabled={!isEditable}
+                          />
+                        </div>
+                      )}
                     </div>
+                  </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">d. Estimated cost of the proposal</label>
+                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        d. Estimated cost of the proposal <span className="text-red-500 text-lg">*</span>
+                      </label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-500">₱</span>
                         <input 
                           type="number"
-                          className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-4 pl-10 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                          min="0"
+                          className={cn("w-full bg-white dark:bg-black/20 border rounded-xl p-4 pl-10 text-sm focus:ring-2 focus:ring-primary/20 outline-none", (showValidationErrors && (!formData.estimatedCost || Number(formData.estimatedCost) <= 0)) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10")}
                           value={formData.estimatedCost}
-                          onChange={e => setFormData({...formData, estimatedCost: e.target.value})}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === "" || Number(val) >= 0) {
+                              setFormData({...formData, estimatedCost: val});
+                            }
+                          }}
                           disabled={!isEditable}
                         />
                       </div>
@@ -1291,28 +1557,30 @@ export default function BuildingPermitPage() {
                       setCurrentStep("GUIDE");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }} 
-                    className="text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-white/10 rounded-full transition-colors"
+                    className="bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20 font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 px-5 py-2.5 border-2 border-slate-200 dark:border-white/20 rounded-full transition-colors shadow-sm"
                   >
                     ← Back to Requirements
                   </button>
                   <button 
-                    disabled={
-                      !formData.descriptionOfWork || 
-                      !formData.estimatedCost || 
-                      !formData.occupancyUse || 
-                      (idChoice === "UPLOAD" && !formData.newIdFile) || 
-                      (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile)
-                    }
                     onClick={() => {
+                      const hasMissingFields = !formData.descriptionOfWork || 
+                        !formData.estimatedCost || 
+                        Number(formData.estimatedCost) <= 0 ||
+                        !formData.occupancyUse || 
+                        (formData.occupancyUse === "Other" && !formData.otherOccupancyUse) ||
+                        (idChoice === "UPLOAD" && !formData.newIdFile && !selectedApplication?.additionalData?.documents?.newIdFile) || 
+                        (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile);
+                        
+                      if (hasMissingFields) {
+                        setShowValidationErrors(true);
+                        toast.error("Please fill in all required fields marked with *.");
+                        return;
+                      }
+                      
                       setCurrentStep("DOCUMENTS");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }} 
-                    className={cn(
-                      "px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all w-full md:w-auto",
-                      (!formData.descriptionOfWork || !formData.estimatedCost || !formData.occupancyUse || (idChoice === "UPLOAD" && !formData.newIdFile) || (!formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile))
-                        ? "bg-slate-300 text-slate-500 cursor-not-allowed dark:bg-white/10 dark:text-slate-400"
-                        : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/20"
-                    )}
+                    className="px-8 py-4 rounded-[2rem] font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-3 transition-all w-full md:w-auto bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/20"
                   >
                     Next: Upload Docs & Permits
                     <span className="text-xl leading-none">→</span>
@@ -1356,7 +1624,7 @@ export default function BuildingPermitPage() {
                 )}
               >
                 <FileText className="w-4 h-4" />
-                Requirements (13 items)
+                Requirements (11 items)
               </button>
               <button 
                 onClick={() => setActiveDocTab("PERMITS")}
@@ -1368,7 +1636,7 @@ export default function BuildingPermitPage() {
                 )}
               >
                 <FileSignature className="w-4 h-4" />
-                Permits (9 items)
+                Permits (7 items)
               </button>
             </div>
 
@@ -1388,7 +1656,7 @@ export default function BuildingPermitPage() {
                   <div key={idx} className={cn("bg-white/40 dark:bg-white/5 backdrop-blur-md border rounded-2xl p-5 shadow-sm transition-all group", hasError ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10 hover:border-primary/30")}>
                     <div className="flex justify-between items-start mb-4">
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
-                        <span className="text-lg">📄</span> {docName}
+                        <span className="text-lg">📄</span> {docName} <span className="text-red-500 ml-1 text-lg">*</span>
                       </h4>
                       {isUploaded ? (
                         <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shrink-0">
@@ -1440,26 +1708,85 @@ export default function BuildingPermitPage() {
                           const file = activeDocTab === "REQUIREMENTS" ? uploadedRequirements[idx] : uploadedPermits[idx];
                           if (file && file.type.startsWith("image/")) {
                             return (
-                              <div className="w-full h-full absolute inset-0 opacity-50">
+                              <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                 <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-contain" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                  <UploadCloud className="w-6 h-6 text-white mb-2" />
+                                  <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                  <button 
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(file), '_blank'); }}
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                  >
+                                    Preview Image
+                                  </button>
+                                </div>
                               </div>
                             );
                           } else if (isRevision && !file && fileUrl && /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(fileUrl)) {
                             return (
-                              <div className="w-full h-full absolute inset-0 opacity-50">
+                              <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                 <img src={fileUrl} alt="Preview" className="w-full h-full object-contain" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                  <UploadCloud className="w-6 h-6 text-white mb-2" />
+                                  <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                  <button 
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(fileUrl, '_blank'); }}
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                  >
+                                    Preview Image
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          } else if (file) {
+                            return (
+                              <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
+                                <FileText className="w-10 h-10 text-primary mb-2" />
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">{file.name}</p>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                  <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                  <button 
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(file), '_blank'); }}
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                  >
+                                    Preview Document
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          } else if (isRevision && !file && fileUrl) {
+                            return (
+                              <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
+                                <FileText className="w-10 h-10 text-primary mb-2" />
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">Existing Document</p>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
+                                  <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                  <button 
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(fileUrl, '_blank'); }}
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                  >
+                                    Preview Document
+                                  </button>
+                                </div>
                               </div>
                             );
                           }
-                          return null;
+                          return (
+                            <>
+                              <UploadCloud className="w-6 h-6 text-slate-400 mb-2 z-10 pointer-events-none group-hover:text-primary transition-colors" />
+                              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 z-10 pointer-events-none px-2">
+                                Click to upload document/image
+                              </p>
+                            </>
+                          );
                         })()}
-                        <UploadCloud className="w-6 h-6 text-slate-400 mb-2 group-hover:text-primary transition-colors z-10" />
-                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 z-10">
-                          {(activeDocTab === "REQUIREMENTS" ? uploadedRequirements[idx] : uploadedPermits[idx])?.name || (isRevision && fileUrl ? "Click to replace uploaded file" : "Click to upload (JPG/PNG/PDF)")}
-                        </p>
                         <input 
                           type="file" 
-                          accept=".jpg,.jpeg,.png,.pdf"
+                          accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
                           className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                           onChange={(e) => {
                             const file = e.target.files?.[0];
@@ -1471,8 +1798,10 @@ export default function BuildingPermitPage() {
                               }
                               if (activeDocTab === "REQUIREMENTS") {
                                 setUploadedRequirements(prev => ({...prev, [idx]: file}));
+                                persistDraftFile(`req_${idx}`, file);
                               } else {
                                 setUploadedPermits(prev => ({...prev, [idx]: file}));
+                                persistDraftFile(`permit_${idx}`, file);
                               }
                             }
                           }}
@@ -1490,29 +1819,36 @@ export default function BuildingPermitPage() {
                 <UploadCloud className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                 <p className="text-xs md:text-sm font-bold text-emerald-800 dark:text-emerald-300">
                   {activeDocTab === "REQUIREMENTS" 
-                    ? `Requirements Progress: ${requirementsProgress}/13 documents uploaded` 
-                    : `Permits Progress: ${permitsProgress}/9 permits uploaded`}
+                    ? `Requirements Progress: ${requirementsProgress}/11 documents uploaded` 
+                    : `Permits Progress: ${permitsProgress}/7 permits uploaded`}
                 </p>
               </div>
               <div className="bg-blue-50 dark:bg-blue-500/5 border-l-4 border-blue-500 p-4 rounded-r-xl flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-blue-700 dark:text-blue-400 shrink-0" />
                   <p className="text-xs md:text-sm font-bold text-blue-800 dark:text-blue-300">
-                    Total Progress: {totalUploaded}/22 items uploaded
+                    Total Progress: {totalUploaded}/18 items uploaded
                   </p>
                 </div>
                 {!selectedApplication && (
-                  <span className="text-[10px] text-blue-600/60 dark:text-blue-400/60 font-medium uppercase tracking-widest hidden sm:block">All 22 items must be uploaded</span>
+                  <span className="text-[10px] text-blue-600/60 dark:text-blue-400/60 font-medium uppercase tracking-widest hidden sm:block">All 18 items must be uploaded</span>
                 )}
               </div>
             </div>
 
             {/* Signature Block */}
             <div className="bg-white dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/10 p-6 shadow-sm mt-8">
-              <h2 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2 mb-1">
-                <PenTool className="w-5 h-5 text-primary" />
-                Digital Signature for Application
-              </h2>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <PenTool className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-lg flex items-center gap-2">
+                    Digital Signature <span className="text-red-500 text-xl">*</span>
+                  </h3>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Sign directly below</p>
+                </div>
+              </div> 
               {!isEditable ? (
                 <div className="space-y-4">
                   <p className="text-sm text-slate-500">Your digital signature was recorded with this application submission:</p>
@@ -1552,6 +1888,48 @@ export default function BuildingPermitPage() {
               )}
             </div>
 
+            {/* Data Privacy Agreement Block */}
+            <div className="mt-8">
+              <div
+                  onClick={() => {
+                      if (privacyAccepted) {
+                          setPrivacyAccepted(false);
+                      } else {
+                          setIsPrivacyModalOpen(true);
+                      }
+                  }}
+                  className={cn(
+                      "p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-4 select-none",
+                      privacyAccepted ? "bg-primary/5 border-primary shadow-sm" : "bg-slate-50 dark:bg-white/[0.02] border-transparent hover:border-primary/20",
+                      showValidationErrors && !privacyAccepted && "border-red-500 bg-red-50/50"
+                  )}
+              >
+                  <div className={cn(
+                      "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                      privacyAccepted ? "bg-primary border-primary text-white" : "border-slate-300 dark:border-white/10",
+                      showValidationErrors && !privacyAccepted && "border-red-400"
+                  )}>
+                      {privacyAccepted && <Check className="w-3.5 h-3.5" />}
+                  </div>
+                  <div className="space-y-1">
+                      <p className="text-xs font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Data Privacy and Terms Agreement</p>
+                      <p className="text-[8px] md:text-[10px] text-slate-500 font-medium leading-relaxed italic uppercase tracking-widest">
+                          I officially accept the EMapandan Data Privacy Agreement & Terms. I declare under penalty of perjury that all submitted details are 100% legal and genuine. Click to review agreement.
+                      </p>
+                  </div>
+              </div>
+            </div>
+
+            <PrivacyTermsModal 
+                isOpen={isPrivacyModalOpen} 
+                onClose={() => setIsPrivacyModalOpen(false)} 
+                onAccept={() => {
+                    setPrivacyAccepted(true);
+                    setIsPrivacyModalOpen(false);
+                }} 
+                themeColor="#10b981"
+            />
+
             {/* Footer Buttons */}
             <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-6">
               <button 
@@ -1559,7 +1937,7 @@ export default function BuildingPermitPage() {
                   setCurrentStep("PROFILE");
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }} 
-                className="text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-white/10 rounded-full transition-colors"
+                className="bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20 font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 px-5 py-2.5 border-2 border-slate-200 dark:border-white/20 rounded-full transition-colors shadow-sm"
               >
                 ← Back to Profile
               </button>
@@ -2172,7 +2550,7 @@ export default function BuildingPermitPage() {
                    setCurrentStep("EVALUATION");
                    window.scrollTo({ top: 0, behavior: "smooth" });
                  }}
-                 className="px-6 py-3 border border-slate-200 dark:border-white/10 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                 className="bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20 font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 px-5 py-2.5 border-2 border-slate-200 dark:border-white/20 rounded-full transition-colors shadow-sm"
                >
                  ← Back
                </button>
@@ -2238,14 +2616,16 @@ export default function BuildingPermitPage() {
                               </p>
                           </div>
                       </div>
-                      <a 
-                          href={selectedApplication.eCopyUrl} 
-                          target="_blank" 
-                          rel="noreferrer"
+                      <button 
+                          onClick={() => {
+                              setViewerUrl(selectedApplication.eCopyUrl);
+                              setViewerTitle("Official Permit E-Copy");
+                              setViewerOpen(true);
+                          }}
                           className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 shrink-0"
                       >
-                          <FileText className="w-4 h-4" /> View / Download
-                      </a>
+                          <FileText className="w-4 h-4" /> Preview & Download
+                      </button>
                   </div>
               ) : (
                   <div className="max-w-2xl mx-auto border-2 border-dashed border-[#1e293b] dark:border-white/50 rounded-xl p-6 flex flex-col md:flex-row items-center justify-center gap-4 bg-slate-50/50 dark:bg-white/5 mb-6">
@@ -2275,7 +2655,7 @@ export default function BuildingPermitPage() {
                    setCurrentStep("TREASURY");
                    window.scrollTo({ top: 0, behavior: "smooth" });
                  }}
-                 className="px-6 py-3 border border-slate-200 dark:border-white/10 rounded-full text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors flex items-center gap-2"
+                 className="bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/20 font-bold uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 px-5 py-2.5 border-2 border-slate-200 dark:border-white/20 rounded-full transition-colors shadow-sm"
                >
                  ← Back to Treasury & Zoning
                </button>
@@ -2317,7 +2697,7 @@ export default function BuildingPermitPage() {
                     <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 italic block">Select Image</span>
                     <span className="text-[9px] text-slate-400 uppercase tracking-widest">JPG, PNG, PDF</span>
                   </div>
-                  <input type="file" accept="image/*,.pdf" onChange={handlePaymentFileSelect} className="hidden" />
+                  <input type="file" accept="image/*,application/pdf,.pdf" onChange={handlePaymentFileSelect} className="hidden" />
                 </label>
               </div>
             ) : (
@@ -2353,6 +2733,7 @@ export default function BuildingPermitPage() {
 
 const SignaturePad = ({ onSave }: { onSave: (dataUrl: string) => void }) => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isDrawing, setIsDrawing] = React.useState(false);
 
   React.useEffect(() => {
@@ -2427,6 +2808,35 @@ const SignaturePad = ({ onSave }: { onSave: (dataUrl: string) => void }) => {
     onSave(dataUrl);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx) return;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const hRatio = canvas.width / img.width;
+        const vRatio = canvas.height / img.height;
+        const ratio  = Math.min ( hRatio, vRatio );
+        const centerShift_x = ( canvas.width - img.width*ratio ) / 2;
+        const centerShift_y = ( canvas.height - img.height*ratio ) / 2;  
+        ctx.drawImage(img, 0,0, img.width, img.height,
+                           centerShift_x,centerShift_y,img.width*ratio, img.height*ratio);
+                           
+        onSave(canvas.toDataURL('image/png'));
+      }
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="flex flex-col items-center w-full">
       <canvas
@@ -2442,11 +2852,16 @@ const SignaturePad = ({ onSave }: { onSave: (dataUrl: string) => void }) => {
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
       />
-      <div className="p-4 bg-slate-50 dark:bg-black/40 w-full flex justify-center gap-4 border-t border-slate-200 dark:border-white/10">
+      <div className="p-4 bg-slate-50 dark:bg-black/40 w-full flex justify-center gap-4 border-t border-slate-200 dark:border-white/10 flex-wrap">
         <button onClick={clearCanvas} className="px-6 py-2 rounded-full border border-slate-300 dark:border-white/20 text-slate-600 dark:text-slate-300 text-sm font-bold flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
           Clear
         </button>
+        <button onClick={() => fileInputRef.current?.click()} className="px-6 py-2 rounded-full border border-blue-300 dark:border-blue-500/30 text-blue-600 dark:text-blue-400 text-sm font-bold flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+          <UploadCloud className="w-4 h-4" />
+          Upload Image
+        </button>
+        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
         <button onClick={handleSave} className="px-6 py-2 rounded-full bg-emerald-500 text-white text-sm font-bold flex items-center gap-2 shadow-md hover:bg-emerald-600 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
           Save Signature

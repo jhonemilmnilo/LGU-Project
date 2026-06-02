@@ -8,9 +8,21 @@ interface ResidentIdentityProfileProps {
     resident: any;
     safeFormatDate: (dateStr: any) => string;
     themeColor: string;
+    titleColorText?: string;
+    titleWhiteText?: string;
+    subtitleText?: string;
+    relationship?: string;
 }
 
-export default function ResidentIdentityProfile({ resident, safeFormatDate, themeColor }: ResidentIdentityProfileProps) {
+export default function ResidentIdentityProfile({
+    resident,
+    safeFormatDate,
+    themeColor,
+    titleColorText,
+    titleWhiteText,
+    subtitleText,
+    relationship
+}: ResidentIdentityProfileProps) {
     const [isOpen, setIsOpen] = useState(true);
 
     const age = (() => {
@@ -59,12 +71,14 @@ export default function ResidentIdentityProfile({ resident, safeFormatDate, them
                                 className="text-xl font-black italic tracking-tighter uppercase"
                                 style={{ color: themeColor }}
                             >
-                                Resident
+                                {titleColorText || "Resident"}
                             </span>
-                            <span className="text-xl font-black italic tracking-tighter text-white uppercase">Identity Profile</span>
+                            <span className="text-xl font-black italic tracking-tighter text-white uppercase">
+                                {titleWhiteText || "Identity Profile"}
+                            </span>
                         </div>
                         <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 mt-1 leading-none">
-                            Verified Citizen Data Dossier
+                            {subtitleText || "Verified Citizen Data Dossier"}
                         </p>
                     </div>
                 </div>
@@ -149,6 +163,16 @@ export default function ResidentIdentityProfile({ resident, safeFormatDate, them
                             {resident.occupation || "—"}
                         </div>
                     </div>
+
+                    {/* Relationship to Subject / Deceased */}
+                    {relationship && (
+                        <div className="col-span-12 sm:col-span-12 space-y-1.5 animate-in fade-in duration-300">
+                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Relationship to Subject / Deceased</span>
+                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                {relationship || "—"}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Barangay & Complete Address */}
                     <div className="col-span-12 sm:col-span-12 space-y-1.5">

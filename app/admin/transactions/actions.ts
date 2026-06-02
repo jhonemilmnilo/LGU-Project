@@ -505,7 +505,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: additionalData.miscFee ?? additionalData.totalAmount ?? 0,
-                    businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
+                    businessName: null,
                 }
             });
 
@@ -600,7 +600,7 @@ export async function submitBirthRegistration(formData: FormData) {
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
                     totalAmount: additionalData.miscFee ?? additionalData.totalAmount ?? 0,
-                    businessName: additionalData.subjectName || (additionalData.children?.[0] ? `${additionalData.children[0].firstName} ${additionalData.children[0].lastName}` : null),
+                    businessName: null,
                 }
             });
 
@@ -810,7 +810,7 @@ export async function uploadECopyAction(formData: FormData) {
         return { success: true, data: url };
     } catch (error) {
         console.error("Upload E-Copy error:", error);
-        return { success: false, error: "Failed to upload file" };
+        return { success: false, error: `Failed to upload file: ${error instanceof Error ? error.message : String(error)}` };
     }
 }
 
@@ -1254,10 +1254,13 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const additional = transaction.additionalData as any || {};
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
+            const isBirthCert = typeCode === "LCR_BIRTH";
 
-            const baseFee = (isMarriageReg && !isLate)
-                ? 0
-                : Number(transaction.type?.baseFee || 0);
+            const baseFee = isBirthCert
+                ? 115
+                : (isMarriageReg && !isLate)
+                    ? 0
+                    : Number(transaction.type?.baseFee || 0);
             const feeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || feeDelivery;
 
@@ -4368,5 +4371,129 @@ export async function saveLogisticsDetails(
     } catch (error) {
         console.error("Save logistics details error:", error);
         return { success: false, error: "Failed to save logistics details" };
+    }
+}
+
+/**
+ * Request PSA Endorsement (Resident side)
+ * For LCR_BIRTH transactions with FORM_1A registry book verification.
+ * User uploads a PSA Negative Certification as proof.
+ */
+export async function requestPsaEndorsement(formData: FormData) {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transactionId = sanitizeString(formData.get("transactionId") as string);
+        const psaNegCertFile = formData.get("psaNegCertFile") as File;
+
+        if (!transactionId) return { success: false, error: "Transaction ID is required" };
+        if (!psaNegCertFile || psaNegCertFile.size === 0) {
+            return { success: false, error: "PSA Negative Certification document is required" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: transactionId, userId: session.user.id },
+            include: { type: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const typeCode = (transaction.type?.code || "").toUpperCase();
+        if (typeCode !== "LCR_BIRTH") {
+            return { success: false, error: "PSA Endorsement is only available for Birth Certificate requests" };
+        }
+
+        if (!["RELEASED", "DELIVERED"].includes(transaction.status as string)) {
+            return { success: false, error: "PSA Endorsement can only be requested after document release" };
+        }
+
+        const additionalData = (transaction.additionalData as any) || {};
+
+        if (additionalData.psaEndorsementRequested) {
+            return { success: false, error: "PSA Endorsement has already been requested for this transaction" };
+        }
+
+        // 1. Ensure the LCR_PSA_ENDORSEMENT transaction type exists in the database
+        let psaType = await prisma.transactionType.findUnique({
+            where: { code: "LCR_PSA_ENDORSEMENT" }
+        });
+        if (!psaType) {
+            psaType = await prisma.transactionType.create({
+                data: {
+                    code: "LCR_PSA_ENDORSEMENT",
+                    name: "PSA Endorsement",
+                    description: "Request PSA Endorsement for Birth Certificate.",
+                    level: 1,
+                    category: "Civil Registry",
+                    baseFee: 200.00,
+                    deliveryFee: 0.00,
+                    isFixed: true,
+                    requiredDocs: ["PSA Negative Certification"],
+                    formSchema: {
+                        type: "CIVIL_REGISTRY",
+                        registryType: "PSA_ENDORSEMENT",
+                        fields: ["originalTransactionId", "psaNegCertUrl"]
+                    },
+                    requiresBusinessName: false,
+                    supportsECopy: true,
+                    processorRole: "TREASURY_STAFF"
+                }
+            });
+        }
+
+        // 2. Upload PSA Negative Certification file
+        const psaNegCertUrl = await processFileUpload(psaNegCertFile, "psa_endorsement");
+        if (!psaNegCertUrl) {
+            return { success: false, error: "Failed to upload PSA Negative Certification" };
+        }
+
+        // 3. Create a brand new transaction and update the original transaction
+        const originalAddData = (transaction.additionalData as any) || {};
+
+        await prisma.$transaction(async (tx) => {
+            const newTx = await tx.transaction.create({
+                data: {
+                    userId: session.user.id,
+                    typeId: psaType!.id,
+                    status: "FOR_REQUESTING",
+                    fulfillmentType: transaction.fulfillmentType || "PICK_UP",
+                    paymentType: null,
+                    totalAmount: 200.00,
+                    residentSnapshot: transaction.residentSnapshot || {},
+                    businessName: null,
+                    additionalData: {
+                        originalTransactionId: transactionId,
+                        psaNegCertUrl,
+                        psaEndorsementRequested: true,
+                        psaEndorsementFee: 200,
+                        subjectName: transaction.businessName || originalAddData.subjectName || ""
+                    }
+                }
+            });
+
+            await tx.transaction.update({
+                where: { id: transactionId },
+                data: {
+                    additionalData: {
+                        ...originalAddData,
+                        psaEndorsementRequested: true,
+                        psaEndorsementDate: new Date().toISOString(),
+                        psaNegCertUrl,
+                        psaEndorsementFee: 200,
+                        psaEndorsementTransactionId: newTx.id
+                    },
+                    updatedAt: new Date()
+                }
+            });
+        });
+
+        revalidatePath("/user/services/requests");
+        revalidatePath(`/user/services/requests/${transactionId}`);
+        revalidatePath("/admin/registrar");
+        return { success: true };
+    } catch (error) {
+        console.error("Request PSA endorsement error:", error);
+        return { success: false, error: "Failed to submit PSA endorsement request" };
     }
 }
