@@ -1218,7 +1218,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 }
             }
 
-            let uploadedDocUrl = "";
+            const uploadedDocUrl = "";
             if (isLCR && typeCode === "LCR_BIRTH") {
                 if (!registryBookVerification) {
                     toast.error("Registry Book Verification Form Choice is required before approving.");
