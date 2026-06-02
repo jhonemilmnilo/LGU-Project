@@ -617,13 +617,13 @@ export default function BuildingPermitPage() {
   };
 
   const handleSubmit = async () => {
-    if (requirementsProgress < 12 || permitsProgress < 8 || !signatureData || !privacyAccepted) {
+    if (requirementsProgress < 11 || permitsProgress < 7 || !signatureData || !privacyAccepted) {
       setShowValidationErrors(true);
-      if (requirementsProgress < 12) {
-        toast.warning("Please ensure ALL 12 required documents are provided.");
+      if (requirementsProgress < 11) {
+        toast.warning("Please ensure ALL 11 required documents are provided.");
         setActiveDocTab("REQUIREMENTS");
-      } else if (permitsProgress < 8) {
-        toast.warning("Please ensure ALL 8 required permits are provided.");
+      } else if (permitsProgress < 7) {
+        toast.warning("Please ensure ALL 7 required permits are provided.");
         setActiveDocTab("PERMITS");
       } else if (!signatureData) {
         toast.warning("Please provide your digital signature before submitting.");
@@ -1224,22 +1224,23 @@ export default function BuildingPermitPage() {
                           )}
                         </div>
                       ) : (
-                        <div className={cn("bg-white dark:bg-black/20 rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer overflow-hidden", (showValidationErrors && idChoice === "UPLOAD" && !formData.newIdFile && !selectedApplication?.additionalData?.documents?.newIdFile) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-300 dark:border-white/20")}>
+                        <div className={cn("bg-white dark:bg-black/20 rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors overflow-hidden", (showValidationErrors && idChoice === "UPLOAD" && !formData.newIdFile && !selectedApplication?.additionalData?.documents?.newIdFile) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-300 dark:border-white/20")}>
                           {(() => {
                             if (formData.newIdFile && formData.newIdFile.type.startsWith("image/")) {
                               return (
                                 <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                   <img src={URL.createObjectURL(formData.newIdFile)} alt="Preview" className="w-full h-full object-contain" />
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                    <Upload className="w-6 h-6 text-white mb-2" />
-                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                     <button 
                                       type="button"
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.newIdFile!), '_blank'); }}
-                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                     >
                                       Preview Image
                                     </button>
+                                    <label htmlFor="upload-newIdFile" className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                      Replace Image
+                                    </label>
                                   </div>
                                 </div>
                               );
@@ -1247,16 +1248,17 @@ export default function BuildingPermitPage() {
                               return (
                                 <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                   <img src={selectedApplication.additionalData.documents.newIdFile} alt="Preview" className="w-full h-full object-contain" />
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                    <Upload className="w-6 h-6 text-white mb-2" />
-                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                     <button 
                                       type="button"
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.newIdFile, '_blank'); }}
-                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                     >
                                       Preview Image
                                     </button>
+                                    <label htmlFor="upload-newIdFile" className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                      Replace Image
+                                    </label>
                                   </div>
                                 </div>
                               );
@@ -1265,15 +1267,17 @@ export default function BuildingPermitPage() {
                                 <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
                                   <FileText className="w-10 h-10 text-primary mb-2" />
                                   <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">{formData.newIdFile.name}</p>
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                    <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                     <button 
                                       type="button"
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.newIdFile!), '_blank'); }}
-                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                     >
                                       Preview Document
                                     </button>
+                                    <label htmlFor="upload-newIdFile" className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                      Replace Document
+                                    </label>
                                   </div>
                                 </div>
                               );
@@ -1282,32 +1286,35 @@ export default function BuildingPermitPage() {
                                 <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
                                   <FileText className="w-10 h-10 text-primary mb-2" />
                                   <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">Existing Document</p>
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                    <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                     <button 
                                       type="button"
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.newIdFile, '_blank'); }}
-                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                     >
                                       Preview Document
                                     </button>
+                                    <label htmlFor="upload-newIdFile" className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                      Replace Document
+                                    </label>
                                   </div>
                                 </div>
                               );
                             }
                             return (
-                              <>
-                                <Upload className="w-8 h-8 text-slate-400 mb-2 z-10 pointer-events-none" />
-                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 z-10 pointer-events-none px-2">
+                              <label htmlFor="upload-newIdFile" className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer z-20">
+                                <Upload className="w-8 h-8 text-slate-400 mb-2 pointer-events-none" />
+                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 pointer-events-none px-2">
                                   Click to upload (JPG/PNG/PDF, max 5MB)
                                 </p>
-                              </>
+                              </label>
                             );
                           })()}
                           <input 
+                            id="upload-newIdFile"
                             type="file" 
                             accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
-                            className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                            className="hidden" 
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file && file.size > 5 * 1024 * 1024) {
@@ -1383,22 +1390,23 @@ export default function BuildingPermitPage() {
                           })()}
                         </div>
                       ) : (
-                        <div className={cn("bg-white dark:bg-black/20 rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer overflow-hidden", (showValidationErrors && !formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-300 dark:border-white/20")}>
+                        <div className={cn("bg-white dark:bg-black/20 rounded-xl border border-dashed p-8 flex flex-col items-center justify-center text-center relative hover:bg-slate-50 dark:hover:bg-white/5 transition-colors overflow-hidden", (showValidationErrors && !formData.tctFile && !selectedApplication?.additionalData?.documents?.tctFile) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-300 dark:border-white/20")}>
                           {(() => {
                             if (formData.tctFile && formData.tctFile.type.startsWith("image/")) {
                               return (
                                 <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                   <img src={URL.createObjectURL(formData.tctFile)} alt="Preview" className="w-full h-full object-contain" />
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                    <Upload className="w-6 h-6 text-white mb-2" />
-                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                     <button 
                                       type="button"
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(formData.tctFile!), '_blank'); }}
-                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                     >
                                       Preview Image
                                     </button>
+                                    <label htmlFor="upload-tctFile" className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                      Replace Image
+                                    </label>
                                   </div>
                                 </div>
                               );
@@ -1406,16 +1414,17 @@ export default function BuildingPermitPage() {
                               return (
                                 <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                   <img src={selectedApplication.additionalData.documents.tctFile} alt="Preview" className="w-full h-full object-contain" />
-                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                    <Upload className="w-6 h-6 text-white mb-2" />
-                                    <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                     <button 
                                       type="button"
                                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(selectedApplication.additionalData.documents.tctFile, '_blank'); }}
-                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                      className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                     >
                                       Preview Image
                                     </button>
+                                    <label htmlFor="upload-tctFile" className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                      Replace Image
+                                    </label>
                                   </div>
                                 </div>
                               );
@@ -1710,16 +1719,17 @@ export default function BuildingPermitPage() {
                             return (
                               <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                 <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-contain" />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                  <UploadCloud className="w-6 h-6 text-white mb-2" />
-                                  <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                   <button 
                                     type="button"
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(file), '_blank'); }}
-                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                   >
                                     Preview Image
                                   </button>
+                                  <label htmlFor={`upload-${activeDocTab}-${idx}`} className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                    Replace Image
+                                  </label>
                                 </div>
                               </div>
                             );
@@ -1727,16 +1737,17 @@ export default function BuildingPermitPage() {
                             return (
                               <div className="w-full h-full absolute inset-0 z-0 bg-slate-900 group/preview">
                                 <img src={fileUrl} alt="Preview" className="w-full h-full object-contain" />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                  <UploadCloud className="w-6 h-6 text-white mb-2" />
-                                  <p className="text-xs font-medium text-white px-2 mb-3 text-center">Click anywhere to replace</p>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                   <button 
                                     type="button"
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(fileUrl, '_blank'); }}
-                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                   >
                                     Preview Image
                                   </button>
+                                  <label htmlFor={`upload-${activeDocTab}-${idx}`} className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                    Replace Image
+                                  </label>
                                 </div>
                               </div>
                             );
@@ -1745,15 +1756,17 @@ export default function BuildingPermitPage() {
                               <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
                                 <FileText className="w-10 h-10 text-primary mb-2" />
                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">{file.name}</p>
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                  <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                   <button 
                                     type="button"
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(URL.createObjectURL(file), '_blank'); }}
-                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                   >
                                     Preview Document
                                   </button>
+                                  <label htmlFor={`upload-${activeDocTab}-${idx}`} className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                    Replace Document
+                                  </label>
                                 </div>
                               </div>
                             );
@@ -1762,32 +1775,35 @@ export default function BuildingPermitPage() {
                               <div className="w-full h-full absolute inset-0 z-0 bg-slate-100 dark:bg-black/40 flex flex-col justify-center items-center group/preview">
                                 <FileText className="w-10 h-10 text-primary mb-2" />
                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[80%] truncate">Existing Document</p>
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10">
-                                  <p className="text-xs font-medium text-white px-2 mb-3">Click anywhere to replace</p>
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex flex-col justify-center items-center z-10 gap-3">
                                   <button 
                                     type="button"
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(fileUrl, '_blank'); }}
-                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full z-30 relative shadow-lg hover:bg-primary/90"
+                                    className="px-4 py-1.5 bg-primary text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-primary/90"
                                   >
                                     Preview Document
                                   </button>
+                                  <label htmlFor={`upload-${activeDocTab}-${idx}`} className="px-4 py-1.5 bg-slate-700 text-white text-[10px] uppercase font-bold rounded-full shadow-lg hover:bg-slate-600 cursor-pointer">
+                                    Replace Document
+                                  </label>
                                 </div>
                               </div>
                             );
                           }
                           return (
-                            <>
-                              <UploadCloud className="w-6 h-6 text-slate-400 mb-2 z-10 pointer-events-none group-hover:text-primary transition-colors" />
-                              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 z-10 pointer-events-none px-2">
+                            <label htmlFor={`upload-${activeDocTab}-${idx}`} className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer z-20">
+                              <UploadCloud className="w-6 h-6 text-slate-400 mb-2 group-hover:text-primary transition-colors pointer-events-none" />
+                              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 px-2 pointer-events-none">
                                 Click to upload document/image
                               </p>
-                            </>
+                            </label>
                           );
                         })()}
                         <input 
+                          id={`upload-${activeDocTab}-${idx}`}
                           type="file" 
                           accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
-                          className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                          className="hidden" 
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
