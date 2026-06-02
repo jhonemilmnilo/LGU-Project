@@ -241,7 +241,7 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
                 if (emailCheck.success && emailCheck.exists) {
                     handleFailedAttempt(normalizedEmail);
                 } else {
-                    toast.error("Invalid credentials.");
+                    toast.error("Email does not exist.");
                 }
                 return;
             }
