@@ -68,7 +68,6 @@ export function Sidebar({
         setIsAboutOpen(pathname.startsWith("/admin/about"));
         setIsBarangaysOpen(pathname.startsWith("/admin/barangays"));
             setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
-            setIsRegistrarOpen(pathname.startsWith("/admin/registrar"));
     }, [pathname]);
 
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
