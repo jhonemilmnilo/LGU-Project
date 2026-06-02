@@ -46,16 +46,14 @@ function getResidentSnapshot(tx: any): any {
     return tx.residentSnapshot;
 }
 
-// Helper: check if transaction is registrar birth request under evaluation
-function isRegistrarBirthRequest(tx: any) {
+// Helper: check if transaction is registrar civil registry request under evaluation
+function isRegistrarLcrRequest(tx: any) {
     const typeCode = tx.type?.code;
-    const typeName = tx.type?.name || "";
+    const typeCategory = tx.type?.category;
 
     return tx.status === "FOR_REQUESTING" && (
-        typeCode === "LCR_BIRTH" ||
-        typeCode === "LCR_BIRTH_REG" ||
-        typeName.includes("Birth Certificate (Certified Copy)") ||
-        typeName.includes("Birth Registration")
+        typeCategory === "Civil Registry" ||
+        (typeCode && (typeCode.startsWith("LCR_") || typeCode.startsWith("CIVIL_REGISTRY")))
     );
 }
 
@@ -138,8 +136,8 @@ export default function RegistrarPage() {
 
             let combined: any[] = [];
             if (reqRes.success && reqRes.data) {
-                const birthTxs = reqRes.data.filter(isRegistrarBirthRequest);
-                combined = [...combined, ...birthTxs];
+                const lcrTxs = reqRes.data.filter(isRegistrarLcrRequest);
+                combined = [...combined, ...lcrTxs];
             }
             if (procRes.success && procRes.data) {
                 const civilTxs = procRes.data.filter((tx: any) => tx.type?.category === "Civil Registry");
