@@ -9,17 +9,21 @@ import { Switch } from "@/components/ui/switch";
 import { Edit2, Trash2, Building2, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 export function JobsTable() {
-    const { jobsData, searchTerm, setEditingData, setIsAddModalOpen, selectedDepartment } = useJobs();
+    const { jobsData, searchTerm, setEditingData, setIsAddModalOpen, selectedDepartment, selectedStatus, themeColor } = useJobs();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
     const filteredData = jobsData.filter(item => {
-        const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.department.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedDepartment === "All" || item.department === selectedDepartment;
-        return matchesSearch && matchesCategory;
+        const matchesStatus = selectedStatus === "All" || 
+            (selectedStatus === "Active" && item.isActive) ||
+            (selectedStatus === "Closed" && !item.isActive);
+        return matchesSearch && matchesCategory && matchesStatus;
     });
 
     const handleEdit = (item: Job) => {
@@ -72,18 +76,18 @@ export function JobsTable() {
         <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
-                    <TableRow className="bg-slate-50/50 dark:bg-[#1a1f2e] hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e] border-y border-slate-200 dark:border-[#2a3040]">
-                        <TableHead className="w-[280px] font-bold text-slate-900 dark:text-slate-100 h-12">Job Role</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Department/Office</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Type</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100">Deadline</TableHead>
-                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center">Active</TableHead>
-                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100">Actions</TableHead>
+                    <TableRow className="bg-slate-50/50 dark:bg-[#1e2330] hover:bg-slate-50 dark:hover:bg-[#1e2330] border-y border-slate-200 dark:border-[#2a3040]">
+                        <TableHead className="w-[280px] font-bold text-slate-900 dark:text-slate-100 h-12 text-xs uppercase tracking-widest">Job Role</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Department/Office</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Type</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Deadline</TableHead>
+                        <TableHead className="font-bold text-slate-900 dark:text-slate-100 text-center text-xs uppercase tracking-widest">Active</TableHead>
+                        <TableHead className="text-right font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-widest">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredData.map((item) => (
-                        <TableRow key={item.id} className="group hover:bg-primary/5 transition-colors border-b border-slate-200 dark:border-[#2a3040]">
+                        <TableRow key={item.id} className="group hover:bg-slate-50/50 dark:hover:bg-[#202635] transition-colors border-b border-slate-200 dark:border-[#2a3040]">
                             <TableCell className="font-medium">
                                 <div className="flex flex-col space-y-1">
                                     <span className="text-slate-900 dark:text-white font-bold leading-tight">{item.title}</span>
@@ -93,7 +97,7 @@ export function JobsTable() {
                             <TableCell>
                                 <div className="flex flex-col space-y-1">
                                     <div className="flex items-center text-slate-900 dark:text-white font-bold text-sm">
-                                        <Building2 className="w-3.5 h-3.5 mr-1 text-primary" />
+                                        <Building2 className="w-3.5 h-3.5 mr-1" style={{ color: themeColor }} />
                                         {item.department}
                                     </div>
                                     <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black italic">{item.location || "Office Based"}</span>
@@ -115,6 +119,7 @@ export function JobsTable() {
                                     onCheckedChange={() => handleToggleStatus(item.id, item.isActive)}
                                     disabled={togglingId === item.id}
                                     className="data-[state=checked]:bg-primary"
+                                    style={{ "--tw-bg-opacity": "1", backgroundColor: item.isActive ? themeColor : undefined } as CSSProperties}
                                 />
                             </TableCell>
                             <TableCell className="text-right">
@@ -127,6 +132,7 @@ export function JobsTable() {
                                                     size="icon"
                                                     onClick={() => handleEdit(item)}
                                                     className="h-8 w-8 text-primary hover:text-primary/90 hover:bg-primary/10 dark:hover:bg-primary/20"
+                                                    style={{ color: themeColor }}
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </Button>

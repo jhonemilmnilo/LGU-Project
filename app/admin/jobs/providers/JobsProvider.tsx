@@ -33,8 +33,11 @@ interface JobsContextType {
     setEditingData: (data: Job | null) => void;
     selectedDepartment: string;
     setSelectedDepartment: (department: string) => void;
+    selectedStatus: string;
+    setSelectedStatus: (status: string) => void;
     currentBarangay?: string | null;
     activeBarangays?: string[];
+    themeColor: string;
 }
 
 const JobsContext = createContext<JobsContextType | undefined>(undefined);
@@ -55,10 +58,27 @@ export function JobsProvider({
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingData, setEditingData] = useState<Job | null>(null);
     const [selectedDepartment, setSelectedDepartment] = useState("All");
+    const [selectedStatus, setSelectedStatus] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setJobsData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <JobsContext.Provider
@@ -73,8 +93,11 @@ export function JobsProvider({
                 setEditingData,
                 selectedDepartment,
                 setSelectedDepartment,
+                selectedStatus,
+                setSelectedStatus,
                 currentBarangay,
-                activeBarangays
+                activeBarangays,
+                themeColor
             }}
         >
             {children}
