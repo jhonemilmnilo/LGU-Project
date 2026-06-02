@@ -239,12 +239,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true });
       }
 
+      // Dynamically map PayMongo payment method to Prisma PaymentType enum:
+      // GCash & QRPH -> E_PAYMENT
+      // dob (direct online banking) / bank transfer -> BANK_TRANSFER
+      const paymongoMethod = String(payAttrs?.metadata?.paymentMethod || payAttrs?.source?.type || "").toLowerCase();
+      const mappedPrismaMethod = (paymongoMethod.includes("dob") || paymongoMethod.includes("bank")) ? "BANK_TRANSFER" : "E_PAYMENT";
+
       // Upsert Payment record
       await prisma.payment.upsert({
         where: { transactionId },
         update: {
           amount: (Number(payAttrs?.amount || 0) || 0) / 100,
-          method: "E_PAYMENT",
+          method: mappedPrismaMethod as any,
           status: paymentStatus as any,
           reference: paymentId,
           meta: resource,
@@ -252,7 +258,7 @@ export async function POST(request: Request) {
         create: {
           transactionId,
           amount: (Number(payAttrs?.amount || 0) || 0) / 100,
-          method: "E_PAYMENT",
+          method: mappedPrismaMethod as any,
           status: paymentStatus as any,
           reference: paymentId,
           meta: resource,
@@ -260,7 +266,7 @@ export async function POST(request: Request) {
       });
 
       const updatedAdditional = { ...(tx.additionalData as any || {}), paymongo: { ...((tx.additionalData as any)?.paymongo || {}), paymentId, lastPayment: resource } };
-      const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
+      const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date(), paymentType: mappedPrismaMethod };
       if (paymentStatus === "PAID") {
         txUpdate.status = "PAID";
         txUpdate.paymentReference = paymentId;
@@ -357,11 +363,14 @@ export async function POST(request: Request) {
           return NextResponse.json({ received: true });
         }
 
+        const paymongoMethod = String(metadata?.paymentMethod || attrs?.type || "").toLowerCase();
+        const mappedPrismaMethod = (paymongoMethod.includes("dob") || paymongoMethod.includes("bank")) ? "BANK_TRANSFER" : "E_PAYMENT";
+
         await prisma.payment.upsert({
           where: { transactionId: transactionId },
           update: {
             amount: (Number(payAttrs?.amount || amountCents) || 0) / 100,
-            method: "E_PAYMENT",
+            method: mappedPrismaMethod as any,
             status: paymentStatus as any,
             reference: paymentId,
             meta: payData,
@@ -369,7 +378,7 @@ export async function POST(request: Request) {
           create: {
             transactionId: transactionId,
             amount: (Number(payAttrs?.amount || amountCents) || 0) / 100,
-            method: "E_PAYMENT",
+            method: mappedPrismaMethod as any,
             status: paymentStatus as any,
             reference: paymentId,
             meta: payData,
@@ -380,7 +389,7 @@ export async function POST(request: Request) {
 
         // Update transaction: mark PAID only when paymentStatus === PAID
         const updatedAdditional = { ...(tx.additionalData as any || {}), paymongo: { sourceId, paymentId, lastPayment: payData } };
-        const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
+        const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date(), paymentType: mappedPrismaMethod };
         if (paymentStatus === "PAID") {
           txUpdate.status = "PAID";
           txUpdate.paymentReference = paymentId;
@@ -438,12 +447,15 @@ export async function POST(request: Request) {
       const tx = await prisma.transaction.findUnique({ where: { id: transactionId } });
       if (!tx) return NextResponse.json({ received: true });
 
+      const paymongoMethod = String(payAttrs?.metadata?.paymentMethod || payAttrs?.source?.type || "").toLowerCase();
+      const mappedPrismaMethod = (paymongoMethod.includes("dob") || paymongoMethod.includes("bank")) ? "BANK_TRANSFER" : "E_PAYMENT";
+
       // Upsert Payment record
       await prisma.payment.upsert({
         where: { transactionId: transactionId },
         update: {
           amount: (Number(payAttrs?.amount || 0) || 0) / 100,
-          method: "E_PAYMENT",
+          method: mappedPrismaMethod as any,
           status: status as any,
           reference: paymentId,
           meta: resource,
@@ -451,7 +463,7 @@ export async function POST(request: Request) {
         create: {
           transactionId: transactionId,
           amount: (Number(payAttrs?.amount || 0) || 0) / 100,
-          method: "E_PAYMENT",
+          method: mappedPrismaMethod as any,
           status: status as any,
           reference: paymentId,
           meta: resource,
@@ -461,7 +473,7 @@ export async function POST(request: Request) {
       console.log("PayMongo webhook: upserted payment (payment event)", { transactionId, paymentId, status });
 
       const updatedAdditional = { ...(tx.additionalData as any || {}), paymongo: { paymentId, lastPayment: resource } };
-      const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date() };
+      const txUpdate: any = { additionalData: updatedAdditional, updatedAt: new Date(), paymentType: mappedPrismaMethod };
       if (status === "PAID") {
         txUpdate.status = "PAID";
         txUpdate.paymentReference = paymentId;

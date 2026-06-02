@@ -3,8 +3,7 @@
 import { motion } from "framer-motion";
 import { useTourism, Tourism } from "../providers/TourismProvider";
 import Image from "next/image";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { MapPin, MoreHorizontal, Map as MapIcon, Trash, EyeOff, Eye, Globe, Camera } from "lucide-react";
+import { MapPin, MoreHorizontal, Map as MapIcon, Trash, EyeOff, Eye, Camera } from "lucide-react";
 import { deleteTourismSpot, toggleTourismSpotStatus } from "@/app/admin/actions";
 import {
     Table as UITable,
@@ -24,15 +23,18 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 export function TourismTable() {
-    const { tourismData, searchTerm, setEditingData, setIsAddModalOpen, selectedCategory } = useTourism();
+    const { tourismData, searchTerm, setEditingData, setIsAddModalOpen, selectedCategory, selectedStatus, themeColor } = useTourism();
 
     const filteredData = tourismData.filter((item: Tourism) => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.address.toLowerCase().includes(searchTerm.toLowerCase());
+            item.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.category.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-        return matchesSearch && matchesCategory;
+        const matchesStatus = selectedStatus === "All" || 
+            (selectedStatus === "Published" && item.isPublished) ||
+            (selectedStatus === "Hidden" && !item.isPublished);
+        return matchesSearch && matchesCategory && matchesStatus;
     });
 
     return (
@@ -85,7 +87,7 @@ export function TourismTable() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center text-slate-600 dark:text-slate-400 text-xs">
-                                        <MapPin className="w-3 h-3 mr-1.5 text-primary" />
+                                        <MapPin className="w-3 h-3 mr-1.5" style={{ color: themeColor }} />
                                         <span className="truncate max-w-[200px]">{item.address}</span>
                                     </div>
                                 </TableCell>
@@ -142,7 +144,7 @@ export function TourismTable() {
                                                         window.open(url as string, "_blank");
                                                     }}
                                                 >
-                                                    <MapIcon className="w-4 h-4 mr-2 text-primary" /> Open in Maps
+                                                    <MapIcon className="w-4 h-4 mr-2" style={{ color: themeColor }} /> Open in Maps
                                                 </DropdownMenuItem>
                                             )}
 

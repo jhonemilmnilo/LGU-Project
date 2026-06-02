@@ -126,6 +126,11 @@ export default function BploDetailPage({ params }: PageProps) {
     const [disputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
 
     const [themeColor, setThemeColor] = useState<string>("#2563eb");
+    const [branding, setBranding] = useState({
+        word1: "Mapandan",
+        word2: "Express",
+        logo: ""
+    });
     const [isBusinessRecordExpanded, setIsBusinessRecordExpanded] = useState(true);
     const [isRequirementsExpanded, setIsRequirementsExpanded] = useState(true);
     const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(true);
@@ -173,6 +178,17 @@ export default function BploDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 setThemeColor(res.data);
             }
+        });
+        Promise.all([
+            getSystemSettingAction("brand_word_1", "Mapandan"),
+            getSystemSettingAction("brand_word_2", "Express"),
+            getSystemSettingAction("site_logo", "")
+        ]).then(([w1, w2, logo]) => {
+            setBranding({
+                word1: w1.data || "Mapandan",
+                word2: w2.data || "Express",
+                logo: logo.data || ""
+            });
         });
     }, [fetchTransaction]);
 
@@ -266,6 +282,219 @@ export default function BploDetailPage({ params }: PageProps) {
             } else toast.error(res.error || "Failed to release permit.");
         } finally { setActionLoading(false); }
     }, [transaction, permitNumberInput, eCopyFile, stickerNumber, router]);
+
+    const handlePrintWaybill = () => {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document;
+        if (!doc) {
+            toast.error("Failed to initialize print frame.");
+            return;
+        }
+
+        const validLogo = branding.logo && (branding.logo.startsWith('/') || branding.logo.startsWith('http') || branding.logo.startsWith('data:'))
+            ? branding.logo
+            : "/placeholder.png";
+
+        const logoHtml = branding.logo ? `
+            <img src="${validLogo}" alt="Logo" style="width: 36px; height: 36px; object-fit: contain;" />
+        ` : `
+            <div style="width: 32px; height: 32px; border: 2px solid black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: black;">
+                ${(branding.word1 || 'A').charAt(0)}
+            </div>
+        `;
+
+        const deliveryAddr = typeof transaction.deliveryAddress === 'string'
+            ? JSON.parse(transaction.deliveryAddress || '{}')
+            : transaction.deliveryAddress;
+
+        const addressHtml = deliveryAddr ? `
+            ${deliveryAddr.houseNumber ? deliveryAddr.houseNumber + ', ' : ''}
+            ${deliveryAddr.street ? deliveryAddr.street + ' ' : ''}
+            ${deliveryAddr.sitio ? 'Sitio ' + deliveryAddr.sitio + ', ' : ''}
+            ${deliveryAddr.purok ? 'Purok ' + deliveryAddr.purok + ', ' : ''}
+            <br />
+            Barangay ${deliveryAddr.barangay || ''},<br />
+            ${deliveryAddr.municipality || ''}, ${deliveryAddr.province || ''}
+        ` : `
+            ${resident.houseNumber ? resident.houseNumber + ', ' : ''}${resident.street || ''}<br />
+            Barangay ${resident.barangay || ''},<br />
+            ${resident.municipality || ''}, ${resident.province || ''}
+        `;
+
+        const landmarkHtml = (deliveryAddr?.landmark || transaction.deliveryLandmark) ? `
+            <div style="margin-top: 4px; padding: 4px; background: rgba(0,0,0,0.05); border-radius: 2px; word-break: break-word;">
+                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #94a3b8; display: block; line-height: 1;">Landmark</span>
+                <span style="font-size: 7px; font-weight: 900; font-style: italic; text-transform: uppercase; line-height: 1.1; color: black; display: block;">
+                    ${deliveryAddr?.landmark || transaction.deliveryLandmark}
+                </span>
+            </div>
+        ` : '';
+
+        const rawFiscal = transaction.fiscalSnapshot;
+        const fiscalSnapshot = (typeof rawFiscal === "string" ? JSON.parse(rawFiscal) : rawFiscal) as any || {};
+        const amountDue = (Number(transaction.totalAmount) || Number(fiscalSnapshot.totalAmount) || 0).toLocaleString();
+
+        const waybillHtml = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Print Waybill - ${transaction.id}</title>
+                    <style>
+                        @media print {
+                            @page { 
+                                size: 100mm 150mm; 
+                                margin: 0; 
+                            }
+                            body { 
+                                margin: 0 !important; 
+                                padding: 0 !important; 
+                                background: white !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+                        }
+                        body {
+                            font-family: system-ui, -apple-system, sans-serif;
+                            margin: 0;
+                            padding: 5mm;
+                            background: white;
+                            color: black;
+                            width: 90mm;
+                            height: 140mm;
+                            box-sizing: border-box;
+                        }
+                        .container {
+                            display: flex;
+                            flex-direction: column;
+                            height: 100%;
+                            border: 3px solid black;
+                            border-radius: 2px;
+                            line-height: 1.2;
+                            background: white;
+                            box-sizing: border-box;
+                        }
+                        .text-wrap {
+                            word-break: break-word;
+                            overflow-wrap: anywhere;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <!-- HEADER -->
+                        <div style="border-bottom: 3px solid black; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; background: white; color: black;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                ${logoHtml}
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 14px; font-weight: 900; font-style: italic; letter-spacing: -0.05em; text-transform: uppercase; line-height: 1; color: black;">
+                                        ${branding.word1} <span style="color: ${themeColor}; font-style: italic; letter-spacing: normal;">${branding.word2}</span>
+                                    </span>
+                                    <span style="font-size: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; font-style: italic; color: #475569;">
+                                        Official Municipal Logistics
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="font-size: 10px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: 0.1em; border: 2px solid black; padding: 4px 8px; color: black; background: white; line-height: 1;">
+                                Waybill
+                            </div>
+                        </div>
+
+                        <!-- QR CODE -->
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 12px; border-bottom: 2px dashed black;">
+                            <div style="width: 140px; height: 140px; background: white; padding: 6px; border: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${transaction.id}" alt="Tracking QR" style="width: 100%; height: 100%;" />
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; line-height: 1;">
+                                <span style="font-size: 11px; font-weight: 900; font-style: italic; letter-spacing: 0.25em; font-family: monospace; color: black;">
+                                    ${transaction.id.slice(-12).toUpperCase()}
+                                </span>
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-top: 2px;">
+                                    Transaction Tracking Reference
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- LOGISTICS DATA -->
+                        <div style="padding: 10px 12px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; border-bottom: 3px solid black;">
+                            <div style="display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b;">Recipient Name</span>
+                                    <span class="text-wrap" style="font-size: 10px; font-weight: 900; text-transform: uppercase; font-style: italic; line-height: 1.1; color: black;">
+                                        ${resident.firstName || ''} ${resident.lastName || ''}
+                                    </span>
+                                </div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b;">Contact Number</span>
+                                    <span style="font-size: 9px; font-weight: 700; font-style: italic; letter-spacing: 0.05em; color: black;">
+                                        ${deliveryAddr?.contactNumber || resident.contactNumber || "--"}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: #64748b;">Delivery Address</span>
+                                <span class="text-wrap" style="font-size: 8px; font-weight: 700; text-transform: uppercase; line-height: 1.2; font-style: italic; color: black;">
+                                    ${addressHtml}
+                                </span>
+                                ${landmarkHtml}
+                            </div>
+                        </div>
+
+                        <!-- SERVICE & PAYMENT -->
+                        <div style="padding: 8px 12px; background: #f8fafc; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; border-bottom: 3px solid black;">
+                            <div style="display: flex; flex-direction: column; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: black;">Payment Type</span>
+                                <span class="text-wrap" style="font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; color: black; line-height: 1;">
+                                    ${(transaction.paymentType || '').replace(/_/g, " ")}
+                                </span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: black;">Service</span>
+                                <span class="text-wrap" style="font-size: 7px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em; color: black; line-height: 1.1;">
+                                    ${transaction.type?.name || ''}
+                                </span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; text-align: right; min-width: 0;">
+                                <span style="font-size: 5px; font-weight: 700; text-transform: uppercase; color: black;">Amount Due</span>
+                                <span style="font-size: 9px; font-weight: 900; font-style: italic; letter-spacing: -0.05em; color: ${themeColor};">
+                                    ₱${amountDue}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- FOOTNOTE -->
+                        <div style="padding: 12px; font-style: italic; box-sizing: border-box;">
+                            <div style="border-top: 1.5px dotted black; padding-top: 8px;">
+                                <p class="text-wrap" style="font-size: 6px; font-weight: 700; text-transform: uppercase; line-height: 1.4; color: #475569; margin: 0;">
+                                    * Official document for municipal logistics use only. Handle with extreme care.
+                                    If document is damaged, please report immediately to the BPLO Office.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+            </html>
+        `;
+
+        doc.open();
+        doc.write(waybillHtml);
+        doc.close();
+
+        iframe.onload = () => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
+        };
+    };
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -848,106 +1077,84 @@ export default function BploDetailPage({ params }: PageProps) {
                     </div>
                     {/* END WORKFLOW TRACKING CARD */}
 
-                    {/* PAYMENT PROOF CARD — separate card below status tracking */}
-                    {transaction.paymentReference && (
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-xl" style={{ backgroundColor: `${themeColor}15` }}>
-                                    <Camera className="w-4 h-4" style={{ color: themeColor }} />
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Citizen Payment</span>
-                                    <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Proof of Payment</span>
-                                </div>
-                            </div>
+                    {/* CITIZEN PAYMENT PROOF CARD */}
+                    {(() => {
+                        const hasImage = transaction.paymentReference && (transaction.paymentReference.startsWith("http") || transaction.paymentReference.startsWith("/"));
+                        const gcashRef = (transaction.additionalData as any)?.gcashReferenceNo;
+                        const paymentRef = transaction.paymentReference && !isValidUrl(transaction.paymentReference) ? transaction.paymentReference : null;
+                        const additionalPaymentId = (transaction.additionalData as any)?.paymentId || (transaction.additionalData as any)?.id || (transaction.additionalData as any)?.payment_id;
+                        const refNo = gcashRef || paymentRef || additionalPaymentId;
 
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (transaction.paymentReference) {
-                                        setViewerUrl(transaction.paymentReference);
-                                        setViewerTitle("Proof of Payment");
-                                        setViewerOpen(true);
-                                    }
-                                }}
-                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
-                            >
-                                <Image
-                                    src={isValidUrl(transaction.paymentReference) ? transaction.paymentReference : "/placeholder.png"}
-                                    alt="Payment Proof"
-                                    fill
-                                    className="object-contain group-hover:scale-[1.02] transition-transform duration-300"
-                                />
-                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                    <div
-                                        style={{ backgroundColor: themeColor }}
-                                        className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                        if (!hasImage && !refNo) return null;
+
+                        return (
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-xl" style={{ backgroundColor: `${themeColor}15` }}>
+                                        <Camera className="w-4 h-4" style={{ color: themeColor }} />
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Citizen Payment</span>
+                                        <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Proof of Payment</span>
+                                    </div>
+                                </div>
+
+                                {hasImage ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setViewerUrl(transaction.paymentReference);
+                                            setViewerTitle("Proof of Payment");
+                                            setViewerOpen(true);
+                                        }}
+                                        className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in animate-in fade-in"
                                     >
-                                        <span>View</span>
-                                    </div>
-                                </div>
-                            </button>
-
-                            {((transaction.additionalData as any)?.gcashReferenceNo) && (
-                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Hash className="w-3.5 h-3.5 text-primary" />
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">GCash Reference No.</span>
+                                        <Image
+                                            src={isValidUrl(transaction.paymentReference) ? transaction.paymentReference : "/placeholder.png"}
+                                            alt="Payment Proof"
+                                            fill
+                                            className="object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                        />
+                                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                            <div
+                                                style={{ backgroundColor: themeColor }}
+                                                className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                            >
+                                                <span>View</span>
+                                            </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                navigator.clipboard.writeText((transaction.additionalData as any).gcashReferenceNo);
-                                                toast.success("Reference number copied!");
-                                            }}
-                                            className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
-                                        >
-                                            <Copy className="w-3.5 h-3.5" />
-                                        </button>
+                                    </button>
+                                ) : null}
+
+                                {refNo ? (
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm animate-in fade-in">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Hash className="w-3.5 h-3.5 text-primary" />
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Reference No.</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(refNo);
+                                                    toast.success("Reference number copied!");
+                                                }}
+                                                className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
+                                            >
+                                                <Copy className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                        <p className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">
+                                            {refNo}
+                                        </p>
                                     </div>
-                                    <p className="text-sm font-black italic tracking-tighter text-slate-700 dark:text-slate-200 font-mono">
-                                        {(transaction.additionalData as any).gcashReferenceNo}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                ) : null}
+                            </div>
+                        );
+                    })()}
 
                     {/* EXECUTIVE ACTIONS */}
                     <div className="space-y-4 pt-4">
-                        {isRejecting || isRequestingRevision ? (
-                            <div className="bg-white dark:bg-[#151b28] p-8 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl space-y-4 animate-in slide-in-from-bottom-4">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-primary italic">Decision Rationale Remarks</Label>
-                                <Textarea
-                                    ref={remarksRef}
-                                    value={remarks}
-                                    onChange={(e) => setRemarks(e.target.value)}
-                                    placeholder="Explain decision detail..."
-                                    className="min-h-[100px] rounded-2xl focus-visible:ring-primary border-slate-100 dark:border-white/10"
-                                />
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={isRejecting ? handleReject : handleRequestRevision}
-                                        disabled={actionLoading}
-                                        className={cn(
-                                            "flex-1 h-11 text-white rounded-xl text-xs font-black uppercase italic tracking-wider",
-                                            isRejecting ? "bg-rose-600 hover:bg-rose-700" : "bg-amber-500 hover:bg-amber-600"
-                                        )}
-                                    >
-                                        Confirm
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => { setIsRejecting(false); setIsRequestingRevision(false); }}
-                                        className="flex-1 h-11 rounded-xl text-xs font-bold"
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
                                 {/* Inspection phase actions */}
                                 {(transaction.status === "FOR_INSPECTION" || transaction.status === "FOR_REINSPECTION") && (
                                     <div className="space-y-4">
@@ -1011,7 +1218,7 @@ export default function BploDetailPage({ params }: PageProps) {
 
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Digital Permit Upload (Optional)</Label>
-                                            
+
                                             {!(eCopyFile || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) ? (
                                                 <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
                                                     <label className="cursor-pointer block space-y-2">
@@ -1049,7 +1256,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                                         const isPdf = eCopyFile
                                                             ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
                                                             : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
-                                                        
+
                                                         const targetUrl = eCopyPreview || transaction.eCopyUrl;
 
                                                         if (isPdf) {
@@ -1072,7 +1279,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                                                             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
                                                                         </div>
                                                                     </div>
-                                                                    <div 
+                                                                    <div
                                                                         style={{ color: themeColor, borderColor: `${themeColor}40` }}
                                                                         className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
                                                                     >
@@ -1122,6 +1329,17 @@ export default function BploDetailPage({ params }: PageProps) {
                                             />
                                         </div>
 
+                                        {transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "DELIVERY" && (
+                                            <Button
+                                                type="button"
+                                                onClick={handlePrintWaybill}
+                                                variant="outline"
+                                                className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                            >
+                                                Generate & Print Waybill
+                                            </Button>
+                                        )}
+
                                         <Button
                                             onClick={handleRelease}
                                             disabled={actionLoading}
@@ -1131,8 +1349,6 @@ export default function BploDetailPage({ params }: PageProps) {
                                         </Button>
                                     </div>
                                 )}
-                            </>
-                        )}
                     </div>
                 </div>
             </main>
@@ -1154,16 +1370,88 @@ export default function BploDetailPage({ params }: PageProps) {
                             className="min-h-[100px] rounded-xl"
                         />
                         <div className="flex gap-2">
-                            <Button 
+                            <Button
                                 onClick={handleResolveDispute}
                                 disabled={isResolvingDispute}
                                 className="flex-1 h-11 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold"
                             >
                                 Confirm Resolution
                             </Button>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={() => setDisputeModalOpen(false)}
+                                className="flex-1 h-11 rounded-xl text-xs font-bold"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Request Revision Modal */}
+            <Dialog open={isRequestingRevision} onOpenChange={setIsRequestingRevision}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-[#0f1117] rounded-3xl border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black uppercase italic tracking-tight">
+                            Request Revision
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <Label className="text-xs font-black text-amber-500 uppercase">Reason for Revision Request</Label>
+                        <Textarea
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
+                            placeholder="Provide details about the required revision..."
+                            className="min-h-[100px] rounded-xl"
+                        />
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={handleRequestRevision}
+                                disabled={actionLoading}
+                                className="flex-1 h-11 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider"
+                            >
+                                Send Request
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsRequestingRevision(false)}
+                                className="flex-1 h-11 rounded-xl text-xs font-bold"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Decline/Reject Modal */}
+            <Dialog open={isRejecting} onOpenChange={setIsRejecting}>
+                <DialogContent className="sm:max-w-md bg-white dark:bg-[#0f1117] rounded-3xl border-slate-200">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black uppercase italic tracking-tight text-rose-600">
+                            Decline Request
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <Label className="text-xs font-black text-rose-500 uppercase">Reason for Decline / Rejection</Label>
+                        <Textarea
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
+                            placeholder="Explain reason for decline..."
+                            className="min-h-[100px] rounded-xl"
+                        />
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={handleReject}
+                                disabled={actionLoading}
+                                className="flex-1 h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider"
+                            >
+                                Decline Request
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsRejecting(false)}
                                 className="flex-1 h-11 rounded-xl text-xs font-bold"
                             >
                                 Cancel

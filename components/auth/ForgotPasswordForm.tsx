@@ -24,6 +24,14 @@ export function ForgotPasswordForm({ themeColor = "#2563eb" }: ForgotPasswordFor
     const [isSubmitted, setIsSubmitted] = React.useState(false);
     const [submittedEmail, setSubmittedEmail] = React.useState("");
     const [isEmailFocused, setIsEmailFocused] = React.useState(false);
+    const [cooldown, setCooldown] = React.useState(0);
+
+    React.useEffect(() => {
+        if (cooldown > 0) {
+            const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [cooldown]);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(ForgotPasswordSchema),
@@ -39,6 +47,7 @@ export function ForgotPasswordForm({ themeColor = "#2563eb" }: ForgotPasswordFor
             }
             setSubmittedEmail(data.email);
             setIsSubmitted(true);
+            setCooldown(60);
         } catch {
             toast.error("An unexpected error occurred. Please try again.");
         }
@@ -80,11 +89,26 @@ export function ForgotPasswordForm({ themeColor = "#2563eb" }: ForgotPasswordFor
                     <Button
                         type="button"
                         variant="outline"
-                        className="w-full h-12 rounded-2xl font-black uppercase tracking-tighter text-sm border-2"
+                        className={`w-full h-12 rounded-2xl font-black uppercase tracking-tighter text-sm border-2 transition-all ${cooldown > 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98]"}`}
                         style={{ borderColor: themeColor, color: themeColor }}
-                        onClick={() => setIsSubmitted(false)}
+                        disabled={cooldown > 0}
+                        onClick={async () => {
+                            if (cooldown > 0) return;
+                            const toastId = toast.loading("Resending reset link...");
+                            try {
+                                const result = await requestPasswordReset(submittedEmail);
+                                if (!result.success && result.error) {
+                                    toast.error(result.error, { id: toastId });
+                                    return;
+                                }
+                                toast.success("Reset link sent successfully!", { id: toastId });
+                                setCooldown(60);
+                            } catch {
+                                toast.error("An unexpected error occurred. Please try again.", { id: toastId });
+                            }
+                        }}
                     >
-                        Send Again
+                        {cooldown > 0 ? `Send Again (${cooldown}s)` : "Send Again"}
                     </Button>
                     <Link
                         href="/auth/login"

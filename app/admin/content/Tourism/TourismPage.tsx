@@ -13,11 +13,12 @@ import {
 interface TourismPageProps {
     initialData: Tourism[];
     currentBarangay?: string | null;
+    activeBarangays: string[];
 }
 
-export function TourismPage({ initialData, currentBarangay }: TourismPageProps) {
+export function TourismPage({ initialData, currentBarangay, activeBarangays }: TourismPageProps) {
     return (
-        <TourismProvider initialData={initialData} currentBarangay={currentBarangay}>
+        <TourismProvider initialData={initialData} currentBarangay={currentBarangay} activeBarangays={activeBarangays}>
             <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

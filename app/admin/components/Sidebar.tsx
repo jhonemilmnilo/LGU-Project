@@ -239,21 +239,25 @@ export function Sidebar({
     let menuItems = allMenuItems;
     const department = session?.user?.department;
 
-    if (role === "ADMIN" && department) {
-        if (department.toUpperCase() === "BPLO") {
-            menuItems = [
-                { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
-            ];
-        } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL REGISTRY") {
-            const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
-            menuItems = [
-                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-                ...(registrarHubItem ? [registrarHubItem] : [])
-            ];
+    if (role === "ADMIN") {
+        if (department) {
+            if (department.toUpperCase() === "BPLO") {
+                menuItems = [
+                    { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
+                ];
+            } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL REGISTRY") {
+                const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
+                menuItems = [
+                    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+                    ...(registrarHubItem ? [registrarHubItem] : [])
+                ];
+            } else {
+                menuItems = [
+                    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
+                ];
+            }
         } else {
-            menuItems = [
-                { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
-            ];
+            menuItems = allMenuItems.filter(item => !["Treasury Hub", "BPLO Permits"].includes(item.label));
         }
     } else if (role === "CONTENT_ADMIN") {
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));

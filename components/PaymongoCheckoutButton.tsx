@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 interface Props {
   amount?: number;
-  type?: "gcash" | "grab_pay";
+  type?: "gcash" | "grab_pay" | "qrph" | "dob" | "bank_transfer" | "maya" | "paymaya" | "bank";
   label?: string;
   className?: string;
   style?: React.CSSProperties;

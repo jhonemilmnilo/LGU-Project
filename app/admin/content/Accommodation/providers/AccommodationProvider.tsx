@@ -30,7 +30,13 @@ interface AccommodationContextType {
     setIsAddModalOpen: (isOpen: boolean) => void;
     editingData: Accommodation | null;
     setEditingData: (data: Accommodation | null) => void;
+    selectedType: string;
+    setSelectedType: (type: string) => void;
+    selectedStatus: string;
+    setSelectedStatus: (status: string) => void;
     currentBarangay?: string | null;
+    activeBarangays?: string[];
+    themeColor: string;
 }
 
 const AccommodationContext = createContext<AccommodationContextType | undefined>(undefined);
@@ -38,21 +44,41 @@ const AccommodationContext = createContext<AccommodationContextType | undefined>
 export function AccommodationProvider({
     children,
     initialData,
-    currentBarangay
+    currentBarangay,
+    activeBarangays = []
 }: {
     children: React.ReactNode;
     initialData: Accommodation[];
     currentBarangay?: string | null;
+    activeBarangays?: string[];
 }) {
     const [accommodationData, setAccommodationData] = useState<Accommodation[]>(initialData);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
      
     const [editingData, setEditingData] = useState<any | null>(null);
+    const [selectedType, setSelectedType] = useState("All");
+    const [selectedStatus, setSelectedStatus] = useState("All");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setAccommodationData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <AccommodationContext.Provider
@@ -64,7 +90,13 @@ export function AccommodationProvider({
                 setIsAddModalOpen,
                 editingData,
                 setEditingData,
-                currentBarangay
+                selectedType,
+                setSelectedType,
+                selectedStatus,
+                setSelectedStatus,
+                currentBarangay,
+                activeBarangays,
+                themeColor
             }}
         >
             {children}

@@ -35,6 +35,15 @@ export function ResetPasswordForm({ token, themeColor = "#2563eb" }: ResetPasswo
         defaultValues: { password: "", confirmPassword: "" },
     });
 
+    // eslint-disable-next-line react-hooks/incompatible-library
+    const passwordValue = form.watch("password") || "";
+
+    const requirements = [
+        { label: "At least 8 characters", met: passwordValue.length >= 8 },
+        { label: "At least one uppercase letter", met: /[A-Z]/.test(passwordValue) },
+        { label: "At least one number", met: /[0-9]/.test(passwordValue) },
+    ];
+
     const onSubmit = async (data: FormValues) => {
         try {
             const result = await resetPassword(token, data.password);
@@ -125,6 +134,25 @@ export function ResetPasswordForm({ token, themeColor = "#2563eb" }: ResetPasswo
                     </div>
                     {form.formState.errors.password && (
                         <p className="text-sm text-red-500 font-medium">{form.formState.errors.password.message}</p>
+                    )}
+
+                    {/* Dynamic Password Requirements checklist */}
+                    {requirements.some(req => !req.met) && (
+                        <div className="mt-3 p-4 bg-slate-50 dark:bg-slate-900/30 border border-slate-100 dark:border-white/5 rounded-2xl space-y-2.5 shadow-inner transition-all duration-300">
+                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] leading-none">Password Requirements</p>
+                            <div className="space-y-2">
+                                {requirements.filter(req => !req.met).map((req, i) => (
+                                    <div key={i} className="flex items-center gap-3 transition-all duration-300">
+                                        <div className="w-4 h-4 rounded-full flex items-center justify-center border border-slate-300 dark:border-white/10 bg-white dark:bg-black/20">
+                                            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-white/30 rounded-full" />
+                                        </div>
+                                        <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                                            {req.label}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
 

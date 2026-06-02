@@ -3,9 +3,10 @@
 import { useTourism } from "../providers/TourismProvider";
 import { Trees, CheckCircle2, FileEdit, Map as MapIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import type { CSSProperties } from "react";
 
 export function TourismCards() {
-    const { tourismData } = useTourism();
+    const { tourismData, themeColor } = useTourism();
 
     const total = tourismData.length;
     const published = tourismData.filter(item => item.isPublished).length;
@@ -17,8 +18,8 @@ export function TourismCards() {
             title: "Total Tourism Spots",
             value: total,
             icon: MapIcon,
-            color: "text-primary dark:text-primary",
-            bg: "bg-primary/10 dark:bg-primary/10",
+            color: "text-white",
+            bg: themeColor,
         },
         {
             title: "Published Spots",
@@ -51,15 +52,19 @@ export function TourismCards() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-white dark:bg-[#151b2b] p-6 rounded-2xl border border-slate-200 dark:border-[#2a3040] shadow-sm hover:shadow-md transition-shadow group"
+                    className="bg-white dark:bg-[#151b2b] p-6 rounded-3xl shadow-md shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-200 dark:ring-white/5 group overflow-hidden relative"
                 >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent dark:via-white/5 -translate-x-[100%] group-hover:animate-[shimmer_1.5s_infinite]" />
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{card.title}</p>
-                            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1 group-hover:scale-105 transition-transform duration-300 origin-left">{card.value}</p>
+                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">{card.title}</p>
+                            <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter italic uppercase">{card.value}</p>
                         </div>
-                        <div className={`w-12 h-12 rounded-xl ${card.bg} flex items-center justify-center`}>
-                            <card.icon className={`${card.color} w-6 h-6`} />
+                        <div 
+                            className={`p-4 rounded-2xl shadow-inner ${card.bg}`}
+                            style={card.bg === themeColor ? { boxShadow: `inset 0 2px 4px rgba(0,0,0,0.1)` } as CSSProperties : {}}
+                        >
+                            <card.icon className={`${card.color} w-7 h-7`} />
                         </div>
                     </div>
                 </motion.div>
