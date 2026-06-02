@@ -39,12 +39,23 @@ export async function POST(request: Request) {
         const successRedirect = transactionId ? `${baseUrl}/user/services/requests/${transactionId}` : `${baseUrl}/user/services/requests`;
         const failedRedirect = transactionId ? `${baseUrl}/user/services/requests/${transactionId}` : `${baseUrl}/user/services/requests`;
 
+        let paymentMethodTypes = ['gcash'];
+        if (type === 'qrph') {
+            paymentMethodTypes = ['qrph'];
+        } else if (type === 'dob' || type === 'bank_transfer' || type === 'bank') {
+            paymentMethodTypes = ['dob', 'dob_ubp'];
+        } else if (type === 'grab_pay') {
+            paymentMethodTypes = ['grab_pay'];
+        } else if (type === 'paymaya' || type === 'maya') {
+            paymentMethodTypes = ['paymaya'];
+        }
+
         // Configure dynamic Checkout Session payload to pre-select payment type & force billing info
         const payload: any = {
             data: {
                 attributes: {
                     billing_information_required: true, // Forces PayMongo to request billing info before payment
-                    payment_method_types: [type === 'grab_pay' ? 'grab_pay' : 'gcash'], // Pre-select GCash or GrabPay
+                    payment_method_types: paymentMethodTypes,
                     line_items: [
                         {
                             amount: amountCents,
@@ -58,6 +69,7 @@ export async function POST(request: Request) {
                     metadata: {
                         transactionId: transactionId || null,
                         ...(reference ? { reference } : {}),
+                        paymentMethod: type || 'gcash'
                     }
                 },
             },
