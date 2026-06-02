@@ -720,6 +720,41 @@ export default function RequestHubPage() {
     const documentList = useMemo(() => {
         if (!request) return [] as { label: string; url: string }[];
         const addData = request.additionalData || {};
+        
+        if (isBuildingPermit) {
+            const docs = [];
+            const d = addData.documents || {};
+            
+            // Requirements
+            const reqLabels = [
+                "Barangay Clearance/Certification", "Tax Declaration", "Land Title (if any)",
+                "Community Tax Certificate", "Latest Tax Receipts", "Electrical & Sanitary Permit",
+                "Adjoining Owners Confirmation", "Locational Clearance", "2 Affidavits",
+                "Affidavit of Consent", "Affidavit of Adjoining Owners", "Signed & Sealed Plans",
+                "Fire Safety Clearance"
+            ];
+            reqLabels.forEach((label, i) => {
+                if (d[`req_${i}`]) docs.push({ label, url: d[`req_${i}`] });
+            });
+            
+            // Permits
+            const permitLabels = [
+                "1. Building Permit", "2. Electrical Permit", "3. Plumbing Permit",
+                "4. Sanitary Permit", "5. Excavation & Ground Preparation Permit", 
+                "6. Fencing Permit (if any)", "7. Affidavit Form", "8. Scaffolding Permit", 
+                "9. Mechanical Permit"
+            ];
+            permitLabels.forEach((label, i) => {
+                if (d[`permit_${i}`]) docs.push({ label, url: d[`permit_${i}`] });
+            });
+            
+            if (d.newIdFile) docs.push({ label: "Applicant ID", url: d.newIdFile });
+            if (d.tctFile) docs.push({ label: "TCT File", url: d.tctFile });
+            if (addData.signature) docs.push({ label: "Digital Signature", url: addData.signature });
+            
+            return docs.filter(doc => !!doc.url) as { label: string; url: string }[];
+        }
+
         const docs = isBusinessPermit
             ? [
                 { label: "Owner's Valid ID", url: addData.ownerIdUrl },
@@ -737,7 +772,7 @@ export default function RequestHubPage() {
                 { label: "Financial Evidence", url: addData.proofOfIncomeUrl },
             ];
         return docs.filter(d => !!d.url) as { label: string; url: string }[];
-    }, [request, isBusinessPermit]);
+    }, [request, isBusinessPermit, isBuildingPermit]);
 
     // Keyboard navigation for lightbox
     useEffect(() => {
@@ -1251,6 +1286,16 @@ export default function RequestHubPage() {
                                             </div>
                                         </div>
                                     )}
+                                    {isBuildingPermit && (
+                                        <div className="space-y-6 pb-8 border-b border-slate-100 dark:border-white/5">
+                                            <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Building Information</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Occupancy Use</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.occupancyUse}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Estimated Cost</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">₱{Number(additionalData.estimatedCost || 0).toLocaleString()}</p></div>
+                                                <div className="space-y-1 col-span-2"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Description of Work</p><p className="text-xs md:text-sm font-bold italic uppercase text-slate-900 dark:text-white leading-tight">{additionalData.descriptionOfWork}</p></div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16">
                                         <div className="space-y-10">
                                             <div className="space-y-6">
@@ -1656,18 +1701,19 @@ export default function RequestHubPage() {
                                                             Download
                                                         </Button>
                                                         <Button
-                                                            asChild
+                                                            onClick={() => {
+                                                                const url = request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl;
+                                                                if (url) {
+                                                                    setViewerUrl(url);
+                                                                    setViewerTitle("Official Digital Record");
+                                                                    setViewerOpen(true);
+                                                                }
+                                                            }}
                                                             variant="outline"
                                                             className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
                                                         >
-                                                            <a
-                                                                href={request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                            >
-                                                                <ExternalLink className="w-4 h-4" />
-                                                                New Tab
-                                                            </a>
+                                                            <FileText className="w-4 h-4" />
+                                                            Preview
                                                         </Button>
                                                     </div>
                                                 </div>

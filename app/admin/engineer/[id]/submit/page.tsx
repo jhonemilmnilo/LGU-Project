@@ -289,8 +289,8 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* Right Column */}
-                <div className="col-span-12 lg:col-span-4 space-y-8">
+                {/* Right Column: Workflow Tracking & Executive Actions */}
+                <div className="col-span-12 lg:col-span-4 space-y-8 sticky top-16 self-start">
                     {/* Workflow Step Tracker */}
                     <div className="bg-[#151b28] rounded-[2rem] p-8 border border-white/5 space-y-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Workflow Tracking</h3>

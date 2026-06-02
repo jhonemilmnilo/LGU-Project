@@ -199,12 +199,7 @@ export default function UserServiceRequestsPage() {
                             <div 
                                 key={req.id} 
                                 onClick={() => {
-                                    const isBuildingPermit = req.type?.code?.startsWith("BUILDING_PERMIT");
-                                    if (isBuildingPermit && req.status !== "UNPAID") {
-                                        router.push(`/user/services/building-permit?id=${req.id}`);
-                                    } else {
-                                        router.push(`/user/services/requests/${req.id}`);
-                                    }
+                                    router.push(`/user/services/requests/${req.id}`);
                                 }}
                                 className="group bg-white dark:bg-white/5 rounded-2xl md:rounded-3xl border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 p-3 md:p-5 transition-all cursor-pointer select-none active:scale-[0.99] flex flex-col md:flex-row items-center gap-4 md:gap-8"
                             >
@@ -219,7 +214,7 @@ export default function UserServiceRequestsPage() {
                                         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-slate-400">
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.createdAt ? formatPHDate(req.createdAt) : "N/A"}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
-                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{req.fulfillmentType?.replace("_", " ") || "PENDING EVAL"}</span>
+                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">{style.label}</span>
                                             <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-white/10" />
                                             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic truncate max-w-[80px] md:max-w-none">#{req.id.slice(-6).toUpperCase()}</span>
                                         </div>

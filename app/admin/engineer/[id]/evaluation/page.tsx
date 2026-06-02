@@ -14,7 +14,8 @@ import {
     RefreshCcw,
     Camera,
     AlertCircle,
-    BadgeCheck
+    BadgeCheck,
+    FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -102,14 +103,22 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                         transition: isDragging ? 'none' : 'transform 0.3s ease-out'
                     }}
                 >
-                    <Image
-                        src={isValidUrl(src) ? src : "/placeholder.png"}
-                        alt={alt}
-                        fill
-                        className="object-contain"
-                        priority
-                        draggable={false}
-                    />
+                    {src?.toLowerCase().includes('.pdf') ? (
+                        <iframe
+                            src={src}
+                            title={alt}
+                            className="w-full h-full bg-white rounded-xl"
+                        />
+                    ) : (
+                        <Image
+                            src={isValidUrl(src) ? src : "/placeholder.png"}
+                            alt={alt}
+                            fill
+                            className="object-contain"
+                            priority
+                            draggable={false}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -300,28 +309,31 @@ export default function BuildingPermitEvaluationPage({ params }: PageProps) {
                     "Electrical & Sanitary Permit",
                     "Adjoining Owners Confirmation",
                     "Locational Clearance",
-                    "2 Affidavits",
                     "Affidavit of Consent",
                     "Affidavit of Adjoining Owners",
-                    "Signed & Sealed Plans",
-                    "Fire Safety Clearance"
+                    "Signed & Sealed Plans"
                 ].map((label, idx) => ({ url: additional?.documents?.[`req_${idx}`], label })),
                 ...[
-                    "1. Building Permit",
-                    "2. Electrical Permit",
-                    "3. Plumbing Permit",
-                    "4. Sanitary Permit",
-                    "5. Excavation & Ground Preparation Permit",
-                    "6. Fencing Permit (if any)",
-                    "7. Affidavit Form",
-                    "8. Scaffolding Permit",
-                    "9. Mechanical Permit"
+                    "1. Electrical Permit",
+                    "2. Plumbing Permit",
+                    "3. Sanitary Permit",
+                    "4. Excavation & Ground Preparation Permit",
+                    "5. Fencing Permit (if any)",
+                    "6. Scaffolding Permit",
+                    "7. Mechanical Permit"
                 ].map((label, idx) => ({ url: additional?.documents?.[`permit_${idx}`], label }))
             ].filter(doc => doc.url).map((doc, i) => (
                 <Dialog key={i}>
                     <DialogTrigger asChild>
                         <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
-                            <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                            {doc.url?.toLowerCase().includes('.pdf') ? (
+                                <div className="flex flex-col items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary transition-colors">
+                                    <FileText className="w-8 h-8 mb-1" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">PDF</span>
+                                </div>
+                            ) : (
+                                <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                            )}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                     <ZoomIn className="w-5 h-5 text-white" />
@@ -455,7 +467,7 @@ export default function BuildingPermitEvaluationPage({ params }: PageProps) {
                 </div>
 
                 {/* Right Column: Workflow Tracking & Executive Actions */}
-                <div className="col-span-12 lg:col-span-4 space-y-8">
+                <div className="col-span-12 lg:col-span-4 space-y-8 sticky top-16 self-start">
                     <div className="bg-[#151b28] rounded-[2rem] p-8 border border-white/5 space-y-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Workflow Tracking</h3>
                         <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/10">

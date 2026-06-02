@@ -150,14 +150,22 @@ function LightboxView({ src, alt, label }: { src: string; alt: string; label: st
                         transition: isDragging ? 'none' : 'transform 0.3s ease-out'
                     }}
                 >
-                    <Image
-                        src={isValidUrl(src) ? src : "/placeholder.png"}
-                        alt={alt}
-                        fill
-                        className="object-contain"
-                        priority
-                        draggable={false}
-                    />
+                    {src?.toLowerCase().includes('.pdf') ? (
+                        <iframe
+                            src={src}
+                            title={alt}
+                            className="w-full h-full bg-white rounded-xl"
+                        />
+                    ) : (
+                        <Image
+                            src={isValidUrl(src) ? src : "/placeholder.png"}
+                            alt={alt}
+                            fill
+                            className="object-contain"
+                            priority
+                            draggable={false}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -1685,7 +1693,14 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                             )}>
                                                 {doc.url ? (
                                                     <>
-                                                        <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                        {doc.url?.toLowerCase().includes('.pdf') ? (
+                                                            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary transition-colors">
+                                                                <FileText className="w-8 h-8 mb-1" />
+                                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">PDF</span>
+                                                            </div>
+                                                        ) : (
+                                                            <Image src={isValidUrl(doc.url) ? doc.url : "/placeholder.png"} alt={doc.label} fill className="object-cover group-hover:scale-105 transition-transform animate-in fade-in duration-300" />
+                                                        )}
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-5 h-5 text-white" />
@@ -1736,7 +1751,14 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                         {transaction.paymentReference ? (
                                                             <>
                                                                 {/* Guarded Image */}
-                                                                <Image src={isValidUrl(transaction.paymentReference) ? transaction.paymentReference : "/placeholder.png"} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                                {transaction.paymentReference?.toLowerCase().includes('.pdf') ? (
+                                                                    <div className="flex flex-col items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary transition-colors">
+                                                                        <FileText className="w-8 h-8 mb-1" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">PDF</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Image src={isValidUrl(transaction.paymentReference) ? transaction.paymentReference : "/placeholder.png"} alt="Payment" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                                )}
                                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                                     <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                         <ZoomIn className="w-4 h-4 text-white" />
@@ -1788,7 +1810,14 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                 <DialogTrigger asChild>
                                                     <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in">
                                                         {/* Guarded Image */}
-                                                        <Image src={isValidUrl(transaction.podUrl) ? transaction.podUrl : "/placeholder.png"} alt="POD" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        {transaction.podUrl?.toLowerCase().includes('.pdf') ? (
+                                                            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary transition-colors">
+                                                                <FileText className="w-8 h-8 mb-1" />
+                                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">PDF</span>
+                                                            </div>
+                                                        ) : (
+                                                            <Image src={isValidUrl(transaction.podUrl) ? transaction.podUrl : "/placeholder.png"} alt="POD" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        )}
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-5 h-5 text-white" />
@@ -1839,7 +1868,14 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                 <DialogTrigger asChild>
                                                     <div className="group relative aspect-video rounded-2xl overflow-hidden bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 flex items-center justify-center cursor-zoom-in shadow-md hover:shadow-xl transition-all">
                                                         {/* Guarded Image */}
-                                                        <Image src={isValidUrl(transaction.disputeProofUrl) ? transaction.disputeProofUrl : "/placeholder.png"} alt="Proof" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        {transaction.disputeProofUrl?.toLowerCase().includes('.pdf') ? (
+                                                            <div className="flex flex-col items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary transition-colors">
+                                                                <FileText className="w-8 h-8 mb-1" />
+                                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">PDF</span>
+                                                            </div>
+                                                        ) : (
+                                                            <Image src={isValidUrl(transaction.disputeProofUrl) ? transaction.disputeProofUrl : "/placeholder.png"} alt="Proof" fill className="object-cover group-hover:scale-105 transition-transform" />
+                                                        )}
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
                                                                 <ZoomIn className="w-6 h-6 text-white" />
@@ -2121,7 +2157,19 @@ export default function EngineerDetailPage({ params }: PageProps) {
 
                     {/* EXECUTIVE ACTIONS */}
                     <div className="space-y-4 pt-4">
-                        {isReadOnlyAide ? (
+                        {transaction.status === "CANCELLED" ? (
+                            <div className="bg-white dark:bg-[#151b28] p-8 rounded-[2.5rem] border border-slate-50 dark:border-white/5 text-center space-y-4 animate-in zoom-in-95 shadow-[0_2px_40px_rgba(0,0,0,0.02)]">
+                                <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+                                    <span className="text-2xl animate-pulse">🚫</span>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase text-red-500 tracking-widest italic">Transaction Cancelled</p>
+                                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-tight italic">
+                                        This transaction was cancelled by the citizen. No further actions can be taken.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : isReadOnlyAide ? (
                             <div className="bg-white dark:bg-[#151b28] p-8 rounded-[2.5rem] border border-slate-50 dark:border-white/5 text-center space-y-4 animate-in zoom-in-95 shadow-[0_2px_40px_rgba(0,0,0,0.02)]">
                                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                                     <span className="text-2xl animate-pulse">🔒</span>
