@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type CSSProperties } from "react";
 import { useOfficials } from "../providers/OfficialsProvider";
 import { useOfficialsForm } from "../hooks/useOfficialsForm";
 import {
@@ -33,7 +33,7 @@ import {
 // useEffect + setState, which the lint rules prohibit.
 // -----------------------------------------------------------------------
  
-function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void }) {
+function OfficialForm({ editingData, handleSubmit, themeColor }: { editingData: any; handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void; themeColor: string }) {
     const { data: session } = useSession();
     const { selectedBarangay, barangays } = useOfficials();
     const role = (session?.user as any)?.role;
@@ -97,21 +97,24 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
     };
 
     return (
-        <form id="officialForm" onSubmit={handleSubmit} className="space-y-8">
+        <form id="officialForm" onSubmit={handleSubmit} className="space-y-6">
             <input type="hidden" name="links" value={JSON.stringify(links)} />
             <input type="hidden" name="category" value={category} />
             <input type="hidden" name="barangay" value={barangay} />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Profile Photo Upload */}
                 <div className="lg:col-span-1 space-y-6">
-                    <Label className="text-slate-700 dark:text-slate-300 font-bold block text-center">Portrait Photo</Label>
+                    <div className="flex items-center space-x-2" style={{ color: themeColor }}>
+                        <ImageIcon className="w-4 h-4" />
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Portrait Photo</h3>
+                    </div>
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="group relative w-48 h-64 mx-auto rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-blue-400 bg-slate-50 dark:bg-[#1a1f2e] transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center shadow-sm"
+                        className="group relative w-48 h-64 mx-auto rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center shadow-sm"
+                        style={{ borderColor: `${themeColor}30`, backgroundColor: `${themeColor}08` }}
                     >
                         {imagePreview ? (
                             <>
-                                { }
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -132,9 +135,11 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                                 </Button>
                             </>
                         ) : (
-                            <div className="flex flex-col items-center text-slate-400 group-hover:text-primary transition-colors p-4 text-center">
-                                <ImageIcon className="w-10 h-10 mb-2" />
-                                <p className="text-xs font-bold uppercase tracking-wide">Upload Portrait</p>
+                            <div className="flex flex-col items-center text-slate-400 transition-colors p-4 text-center">
+                                <div className="w-14 h-14 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center mb-3 shadow-sm">
+                                    <ImageIcon className="w-7 h-7" />
+                                </div>
+                                <p className="text-[10px] font-black uppercase tracking-widest">Upload Portrait</p>
                             </div>
                         )}
                         <input
@@ -151,14 +156,15 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                     </div>
 
                     <div className="space-y-2 mt-6">
-                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                            <Hash className="w-4 h-4 mr-1" /> Display Order (Hierarchy)
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
+                            <Hash className="w-3 h-3 mr-1" /> Display Order (Hierarchy)
                         </Label>
                         <Input
                             type="number"
                             name="order"
                             defaultValue={editingData?.order ?? 99}
-                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic focus:ring-2"
+                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                         />
                         <p className="text-xs text-slate-500">Rank: 1 is the highest (Mayor). Defaults to 99 (Last).</p>
                     </div>
@@ -166,34 +172,45 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
 
                 {/* Details */}
                 <div className="lg:col-span-2 space-y-6">
+                    <div className="flex items-center space-x-2" style={{ color: themeColor }}>
+                        <Users className="w-4 h-4" />
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Personal Information</h3>
+                    </div>
+
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Full Name (including title)</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Full Name (including title)</Label>
                         <Input
                             name="name"
                             required
                             defaultValue={editingData?.name}
                             placeholder="e.g. Hon. Juan Dela Cruz"
-                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 focus:ring-primary/20"
+                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic focus:ring-2"
+                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Position / Role</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Position / Role</Label>
                         <Input
                             name="position"
                             required
                             defaultValue={editingData?.position}
                             placeholder="e.g. Municipal Mayor, SB Member"
-                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic focus:ring-2"
+                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                         />
                     </div>
+
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Category / Council Group</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Category / Council Group</Label>
                         <Select value={category} onValueChange={setCategory}>
-                            <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]">
+                            <SelectTrigger
+                                className="!w-full !h-14 min-h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-black uppercase tracking-widest text-[9px] focus:ring-2"
+                                style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
+                            >
                                 <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
-                            <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                            <SelectContent position="popper" className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                 {!isBrgyAdmin && <SelectItem value="LGU">Municipal Government (LGU)</SelectItem>}
                                 <SelectItem value="Barangay Council">Sangguniang Barangay (Council)</SelectItem>
                                 <SelectItem value="SK Council">Sangguniang Kabataan (SK)</SelectItem>
@@ -203,14 +220,14 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
 
                     {!isBrgyAdmin && category !== "LGU" && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                <MapPin className="w-4 h-4 mr-1 text-primary" /> Target Barangay (Area)
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
+                                <MapPin className="w-3.5 h-3.5 mr-1" style={{ color: themeColor }} /> Target Barangay (Area)
                             </Label>
                             <Select value={barangay} onValueChange={setBarangay}>
-                                <SelectTrigger className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] font-bold italic">
+                                <SelectTrigger className="!w-full !h-14 min-h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic">
                                     <SelectValue placeholder="Select Barangay" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
+                                <SelectContent position="popper" className="bg-white dark:bg-[#151b2b] border-slate-200 dark:border-[#2a3040]">
                                     {barangays.map(b => (
                                         <SelectItem key={b} value={b} className="font-bold italic">Bgy. {b}</SelectItem>
                                     ))}
@@ -220,117 +237,119 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                        <div className="space-y-2 min-w-0">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
                                 <Phone className="w-3.5 h-3.5 mr-1" /> Contact Number
                             </Label>
                             <Input
                                 name="contactNumber"
                                 defaultValue={editingData?.contactNumber}
                                 placeholder="e.g. 09123456789"
-                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                <Mail className="w-3.5 h-3.5 mr-1 text-primary" /> Professional Email
+                        <div className="space-y-2 min-w-0">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
+                                <Mail className="w-3.5 h-3.5 mr-1" style={{ color: themeColor }} /> Professional Email
                             </Label>
                             <Input
                                 name="email"
                                 type="email"
                                 defaultValue={editingData?.email}
                                 placeholder="official@mapandan.gov.ph"
-                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                            <Quote className="w-3.5 h-3.5 mr-1 text-primary" /> Official Motto / Vision Quote
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
+                            <Quote className="w-3.5 h-3.5 mr-1" style={{ color: themeColor }} /> Official Motto / Vision Quote
                         </Label>
                         <Input
                             name="motto"
                             defaultValue={editingData?.motto}
                             placeholder="e.g. Service with Integrity..."
-                            className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] italic"
+                            className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold italic"
                         />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
-                                <GraduationCap className="w-4 h-4 mr-1 text-primary" /> Educational Background
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
+                                <GraduationCap className="w-4 h-4 mr-1" style={{ color: themeColor }} /> Educational Background
                             </Label>
                             <Textarea
                                 name="education"
                                 defaultValue={editingData?.education}
                                 placeholder="Degrees, schools, and academic honors..."
-                                className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y text-sm"
+                                className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                                style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
                                 <Trophy className="w-4 h-4 mr-1 text-amber-500" /> Key Achievements
                             </Label>
                             <Textarea
                                 name="achievements"
                                 defaultValue={editingData?.achievements}
                                 placeholder="Notable awards, projects, and recognitions..."
-                                className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y text-sm"
+                                className="min-h-[100px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                                style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                             />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                        <div className="space-y-2 min-w-0">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
                                 <Calendar className="w-3.5 h-3.5 mr-1" /> Term Start Date
                             </Label>
                             <Input
                                 type="datetime-local"
                                 name="termStart"
                                 defaultValue={formatDateForInput(editingData?.termStart)}
-                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 dark:text-slate-300 font-bold flex items-center">
+                        <div className="space-y-2 min-w-0">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center">
                                 <Calendar className="w-3.5 h-3.5 mr-1" /> Term End Date
                             </Label>
                             <Input
                                 type="datetime-local"
                                 name="termEnd"
                                 defaultValue={formatDateForInput(editingData?.termEnd)}
-                                className="h-12 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040]"
+                                className="h-14 bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] rounded-xl font-bold"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-slate-700 dark:text-slate-300 font-bold">Biography or Message (Optional)</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Biography or Message (Optional)</Label>
                         <Textarea
                             name="bio"
                             defaultValue={editingData?.bio}
                             placeholder="Write a short background or public message..."
-                            className="min-h-[120px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] resize-y"
+                            className="min-h-[120px] bg-slate-50 dark:bg-[#1a1f2e] border-slate-200 dark:border-[#2a3040] focus:ring-2 rounded-2xl p-5 font-medium italic resize-none"
+                            style={{ "--tw-ring-color": `${themeColor}40` } as CSSProperties}
                         />
                     </div>
 
                     {/* Dynamic Social Links */}
-                    <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                    <div className="pt-6 border-t border-slate-200 dark:border-[#2a3040]">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-primary/10 rounded-lg">
-                                    <Globe className="w-4 h-4 text-primary" />
-                                </div>
-                                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Social & Profile Links</h3>
+                            <div className="flex items-center gap-2" style={{ color: themeColor }}>
+                                <Globe className="w-4 h-4" />
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Social & Profile Links</h3>
                             </div>
                             <Button 
                                 type="button" 
                                 onClick={addLink}
                                 variant="outline"
-                                className="h-8 px-3 border-primary/20 text-primary hover:bg-primary/10 font-bold rounded-lg flex items-center gap-2 text-[10px] uppercase tracking-tighter"
+                                className="h-9 px-4 font-bold rounded-xl flex items-center gap-2"
+                                style={{ borderColor: `${themeColor}40`, color: themeColor }}
                             >
                                 <Plus className="w-3 h-3" /> Add Link
                             </Button>
@@ -338,7 +357,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
 
                         <div className="space-y-3">
                             {links.length === 0 ? (
-                                <div className="p-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center">
+                                <div className="p-6 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-center">
                                     <p className="text-slate-400 text-xs font-medium italic">No social links added yet.</p>
                                 </div>
                             ) : (
@@ -388,7 +407,7 @@ function OfficialForm({ editingData, handleSubmit }: { editingData: any; handleS
 // Main modal shell — thin wrapper; delegates state to OfficialForm
 // -----------------------------------------------------------------------
 export function AddOfficialModal() {
-    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData } = useOfficials();
+    const { isAddModalOpen, setIsAddModalOpen, editingData, setEditingData, themeColor } = useOfficials();
     const { handleSubmit, loading } = useOfficialsForm();
 
     // A unique key ensures OfficialForm fully remounts on each open/close
@@ -402,52 +421,52 @@ export function AddOfficialModal() {
                 setEditingData(null);
             }
         }}>
-            <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-2xl">
-                <div className="flex flex-col h-[90vh] sm:h-auto sm:max-h-[85vh]">
-                    <DialogHeader className="p-8 pb-4 bg-slate-50/50 dark:bg-[#151b2b] sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040]">
-                        <div className="flex items-center space-x-3 mb-1">
-                            <div className="p-2 bg-primary rounded-lg">
-                                <Users className="w-5 h-5 text-white" />
+            <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-white dark:bg-[#0f1117] border-slate-200 dark:border-[#2a3040] shadow-2xl rounded-[2.5rem]">
+                <div className="flex flex-col h-[90vh] sm:max-h-[85vh]">
+                    <DialogHeader
+                        className="p-6 pb-4 sticky top-0 z-50 border-b border-slate-200 dark:border-[#2a3040] relative overflow-hidden shrink-0"
+                        style={{ backgroundColor: `${themeColor}14` }}
+                    >
+                        <div className="flex items-center space-x-3">
+                            <div 
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" 
+                                style={{ backgroundColor: themeColor, boxShadow: `0 12px 30px -12px ${themeColor}` }}
+                            >
+                                <Users className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
                                     {editingData ? "Edit Official Profile" : "Add Council Member"}
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
+                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium italic text-sm">
                                     Manage the details of elected or appointed council members.
                                 </DialogDescription>
                             </div>
                         </div>
                     </DialogHeader>
 
-                    <div className="p-8 overflow-y-auto custom-scrollbar">
+                    <div className="flex-1 p-4 pb-24 overflow-y-auto custom-scrollbar">
                         {/* key forces a full remount every time formKey changes */}
                         <OfficialForm
                             key={formKey}
                             editingData={editingData}
                             handleSubmit={handleSubmit}
+                            themeColor={themeColor}
                         />
                     </div>
 
-                    <DialogFooter className="p-8 bg-white dark:bg-[#151b2b] sticky bottom-0 z-50 border-t border-slate-200 dark:border-[#2a3040] flex justify-end gap-3 rounded-b-2xl">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsAddModalOpen(false)}
-                            className="h-12 px-8 font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                            Cancel
-                        </Button>
+                    <DialogFooter className="p-6 pt-0 bg-white dark:bg-[#0f1117] border-none shrink-0">
                         <Button
                             type="submit"
                             form="officialForm"
                             disabled={loading}
-                            className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            className="w-full h-12 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ backgroundColor: themeColor, boxShadow: `0 14px 28px -14px ${themeColor}` }}
                         >
                             {loading ? (
                                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                             ) : (
-                                editingData ? "Update Profile" : "Add Official"
+                                editingData ? "Apply Changes" : "Add Official"
                             )}
                         </Button>
                     </DialogFooter>

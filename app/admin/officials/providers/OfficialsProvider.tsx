@@ -38,9 +38,12 @@ interface OfficialsContextType {
     setSelectedPosition: (position: string) => void;
     selectedCategory: string;
     setSelectedCategory: (category: string) => void;
+    selectedStatus: string;
+    setSelectedStatus: (status: string) => void;
     selectedBarangay: string;
     setSelectedBarangay: (barangay: string) => void;
     barangays: string[];
+    themeColor: string;
 }
 
 const OfficialsContext = createContext<OfficialsContextType | undefined>(undefined);
@@ -63,11 +66,28 @@ export function OfficialsProvider({
     const [editingData, setEditingData] = useState<any | null>(null);
     const [selectedPosition, setSelectedPosition] = useState("All");
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [selectedStatus, setSelectedStatus] = useState("All");
     const [selectedBarangay, setSelectedBarangay] = useState(managedBarangay || "LGU");
+    const [themeColor, setThemeColor] = useState("#2563eb");
 
     useEffect(() => {
         setOfficialsData(initialData);
     }, [initialData]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await fetch("/api/settings");
+                const data = await response.json();
+                if (data.themeColor) {
+                    setThemeColor(data.themeColor);
+                }
+            } catch (error) {
+                console.error("Error fetching theme settings:", error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     return (
         <OfficialsContext.Provider
@@ -84,9 +104,12 @@ export function OfficialsProvider({
                 setSelectedPosition,
                 selectedCategory,
                 setSelectedCategory,
+                selectedStatus,
+                setSelectedStatus,
                 selectedBarangay,
                 setSelectedBarangay,
                 barangays,
+                themeColor,
             }}
         >
             {children}
