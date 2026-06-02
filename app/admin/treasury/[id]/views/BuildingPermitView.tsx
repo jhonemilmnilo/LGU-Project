@@ -403,7 +403,7 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                                             {safeFormatDate(transaction.updatedAt)}
                                                         </div>
                                                     </div>
-                                                    {additional.gcashReferenceNo && (
+                                                    {additional.gcashReferenceNo && additional.gcashReferenceNo.toLowerCase() !== "n/a" && additional.gcashReferenceNo.toLowerCase() !== "na" && (
                                                         <div className="space-y-1">
                                                             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">GCash Ref No.</div>
                                                             <div className="text-sm font-bold text-slate-700 dark:text-slate-200">

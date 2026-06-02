@@ -113,6 +113,7 @@ interface FormState {
     deceasedSuffix: string;
     dateOfDeath: string;
     placeOfDeath: string;
+    causeOfDeath?: string;
     // Parents' Details
     fatherFirstName: string;
     fatherMiddleName: string;
@@ -297,6 +298,7 @@ export default function DeathCertificateRequestPage() {
         deceasedSuffix: "",
         dateOfDeath: "",
         placeOfDeath: "",
+        causeOfDeath: "",
         fatherFirstName: "",
         fatherMiddleName: "",
         fatherLastName: "",
@@ -371,6 +373,7 @@ export default function DeathCertificateRequestPage() {
                         deceasedSuffix: draft.deceasedSuffix || "",
                         dateOfDeath: draft.dateOfDeath || "",
                         placeOfDeath: draft.placeOfDeath || "",
+                        causeOfDeath: draft.causeOfDeath || "",
                         fatherFirstName: draft.fatherFirstName || "",
                         fatherMiddleName: draft.fatherMiddleName || "",
                         fatherLastName: draft.fatherLastName || "",
@@ -437,6 +440,7 @@ export default function DeathCertificateRequestPage() {
                 deceasedSuffix: form.deceasedSuffix,
                 dateOfDeath: form.dateOfDeath,
                 placeOfDeath: form.placeOfDeath,
+                causeOfDeath: form.causeOfDeath,
                 fatherFirstName: form.fatherFirstName,
                 fatherMiddleName: form.fatherMiddleName,
                 fatherLastName: form.fatherLastName,
@@ -485,6 +489,7 @@ export default function DeathCertificateRequestPage() {
         }
 
         if (!policyAccepted) {
+            setShowErrors(true);
             toast.error("Please review and accept the Privacy Policy & Terms before submitting.");
             return;
         }
@@ -519,6 +524,7 @@ export default function DeathCertificateRequestPage() {
                 deceasedSuffix: form.deceasedSuffix.trim(),
                 dateOfEvent: form.dateOfDeath,
                 placeOfEvent: form.placeOfDeath.trim(),
+                causeOfDeath: form.causeOfDeath?.trim() || "",
                 fatherName: `${form.fatherFirstName} ${form.fatherMiddleName} ${form.fatherLastName}`.replace(/\s+/g, " ").trim(),
                 fatherFirstName: form.fatherFirstName.trim(),
                 fatherMiddleName: form.fatherMiddleName.trim(),
@@ -1159,6 +1165,16 @@ export default function DeathCertificateRequestPage() {
                                         />
                                     </div>
                                 </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Cause of Death (Optional)</Label>
+                                    <Input
+                                        value={form.causeOfDeath || ""}
+                                        onChange={(e) => setForm(p => ({ ...p, causeOfDeath: e.target.value }))}
+                                        className="h-10 rounded-xl font-bold text-xs md:text-sm uppercase"
+                                        placeholder="e.g. Cardiopulmonary Arrest"
+                                    />
+                                </div>
                             </div>
 
                             {/* Step Nav */}
@@ -1482,27 +1498,42 @@ export default function DeathCertificateRequestPage() {
                             {/* Review panels */}
                             <div className="space-y-6">
                                 {/* Data Privacy checkbox */}
-                                <div className="p-4 rounded-3xl border border-slate-200/50 dark:border-white/5 bg-slate-500/5 flex items-start gap-4 shadow-sm">
-                                    <button
-                                        type="button"
-                                        onClick={() => setPolicyOpen(true)}
-                                        className={cn("w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 transition-colors", policyAccepted ? "bg-slate-800 border-slate-800 dark:bg-white dark:border-white text-white dark:text-slate-900" : "border-slate-300")}
-                                    >
-                                        {policyAccepted ? <Check className="w-3.5 h-3.5" /> : null}
-                                    </button>
-                                    <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
-                                        <div className="font-black uppercase text-[10px] tracking-wider text-slate-800 dark:text-white">Data Privacy & Certification Agreement</div>
-                                        <div className="text-[9px] text-slate-500 italic mt-1 leading-relaxed">
-                                            I certify that all details submitted are true, correct, and matching public registry records. I agree to the Municipal Data Privacy compliance. Click to review.
+                                <div className={cn(
+                                    "p-4 rounded-3xl border flex flex-col gap-3 shadow-sm bg-slate-500/5 transition-all duration-300",
+                                    (showErrors && !policyAccepted) ? "border-red-500 bg-red-500/5 shadow-md shadow-red-500/5" : "border-slate-200/50 dark:border-white/5"
+                                )}>
+                                    <div className="flex items-start gap-4 w-full">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPolicyOpen(true)}
+                                            className={cn(
+                                                "w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 transition-colors",
+                                                policyAccepted ? "bg-slate-800 border-slate-800 dark:bg-white dark:border-white text-white dark:text-slate-900" :
+                                                (showErrors && !policyAccepted) ? "border-red-500 hover:border-red-600 bg-red-500/10" : "border-slate-300"
+                                            )}
+                                        >
+                                            {policyAccepted ? <Check className="w-3.5 h-3.5" /> : null}
+                                        </button>
+                                        <div className="flex-1 text-xs cursor-pointer select-none" onClick={() => setPolicyOpen(true)}>
+                                            <div className="font-black uppercase text-[10px] tracking-wider text-slate-800 dark:text-white">Data Privacy & Certification Agreement</div>
+                                            <div className="text-[9px] text-slate-500 italic mt-1 leading-relaxed">
+                                                I certify that all details submitted are true, correct, and matching public registry records. I agree to the Municipal Data Privacy compliance. Click to review.
+                                            </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPolicyOpen(true)}
+                                            className="text-[10px] font-black italic text-slate-600 dark:text-slate-400 hover:underline shrink-0"
+                                        >
+                                            Review
+                                        </button>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setPolicyOpen(true)}
-                                        className="text-[10px] font-black italic text-slate-600 dark:text-slate-400 hover:underline shrink-0"
-                                    >
-                                        Review
-                                    </button>
+                                    {showErrors && !policyAccepted && (
+                                        <div className="text-red-500 font-bold text-[9px] uppercase tracking-widest pl-9 flex items-center gap-1.5 animate-pulse">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                            Data privacy agreement is required to submit
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Summary columns */}
@@ -1555,6 +1586,12 @@ export default function DeathCertificateRequestPage() {
                                                 <span className="text-slate-400 font-bold italic uppercase text-[9px]">Place of Death:</span>
                                                 <span className="font-black uppercase text-slate-900 dark:text-white">{form.placeOfDeath}</span>
                                             </div>
+                                            {form.causeOfDeath && (
+                                                <div className="flex justify-between py-1 border-b border-slate-200/30 dark:border-white/5">
+                                                    <span className="text-slate-400 font-bold italic uppercase text-[9px]">Cause of Death:</span>
+                                                    <span className="font-black uppercase text-slate-900 dark:text-white">{form.causeOfDeath}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between py-1 border-b border-slate-200/30 dark:border-white/5">
                                                 <span className="text-slate-400 font-bold italic uppercase text-[9px]">Service Fee:</span>
                                                 <span className="font-black text-slate-900 dark:text-white">₱{(dbType?.baseFee || 150).toFixed(2)}</span>
@@ -1577,7 +1614,7 @@ export default function DeathCertificateRequestPage() {
                                 </Button>
                                 <Button
                                     onClick={handleSubmit}
-                                    disabled={submitting || !policyAccepted}
+                                    disabled={submitting}
                                     className="rounded-full px-12 bg-slate-800 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl hover:opacity-90 transition-opacity flex items-center gap-2"
                                 >
                                     {submitting ? (

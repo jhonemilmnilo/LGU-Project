@@ -130,6 +130,45 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
     loading: () => <div className="h-[250px] w-full rounded-xl bg-white/5 animate-pulse flex items-center justify-center text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Initializing Grid Matrix...</div>
 });
 
+const getVerificationConfig = (formType: string) => {
+    switch (formType) {
+        case "FORM_1B":
+            return {
+                title: "Record Not Available (Form 1B)",
+                description: "Your requested birth certificate record is not available in our archives.",
+                badgeColor: "bg-amber-500 text-white border-transparent",
+                themeColor: "#f59e0b",
+                bgColor: "bg-amber-500/5 dark:bg-amber-500/10",
+                borderColor: "border-amber-500/20 dark:border-amber-500/30",
+                textColor: "text-amber-600 dark:text-amber-400",
+                glowColor: "shadow-amber-500/10",
+            };
+        case "FORM_1C":
+            return {
+                title: "Record Destroyed (Form 1C)",
+                description: "Your requested birth certificate record has been destroyed in our archives.",
+                badgeColor: "bg-rose-500 text-white border-transparent",
+                themeColor: "#f43f5e",
+                bgColor: "bg-rose-500/5 dark:bg-rose-500/10",
+                borderColor: "border-rose-500/20 dark:border-rose-500/30",
+                textColor: "text-rose-600 dark:text-rose-400",
+                glowColor: "shadow-rose-500/10",
+            };
+        case "FORM_1A":
+        default:
+            return {
+                title: "Record Found (Form 1A)",
+                description: "Your requested birth certificate has been retrieved and certified.",
+                badgeColor: "bg-emerald-500 text-white border-transparent",
+                themeColor: "#10b981",
+                bgColor: "bg-emerald-500/5 dark:bg-emerald-500/10",
+                borderColor: "border-emerald-500/20 dark:border-emerald-500/30",
+                textColor: "text-emerald-600 dark:text-emerald-400",
+                glowColor: "shadow-emerald-500/10",
+            };
+    }
+};
+
 export default function RequestHubPage() {
     const params = useParams();
     const router = useRouter();
@@ -607,6 +646,7 @@ export default function RequestHubPage() {
     const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
+    const isLcrBirth = typeCode === "LCR_BIRTH";
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
     const remainingRevisions = request ? Math.max(0, 3 - (request.revisionCount || 0)) : 3;
     const isPermitNewReleasedOrDelivered = isBusinessPermit &&
@@ -1086,7 +1126,7 @@ export default function RequestHubPage() {
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Service Requested</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.type?.name}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Date Submitted</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{formatPHDate(request.createdAt)}</p></div>
                                                 <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Logistics Phase</p><p className="text-base md:text-xl font-semibold text-slate-900 dark:text-white italic leading-tight uppercase">{request.fulfillmentType?.replace(/_/g, " ") || "PENDING EVAL"}</p></div>
-                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Payment</p><p className="text-base md:text-xl font-semibold text-primary italic leading-tight uppercase">{request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS"}</p></div>
+                                                <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-semibold text-slate-400 tracking-widest italic opacity-60 leading-none">Payment</p><p className="text-base md:text-xl font-semibold text-primary italic leading-tight uppercase">{((request.type?.code === "LCR_BIRTH" || request.type?.code?.startsWith("LCR_")) && ["FOR_REQUESTING", "UNDER_REVIEW"].includes(request.status)) ? "TBD" : (request.paymentType?.replace(/_/g, " ") || "PENDING ASSESS")}</p></div>
                                             </div>
                                         </div>
                                     </Card>
@@ -1178,7 +1218,11 @@ export default function RequestHubPage() {
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
                                                 <Separator className="bg-white/10" />
                                                 <div className="flex items-end justify-between">
-                                                    <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                                                    {((request.type?.code === "LCR_BIRTH" || request.type?.code?.startsWith("LCR_")) && ["FOR_REQUESTING", "UNDER_REVIEW"].includes(request.status)) ? (
+                                                        <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary/60 italic leading-tight">TBD</p></div>
+                                                    ) : (
+                                                        <div><p className="text-[8px] font-black uppercase tracking-widest text-primary/50 italic leading-none">Total Payable</p><p className="text-xl md:text-2xl font-black text-primary italic leading-tight">₱{(request.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                                                    )}
                                                     <ShieldCheck className="w-6 h-6 text-primary/40" />
                                                 </div>
                                             </div>
@@ -1494,7 +1538,108 @@ export default function RequestHubPage() {
                                                 </div>
                                             )}
 
-                                        {(request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
+                                        {isLcrBirth && (request.status === "RELEASED" || request.status === "DELIVERED") && (
+                                            (() => {
+                                                const formType = additionalData.registryBookVerification || "FORM_1A";
+                                                const config = getVerificationConfig(formType);
+                                                return (
+                                                    <div 
+                                                        className={cn(
+                                                            "p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:scale-[1.01] w-full text-left bg-white dark:bg-slate-900/40",
+                                                            config.borderColor,
+                                                            config.glowColor
+                                                        )}
+                                                    >
+                                                        <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
+                                                            <ShieldCheck className="w-24 h-24" style={{ color: config.themeColor }} />
+                                                        </div>
+                                                        <div className="relative z-10 space-y-6">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div 
+                                                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
+                                                                        style={{ backgroundColor: config.themeColor }}
+                                                                    >
+                                                                        <FileText className="w-5 h-5 text-white" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[8px] font-black uppercase tracking-widest italic opacity-70 leading-none" style={{ color: config.themeColor }}>
+                                                                            Registry Book Verification
+                                                                        </p>
+                                                                        <p className="text-xs md:text-sm font-black italic tracking-tight uppercase leading-none mt-1.5 text-slate-900 dark:text-white">
+                                                                            {config.title}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <Badge className={cn("text-[8px] font-black uppercase tracking-widest italic px-3 py-1 rounded-full", config.badgeColor)}>
+                                                                    {formType.replace(/_/g, " ")}
+                                                                </Badge>
+                                                            </div>
+                                                            
+                                                            <div className="p-5 bg-white/50 dark:bg-[#121620]/60 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm">
+                                                                <p className="text-xs md:text-sm font-bold italic text-slate-700 dark:text-slate-200 leading-relaxed">
+                                                                    &ldquo;{config.description}&rdquo;
+                                                                </p>
+                                                            </div>
+
+                                                            {formType === "FORM_1B" && (
+                                                                <div className="p-5 bg-amber-500/10 dark:bg-amber-500/5 rounded-2xl border border-amber-500/20 shadow-inner space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                                                    <div className="flex items-start gap-3">
+                                                                        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                                                        <div className="space-y-1">
+                                                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 leading-none">MCR negative verification notice</h4>
+                                                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-normal italic">
+                                                                                MCR issued Form 1B (Negative Result). Please proceed with Late Registration to create a record.
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <Button
+                                                                        asChild
+                                                                        className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg shadow-amber-500/20 transition-all duration-200 active:scale-95 flex items-center justify-center border-none"
+                                                                    >
+                                                                        <Link href="/user/services/civil-registry/birth-registration">
+                                                                            Proceed with Late Registration
+                                                                        </Link>
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+
+                                                            {request.eCopyUrl && (
+                                                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                                                    <Button
+                                                                        onClick={handleECopyDownload}
+                                                                        className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                                                                        style={{ 
+                                                                            backgroundColor: config.themeColor,
+                                                                            boxShadow: `0 10px 20px -5px ${config.themeColor}30`
+                                                                        }}
+                                                                    >
+                                                                        <Download className="w-4 h-4" />
+                                                                        Download
+                                                                    </Button>
+                                                                    <Button
+                                                                        asChild
+                                                                        variant="outline"
+                                                                        className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
+                                                                    >
+                                                                        <a
+                                                                            href={request.eCopyUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                        >
+                                                                            <ExternalLink className="w-4 h-4" />
+                                                                            View Document
+                                                                        </a>
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()
+                                        )}
+
+                                        {!isLcrBirth && (request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
                                             <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>
                                                 <div className="relative z-10 space-y-6">

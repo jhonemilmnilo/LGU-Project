@@ -165,17 +165,6 @@ export default function RegistrarDashboard() {
         currentPage * itemsPerPage
     );
 
-    // Toggles sorting direction for the service column
-    const handleServiceSortToggle = () => {
-        if (sortBy === "service") {
-            setSortDirection(prev => prev === "asc" ? "desc" : "asc");
-        } else {
-            setSortBy("service");
-            setSortDirection("asc");
-        }
-    };
-
-    // Resets any dynamic service filtering when explicit date sorting is toggled
     const handleDateHeaderClick = () => {
         setServiceFilter(null);
         if (sortBy === "date") {
@@ -211,7 +200,7 @@ export default function RegistrarDashboard() {
                                 <div className="hidden sm:block">
                                     <Select 
                                         value={serviceFilter ?? "ALL"} 
-                                        onValueChange={(v) => { setSortBy("service"); setServiceFilter(v === "ALL" ? null : v); }}
+                                        onValueChange={(v) => { setServiceFilter(v === "ALL" ? null : v); }}
                                         onOpenChange={(open) => { if (!open) setServiceSearch(""); }}
                                     >
                                         <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200 dark:border-[#2a3040] bg-white dark:bg-[#0f1117]">
@@ -266,26 +255,7 @@ export default function RegistrarDashboard() {
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">#</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Applicant</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300 py-5">
-                                            <div className="flex items-center gap-2">
-                                                {/* Sort Trigger */}
-                                                <button
-                                                    onClick={handleServiceSortToggle}
-                                                    className="flex items-center gap-1.5 hover:text-primary transition-colors focus:outline-none font-bold"
-                                                >
-                                                    <span>Service</span>
-                                                    <span className={cn(
-                                                        "transition-colors duration-200 font-black text-[10px]",
-                                                        sortBy === "service"
-                                                            ? "text-blue-600 dark:text-blue-400 font-bold"
-                                                            : "text-slate-300 dark:text-slate-600"
-                                                    )}>
-                                                        {sortBy === "service"
-                                                            ? (sortDirection === "asc" ? "▲" : "▼")
-                                                            : "⇅"
-                                                        }
-                                                    </span>
-                                                </button>
-                                            </div>
+                                            <span>Service</span>
                                         </TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Method</TableHead>
                                         <TableHead className="font-bold text-slate-700 dark:text-slate-300">Amount</TableHead>

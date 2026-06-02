@@ -1331,7 +1331,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                                     <div className="space-y-1">
                                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Death</span>
                                                         <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                            {transaction.deathRegistration?.placeOfEvent || additional.placeOfDeath || "N/A"}
+                                                            {transaction.deathRegistration?.placeOfEvent || additional.placeOfEvent || additional.placeOfDeath || "N/A"}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1372,33 +1372,8 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                     <div className="space-y-6">
                                         {isDeath ? (
                                             <>
-                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Informant & Parental Dossier</h4>
+                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Dossier</h4>
                                                 <div className="space-y-4">
-                                                    {/* Informant Details */}
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Informant Profile</span>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div>
-                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Name</span>
-                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                    {additional.informantFirstName ? `${additional.informantFirstName} ${additional.informantLastName}` : "N/A"}
-                                                                </p>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[8px] uppercase tracking-wider text-slate-400">Relationship</span>
-                                                                <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                    {additional.relationship || "N/A"}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="pt-2 border-t border-slate-100 dark:border-white/5">
-                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400">Contact Number</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                {additional.contactNumber || "N/A"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
                                                     {/* Parents */}
                                                     <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
                                                         <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Parental Matrix</span>
@@ -1506,10 +1481,10 @@ export default function EngineerDetailPage({ params }: PageProps) {
                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-6">
                             <div>
                                 <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                    Resident <span className="text-primary">Identity Profile</span>
+                                    {isLCR ? "Informant" : "Resident"} <span className="text-primary">{isLCR ? "Profile" : "Identity Profile"}</span>
                                 </h2>
                                 <p className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.2em] italic mt-2">
-                                    Verified Citizen Data Dossier
+                                    {isLCR ? "Verified Requester / Informant Data Dossier" : "Verified Citizen Data Dossier"}
                                 </p>
                             </div>
                         </div>
@@ -1575,6 +1550,14 @@ export default function EngineerDetailPage({ params }: PageProps) {
                                     {resident?.occupation || "--"}
                                 </div>
                             </div>
+                            {isLCR && additional.relationship && (
+                                <div className="col-span-12 space-y-2 animate-in fade-in duration-300">
+                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Relationship to Subject / Deceased</label>
+                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                        {additional.relationship || "--"}
+                                    </div>
+                                </div>
+                            )}
                             <div className="col-span-12 md:col-span-6 space-y-2">
                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Barangay & Complete Address</label>
                                 <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
