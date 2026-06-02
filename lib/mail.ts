@@ -1,6 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailProps {
     type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET" | "PROCESSING";
@@ -435,6 +434,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
 
     try {
         const fromEmail = process.env.SENDER_EMAIL || "onboarding@resend.dev";
+        const resend = new Resend(resendApiKey);
 
         const { data, error } = await resend.emails.send({
             from: `LGU ${municipalityName} <${fromEmail}>`,
