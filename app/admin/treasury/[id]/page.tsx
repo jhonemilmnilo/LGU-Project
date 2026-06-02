@@ -45,6 +45,7 @@ import {
     declinePaymentProofAction,
     confirmTransactionPaymentWithReceipt
 } from "@/app/admin/transactions/actions";
+import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
@@ -283,10 +284,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
+    const [viewerDocs, setViewerDocs] = useState<{ url?: string | null; label: string }[]>([]);
+    const [viewerIndex, setViewerIndex] = useState(0);
 
-    const handleViewFile = (url: string | null, title: string) => {
+    const handleViewFile = (url: string | null, title: string, docs?: { url?: string | null; label: string }[], index?: number) => {
         setViewerUrl(url);
         setViewerTitle(title);
+        setViewerDocs(docs || []);
+        setViewerIndex(index || 0);
         setViewerOpen(true);
     };
     const [branding, setBranding] = useState({
@@ -368,7 +373,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [disputeModalOpen, setDisputeModalOpen] = useState(false);
     const [disputeAction, setDisputeAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
     const [showPreviousPhases, setShowPreviousPhases] = useState(false);
-    
+
     /*
     // Schedule Inspection Form State
     const [isSchedulingInspection, setIsSchedulingInspection] = useState(false);
@@ -474,13 +479,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         }));
                         setFeeLineItems(mappedFees);
                     } else {
-                        const defaultFees = tx.type?.defaultFees;
-                        if (Array.isArray(defaultFees) && defaultFees.length > 0 && (!tx.fiscalSnapshot || Object.keys(tx.fiscalSnapshot).length === 0)) {
-                            const mappedFees = defaultFees.map((fee: any) => ({
-                                label: fee.label,
-                                amount: ""
-                            }));
-                            setFeeLineItems(mappedFees);
+                        if (tx.isStudent) {
+                            setFeeLineItems([{ label: "", amount: "0" }]);
+                        } else {
+                            const defaultFees = tx.type?.defaultFees;
+                            if (Array.isArray(defaultFees) && defaultFees.length > 0 && (!tx.fiscalSnapshot || Object.keys(tx.fiscalSnapshot).length === 0)) {
+                                const mappedFees = defaultFees.map((fee: any) => ({
+                                    label: fee.label,
+                                    amount: ""
+                                }));
+                                setFeeLineItems(mappedFees);
+                            }
                         }
                     }
                 }
@@ -830,6 +839,22 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             };
         }
 
+        if (transaction.isStudent) {
+            if (transaction.status === "FOR_REQUESTING") {
+                const itemsSum = feeLineItems.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+                const dFee = transaction.fulfillmentType === "DELIVERY" ? deliveryFee : 0;
+                const baseStudentFee = Number(transaction.type?.studentFee || 0);
+                return {
+                    basicTax: baseStudentFee,
+                    additionalTax: 0,
+                    penalty: 0,
+                    deliveryFee: dFee,
+                    totalAmount: baseStudentFee + itemsSum + dFee,
+                    lineItems: feeLineItems.filter(item => (parseFloat(item.amount) || 0) > 0)
+                };
+            }
+        }
+
         return calculateCedula({
             type: additional.applicantType || "INDIVIDUAL",
             income,
@@ -845,7 +870,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
-        : income;
+        : (transaction.isStudent ? "Student Request" : income);
 
     const declaredLabel = isBusinessPermit
         ? (additional.businessType === "NEW" ? "Capital Investment" : "Declared Gross Sales")
@@ -1133,7 +1158,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         // Default: generic user documents
         return [
             { url: additional.validIdUrl, label: "Valid ID Evidence" },
-            { url: additional.proofOfIncomeUrl, label: "Income Verification" }
+            { url: additional.proofOfIncomeUrl, label: transaction.isStudent ? "Student ID / Enrollment Proof" : "Income Verification" }
         ];
     })();
 
@@ -1142,8 +1167,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         try {
             let itemsToSend: { label: string; amount: number }[] | undefined = undefined;
 
-            if (isBusinessPermit && userRole !== "ADMIN_AIDE") {
-                // Business Permit: at least one valid fee is required
+            if ((isBusinessPermit || transaction.isStudent) && userRole !== "ADMIN_AIDE") {
+                // Business Permit / Student Cedula: at least one valid fee is required
                 const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "");
                 if (validItems.length === 0) {
                     toast.error("Please add at least one valid fee line item.");
@@ -1198,7 +1223,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 }
             }
 
-            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber);
+            const res = transaction.isStudent
+                ? await evaluateStudentCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber)
+                : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber);
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -1291,7 +1318,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         }
 
         const validLogo = branding.logo && (branding.logo.startsWith('/') || branding.logo.startsWith('http') || branding.logo.startsWith('data:'))
-            ? branding.logo 
+            ? branding.logo
             : "/placeholder.png";
 
         const logoHtml = branding.logo ? `
@@ -1607,6 +1634,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     fileUrl={viewerUrl}
                     title={viewerTitle}
                     themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
                 />
             </>
         );
@@ -1622,6 +1651,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     fileUrl={viewerUrl}
                     title={viewerTitle}
                     themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
                 />
             </>
         );
@@ -1636,6 +1667,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 fileUrl={viewerUrl}
                 title={viewerTitle}
                 themeColor={themeColor}
+                documents={viewerDocs}
+                initialIndex={viewerIndex}
             />
         </>
     );

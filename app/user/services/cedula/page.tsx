@@ -12,7 +12,8 @@ import {
     AlertCircle,
     Home,
     Upload,
-    Sparkles
+    Sparkles,
+    GraduationCap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,10 @@ import {
     resubmitTransaction,
     getUserTransactions
 } from "@/app/admin/transactions/actions";
+import {
+    submitStudentCedulaTransaction,
+    resubmitStudentCedulaTransaction
+} from "@/app/admin/transactions/student-actions";
 import { calculateCedula, CedulaResult, isPastCedulaDeadline, getCedulaPenaltyRate } from "@/lib/cedula";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -72,6 +77,8 @@ interface FormState {
     proofFile: File | null;
     businessName: string;
     incomeSource: string;
+    isStudent?: boolean;
+    purpose?: string;
 }
 
 // --- CONSTANTS ---
@@ -117,7 +124,9 @@ export default function CedulaApplicationPage() {
         idFile: null,
         proofFile: null,
         businessName: "",
-        incomeSource: "PROFESSION"
+        incomeSource: "PROFESSION",
+        isStudent: false,
+        purpose: ""
     });
 
     const [viewerOpen, setViewerOpen] = useState(false);
@@ -194,6 +203,7 @@ export default function CedulaApplicationPage() {
                         const tx = txRes.data;
                         setRevisionId(revId);
                         setRevisionTx(tx);
+                        setCurrentStep("RESIDENT");
 
                         const addData = tx.additionalData as any || {};
                         const resSnapshot = tx.residentSnapshot as any || resident || {};
@@ -213,6 +223,8 @@ export default function CedulaApplicationPage() {
                             formattedIncome = isNaN(incomeNum) ? String(addData.income) : incomeNum.toLocaleString("en-US", { maximumFractionDigits: 2 });
                         }
 
+                        const isStudent = !!(tx.isStudent || addData.isStudent);
+
                         setFormData({
                             typeId: targetType?.id || tx.typeId || defaultTypeId,
                             applicantType: addData.applicantType || "INDIVIDUAL",
@@ -222,7 +234,9 @@ export default function CedulaApplicationPage() {
                             idFile: null,
                             proofFile: null,
                             businessName: addData.businessName || "",
-                            incomeSource: addData.incomeSource || "PROFESSION"
+                            incomeSource: addData.incomeSource || "PROFESSION",
+                            isStudent,
+                            purpose: addData.purpose || ""
                         });
 
                         // Set the baseline so auto-draft doesn't overwrite it
@@ -233,7 +247,9 @@ export default function CedulaApplicationPage() {
                             income: formattedIncome,
                             propertyValue: addData.propertyValue != null ? String(addData.propertyValue) : "",
                             businessName: addData.businessName || "",
-                            incomeSource: addData.incomeSource || "PROFESSION"
+                            incomeSource: addData.incomeSource || "PROFESSION",
+                            isStudent,
+                            purpose: addData.purpose || ""
                         }));
                     } else {
                         toast.error("Failed to fetch revision details");
@@ -293,6 +309,16 @@ export default function CedulaApplicationPage() {
 
     // --- LOGIC ---
     const updateCalc = React.useCallback(() => {
+        if (formData.isStudent) {
+            setCalcResult({
+                basicTax: 0,
+                additionalTax: 0,
+                penalty: 0,
+                deliveryFee: 0,
+                totalAmount: 0
+            });
+            return;
+        }
         const result = calculateCedula({
             type: formData.applicantType,
             income: parseFloat(formData.income.replace(/,/g, '')) || 0,
@@ -302,7 +328,7 @@ export default function CedulaApplicationPage() {
             baseFee: selectedType?.baseFee
         });
         setCalcResult(result);
-    }, [formData.income, formData.propertyValue, formData.applicantType, selectedType]);
+    }, [formData.income, formData.propertyValue, formData.applicantType, selectedType, formData.isStudent]);
 
     useEffect(() => {
         updateCalc();
@@ -327,7 +353,9 @@ export default function CedulaApplicationPage() {
             income: formData.income,
             propertyValue: formData.propertyValue,
             businessName: formData.businessName,
-            incomeSource: formData.incomeSource
+            incomeSource: formData.incomeSource,
+            isStudent: formData.isStudent,
+            purpose: formData.purpose
         };
 
         const currentDraftStr = JSON.stringify(textInputs);
@@ -345,6 +373,8 @@ export default function CedulaApplicationPage() {
         formData.propertyValue,
         formData.businessName,
         formData.incomeSource,
+        formData.isStudent,
+        formData.purpose,
         persistDraft,
         loading,
         baseDraft,
@@ -365,6 +395,9 @@ export default function CedulaApplicationPage() {
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
             case "DECLARATION":
+                if (formData.isStudent) {
+                    return !!formData.purpose?.trim();
+                }
                 if (formData.applicantType === "JURIDICAL") {
                     const isProp = formData.incomeSource === "PROPERTY";
                     const hasBusinessName = !!formData.businessName?.trim();
@@ -384,6 +417,8 @@ export default function CedulaApplicationPage() {
     };
 
     const canNavigate = (targetStep: Step) => {
+        if (revisionId && targetStep === "STATUS") return false;
+
         const targetIdx = STEPS.findIndex(s => s.id === targetStep);
         const currentIdx = STEPS.findIndex(s => s.id === currentStep);
 
@@ -449,13 +484,17 @@ export default function CedulaApplicationPage() {
             
             // Premium, helpful TagLish micro-notifications and smooth scroll to first missing element
             if (!hasId && !hasProof) {
-                toast.error("Wait lang, pare! You need to upload both your Valid ID and Proof of Income to proceed.");
+                toast.error(formData.isStudent 
+                    ? "Wait lang, pare! You need to upload both your Valid ID and Student ID/Enrollment Proof to proceed."
+                    : "Wait lang, pare! You need to upload both your Valid ID and Proof of Income to proceed.");
                 idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
             } else if (!hasId) {
                 toast.error("Oops! You forgot to attach your Valid ID, bro.");
                 idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
             } else if (!hasProof) {
-                toast.error("Hold on, you need to upload your Proof of Income first.");
+                toast.error(formData.isStudent 
+                    ? "Hold on, you need to upload your Student ID or Enrollment Proof first."
+                    : "Hold on, you need to upload your Proof of Income first.");
                 proofSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
             } else if (!hasPrivacy) {
                 toast.error("Please accept the Data Privacy and Terms Agreement to submit your application.");
@@ -472,20 +511,35 @@ export default function CedulaApplicationPage() {
             if (existingProofUrl) submitData.append("existingProofUrl", existingProofUrl);
 
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
-            submitData.append("additionalData", JSON.stringify({
-                applicantType: formData.applicantType,
-                income: parseFloat(formData.income.replace(/,/g, '')) || 0,
-                propertyValue: parseFloat(formData.propertyValue.replace(/,/g, '')) || 0,
-                businessName: formData.businessName,
-                incomeSource: formData.incomeSource
-            }));
 
-            if (formData.idFile) submitData.append("idFile", formData.idFile);
-            if (formData.proofFile) submitData.append("proofFile", formData.proofFile);
+            let res;
+            if (formData.isStudent) {
+                submitData.append("additionalData", JSON.stringify({
+                    applicantType: formData.applicantType,
+                    isStudent: true,
+                    purpose: formData.purpose
+                }));
+                if (formData.idFile) submitData.append("idFile", formData.idFile);
+                if (formData.proofFile) submitData.append("proofFile", formData.proofFile);
 
-            const res = revisionId 
-                ? await resubmitTransaction(revisionId, submitData)
-                : await submitTransaction(submitData);
+                res = revisionId 
+                    ? await resubmitStudentCedulaTransaction(revisionId, submitData)
+                    : await submitStudentCedulaTransaction(submitData);
+            } else {
+                submitData.append("additionalData", JSON.stringify({
+                    applicantType: formData.applicantType,
+                    income: parseFloat(formData.income.replace(/,/g, '')) || 0,
+                    propertyValue: parseFloat(formData.propertyValue.replace(/,/g, '')) || 0,
+                    businessName: formData.businessName,
+                    incomeSource: formData.incomeSource
+                }));
+                if (formData.idFile) submitData.append("idFile", formData.idFile);
+                if (formData.proofFile) submitData.append("proofFile", formData.proofFile);
+
+                res = revisionId 
+                    ? await resubmitTransaction(revisionId, submitData)
+                    : await submitTransaction(submitData);
+            }
 
             if (res.success) {
                 clearDraft(); // Purge draft upon successful submission
@@ -557,12 +611,12 @@ export default function CedulaApplicationPage() {
 
             {/* Revision Remarks Alert Banner */}
             {revisionTx && (
-                <div className="bg-amber-500/5 border border-amber-500/20 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="bg-red-600 dark:bg-red-800/80 border border-red-600/30 p-6 rounded-[2rem] shadow-lg shadow-red-500/5 animate-in fade-in slide-in-from-top-4 duration-300 text-white">
                     <div className="space-y-1.5 text-left w-full">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 text-[8px] font-black uppercase tracking-widest font-sans">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-[8px] font-black uppercase tracking-widest font-sans">
                             ⚠️ Attention: Revision Needed
                         </span>
-                        <div className="text-xs text-amber-700 dark:text-amber-400 font-bold bg-amber-500/[0.02] border border-amber-500/10 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
+                        <div className="text-xs text-white font-bold bg-white/10 border border-white/15 p-4 rounded-xl mt-2 italic font-sans leading-relaxed">
                             &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
                         </div>
                     </div>
@@ -647,24 +701,37 @@ export default function CedulaApplicationPage() {
                                             </p>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
                                             {[
                                                 { 
                                                     id: "INDIVIDUAL", 
                                                     icon: User,
-                                                    code: "CEDULA_IND"
+                                                    code: "CEDULA_IND",
+                                                    isStudent: false
+                                                },
+                                                { 
+                                                    id: "STUDENT", 
+                                                    icon: GraduationCap,
+                                                    code: "CEDULA_IND",
+                                                    isStudent: true
                                                 },
                                                 { 
                                                     id: "JURIDICAL", 
                                                     icon: Sparkles,
-                                                    code: "CEDULA_JUR"
+                                                    code: "CEDULA_JUR",
+                                                    isStudent: false
                                                 }
                                             ].map(opt => {
                                                 const matched = cedulaTypes.find((t: any) => t.code === opt.code);
-                                                const label = matched?.name || (opt.id === "INDIVIDUAL" ? "Individual Citizen" : "Juridical Entity");
-                                                const desc = matched?.description || (opt.id === "INDIVIDUAL" ? "For private citizens, professionals, and employees." : "For corporations, partnerships, and business firms.");
+                                                let label = matched?.name || (opt.id === "INDIVIDUAL" ? "Individual Citizen" : "Juridical Entity");
+                                                let desc = matched?.description || (opt.id === "INDIVIDUAL" ? "For private citizens, professionals, and employees." : "For corporations, partnerships, and business firms.");
                                                 
-                                                const isSelected = formData.applicantType === opt.id;
+                                                if (opt.isStudent) {
+                                                    label = "Student Cedula";
+                                                    desc = "For active students. Flat-rate standard community tax. Excludes income declarations.";
+                                                }
+                                                
+                                                const isSelected = formData.applicantType === (opt.id === "STUDENT" ? "INDIVIDUAL" : opt.id) && !!formData.isStudent === opt.isStudent;
                                                 const Icon = opt.icon;
                                                 return (
                                                     <button
@@ -675,7 +742,8 @@ export default function CedulaApplicationPage() {
                                                             if (t) {
                                                                 setFormData(p => ({ 
                                                                     ...p, 
-                                                                    applicantType: opt.id as any, 
+                                                                    applicantType: (opt.id === "STUDENT" ? "INDIVIDUAL" : opt.id) as any, 
+                                                                    isStudent: opt.isStudent,
                                                                     typeId: t.id,
                                                                     incomeSource: opt.id === "JURIDICAL" ? "BUSINESS" : "PROFESSION"
                                                                 }));
@@ -857,230 +925,274 @@ export default function CedulaApplicationPage() {
                                         </p>
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Step 3: FINANCIAL DECLARATION */}
-                             {currentStep === "DECLARATION" && (
+                            )}                             {/* Step 3: FINANCIAL DECLARATION */}
+                              {currentStep === "DECLARATION" && (
                                 <div className="space-y-8 md:space-y-12">
                                     <div className="space-y-2 md:space-y-4 text-center md:text-left">
-                                                        <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight">Tax <span className="text-primary italic">Declaration</span></h2>
-                                        <p className="text-slate-500 font-medium italic text-xs md:text-lg leading-relaxed">Declare your annual financial status for the tax computation.</p>
+                                                        <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight">
+                                                            {formData.isStudent ? "Request" : "Tax"} <span className="text-primary italic">Declaration</span>
+                                                        </h2>
+                                        <p className="text-slate-500 font-medium italic text-xs md:text-lg leading-relaxed">
+                                            {formData.isStudent 
+                                                ? "Provide the purpose / reason of your Cedula request."
+                                                : "Declare your annual financial status for the tax computation."}
+                                        </p>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                                         <div className="space-y-6 md:space-y-8">
-                                            {formData.applicantType === "JURIDICAL" && (
+                                            {formData.isStudent ? (
                                                 <div className="space-y-2 md:space-y-3">
-                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Business Name</Label>
-                                                    <Input
-                                                        value={formData.businessName}
-                                                        onChange={(e) => setFormData(p => ({ ...p, businessName: e.target.value }))}
-                                                        placeholder="Enter Business Name"
-                                                        className="h-12 md:h-16 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-lg md:text-xl font-black italic bg-white"
+                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purpose / Reason of Request</Label>
+                                                    <textarea
+                                                        value={formData.purpose || ""}
+                                                        onChange={(e) => setFormData(p => ({ ...p, purpose: e.target.value }))}
+                                                        placeholder="Enter the purpose of your Cedula request (e.g. Scholarship application, School Enrollment, Board Exam, Valid ID verification, etc.)"
+                                                        className="w-full min-h-[140px] p-4 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 dark:bg-[#151720] focus:ring-primary shadow-sm text-sm font-bold bg-white text-slate-800 dark:text-slate-200 focus:outline-none focus:border-primary transition-all leading-relaxed"
                                                     />
                                                 </div>
-                                            )}
+                                            ) : (
+                                                <>
+                                                    {formData.applicantType === "JURIDICAL" && (
+                                                        <div className="space-y-2 md:space-y-3">
+                                                            <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Business Name</Label>
+                                                            <Input
+                                                                value={formData.businessName}
+                                                                onChange={(e) => setFormData(p => ({ ...p, businessName: e.target.value }))}
+                                                                placeholder="Enter Business Name"
+                                                                className="h-12 md:h-16 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-lg md:text-xl font-black italic bg-white"
+                                                            />
+                                                        </div>
+                                                    )}
 
-                                            <div className="space-y-2 md:space-y-3">
-                                                <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">
-                                                    {formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY" 
-                                                        ? "Worth of Real Property Owned" 
-                                                        : "Annual Gross Income"}
-                                                </Label>
-                                                <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg md:text-xl font-black text-slate-300 italic">₱</span>
-                                                     <Input
-                                                        ref={incomeInputRef}
-                                                        type="text"
-                                                        value={formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY" 
-                                                            ? formData.propertyValue 
-                                                            : formData.income}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                            if (val === '') {
-                                                                if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
-                                                                    setFormData(p => ({ ...p, propertyValue: '' }));
-                                                                } else {
-                                                                    setFormData(p => ({ ...p, income: '' }));
-                                                                }
-                                                                return;
-                                                            }
-                                                            const parts = val.split('.');
-                                                            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                                                            const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
-                                                            
-                                                            if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
-                                                                setFormData(p => ({ ...p, propertyValue: formatted }));
-                                                            } else {
-                                                                setFormData(p => ({ ...p, income: formatted }));
-                                                            }
-                                                        }}
-                                                        placeholder="0.00"
-                                                        className="h-12 md:h-16 pl-10 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-lg md:text-xl font-black italic bg-white"
-                                                    />
-                                                </div>
-                                            </div>
+                                                    <div className="space-y-2 md:space-y-3">
+                                                        <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">
+                                                            {formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY" 
+                                                                ? "Worth of Real Property Owned" 
+                                                                : "Annual Gross Income"}
+                                                        </Label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg md:text-xl font-black text-slate-300 italic">₱</span>
+                                                             <Input
+                                                                ref={incomeInputRef}
+                                                                type="text"
+                                                                value={formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY" 
+                                                                    ? formData.propertyValue 
+                                                                    : formData.income}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                    if (val === '') {
+                                                                        if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
+                                                                            setFormData(p => ({ ...p, propertyValue: '' }));
+                                                                        } else {
+                                                                            setFormData(p => ({ ...p, income: '' }));
+                                                                        }
+                                                                        return;
+                                                                    }
+                                                                    const parts = val.split('.');
+                                                                    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                                                                    const formatted = parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0];
+                                                                    
+                                                                    if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
+                                                                        setFormData(p => ({ ...p, propertyValue: formatted }));
+                                                                    } else {
+                                                                        setFormData(p => ({ ...p, income: formatted }));
+                                                                    }
+                                                                }}
+                                                                placeholder="0.00"
+                                                                className="h-12 md:h-16 pl-10 rounded-xl md:rounded-2xl border-slate-200 dark:border-white/10 dark:bg-white/5 text-lg md:text-xl font-black italic bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
 
-                                            {formData.applicantType === "JURIDICAL" && (
-                                                <div className="space-y-4">
-                                                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic ml-1">
-                                                         Income Source Category
-                                                     </Label>
-                                                     <div className="flex flex-col gap-2">
-                                                         {[
-                                                             { 
-                                                                 id: "BUSINESS", 
-                                                                 label: "Business", 
-                                                                 desc: "Annual Gross Receipts / Income"
-                                                             },
-                                                             { 
-                                                                 id: "PROPERTY", 
-                                                                 label: "Real Property", 
-                                                                 desc: "Worth of Real Property Owned"
-                                                             }
-                                                         ].map(opt => {
-                                                             const isSelected = formData.incomeSource === opt.id;
-                                                             return (
-                                                                 <button
-                                                                     key={opt.id}
-                                                                     type="button"
-                                                                     onClick={() => setFormData(p => ({ 
-                                                                         ...p, 
-                                                                         incomeSource: opt.id,
-                                                                         income: opt.id === "BUSINESS" ? p.income : "",
-                                                                         propertyValue: opt.id === "PROPERTY" ? p.propertyValue : ""
-                                                                     }))}
-                                                                     className={cn(
-                                                                         "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
-                                                                         isSelected 
-                                                                             ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
-                                                                             : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
-                                                                     )}
-                                                                 >
-                                                                     <h4 className={cn(
-                                                                         "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
-                                                                         isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
-                                                                     )}>
-                                                                         {opt.label}
-                                                                     </h4>
-                                                                     <p className={cn(
-                                                                         "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
-                                                                         isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
-                                                                     )}>
-                                                                         {opt.desc}
-                                                                     </p>
-                                                                 </button>
-                                                             );
-                                                         })}
-                                                     </div>
-                                                </div>
-                                            )}
+                                                    {formData.applicantType === "JURIDICAL" && (
+                                                        <div className="space-y-4">
+                                                             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic ml-1">
+                                                                 Income Source Category
+                                                             </Label>
+                                                             <div className="flex flex-col gap-2">
+                                                                 {[
+                                                                     { 
+                                                                         id: "BUSINESS", 
+                                                                         label: "Business", 
+                                                                         desc: "Annual Gross Receipts / Income"
+                                                                     },
+                                                                     { 
+                                                                         id: "PROPERTY", 
+                                                                         label: "Real Property", 
+                                                                         desc: "Worth of Real Property Owned"
+                                                                     }
+                                                                 ].map(opt => {
+                                                                     const isSelected = formData.incomeSource === opt.id;
+                                                                     return (
+                                                                         <button
+                                                                             key={opt.id}
+                                                                             type="button"
+                                                                             onClick={() => setFormData(p => ({ 
+                                                                                 ...p, 
+                                                                                 incomeSource: opt.id,
+                                                                                 income: opt.id === "BUSINESS" ? p.income : "",
+                                                                                 propertyValue: opt.id === "PROPERTY" ? p.propertyValue : ""
+                                                                             }))}
+                                                                             className={cn(
+                                                                                 "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
+                                                                                 isSelected 
+                                                                                     ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
+                                                                                     : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
+                                                                             )}
+                                                                         >
+                                                                             <h4 className={cn(
+                                                                                 "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
+                                                                                 isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
+                                                                             )}>
+                                                                                 {opt.label}
+                                                                             </h4>
+                                                                             <p className={cn(
+                                                                                 "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
+                                                                                 isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
+                                                                             )}>
+                                                                                 {opt.desc}
+                                                                             </p>
+                                                                         </button>
+                                                                     );
+                                                                 })}
+                                                             </div>
+                                                        </div>
+                                                    )}
 
-                                            {formData.applicantType === "INDIVIDUAL" && (
-                                                <div className="space-y-4">
-                                                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic ml-1">
-                                                         Income Source Category
-                                                     </Label>
-                                                     <div className="flex flex-col gap-2">
-                                                         {[
-                                                             { 
-                                                                 id: "PROFESSION", 
-                                                                 label: "Profession", 
-                                                                 desc: "Employees, Freelancers, & Salary"
-                                                             },
-                                                             { 
-                                                                 id: "BUSINESS", 
-                                                                 label: "Business", 
-                                                                 desc: "Trade, Stores, & Services"
-                                                             },
-                                                             { 
-                                                                 id: "PROPERTY", 
-                                                                 label: "Property", 
-                                                                 desc: "Real Estate Rentals & Leases"
-                                                             }
-                                                         ].map(opt => {
-                                                             const isSelected = formData.incomeSource === opt.id;
-                                                             return (
-                                                                 <button
-                                                                     key={opt.id}
-                                                                     type="button"
-                                                                     onClick={() => setFormData(p => ({ ...p, incomeSource: opt.id }))}
-                                                                     className={cn(
-                                                                         "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
-                                                                         isSelected 
-                                                                             ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
-                                                                             : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
-                                                                     )}
-                                                                 >
-                                                                     <h4 className={cn(
-                                                                         "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
-                                                                         isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
-                                                                     )}>
-                                                                         {opt.label}
-                                                                     </h4>
-                                                                     <p className={cn(
-                                                                         "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
-                                                                         isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
-                                                                     )}>
-                                                                         {opt.desc}
-                                                                     </p>
-                                                                 </button>
-                                                             );
-                                                         })}
-                                                     </div>
-                                                </div>
+                                                    {formData.applicantType === "INDIVIDUAL" && (
+                                                        <div className="space-y-4">
+                                                             <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 italic ml-1">
+                                                                 Income Source Category
+                                                             </Label>
+                                                             <div className="flex flex-col gap-2">
+                                                                 {[
+                                                                     { 
+                                                                         id: "PROFESSION", 
+                                                                         label: "Profession", 
+                                                                         desc: "Employees, Freelancers, & Salary"
+                                                                     },
+                                                                     { 
+                                                                         id: "BUSINESS", 
+                                                                         label: "Business", 
+                                                                         desc: "Trade, Stores, & Services"
+                                                                     },
+                                                                     { 
+                                                                         id: "PROPERTY", 
+                                                                         label: "Property", 
+                                                                         desc: "Real Estate Rentals & Leases"
+                                                                     }
+                                                                 ].map(opt => {
+                                                                     const isSelected = formData.incomeSource === opt.id;
+                                                                     return (
+                                                                         <button
+                                                                             key={opt.id}
+                                                                             type="button"
+                                                                             onClick={() => setFormData(p => ({ ...p, incomeSource: opt.id }))}
+                                                                             className={cn(
+                                                                                 "px-5 py-4 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden flex items-center justify-between gap-4 group select-none shadow-sm cursor-pointer",
+                                                                                 isSelected 
+                                                                                     ? "border-primary bg-primary/[0.05] dark:bg-primary/[0.1] shadow-[0_4px_20px_rgba(var(--primary),0.05)] scale-[1.01]" 
+                                                                                     : "border-slate-200 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-sm hover:border-primary/30 hover:bg-white/60 dark:hover:bg-white/10"
+                                                                             )}
+                                                                         >
+                                                                             <h4 className={cn(
+                                                                                 "text-sm md:text-base font-black uppercase italic tracking-wider whitespace-nowrap",
+                                                                                 isSelected ? "text-primary" : "text-slate-800 dark:text-slate-200"
+                                                                             )}>
+                                                                                 {opt.label}
+                                                                             </h4>
+                                                                             <p className={cn(
+                                                                                 "text-[10px] md:text-xs font-bold uppercase tracking-tighter text-right",
+                                                                                 isSelected ? "text-primary/70 dark:text-primary/60" : "text-slate-500 dark:text-slate-400"
+                                                                             )}>
+                                                                                 {opt.desc}
+                                                                             </p>
+                                                                         </button>
+                                                                     );
+                                                                 })}
+                                                             </div>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
 
-                                        <div className="bg-slate-900 dark:bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group/calc transition-transform">
-                                            <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10">
-                                                <Calculator className="w-24 h-24 md:w-32 md:h-32 rotate-12" />
-                                            </div>
-                                            <div className="space-y-3 md:space-y-4 border-b border-white/10 pb-4 md:pb-6 relative z-10 font-bold">
-                                                <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic opacity-70">
-                                                    <span>Basic Tax</span>
-                                                    <span>₱{(calcResult?.basicTax ?? selectedType?.baseFee ?? (formData.applicantType === "INDIVIDUAL" ? 5.00 : 500.00)).toFixed(2)}</span>
+                                        {formData.isStudent ? (
+                                            <div className="bg-slate-900 dark:bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group/calc transition-transform flex flex-col justify-between min-h-[300px]">
+                                                <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10">
+                                                    <GraduationCap className="w-24 h-24 md:w-32 md:h-32 rotate-12 text-primary" />
                                                 </div>
-                                                <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic opacity-70">
-                                                    <span>Additional Tax</span>
-                                                    <span>₱{calcResult?.additionalTax.toFixed(2)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic text-amber-500">
-                                                    <span className="flex items-center gap-2">
-                                                        Penalty ({Math.round(getCedulaPenaltyRate() * 100)}%)
-                                                        {isPastCedulaDeadline() && (
-                                                            <TooltipProvider delayDuration={0}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <button type="button" className="cursor-help">
-                                                                            <AlertCircle className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                                                        </button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent className="bg-slate-900 text-white border-slate-800 p-3 md:p-4 rounded-xl shadow-2xl max-w-[240px] md:max-w-[280px]">
-                                                                        <div className="space-y-2">
-                                                                            <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-amber-500 italic">Penalty Rule</h4>
-                                                                            <p className="text-[8px] md:text-[9px] font-medium leading-relaxed uppercase tracking-tighter">
-                                                                                A 2% monthly interest is imposed after the March 1st deadline.
-                                                                            </p>
-                                                                        </div>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        )}
+                                                <div className="space-y-4 relative z-10">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary text-[8px] font-black uppercase tracking-widest font-sans">
+                                                        🎓 Student Pathway Active
                                                     </span>
-                                                    <span>₱{calcResult?.penalty.toFixed(2)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="pt-2 flex justify-between items-end relative z-10">
-                                                <div className="space-y-1 mb-1 md:mb-2 text-left">
-                                                    <span className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary italic">Estimated Total</span>
-                                                    <p className="text-[7px] md:text-[8px] font-bold text-white/40 uppercase tracking-tighter italic leading-none max-w-[100px] md:max-w-[120px]">
-                                                        * Subject to admin evaluation.
+                                                    <h3 className="text-xl font-bold uppercase tracking-tighter italic">Flat-Rate Assessment</h3>
+                                                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-wide leading-relaxed text-slate-400">
+                                                        Students are exempt from declaring gross income or property holdings. The Treasury Office will review your uploaded student credentials and apply the standard student fee (default: <span className="text-primary font-black">₱25.00</span>).
                                                     </p>
                                                 </div>
-                                                <span className="text-3xl md:text-5xl font-black italic tracking-tighter text-white">₱{calcResult?.totalAmount.toLocaleString()}</span>
+                                                <div className="pt-6 border-t border-white/10 flex justify-between items-end relative z-10">
+                                                    <div className="space-y-1 mb-1 md:mb-2 text-left">
+                                                        <span className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary italic">Estimated Total</span>
+                                                        <p className="text-[7px] md:text-[8px] font-bold text-white/40 uppercase tracking-tighter italic leading-none">
+                                                            * Assessed by Treasury
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-xl md:text-2xl font-black italic tracking-tighter text-white uppercase animate-pulse">PENDING ASSESSMENT</span>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <div className="bg-slate-900 dark:bg-black rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group/calc transition-transform">
+                                                <div className="absolute top-0 right-0 p-4 md:p-8 opacity-10">
+                                                    <Calculator className="w-24 h-24 md:w-32 md:h-32 rotate-12" />
+                                                </div>
+                                                <div className="space-y-3 md:space-y-4 border-b border-white/10 pb-4 md:pb-6 relative z-10 font-bold">
+                                                    <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic opacity-70">
+                                                        <span>Basic Tax</span>
+                                                        <span>₱{(calcResult?.basicTax ?? selectedType?.baseFee ?? (formData.applicantType === "INDIVIDUAL" ? 5.00 : 500.00)).toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic opacity-70">
+                                                        <span>Additional Tax</span>
+                                                        <span>₱{calcResult?.additionalTax.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px] md:text-xs uppercase tracking-widest italic text-amber-500">
+                                                        <span className="flex items-center gap-2">
+                                                            Penalty ({Math.round(getCedulaPenaltyRate() * 100)}%)
+                                                            {isPastCedulaDeadline() && (
+                                                                <TooltipProvider delayDuration={0}>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <button type="button" className="cursor-help">
+                                                                                <AlertCircle className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                                                            </button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent className="bg-slate-900 text-white border-slate-800 p-3 md:p-4 rounded-xl shadow-2xl max-w-[240px] md:max-w-[280px]">
+                                                                            <div className="space-y-2">
+                                                                                <h4 className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-amber-500 italic">Penalty Rule</h4>
+                                                                                <p className="text-[8px] md:text-[9px] font-medium leading-relaxed uppercase tracking-tighter">
+                                                                                    A 2% monthly interest is imposed after the March 1st deadline.
+                                                                                </p>
+                                                                            </div>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            )}
+                                                        </span>
+                                                        <span>₱{calcResult?.penalty.toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="pt-2 flex justify-between items-end relative z-10">
+                                                    <div className="space-y-1 mb-1 md:mb-2 text-left">
+                                                        <span className="block text-[9px] md:text-[10px] font-black uppercase tracking-widest text-primary italic">Estimated Total</span>
+                                                        <p className="text-[7px] md:text-[8px] font-bold text-white/40 uppercase tracking-tighter italic leading-none max-w-[100px] md:max-w-[120px]">
+                                                            * Subject to admin evaluation.
+                                                        </p>
+                                                    </div>
+                                                    <span className="text-3xl md:text-5xl font-black italic tracking-tighter text-white">₱{calcResult?.totalAmount.toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -1190,9 +1302,11 @@ export default function CedulaApplicationPage() {
                                                     </div>
                                                     <div className="space-y-0.5">
                                                         <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic flex items-center gap-1">
-                                                            Proof of Income <span className="text-red-500 font-black not-italic">*</span>
+                                                            {formData.isStudent ? "Student ID / Enrollment Proof" : "Proof of Income"} <span className="text-red-500 font-black not-italic">*</span>
                                                         </h4>
-                                                        <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">Payslip / BIR (Max 5MB)</p>
+                                                        <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">
+                                                            {formData.isStudent ? "School ID / Registration Card (Max 5MB)" : "Payslip / BIR (Max 5MB)"}
+                                                        </p>
                                                     </div>
                                                 </div>
 
@@ -1254,7 +1368,7 @@ export default function CedulaApplicationPage() {
                                                      )}
                                                      <Button asChild variant={(formData.proofFile || existingProofUrl) ? "outline" : "default"} className="font-black italic uppercase tracking-widest text-[8px] md:text-[9px] px-4 md:px-6 h-8 rounded-full flex-1">
                                                          <label htmlFor="proof-upload" className="cursor-pointer">
-                                                             {formData.proofFile ? "Change" : existingProofUrl ? "Replace Proof" : "Upload"}
+                                                             {formData.proofFile ? "Change" : existingProofUrl ? (formData.isStudent ? "Replace Student ID" : "Replace Proof") : "Upload"}
                                                          </label>
                                                      </Button>
                                                  </div>
