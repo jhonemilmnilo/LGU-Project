@@ -134,6 +134,7 @@ export default function ServicesClient({ initialServices, themeColor }: Services
             department: department,
             description: description,
             link: link,
+            servicesList: items, // Isolated list of services for this category
             requirements: categoryDocs.length > 0 ? categoryDocs : [
                 "Valid Government ID",
                 "Official Supporting Documents"
@@ -304,18 +305,61 @@ export default function ServicesClient({ initialServices, themeColor }: Services
                                                         {service.description}
                                                     </p>
 
-                                                    {/* Documents checklist */}
-                                                    <div className="space-y-3">
-                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic block leading-none">Required Files Checklist</span>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                                                            {service.requirements.map((req, i) => (
-                                                                <div key={i} className="flex items-center gap-3">
-                                                                    <div className="w-4 h-4 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center shrink-0"><div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} /></div>
-                                                                    <span className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 italic truncate leading-snug">{req}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
+                                                     {/* Services and specific requirements */}
+                                                     <div className="space-y-4">
+                                                         <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 italic block leading-none">Available Services & Requirements</span>
+                                                         <div className="space-y-3">
+                                                             {service.servicesList.map((item: any) => {
+                                                                 let docs: string[] = [];
+                                                                 if (Array.isArray(item.requiredDocs)) {
+                                                                     docs = item.requiredDocs as string[];
+                                                                 } else if (typeof item.requiredDocs === "string") {
+                                                                     try {
+                                                                         docs = JSON.parse(item.requiredDocs);
+                                                                     } catch {
+                                                                         docs = [];
+                                                                     }
+                                                                 } else if (item.requiredDocs && typeof item.requiredDocs === "object") {
+                                                                     try {
+                                                                         docs = Object.values(item.requiredDocs) as string[];
+                                                                     } catch {
+                                                                         docs = [];
+                                                                     }
+                                                                 }
+                                                                 const serviceDocs = docs.map(d => d.trim()).filter(Boolean);
+
+                                                                 return (
+                                                                     <div key={item.id} className="p-4 bg-slate-50 dark:bg-white/[0.01] border border-slate-200/60 dark:border-white/5 rounded-xl space-y-2.5">
+                                                                         <div className="flex items-center justify-between gap-4">
+                                                                             <h4 className="text-xs md:text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight italic">
+                                                                                 {item.name}
+                                                                             </h4>
+                                                                             <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 shrink-0">
+                                                                                 ₱{item.baseFee.toLocaleString(undefined, { minimumFractionDigits: 2 })} Base
+                                                                             </span>
+                                                                         </div>
+                                                                         
+                                                                         {serviceDocs.length > 0 ? (
+                                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-1 pt-1 border-t border-slate-100 dark:border-white/5">
+                                                                                 {serviceDocs.map((doc, docIdx) => (
+                                                                                     <div key={docIdx} className="flex items-center gap-2">
+                                                                                         <div className="w-3.5 h-3.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center justify-center shrink-0">
+                                                                                             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                                                                                         </div>
+                                                                                         <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 italic truncate leading-snug">
+                                                                                             {doc}
+                                                                                         </span>
+                                                                                     </div>
+                                                                                 ))}
+                                                                             </div>
+                                                                         ) : (
+                                                                             <p className="text-[10px] font-bold italic text-slate-400/80 pl-1 pt-1 border-t border-slate-100 dark:border-white/5">No specific files required.</p>
+                                                                         )}
+                                                                     </div>
+                                                                 );
+                                                             })}
+                                                         </div>
+                                                     </div>
 
                                                     {/* Footer button row */}
                                                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
