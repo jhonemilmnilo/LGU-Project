@@ -16,7 +16,6 @@ import {
     Heart,
     Skull,
     ArrowRight,
-    CreditCard,
     Info,
     Upload,
     Search,
@@ -39,14 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageBreadcrumb } from "@/components/shared/PageBreadcrumb";
 import { Card } from "@/components/ui/card";
 import {
     Select,
@@ -85,15 +77,14 @@ const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null
     return <img src={src} alt={alt} className={className} />;
 };
 
-// --- TYPES ---
-
-type Step = "IDENTITY" | "DETAILS" | "PARENTS" | "CONFIRM";
+type Step = "STATUS" | "IDENTITY" | "DETAILS" | "PARENTS" | "CONFIRM";
 
 const STEPS: { id: Step; label: string; icon: any }[] = [
+    { id: "STATUS", label: "Status", icon: Sparkles },
     { id: "IDENTITY", label: "Identity", icon: User },
-    { id: "DETAILS", label: "Certificate Details", icon: Search },
-    { id: "PARENTS", label: "Parental Info", icon: Users },
-    { id: "CONFIRM", label: "Verification", icon: CheckCircle2 },
+    { id: "DETAILS", label: "Details", icon: Search },
+    { id: "PARENTS", label: "Parents", icon: Users },
+    { id: "CONFIRM", label: "Submit", icon: CheckCircle2 },
 ];
 
 interface FormState {
@@ -173,6 +164,40 @@ export default function CivilRegistryPage() {
     const [showErrors, setShowErrors] = useState(false);
     const [availableTypes, setAvailableTypes] = useState<any[]>([]);
     const [themeColor, setThemeColor] = useState("#2563eb");
+
+    const isStepValid = (stepId: Step) => {
+        switch (stepId) {
+            case "IDENTITY":
+                return !!form.relationship;
+            case "DETAILS":
+                const isMarriage = form.registryType === "MARRIAGE" || form.registryType === "MARRIAGE_LICENSE";
+                if (!form.certFirstName || !form.certLastName || !form.dateOfEvent || !form.placeOfEvent) return false;
+                if (isMarriage && !form.spouseName) return false;
+                return true;
+            case "PARENTS":
+                return true;
+            case "CONFIRM":
+                return true;
+            default:
+                return true;
+        }
+    };
+
+    const canNavigate = (targetStep: Step) => {
+        if (targetStep === "STATUS") return true;
+        const stepsOrder: Step[] = ["STATUS", "IDENTITY", "DETAILS", "PARENTS", "CONFIRM"];
+        const targetIdx = stepsOrder.indexOf(targetStep);
+        const currentIdx = stepsOrder.indexOf(currentStep);
+
+        // Always allow going backwards
+        if (targetIdx <= currentIdx) return true;
+
+        // For forward navigation, ensure all preceding steps are valid
+        for (let i = 1; i < targetIdx; i++) {
+            if (!isStepValid(stepsOrder[i])) return false;
+        }
+        return true;
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -527,15 +552,7 @@ export default function CivilRegistryPage() {
             />
             {/* Header Section */}
             <div className="space-y-4">
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem><BreadcrumbLink href="/">Home</BreadcrumbLink></BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem><BreadcrumbLink href="/user/services">Services</BreadcrumbLink></BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem><BreadcrumbPage>Civil Registry</BreadcrumbPage></BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
+                <PageBreadcrumb />
 
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white dark:bg-[#0f1117] p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none">
                     <div className="space-y-2">
@@ -554,53 +571,59 @@ export default function CivilRegistryPage() {
             </div>
 
             {/* Progress Stepper */}
-            <div className="relative px-2 py-4">
-                {/* Background Line */}
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 dark:bg-white/5 -translate-y-1/2" />
+            <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2">
+                {STEPS.map((step, idx) => {
+                    const isActive = currentStep === step.id;
+                    const stepIdx = STEPS.findIndex(s => s.id === currentStep);
+                    const isCompleted = stepIdx > idx;
+                    const Icon = step.icon;
 
-                {/* Animated Progress Line */}
-                <motion.div
-                    className="absolute top-1/2 left-0 h-0.5 bg-blue-600 -translate-y-1/2 z-0"
-                    initial={{ width: 0 }}
-                    animate={{
-                        width: `${(STEPS.findIndex(s => s.id === currentStep) / (STEPS.length - 1)) * 100}%`
-                    }}
-                />
-
-                <div className="flex justify-between items-center relative z-10">
-                    {STEPS.map((step, idx) => {
-                        const isActive = currentStep === step.id;
-                        const stepIdx = STEPS.findIndex(s => s.id === currentStep);
-                        const isCompleted = stepIdx > idx;
-                        const Icon = step.icon;
-
-                        return (
-                            <div
-                                key={idx}
-                                className="flex flex-col items-center gap-2 transition-all duration-300"
+                    return (
+                        <div
+                            key={idx}
+                            onClick={() => {
+                                if (step.id === "STATUS") {
+                                    router.push("/user/services/civil-registry");
+                                    return;
+                                }
+                                if (canNavigate(step.id)) {
+                                    setCurrentStep(step.id);
+                                } else {
+                                    toast.info("Please fill out the current step to proceed.");
+                                }
+                            }}
+                            className={cn(
+                                "flex flex-col items-center gap-2 md:gap-3 relative z-10 font-black cursor-pointer group",
+                                (!canNavigate(step.id) && currentStep !== step.id && step.id !== "STATUS") && "cursor-not-allowed opacity-50"
+                            )}
+                        >
+                            <div 
+                                className={cn(
+                                    "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
+                                    isActive ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
+                                        isCompleted ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
+                                            "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-primary/30"
+                                )}
+                                style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
                             >
-                                <div className={cn(
-                                    "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 bg-white dark:bg-[#08090d]",
-                                    isActive ? "border-blue-600 text-blue-600 shadow-lg shadow-blue-500/20 scale-110" :
-                                        isCompleted ? "bg-blue-600 border-blue-600 text-white" :
-                                            "border-slate-200 dark:border-white/10 text-slate-400"
-                                )}>
-                                    {isCompleted ? (
-                                        <Check className="w-5 h-5" />
-                                    ) : (
-                                        <Icon className="w-5 h-5" />
-                                    )}
-                                </div>
-                                <span className={cn(
-                                    "text-[9px] font-black uppercase tracking-widest italic hidden md:block",
-                                    isActive ? "text-blue-600" : "text-slate-400"
-                                )}>
-                                    {step.label}
-                                </span>
+                                {isCompleted ? (
+                                    <Check className="w-4 h-4 md:w-7 md:h-7" />
+                                ) : (
+                                    <Icon className="w-4 h-4 md:w-7 md:h-7" />
+                                )}
                             </div>
-                        );
-                    })}
-                </div>
+                            <span 
+                                className={cn(
+                                    "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
+                                    isActive ? "text-primary opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity"
+                                )}
+                                style={isActive ? { color: themeColor } : {}}
+                            >
+                                {step.label}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
 
             {mounted && typeof document !== "undefined" && createPortal(
@@ -800,15 +823,7 @@ export default function CivilRegistryPage() {
                                 </p>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-8">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => router.push("/user/services/civil-registry")}
-                                    className="rounded-full px-8 border-slate-200 dark:border-white/10 font-black uppercase tracking-widest italic text-[10px] h-12"
-                                >
-                                    <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
-                                    Back
-                                </Button>
+                             <div className="flex justify-end gap-3 pt-8">
                                 <Button
                                     onClick={() => {
                                         if (!form.relationship) {
@@ -821,7 +836,7 @@ export default function CivilRegistryPage() {
                                     }}
                                     className="rounded-full px-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest italic text-[10px] h-12 shadow-xl shadow-blue-500/20"
                                 >
-                                    Proceed to Certificate Details
+                                    Next Phase
                                     <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </div>
@@ -1487,27 +1502,6 @@ export default function CivilRegistryPage() {
                 </AnimatePresence>
             </Card>
 
-            {/* Info Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="p-6 rounded-[2rem] border-slate-200/50 dark:border-white/5 bg-blue-500/5 border-l-4 border-l-blue-500">
-                    <div className="flex gap-4">
-                        <Info className="w-5 h-5 text-blue-500 shrink-0" />
-                        <div className="space-y-1">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">Requirements</h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">Certified true copies require a valid government ID and an authorization letter if the applicant is not the document owner.</p>
-                        </div>
-                    </div>
-                </Card>
-                <Card className="p-6 rounded-[2rem] border-slate-200/50 dark:border-white/5 bg-slate-50 dark:bg-white/5">
-                    <div className="flex gap-4">
-                        <CreditCard className="w-5 h-5 text-slate-400 shrink-0" />
-                        <div className="space-y-1">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Standard Fee</h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium italic">PHP 150.00 per certified copy. Additional delivery fees apply for off-site requests.</p>
-                        </div>
-                    </div>
-                </Card>
-            </div>
         </div>
     );
 }

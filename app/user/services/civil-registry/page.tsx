@@ -8,9 +8,11 @@ import {
     FileText,
     ArrowRight,
     Sparkles,
-    Home
+    Home,
+    User,
+    Upload,
+    CheckCircle2
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -24,7 +26,6 @@ const REGISTRY_TYPES = [
         icon: FileText,
         description: "Request a certified true copy of an existing birth certificate.",
         color: "blue",
-        requirements: ["Valid ID of Applicant (Owner/Immediate Family)", "Authorization Letter (if not owner)"],
         href: "/user/services/civil-registry/birth-certificate-request",
         available: true
     },
@@ -34,13 +35,6 @@ const REGISTRY_TYPES = [
         icon: Baby,
         description: "Register a new birth record (timely or late registration).",
         color: "blue",
-        requirements: [
-            "Accomplished Municipal Form 102 (from Midwife/Hospital)",
-            "Marriage Certificate of Parents (if married)",
-            "Community Tax Certificate (if unmarried for Acknowledgment)",
-            "PSA Negative Certification (for Late Registration)",
-            "Affidavit of Delayed Registration (for Late Registration)"
-        ],
         href: "/user/services/civil-registry/birth-registration",
         available: true
     },
@@ -50,7 +44,6 @@ const REGISTRY_TYPES = [
         icon: FileText,
         description: "Request a certified true copy of an existing death certificate.",
         color: "slate",
-        requirements: ["Valid ID of Applicant (Immediate Family)", "Authorization Letter (if not immediate family)"],
         href: "/user/services/civil-registry/death-certificate-request",
         available: true
     },
@@ -60,12 +53,6 @@ const REGISTRY_TYPES = [
         icon: Skull,
         description: "Register a Death or Request a Certified Death Certificate.",
         color: "slate",
-        requirements: [
-            "Certificate of Death (issued by Hospital/MCR)",
-            "Burial/Transfer Permit",
-            "PSA Negative Certification (for Late Registration)",
-            "Affidavit of Delay (for Late Registration)"
-        ],
         href: "/user/services/civil-registry/death-registration",
         available: true
     },
@@ -75,7 +62,6 @@ const REGISTRY_TYPES = [
         icon: FileText,
         description: "Request a certified true copy of an existing marriage certificate.",
         color: "rose",
-        requirements: ["Valid ID of Applicant (Spouse/Immediate Family)", "Authorization Letter (if not spouse)"],
         href: "/user/services/civil-registry/marriage-certificate-request",
         available: true
     },
@@ -85,12 +71,6 @@ const REGISTRY_TYPES = [
         icon: Heart,
         description: "Request a certified copy of a Marriage Certificate.",
         color: "rose",
-        requirements: [
-            "Accomplished Certificate of Marriage",
-            "PSA Negative Certification (for Late Registration)",
-            "Affidavit of Delayed Registration (for Late Registration)",
-            "Certified Copy of Marriage License"
-        ],
         href: "/user/services/civil-registry/marriage-registration",
         available: true
     },
@@ -100,18 +80,17 @@ const REGISTRY_TYPES = [
         icon: FileText,
         description: "Apply for a legal license to be married in the Philippines.",
         color: "amber",
-        requirements: [
-            "Municipal Form No. 90",
-            "Community Tax Certificate",
-            "CENOMAR (from PSA)",
-            "Birth Certificates (from PSA)",
-            "Parental Consent/Advice (for 18-21 and 22-25)",
-            "Certificate of Pre-Marriage Counseling",
-            "Certificate of Family Planning"
-        ],
         href: "/user/services/civil-registry/marriage-license-application",
         available: true
     },
+];
+
+const STEPS = [
+    { id: "STATUS", label: "Status", icon: Sparkles },
+    { id: "IDENTITY", label: "Identity", icon: User },
+    { id: "DETAILS", label: "Details", icon: FileText },
+    { id: "DOCUMENTS", label: "Documents", icon: Upload },
+    { id: "SUBMIT", label: "Submit", icon: CheckCircle2 },
 ];
 
 export default function CivilRegistryPage() {
@@ -126,7 +105,7 @@ export default function CivilRegistryPage() {
     }, []);
 
     return (
-        <div className="container max-w-5xl mx-auto px-4 pt-0 pb-32 space-y-6">
+        <div className="container max-w-5xl mx-auto px-4 pt-0 pb-32 space-y-12">
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .theme-icon-bg {
@@ -149,132 +128,150 @@ export default function CivilRegistryPage() {
             }} />
 
             {/* Breadcrumbs */}
-            <Breadcrumb className="mb-4">
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/user" className="flex items-center gap-1.5 transition-colors hover:text-blue-500 theme-text-hover font-bold italic text-[11px] uppercase tracking-wider">
-                                <Home className="w-3.5 h-3.5" />
-                                Home
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="opacity-40" />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="/user/services" className="transition-colors hover:text-blue-500 theme-text-hover font-bold italic text-[11px] uppercase tracking-wider">
-                                Services
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="opacity-40" />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="text-blue-500 theme-icon-text font-black italic text-[11px] uppercase tracking-wider">
-                            Civil Registry
-                        </BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+            <div className="space-y-4 md:space-y-10">
+                <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
+                    <Breadcrumb>
+                        <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl border border-slate-200 dark:border-white/10 w-fit shadow-sm">
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/" className="flex items-center gap-1.5 transition-colors hover:text-blue-500 theme-text-hover font-bold italic text-[11px] uppercase tracking-wider">
+                                        <Home className="w-3.5 h-3.5" />
+                                        Home
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="opacity-40" />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link href="/user/services" className="transition-colors hover:text-blue-500 theme-text-hover font-bold italic text-[11px] uppercase tracking-wider">
+                                        Services
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="opacity-40" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="text-blue-500 theme-icon-text font-black italic text-[11px] uppercase tracking-wider">
+                                    Civil Registry
+                                </BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
+                </div>
 
-            {/* Header */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 p-8 md:p-12 text-white shadow-2xl border border-slate-700/50">
-                <div
-                    className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"
-                    style={{ backgroundColor: `${themeColor}1a` }}
-                />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-slate-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
-
-                <div className="relative z-10 space-y-4 max-w-2xl">
-                    <div
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest theme-icon-bg theme-icon-text border border-blue-500/20"
-                        style={{ borderColor: `${themeColor}33` }}
-                    >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Local Civil Registry (LCR)
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 px-1 md:px-0">
+                    <div className="space-y-1 md:space-y-2">
+                        <h1 className="text-4xl md:text-7xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter leading-none select-none">
+                            CIVIL <span className="text-primary underline decoration-[6px] md:decoration-8 decoration-primary/20 underline-offset-[6px] md:underline-offset-[12px]" style={{ textDecorationColor: `${themeColor}33` }}>REGISTRY</span>
+                        </h1>
+                        <p className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] ml-1 md:ml-2 italic">Local Civil Registry (LCR) Services</p>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">
-                        Civil Registry <span className="theme-icon-text">Services</span>
-                    </h1>
-                    <p className="text-xs md:text-sm text-slate-300 font-medium leading-relaxed italic">
-                        Select a civil registry service to file a new application or request official copies of certificates issued in Mapandan.
-                    </p>
                 </div>
             </div>
 
-            {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {REGISTRY_TYPES.map((type) => {
-                    const Icon = type.icon;
-
-                    const cardContent = (
-                        <Card className={cn(
-                            "group p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 bg-white dark:bg-[#0f1117] hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col justify-between h-full relative overflow-hidden",
-                            type.available ? "theme-border-hover" : "opacity-75 hover:border-slate-300 dark:hover:border-white/10"
-                        )}>
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-start">
-                                    <div className="p-4 rounded-2xl w-fit transition-colors theme-icon-bg">
-                                        <Icon className="w-6 h-6 theme-icon-text" />
-                                    </div>
-                                    {!type.available && (
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
-                                            Coming Soon
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <h3 className="text-xl font-black uppercase tracking-tight italic text-slate-900 dark:text-white">
-                                        {type.label}
-                                    </h3>
-                                    <p className="text-xs text-slate-500 font-medium italic">
-                                        {type.description}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                        Requirements
-                                    </h4>
-                                    <ul className="text-[10px] font-bold text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
-                                        {type.requirements.map((req, rIdx) => (
-                                            <li key={rIdx}>{req}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div className="pt-6 flex justify-end">
-                                <div className={cn(
-                                    "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
-                                    type.available
-                                        ? "bg-slate-50 border-slate-100 text-slate-900 group-hover:text-white dark:bg-white/5 dark:border-transparent dark:text-white theme-bg-hover"
-                                        : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed dark:bg-white/5 dark:border-transparent"
-                                )}>
-                                    <ArrowRight className="w-4 h-4" />
-                                </div>
-                            </div>
-                        </Card>
-                    );
-
-                    if (type.available) {
-                        return (
-                            <Link href={type.href} key={type.id} className="block h-full">
-                                {cardContent}
-                            </Link>
-                        );
-                    }
-
+            {/* Progress Stepper (Mocked consistent with CEDULA and Business Permit) */}
+            <div className="grid grid-cols-5 gap-1.5 md:gap-4 relative px-1 md:px-2">
+                {STEPS.map((step, idx) => {
+                    const isActive = step.id === "STATUS";
+                    const Icon = step.icon;
                     return (
                         <div
-                            key={type.id}
-                            onClick={() => toast.info(`${type.label} is currently under development.`)}
-                            className="block h-full"
+                            key={idx}
+                            className={cn(
+                                "flex flex-col items-center gap-2 md:gap-3 relative z-10 font-black cursor-pointer group",
+                                !isActive && "opacity-50 pointer-events-none"
+                            )}
                         >
-                            {cardContent}
+                            <div 
+                                className={cn(
+                                    "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
+                                    isActive ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" : "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent"
+                                )}
+                                style={isActive ? { backgroundColor: themeColor, borderColor: themeColor } : {}}
+                            >
+                                <Icon className="w-4 h-4 md:w-7 md:h-7" />
+                            </div>
+                            <span 
+                                className={cn(
+                                    "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
+                                    isActive ? "text-primary opacity-100 font-black" : "opacity-40"
+                                )}
+                                style={isActive ? { color: themeColor } : {}}
+                            >
+                                {step.label}
+                            </span>
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Step Content */}
+            <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">
+                <div className="flex-1 space-y-8 md:space-y-12">
+                    <div className="space-y-3 md:space-y-4 text-center">
+                        <h2 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter leading-tight select-none">
+                            Choose Application <span className="theme-icon-text">Pathway</span>
+                        </h2>
+                        <p className="text-slate-500 font-medium italic text-xs md:text-sm uppercase tracking-widest max-w-2xl mx-auto select-none">
+                            Select a civil registry service to proceed.
+                        </p>
+                    </div>
+
+                    {/* Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                        {REGISTRY_TYPES.map((type) => {
+                            const Icon = type.icon;
+                            
+                            const cardContent = (
+                                <div className={cn(
+                                    "p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border-2 transition-all duration-300 text-left relative group select-none overflow-hidden flex flex-col justify-between min-h-[220px] cursor-pointer bg-white/40 dark:bg-white/5 backdrop-blur-md border-slate-200 dark:border-white/10 hover:border-primary/40 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/5",
+                                    !type.available && "opacity-60 cursor-not-allowed"
+                                )}>
+                                    <div className="flex justify-between items-start w-full">
+                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 theme-icon-bg">
+                                            <Icon className="w-5 h-5 stroke-[2.5] theme-icon-text" />
+                                        </div>
+                                        {!type.available ? (
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-full">
+                                                Coming Soon
+                                            </span>
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center transition-colors theme-bg-hover group-hover:text-white border border-slate-100 dark:border-white/10 text-slate-900 dark:text-white">
+                                                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-1.5 mt-6">
+                                        <h4 className="text-base md:text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-tight">
+                                            {type.label}
+                                        </h4>
+                                        <p className="text-[9px] md:text-[10px] font-bold uppercase italic tracking-widest text-slate-400 dark:text-slate-500 leading-relaxed">
+                                            {type.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+
+                            if (type.available) {
+                                return (
+                                    <Link href={type.href} key={type.id} className="block h-full">
+                                        {cardContent}
+                                    </Link>
+                                );
+                            }
+
+                            return (
+                                <div
+                                    key={type.id}
+                                    onClick={() => toast.info(`${type.label} is currently under development.`)}
+                                    className="block h-full"
+                                >
+                                    {cardContent}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
         </div>
     );
