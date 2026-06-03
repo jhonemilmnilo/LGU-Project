@@ -334,9 +334,6 @@ export default function ServicesClient({ initialServices, themeColor }: Services
                                                                             <h4 className="text-xs md:text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight italic">
                                                                                 {item.name}
                                                                             </h4>
-                                                                            <span className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 shrink-0">
-                                                                                ₱{item.baseFee.toLocaleString(undefined, { minimumFractionDigits: 2 })} Base
-                                                                            </span>
                                                                         </div>
 
                                                                         {serviceDocs.length > 0 ? (
