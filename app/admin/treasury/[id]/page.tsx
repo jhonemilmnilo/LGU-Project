@@ -439,7 +439,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
-    const isLcrBirthCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_PSA_ENDORSEMENT" || (transaction?.type?.name && transaction.type.name.includes("Birth Certificate (Certified Copy)"));
+    const isLcrCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_DEATH" || typeCode === "LCR_MARRIAGE" || typeCode === "LCR_PSA_ENDORSEMENT" || (transaction?.type?.name && (transaction.type.name.includes("Birth Certificate") || transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Marriage Certificate"))) || false;
+    const isLcrBirthCertifiedCopy = isLcrCertifiedCopy;
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
     const isMarriage = typeCode.includes("MARRIAGE") || typeCode.includes("LICENSE");
@@ -459,6 +460,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 const tx = res.data;
                 setTransaction(tx);
+                if (tx.additionalData?.orSeriesNumber) {
+                    setOrSeriesNumber(tx.additionalData.orSeriesNumber);
+                }
 
                 // Pre-populate feeLineItems for building permit if assessed by engineer
                 if (tx && tx.type?.code?.startsWith("BUILDING_PERMIT")) {
@@ -825,8 +829,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
                 : 0;
-            // Miscellaneous fee: Late registration = ₱300, Standard = ₱0
-            const miscFee = isLate ? 300 : 0;
+            // Miscellaneous fee: Late registration = ₱300 (or custom from additional.miscFee), Standard = ₱0
+            const miscFee = isLate
+                ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300)
+                : 0;
             const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0)
                 ? Number(transaction.totalAmount)
                 : baseFee + deliveryFeeUsed + miscFee;
@@ -1213,7 +1219,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 }
             }
 
-            let uploadedDocUrl = "";
+            const uploadedDocUrl = "";
             if (isLCR && typeCode === "LCR_BIRTH") {
                 if (!registryBookVerification) {
                     toast.error("Registry Book Verification Form Choice is required before approving.");
@@ -1221,32 +1227,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     return;
                 }
             }
-            if (isLCR) {
-                if (typeCode === "LCR_BIRTH_REG") {
-                    if (!orSeriesNumber) {
-                        toast.error("O.R. Series Number is required before approving.");
-                        setActionLoading(false);
-                        return;
-                    }
-                    if (!birthRegDocFile) {
-                        toast.error("Scanned / required document is required before approving.");
-                        setActionLoading(false);
-                        return;
-                    }
 
-                    // Upload the birth registration document
-                    const formData = new FormData();
-                    formData.append("file", birthRegDocFile);
-                    const uploadRes = await uploadECopyAction(formData);
-                    if (uploadRes.success) {
-                        uploadedDocUrl = uploadRes.data as string;
-                    } else {
-                        toast.error("Birth registration document upload failed.");
-                        setActionLoading(false);
-                        return;
-                    }
-                }
-            }
 
             const res = transaction.isStudent
                 ? await evaluateStudentCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber)

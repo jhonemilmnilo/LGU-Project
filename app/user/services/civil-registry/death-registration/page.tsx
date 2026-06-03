@@ -365,21 +365,21 @@ export default function DeathRegistrationPage() {
                 {file ? (
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-800/80 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
                         {isImage ? (
-                            <div 
+                            <div
                                 onClick={() => handleOpenViewer(file, label)}
                                 className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 relative bg-slate-100 dark:bg-slate-900 group/thumb cursor-pointer"
                             >
-                                <PreviewImage 
-                                    file={file} 
-                                    alt="Preview" 
-                                    className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300" 
+                                <PreviewImage
+                                    file={file}
+                                    alt="Preview"
+                                    className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
                                     <Eye className="w-3.5 h-3.5 text-white" />
                                 </div>
                             </div>
                         ) : (
-                            <div 
+                            <div
                                 onClick={() => handleOpenViewer(file, label)}
                                 className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0 cursor-pointer hover:ring-2 hover:ring-emerald-500/50 transition-all relative group/thumb"
                             >
@@ -390,7 +390,7 @@ export default function DeathRegistrationPage() {
                             </div>
                         )}
 
-                        <div 
+                        <div
                             onClick={() => handleOpenViewer(file, label)}
                             className="flex-1 min-w-0 cursor-pointer hover:opacity-80"
                         >
@@ -430,8 +430,8 @@ export default function DeathRegistrationPage() {
                         </div>
                     </div>
                 ) : (
-                    <Label 
-                        htmlFor={uploadId} 
+                    <Label
+                        htmlFor={uploadId}
                         className="flex flex-col items-center justify-center py-4 px-3 rounded-xl border border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:border-emerald-500/50 dark:hover:border-emerald-500/50 transition-all duration-300 cursor-pointer group/upload text-center animate-fade-in"
                     >
                         <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center group-hover/upload:scale-110 transition-transform duration-300 mb-1.5">
@@ -1175,16 +1175,7 @@ export default function DeathRegistrationPage() {
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Required Documents</span>
                                                 </div>
 
-                                                {/* Modern Inline Alert */}
-                                                <div className="bg-emerald-500/5 border border-emerald-500/10 p-5 rounded-2xl flex items-start gap-3">
-                                                    <AlertCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                                                    <div className="space-y-1">
-                                                        <p className="text-[10px] font-black uppercase tracking-wider text-emerald-500">Document Upload Notice</p>
-                                                        <p className="text-xs font-bold italic text-emerald-500/80 leading-normal">
-                                                            Please ensure all files are clear and readable before proceeding. Any blurry, altered, or incorrect documents will result in an immediate rejection or revision request.
-                                                        </p>
-                                                    </div>
-                                                </div>
+
 
                                                 <div className="pb-4">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

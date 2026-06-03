@@ -11,7 +11,8 @@ import {
     RotateCw,
     ExternalLink,
     Upload,
-    Clock
+    Clock,
+    Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,59 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
     const isDeath = transaction.type?.code?.includes("DEATH") || transaction.type?.code?.startsWith("LCR_DEATH");
     const isMarriage = transaction.type?.code?.includes("MARRIAGE") || transaction.type?.code?.startsWith("LCR_MARRIAGE");
     const fiscal = additional.feeAssessment || null;
+    const isBirthRegistrationHiddenInTreasury = transaction.type?.code === "LCR_BIRTH_REG" && ["FOR_REQUESTING", "EVALUATED", "FOR_PROCESSING"].includes(transaction.status);
+    const isTreasuryContext = backUrl?.includes("/admin/treasury") || rawUserRole === "TREASURY_STAFF";
+
+    if (isBirthRegistrationHiddenInTreasury && isTreasuryContext) {
+        return (
+            <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-300">
+                <div className={`h-1.5 w-full ${themeColor} transition-all duration-500`} />
+                <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                    <Link
+                        href={backUrl}
+                        className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors group mb-8"
+                    >
+                        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+                        Back to Treasury
+                    </Link>
+
+                    <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 text-center space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">
+                            Registrar Request
+                        </h3>
+                        <p className="text-xs font-bold text-slate-400 dark:text-slate-500 italic leading-relaxed">
+                            Birth registration requests in this status are handled by the Registrar and are not displayed in Treasury.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const finalEvidenceDocs = [...(evidenceDocs || [])];
+    const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
+    const isBirthReg = transaction.type?.code === "LCR_BIRTH_REG" || transaction.type?.code === "LCR_BIRTH";
+    if (isBirthReg && isLate) {
+        if (additional.supportingEvidence1 || additional.supportingEvidence1Type) {
+            if (!finalEvidenceDocs.some(d => d.url === additional.supportingEvidence1)) {
+                finalEvidenceDocs.push({
+                    url: additional.supportingEvidence1,
+                    label: `Evidence 1: ${EVIDENCE_LABELS[additional.supportingEvidence1Type as string] || "Supporting Evidence"}`
+                });
+            }
+        }
+        if (additional.supportingEvidence2 || additional.supportingEvidence2Type) {
+            if (!finalEvidenceDocs.some(d => d.url === additional.supportingEvidence2)) {
+                finalEvidenceDocs.push({
+                    url: additional.supportingEvidence2,
+                    label: `Evidence 2: ${EVIDENCE_LABELS[additional.supportingEvidence2Type as string] || "Supporting Evidence"}`
+                });
+            }
+        }
+    }
 
     return (
         <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-300">
@@ -138,7 +192,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                         {/* Primary LCR Specific Details Panel */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-blue-500 rounded-xl text-white shadow-lg shadow-blue-500/20">
+                                <div className="p-2.5 bg-primary rounded-xl text-white shadow-lg shadow-primary/20">
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
@@ -201,7 +255,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 {/* Column 1: Primary Subject details */}
                                 <div className="space-y-6">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">
+                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
                                         {isDeath ? "Deceased / Event Info" : isMarriage ? "Contracting Parties / Marriage Info" : "Subject / Document Info"}
                                     </h4>
                                     <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-5">
@@ -210,16 +264,55 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                                                 {isMarriage ? "Contracting Couple" : isDeath ? "Deceased Full Name" : "Subject Name"}
                                             </span>
-                                            <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                {isDeath
-                                                    ? (transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A")
-                                                    : isMarriage
-                                                        ? (transaction.marriageRegistration?.businessName ||
-                                                            (transaction.marriageLicenseApplication
-                                                                ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}`
-                                                                : additional.subjectName || "N/A"))
-                                                        : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A")}
-                                            </p>
+                                            {!isDeath && !isMarriage && Array.isArray(additional.children) && additional.children.length >= 1 ? (
+                                                <div className="space-y-2 mt-1.5">
+                                                    {additional.birthType && (
+                                                        <Badge variant="outline" className="px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-200 dark:border-white/10 text-primary bg-primary/5">
+                                                            {additional.birthType} Birth ({additional.children.length} {additional.children.length > 1 ? "Children" : "Child"})
+                                                        </Badge>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        {(additional.children as Array<{ firstName?: string, middleName?: string, lastName?: string, suffix?: string, sex?: string, birthTime?: string }>).map((c, i) => {
+                                                            const name = `${c.firstName || ""} ${c.middleName || ""} ${c.lastName || ""} ${c.suffix || ""}`.replace(/\s+/g, ' ').trim();
+                                                            return (
+                                                                <div key={i} className="flex items-center justify-between bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 px-4 py-2.5 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.01)] gap-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="text-[9px] font-black uppercase text-primary bg-primary/10 w-5 h-5 rounded-full flex items-center justify-center italic shrink-0">
+                                                                            {i + 1}
+                                                                        </span>
+                                                                        <p className="text-sm font-black italic uppercase text-slate-700 dark:text-slate-200">
+                                                                            {name || "N/A"}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 shrink-0">
+                                                                        {c.birthTime && (
+                                                                            <Badge variant="outline" className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-200 dark:border-white/10 text-amber-600 bg-amber-500/5 flex items-center gap-1">
+                                                                                <Clock className="w-2.5 h-2.5" /> {c.birthTime}
+                                                                            </Badge>
+                                                                        )}
+                                                                        {c.sex && (
+                                                                            <Badge variant="outline" className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-200 dark:border-white/10 text-primary bg-primary/5">
+                                                                                {c.sex}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                    {isDeath
+                                                        ? (transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A")
+                                                        : isMarriage
+                                                            ? (transaction.marriageRegistration?.businessName ||
+                                                                (transaction.marriageLicenseApplication
+                                                                    ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}`
+                                                                    : additional.subjectName || "N/A"))
+                                                            : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A")}
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Event Date & Registry No */}
@@ -301,7 +394,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                 <div className="space-y-6">
                                     {isDeath ? (
                                         <>
-                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Dossier</h4>
+                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Parental Dossier</h4>
                                             <div className="space-y-4">
                                                 {/* Parents */}
                                                 <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
@@ -325,7 +418,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                         </>
                                     ) : isMarriage ? (
                                         <>
-                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Applicants Dossier</h4>
+                                            <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Applicants Dossier</h4>
                                             <div className="space-y-4">
                                                 {/* Applicant 1 */}
                                                 {(additional.applicant1 || transaction.marriageLicenseApplication) && (
@@ -361,7 +454,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                             {/* Birth Details */}
                                             {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
                                                 <div className="space-y-6">
-                                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Parental Matrix</h4>
+                                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Parental Matrix</h4>
                                                     <div className="space-y-4">
                                                         {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
                                                             <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
@@ -393,7 +486,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
                                                 return (
                                                     <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5 w-full">
-                                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-blue-500 italic">Selected Supporting Evidence</h4>
+                                                        <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Selected Supporting Evidence</h4>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             {label1 && (
                                                                 <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
@@ -429,7 +522,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {evidenceDocs.map((doc, i) => (
+                                {finalEvidenceDocs.map((doc, i) => (
                                     <div key={i} className="p-4 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between group">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
@@ -473,8 +566,8 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             {(() => {
                                 const typeCode = (transaction?.type?.code || "").toString().toUpperCase();
                                 const isBirthType = typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.toLowerCase().includes("birth"));
-                                const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
-                                const hasCTCInEvidence = evidenceDocs && evidenceDocs.some(d => /community tax|cedula|ctc/i.test(d.label) || (d.url && (d.url === ctcCandidate)));
+                                 const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
+                                const hasCTCInEvidence = finalEvidenceDocs && finalEvidenceDocs.some(d => /community tax|cedula|ctc/i.test(d.label) || (d.url && (d.url === ctcCandidate)));
 
                                 if (isBirthType && !hasCTCInEvidence) {
                                     let snapshot: any = transaction.residentSnapshot || {};
@@ -589,7 +682,9 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                         </p>
                                     </div>
                                     {(additional.registrationType || "").toUpperCase() === "LATE" ? (
-                                        <span className="text-sm font-black text-amber-600 italic">₱315.00</span>
+                                        <span className="text-sm font-black text-amber-600 italic">
+                                            ₱{(additional.miscFee !== undefined ? Number(additional.miscFee) : 300).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </span>
                                     ) : (
                                         <span className="text-sm font-black text-emerald-600 italic">FREE</span>
                                     )}
@@ -709,68 +804,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                     </div>
                                                 )}
 
-                                                {/* Birth Registration Additional Fields */}
-                                                {transaction.type?.code === "LCR_BIRTH_REG" && (
-                                                    <div className="space-y-4 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-2">
-                                                                Attach Scanned/Required Document <span className="text-rose-500 font-extrabold">*Required</span>
-                                                            </label>
-                                                            <input
-                                                                type="file"
-                                                                accept=".pdf,image/*"
-                                                                onChange={(e) => {
-                                                                    const file = e.target.files?.[0] || null;
-                                                                    setBirthRegDocFile?.(file);
-                                                                    if (file) {
-                                                                        const url = URL.createObjectURL(file);
-                                                                        setBirthRegDocPreview?.(url);
-                                                                    } else {
-                                                                        setBirthRegDocPreview?.(null);
-                                                                    }
-                                                                }}
-                                                                className="hidden"
-                                                                id="birth-reg-doc-upload"
-                                                            />
-                                                            <label
-                                                                htmlFor="birth-reg-doc-upload"
-                                                                className={cn(
-                                                                    "flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer",
-                                                                    birthRegDocFile ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-200 dark:border-white/10 hover:border-primary/30"
-                                                                )}
-                                                            >
-                                                                {birthRegDocFile ? (
-                                                                    <div className="flex flex-col items-center justify-center text-primary/60 group-hover:text-primary transition-colors p-4">
-                                                                        <Check className="w-6 h-6 text-emerald-500" />
-                                                                        <span className="text-[9px] font-black uppercase italic tracking-widest mt-1 truncate max-w-[200px]">
-                                                                            {birthRegDocFile.name}
-                                                                        </span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <>
-                                                                        <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
-                                                                            Upload Scanned Document
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                            </label>
-                                                        </div>
 
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
-                                                                O.R. Series Number <span className="text-rose-500 font-extrabold">*Required</span>
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={orSeriesNumber || ""}
-                                                                onChange={(e) => setOrSeriesNumber?.(e.target.value)}
-                                                                placeholder="Enter O.R. Series Number..."
-                                                                className="w-full h-11 px-4 rounded-xl border border-slate-150 dark:border-white/5 bg-white dark:bg-[#151b28]/60 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-primary transition-all"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
 
                                                 <Button
                                                     onClick={handleEvaluate}
@@ -876,29 +910,58 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                     className="hidden"
                                                     id="or-document-upload-paid"
                                                 />
-                                                <label
-                                                    htmlFor="or-document-upload-paid"
-                                                    className={cn(
-                                                        "flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer",
-                                                        orFile ? "border-primary/30 bg-primary/5 shadow-inner" : "border-slate-200 dark:border-white/10 hover:border-primary/30"
-                                                    )}
-                                                >
-                                                    {orFile ? (
-                                                        <div className="flex flex-col items-center justify-center text-primary/60 group-hover:text-primary transition-colors p-4">
-                                                            <Check className="w-6 h-6 text-emerald-500" />
-                                                            <span className="text-[9px] font-black uppercase italic tracking-widest mt-1 truncate max-w-[200px]">
-                                                                {orFile.name}
-                                                            </span>
+                                                    {orFile || transaction.orUrl ? (
+                                                        <div className="flex items-center justify-between p-4 bg-white dark:bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl group shadow-sm">
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 flex-shrink-0">
+                                                                    <Check className="w-4 h-4 stroke-[3]" />
+                                                                </div>
+                                                                <div className="overflow-hidden">
+                                                                    <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none truncate max-w-[180px]" title={orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}>
+                                                                        {orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}
+                                                                    </p>
+                                                                    <p className="text-[8px] text-slate-400 italic mt-1 uppercase">
+                                                                        {orFile ? "Ready for submission" : "Uploaded Official Receipt"}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                {(orPreview || transaction.orUrl) && (() => {
+                                                                    const isPdf = orFile 
+                                                                        ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf")) 
+                                                                        : (transaction.orUrl 
+                                                                            ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
+                                                                            : false);
+                                                                    return (
+                                                                        <Dialog>
+                                                                            <DialogTrigger asChild>
+                                                                                <Button type="button" variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none">
+                                                                                    <Eye className="w-3.5 h-3.5" /> Preview
+                                                                                </Button>
+                                                                            </DialogTrigger>
+                                                                            <LightboxView src={orPreview || transaction.orUrl} alt="Attached O.R." label="Attached Official Treasury Receipt" isPdf={isPdf} />
+                                                                        </Dialog>
+                                                                    );
+                                                                })()}
+                                                                <label
+                                                                    htmlFor="or-document-upload-paid"
+                                                                    className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
+                                                                >
+                                                                    <Upload className="w-3 h-3" /> Replace
+                                                                </label>
+                                                            </div>
                                                         </div>
                                                     ) : (
-                                                        <>
+                                                        <label
+                                                            htmlFor="or-document-upload-paid"
+                                                            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer border-slate-200 dark:border-white/10 hover:border-primary/30"
+                                                        >
                                                             <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
                                                             <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
                                                                 Upload Scanned O.R. Document
                                                             </span>
-                                                        </>
+                                                        </label>
                                                     )}
-                                                </label>
                                             </div>
                                         </div>
 
@@ -995,15 +1058,38 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                                 <span className="text-[9px] font-black uppercase text-white tracking-widest italic">Update E-Copy Attachment</span>
                                                             </div>
 
-                                                            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between border-t border-slate-100 dark:border-white/5">
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between border-t border-slate-100 dark:border-white/5 z-20">
                                                                 <div className="flex items-center gap-2 overflow-hidden">
                                                                     <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
                                                                         <Check className="w-3 text-primary stroke-[3]" />
                                                                     </div>
-                                                                    <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest italic text-slate-700 dark:text-slate-300 truncate max-w-[130px]">
                                                                         {eCopyFile?.name || "Registry-Record.pdf"}
                                                                     </span>
                                                                 </div>
+                                                                {(eCopyPreview || transaction.eCopyUrl) && (() => {
+                                                                    const isPdf = eCopyFile
+                                                                        ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
+                                                                        : (transaction.eCopyUrl
+                                                                            ? (transaction.eCopyUrl.toLowerCase().endsWith(".pdf") || transaction.eCopyUrl.includes("application/pdf") || transaction.eCopyUrl.includes(".pdf?"))
+                                                                            : false);
+                                                                    return (
+                                                                        <Dialog>
+                                                                            <DialogTrigger asChild>
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    className="h-7 px-2.5 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none z-30"
+                                                                                >
+                                                                                    <Eye className="w-3 h-3" /> Preview
+                                                                                </Button>
+                                                                            </DialogTrigger>
+                                                                            <LightboxView src={eCopyPreview || transaction.eCopyUrl} alt="Digital E-Copy" label="Digital E-Copy Registry Record" isPdf={isPdf} />
+                                                                        </Dialog>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     ) : (
