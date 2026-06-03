@@ -43,12 +43,14 @@ export async function submitBuildingPermit(formData: FormData) {
     const descriptionOfWork = formData.get("descriptionOfWork") as string;
     const occupancyUse = formData.get("occupancyUse") as string;
     const estimatedCost = formData.get("estimatedCost") as string;
+    const locationOfConstruction = formData.get("locationOfConstruction") as string;
 
     // Prepare JSON for additional Data
     const additionalData: any = {
       descriptionOfWork,
       occupancyUse,
       estimatedCost,
+      locationOfConstruction,
       documents: {}
     };
 
@@ -192,10 +194,12 @@ export async function resubmitBuildingPermit(transactionId: string, formData: Fo
     const descriptionOfWork = formData.get("descriptionOfWork") as string;
     const occupancyUse = formData.get("occupancyUse") as string;
     const estimatedCost = formData.get("estimatedCost") as string;
+    const locationOfConstruction = formData.get("locationOfConstruction") as string;
 
     if (descriptionOfWork) additionalData.descriptionOfWork = descriptionOfWork;
     if (occupancyUse) additionalData.occupancyUse = occupancyUse;
     if (estimatedCost) additionalData.estimatedCost = estimatedCost;
+    if (locationOfConstruction) additionalData.locationOfConstruction = locationOfConstruction;
 
     // Helper to upload and store URL
     const processFile = async (key: string, folder: string) => {
