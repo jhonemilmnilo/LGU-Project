@@ -3343,21 +3343,6 @@ export async function markForReinspection(id: string, reason: string, details?: 
         // Email notification
         if (transaction.user?.email) {
             const resident = transaction.residentSnapshot as any;
-            let textMsg = "";
-            let htmlMsg = "";
-
-            if (count >= 4) {
-                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been rejected after exceeding the maximum number of re-inspections.\n\nReason: ${reason}`;
-                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been <b>rejected</b> after exceeding the maximum number of re-inspections.</p><p><b>Reason:</b> ${reason}</p>`;
-            } else {
-                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires re-inspection.\n\nReason: ${reason}\n\nThis is attempt ${count} out of 3.`;
-                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires <b>re-inspection</b>.</p><p><b>Reason:</b> ${reason}</p><p><i>This is attempt ${count} out of 3.</i></p>`;
-
-                if (details) {
-                    textMsg += `\n\nRe-inspection Schedule:\nDate: ${details.date}\nTime: ${details.time}\nInspector: ${details.inspectorName}\nType: ${details.type}`;
-                    htmlMsg += `<br/><br/><h4>Re-inspection Schedule:</h4><p><b>Date:</b> ${details.date}<br/><b>Time:</b> ${details.time}<br/><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}</p>`;
-                }
-            }
 
             await sendEmail({
                 type: count >= 4 ? "REJECTED" : "FOR_REINSPECTION",
