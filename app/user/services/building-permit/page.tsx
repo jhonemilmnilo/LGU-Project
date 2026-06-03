@@ -77,6 +77,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useDraft } from "@/hooks/useDraft";
 import { clearDraftFiles } from "@/lib/draftDb";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import { supabase } from "@/lib/supabase";
 
 const STEPS = [
   { id: "GUIDE", label: "Guide", icon: ClipboardList },
@@ -956,6 +957,56 @@ export default function BuildingPermitPage() {
     }
   };
 
+  const dataURLtoFile = (dataurl: string, filenameWithoutExt: string): File | null => {
+    try {
+      const arr = dataurl.split(',');
+      const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+      const ext = mime.includes('pdf') ? 'pdf' : (mime.split('/')[1] || 'png');
+      const filename = `${filenameWithoutExt}.${ext}`;
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, { type: mime });
+    } catch (e) {
+      console.error("Failed to convert dataURL to File:", e);
+      return null;
+    }
+  };
+
+  const uploadFileClientSide = async (file: File | null, folder: string, keyName: string) => {
+    if (!file) return null;
+    try {
+      const userId = (selectedApplication?.residentSnapshot || residentData)?.id || "anonymous";
+      const timestamp = Date.now();
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `building-permits/${userId}/${folder}/${timestamp}-${cleanFileName}`;
+      
+      const { error } = await supabase.storage
+        .from("system-assets")
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (error) {
+        console.error(`Upload error for ${keyName}:`, error);
+        throw error;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from("system-assets")
+        .getPublicUrl(filePath);
+        
+      return publicUrl;
+    } catch (err) {
+      console.error(`Failed uploading ${keyName}:`, err);
+      throw new Error(`Failed to upload ${file.name}`);
+    }
+  };
+
   const handleSubmit = async () => {
     if (requirementsProgress < 10 || permitsProgress < 7 || !signatureData || !privacyAccepted) {
       setShowValidationErrors(true);
@@ -975,6 +1026,64 @@ export default function BuildingPermitPage() {
 
     setIsSubmitting(true);
     try {
+      toast.loading("Uploading documents to secure storage...", { id: "bp-upload-toast" });
+
+      const displayResident = selectedApplication?.residentSnapshot || residentData;
+
+      // 1. Upload ID
+      let idFileUrl: string | null = null;
+      if (idChoice === "UPLOAD" && formData.newIdFile) {
+        idFileUrl = await uploadFileClientSide(formData.newIdFile, "ids", "newIdFile");
+      } else if (idChoice === "PROFILE") {
+        const profileIdUrl = displayResident?.idFrontUrl || displayResident?.idBackUrl;
+        if (profileIdUrl) {
+          if (profileIdUrl.startsWith("data:")) {
+            const file = dataURLtoFile(profileIdUrl, "profile_id");
+            if (file) {
+              idFileUrl = await uploadFileClientSide(file, "ids", "newIdFile");
+            }
+          } else if (profileIdUrl.startsWith("http")) {
+            idFileUrl = profileIdUrl;
+          }
+        }
+      }
+
+      // 2. Upload TCT
+      let tctFileUrl: string | null = null;
+      if (formData.tctFile) {
+        tctFileUrl = await uploadFileClientSide(formData.tctFile, "tct", "tctFile");
+      } else if (selectedApplication?.additionalData?.documents?.tctFile) {
+        tctFileUrl = selectedApplication.additionalData.documents.tctFile;
+      }
+
+      // 3. Upload Requirements
+      const finalReqUrls: Record<string, string> = {};
+      for (let i = 0; i < 10; i++) {
+        const file = uploadedRequirements[i];
+        if (file) {
+          const url = await uploadFileClientSide(file, "requirements", `req_${i}`);
+          if (url) finalReqUrls[`req_${i}`] = url;
+        } else {
+          const existingUrl = selectedApplication?.additionalData?.documents?.[`req_${i}`];
+          if (existingUrl) finalReqUrls[`req_${i}`] = existingUrl;
+        }
+      }
+
+      // 4. Upload Permits
+      const finalPermitUrls: Record<string, string> = {};
+      for (let i = 0; i < 7; i++) {
+        const file = uploadedPermits[i];
+        if (file) {
+          const url = await uploadFileClientSide(file, "permits", `permit_${i}`);
+          if (url) finalPermitUrls[`permit_${i}`] = url;
+        } else {
+          const existingUrl = selectedApplication?.additionalData?.documents?.[`permit_${i}`];
+          if (existingUrl) finalPermitUrls[`permit_${i}`] = existingUrl;
+        }
+      }
+
+      toast.success("All files uploaded successfully! Submitting application...", { id: "bp-upload-toast" });
+
       const data = new FormData();
       const parts: string[] = [];
       if (formData.scopeNewConstruction) parts.push("NEW CONSTRUCTION");
@@ -995,18 +1104,19 @@ export default function BuildingPermitPage() {
 
       data.append("estimatedCost", formData.estimatedCost);
       data.append("locationOfConstruction", formData.locationOfConstruction);
-      if (formData.newIdFile && idChoice === "UPLOAD") {
-        data.append("newIdFile", formData.newIdFile);
+
+      if (idFileUrl) {
+        data.append("newIdFile", idFileUrl);
       }
-      if (formData.tctFile) {
-        data.append("tctFile", formData.tctFile);
+      if (tctFileUrl) {
+        data.append("tctFile", tctFileUrl);
       }
 
-      Object.entries(uploadedRequirements).forEach(([idx, file]) => {
-        data.append(`req_${idx}`, file);
+      Object.entries(finalReqUrls).forEach(([key, url]) => {
+        data.append(key, url);
       });
-      Object.entries(uploadedPermits).forEach(([idx, file]) => {
-        data.append(`permit_${idx}`, file);
+      Object.entries(finalPermitUrls).forEach(([key, url]) => {
+        data.append(key, url);
       });
 
       let result;
@@ -1154,14 +1264,15 @@ export default function BuildingPermitPage() {
                   key={app.id || idx}
                   onClick={() => {
                     setSelectedApplication(app);
-                    setFormData({
+                    setFormData(prev => ({
+                      ...prev,
                       descriptionOfWork: app.additionalData?.descriptionOfWork || "",
                       occupancyUse: app.additionalData?.occupancyUse?.startsWith("Other") ? "Other" : (app.additionalData?.occupancyUse || "Residential (Single Family)"),
                       otherOccupancyUse: app.additionalData?.occupancyUse?.startsWith("Other") ? app.additionalData.occupancyUse.replace("Other - ", "") : "",
                       estimatedCost: app.additionalData?.estimatedCost || "",
                       newIdFile: null,
                       tctFile: null
-                    });
+                    }));
                     setIsRevision(false);
                     let newMaxIdx = 3;
                     if (["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(app.status)) {
@@ -1230,11 +1341,31 @@ export default function BuildingPermitPage() {
                     setSignatureData(null);
                     setFormData({
                       descriptionOfWork: "",
-                      occupancyUse: "Residential (Single Family)",
-                      otherOccupancyUse: "",
+                      scopeNewConstruction: false,
+                      scopeAddition: false,
+                      scopeAdditionText: "",
+                      scopeRepair: false,
+                      scopeRepairText: "",
+                      scopeRenovation: false,
+                      scopeRenovationText: "",
+                      scopeDemolition: false,
+                      scopeDemolitionText: "",
+                      scopeOthers1: false,
+                      scopeOthers1Text1: "",
+                      scopeOthers1Text2: "",
+                      scopeOthers2: false,
+                      scopeOthers2Text1: "",
+                      scopeOthers2Text2: "",
+                      descriptionOfWorkLegacyText: "",
+                      occupancyCategory: "Residential",
+                      selectedSubOccupancies: [],
+                      subOccupancyOthersSpecify: "",
                       estimatedCost: "",
+                      locationOfConstruction: "",
                       newIdFile: null,
                       tctFile: null,
+                      occupancyUse: "Residential (Single Family)",
+                      otherOccupancyUse: "",
                     });
                     setUploadedRequirements({});
                     setUploadedPermits({});

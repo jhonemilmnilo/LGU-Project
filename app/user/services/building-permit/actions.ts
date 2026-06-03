@@ -56,11 +56,13 @@ export async function submitBuildingPermit(formData: FormData) {
 
     // Helper to upload and store URL
     const processFile = async (key: string, folder: string) => {
-      const file = formData.get(key) as File;
-      if (file && file.size > 0) {
+      const value = formData.get(key);
+      if (typeof value === "string" && value.startsWith("http")) {
+        additionalData.documents[key] = value;
+      } else if (value instanceof File && value.size > 0) {
         const timestamp = Date.now();
-        const path = `building-permits/${userId}/${folder}/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const url = await uploadFile(file, path);
+        const path = `building-permits/${userId}/${folder}/${timestamp}-${value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const url = await uploadFile(value, path);
         if (url) {
           additionalData.documents[key] = url;
         }
@@ -72,9 +74,8 @@ export async function submitBuildingPermit(formData: FormData) {
     await processFile("tctFile", "tct");
 
     // Loop through requirements and permits
-    // We expect keys like req_0, req_1, permit_0, etc.
     for (const [key, value] of Array.from(formData.entries())) {
-      if ((key.startsWith("req_") || key.startsWith("permit_")) && value instanceof File && value.size > 0) {
+      if (key.startsWith("req_") || key.startsWith("permit_")) {
          await processFile(key, key.startsWith("req_") ? "requirements" : "permits");
       }
     }
@@ -203,11 +204,13 @@ export async function resubmitBuildingPermit(transactionId: string, formData: Fo
 
     // Helper to upload and store URL
     const processFile = async (key: string, folder: string) => {
-      const file = formData.get(key) as File;
-      if (file && file.size > 0) {
+      const value = formData.get(key);
+      if (typeof value === "string" && value.startsWith("http")) {
+        additionalData.documents[key] = value;
+      } else if (value instanceof File && value.size > 0) {
         const timestamp = Date.now();
-        const path = `building-permits/${userId}/${folder}/${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const url = await uploadFile(file, path);
+        const path = `building-permits/${userId}/${folder}/${timestamp}-${value.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const url = await uploadFile(value, path);
         if (url) {
           additionalData.documents[key] = url;
         }
@@ -220,7 +223,7 @@ export async function resubmitBuildingPermit(transactionId: string, formData: Fo
 
     // Loop through requirements and permits
     for (const [key, value] of Array.from(formData.entries())) {
-      if ((key.startsWith("req_") || key.startsWith("permit_")) && value instanceof File && value.size > 0) {
+      if (key.startsWith("req_") || key.startsWith("permit_")) {
          await processFile(key, key.startsWith("req_") ? "requirements" : "permits");
       }
     }

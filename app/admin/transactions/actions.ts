@@ -3516,7 +3516,8 @@ export async function reviseBuildingPermitClearancesAction(id: string, reason: s
         }
 
         const transaction = await prisma.transaction.findUnique({
-            where: { id }
+            where: { id },
+            include: { type: true, user: true }
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
@@ -3543,8 +3544,22 @@ export async function reviseBuildingPermitClearancesAction(id: string, reason: s
             where: { id },
             data: {
                 additionalData: updatedAdditionalData
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send FOR_REVISION email
+        if (updatedTransaction.user?.email) {
+            const resident = (transaction as any).residentSnapshot || {};
+            await sendEmail({
+                type: "FOR_REVISION",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: `Please revise your submitted clearances. Reason: ${reason}`
+            });
+        }
 
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
@@ -3872,7 +3887,8 @@ export async function releaseBuildingPermitAction(id: string) {
                 data: {
                     status: "RELEASED",
                     updatedAt: new Date()
-                }
+                },
+                include: { user: true, type: true }
             });
 
             // Save to BuildingPermit table
@@ -3893,6 +3909,19 @@ export async function releaseBuildingPermitAction(id: string) {
             return updatedTx;
         });
 
+        // Send RELEASED email
+        if (updatedTransaction.user?.email) {
+            const residentSnap = (transaction as any).residentSnapshot || {};
+            await sendEmail({
+                type: "RELEASED",
+                to: updatedTransaction.user.email,
+                name: residentSnap?.firstName ? `${residentSnap.firstName} ${residentSnap.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: "Your Building Permit has been officially released."
+            });
+        }
+
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/building-permit");
@@ -3912,7 +3941,7 @@ export async function declinePaymentProofAction(id: string, reason: string) {
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true }
+            include: { type: true, user: true }
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
@@ -3956,8 +3985,22 @@ export async function declinePaymentProofAction(id: string, reason: string) {
                 paymentReference: null, // Clear rejected payment reference so they can upload a new one
                 updatedAt: new Date(),
                 additionalData: updatedAdditionalData
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send FOR_REVISION email about payment decline
+        if (updatedTransaction.user?.email) {
+            const resident = (transaction as any).residentSnapshot || {};
+            await sendEmail({
+                type: "FOR_REVISION",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: `Your payment proof was declined. Reason: ${reason}. Please submit a valid payment proof.`
+            });
+        }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/building-permit");
