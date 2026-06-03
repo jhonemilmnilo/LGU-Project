@@ -1338,7 +1338,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                     />
                                 </div>
 
-                                {transaction.status === "FOR_PROCESSING" && transaction.fulfillmentType === "DELIVERY" && (
+                                {(transaction.status === "FOR_PROCESSING" || transaction.status === "FOR_PICKING") && transaction.fulfillmentType === "DELIVERY" && (
                                     <Button
                                         type="button"
                                         onClick={handlePrintWaybill}
