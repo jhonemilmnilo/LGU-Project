@@ -720,15 +720,15 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const birCorFile = formData.get("birCorFile") as File | null;
         const previousPermitFile = formData.get("previousPermitFile") as File | null;
 
-        const ctcUrl = ctcFile ? await processFileUpload(ctcFile, "bp_ctc") : existingAddData?.ctcUrl;
-        const dtiSecUrl = dtiSecFile ? await processFileUpload(dtiSecFile, "bp_dti") : existingAddData?.dtiSecUrl;
-        const brgyClearanceUrl = brgyClearanceFile ? await processFileUpload(brgyClearanceFile, "bp_brgy") : existingAddData?.brgyClearanceUrl;
-        const ownerIdUrl = ownerIdFile ? await processFileUpload(ownerIdFile, "bp_owner_id") : (existingAddData?.ownerIdUrl || residentSnapshot?.idFrontUrl);
-        const locationPhotoUrl = locationPhotoFile ? await processFileUpload(locationPhotoFile, "bp_location") : existingAddData?.locationPhotoUrl;
-        const sanitaryPermitUrl = sanitaryPermitFile ? await processFileUpload(sanitaryPermitFile, "bp_sanitary") : existingAddData?.sanitaryPermitUrl;
-        const fireSafetyUrl = fireSafetyFile ? await processFileUpload(fireSafetyFile, "bp_fire") : existingAddData?.fireSafetyUrl;
-        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : existingAddData?.birCorUrl;
-        const previousPermitUrl = previousPermitFile ? await processFileUpload(previousPermitFile, "bp_prev_permit") : existingAddData?.previousPermitUrl;
+        const ctcUrl = ctcFile ? await processFileUpload(ctcFile, "bp_ctc") : (additionalData.ctcUrl || existingAddData?.ctcUrl);
+        const dtiSecUrl = dtiSecFile ? await processFileUpload(dtiSecFile, "bp_dti") : (additionalData.dtiSecUrl || existingAddData?.dtiSecUrl);
+        const brgyClearanceUrl = brgyClearanceFile ? await processFileUpload(brgyClearanceFile, "bp_brgy") : (additionalData.brgyClearanceUrl || existingAddData?.brgyClearanceUrl);
+        const ownerIdUrl = ownerIdFile ? await processFileUpload(ownerIdFile, "bp_owner_id") : (additionalData.ownerIdUrl || existingAddData?.ownerIdUrl || residentSnapshot?.idFrontUrl);
+        const locationPhotoUrl = locationPhotoFile ? await processFileUpload(locationPhotoFile, "bp_location") : (additionalData.locationPhotoUrl || existingAddData?.locationPhotoUrl);
+        const sanitaryPermitUrl = sanitaryPermitFile ? await processFileUpload(sanitaryPermitFile, "bp_sanitary") : (additionalData.sanitaryPermitUrl || existingAddData?.sanitaryPermitUrl);
+        const fireSafetyUrl = fireSafetyFile ? await processFileUpload(fireSafetyFile, "bp_fire") : (additionalData.fireSafetyUrl || existingAddData?.fireSafetyUrl);
+        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : (additionalData.birCorUrl || existingAddData?.birCorUrl);
+        const previousPermitUrl = previousPermitFile ? await processFileUpload(previousPermitFile, "bp_prev_permit") : (additionalData.previousPermitUrl || existingAddData?.previousPermitUrl);
 
         // Merge all BPLO file URLs into additionalData
         const updatedAdditionalData = {
