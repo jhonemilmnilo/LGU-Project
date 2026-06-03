@@ -899,7 +899,7 @@ export default function BusinessPermitWizardPage() {
             const userId = formData.residentData?.id || "anonymous";
 
             // Process residentSnapshot base64 files if present (e.g. webcam selfie or scanned IDs)
-            let updatedResidentData = { ...formData.residentData };
+            const updatedResidentData = { ...formData.residentData };
             if (updatedResidentData.idFrontUrl && updatedResidentData.idFrontUrl.startsWith("data:")) {
                 const file = dataURLtoFile(updatedResidentData.idFrontUrl, "id_front.png");
                 if (file) {
