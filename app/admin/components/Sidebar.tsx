@@ -197,6 +197,7 @@ export function Sidebar({
                 { href: "/admin/treasury?category=Building Permit", label: "Building Permit" },
             ]
         },
+        { href: "/admin/treasury/payments", label: "Payments Ledger", icon: CreditCard, category: "Treasury" },
         { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" },
         { href: "/admin/treasury/payment-settings", label: "Payment Settings", icon: CreditCard, category: "Treasury" },
         { href: "/admin/users", label: "User Accounts", icon: UserCheck, category: "Security & Accounts" },
@@ -257,14 +258,15 @@ export function Sidebar({
                 ];
             }
         } else {
-            menuItems = allMenuItems.filter(item => !["Treasury Hub", "BPLO Permits"].includes(item.label));
+            // ADMIN without department gets allMenuItems
+            menuItems = allMenuItems;
         }
     } else if (role === "CONTENT_ADMIN") {
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
         menuItems = allMenuItems.filter(item => barangayAdminAllowed.includes(item.label));
     } else if (role === "TREASURY_STAFF") {
-        menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payment Settings"].includes(item.label));
+        menuItems = allMenuItems.filter(item => ["Treasury Hub", "Payments Ledger", "Payment Settings"].includes(item.label));
     } else if (role === "ADMIN_AIDE") {
         menuItems = allMenuItems.filter(item => ["BPLO Permits"].includes(item.label));
     } else if (role === "ENGINEER") {
@@ -400,9 +402,9 @@ export function Sidebar({
                                                         const subCategory = urlObj.searchParams.get("category");
                                                         const subTab = urlObj.searchParams.get("tab");
                                                         
-                                                        const isSubActive = (pathname === urlObj.pathname || (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && urlObj.pathname === "/admin/treasury")) && 
-                                                            (subCategory ? currentCategory === subCategory : true) &&
-                                                            (subTab ? currentTab === subTab : true);
+                                                        const isSubActive = (pathname === urlObj.pathname || (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && !pathname.includes("/payments") && urlObj.pathname === "/admin/treasury")) && 
+                                                             (subCategory ? currentCategory === subCategory : true) &&
+                                                             (subTab ? currentTab === subTab : true);
                                                         return (
                                                             <Link
                                                                 key={sub.href}

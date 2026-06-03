@@ -63,6 +63,7 @@ const SEGMENT_LABELS: Record<string, string> = {
     church: "Church Management",
     services: "Barangay Services",
     content: "Content",
+    payments: "Payments Ledger",
 };
 
 function formatSegment(seg: string): string {

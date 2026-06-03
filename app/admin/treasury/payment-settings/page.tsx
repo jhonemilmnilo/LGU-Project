@@ -25,12 +25,6 @@ export default async function PaymentSettingsPage() {
         where: {
             key: {
                 in: [
-                    "gcash_qr_url", 
-                    "gcash_account_name", 
-                    "gcash_account_number",
-                    "bank_name",
-                    "bank_account_name",
-                    "bank_account_number",
                     "theme_color"
                 ]
             }
@@ -62,8 +56,6 @@ export default async function PaymentSettingsPage() {
 
             <div className="w-full">
                 <PaymentSettingsClient 
-                    initialSettings={treasurySettings} 
-                    role={role} 
                     transactionTypes={transactionTypes as any}
                     themeColor={themeColor}
                 />
