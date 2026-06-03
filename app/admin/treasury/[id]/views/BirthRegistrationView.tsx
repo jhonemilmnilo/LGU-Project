@@ -13,7 +13,11 @@ import {
     Upload,
     Clock,
     Eye,
-    Camera
+    Camera,
+    Plus,
+    Trash2,
+    ChevronDown,
+    ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +30,7 @@ import TransactionInfoCard from "../components/TransactionInfoCard";
 import RejectionRevisionControls from "../components/RejectionRevisionControls";
 import { cn } from "@/lib/utils";
 
-export default function CivilRegistryView(props: TreasuryViewProps) {
+export default function BirthRegistrationView(props: TreasuryViewProps) {
     const {
         transaction,
         rawUserRole,
@@ -67,6 +71,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
         steps,
         currentStepIdx,
         branding,
+        calcResult,
         registryBookVerification,
         setRegistryBookVerification,
         birthRegDocFile,
@@ -75,9 +80,16 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
         setBirthRegDocPreview,
         orSeriesNumber,
         setOrSeriesNumber,
-        handleViewFile
+        handleViewFile,
+        feeLineItems,
+        addFeeLineItem,
+        removeFeeLineItem,
+        updateFeeLineItem,
+        miscFee,
+        setMiscFee
     } = props;
 
+    const [isAssessmentOpen, setIsAssessmentOpen] = React.useState(true);
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const additional = transaction.additionalData || {};
 
@@ -94,7 +106,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
     const isDeath = transaction.type?.code?.includes("DEATH") || transaction.type?.code?.startsWith("LCR_DEATH");
     const isMarriage = transaction.type?.code?.includes("MARRIAGE") || transaction.type?.code?.startsWith("LCR_MARRIAGE");
     const fiscal = additional.feeAssessment || null;
-    const isBirthRegistrationHiddenInTreasury = transaction.type?.code === "LCR_BIRTH_REG" && ["FOR_REQUESTING", "EVALUATED", "FOR_PROCESSING"].includes(transaction.status);
+    const isBirthRegistrationHiddenInTreasury = transaction.type?.code === "LCR_BIRTH_REG" && ["FOR_PROCESSING"].includes(transaction.status);
     const isTreasuryContext = backUrl?.includes("/admin/treasury") || rawUserRole === "TREASURY_STAFF";
 
     if (isBirthRegistrationHiddenInTreasury && isTreasuryContext) {
@@ -125,6 +137,19 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
             </div>
         );
     }
+
+    const subjectName = isMarriage
+        ? (transaction.marriageRegistration?.businessName ||
+            (transaction.marriageLicenseApplication
+                ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}`
+                : additional.subjectName || "N/A"))
+        : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A");
+
+    const registryLabel = isMarriage
+        ? "Contracting couple"
+        : isDeath
+            ? "Deceased citizen record"
+            : "Subject / Registered citizen name";
 
     const finalEvidenceDocs = [...(evidenceDocs || [])];
     const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
@@ -179,6 +204,166 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             categoryLabel="Civil Registry"
                             themeColor={themeColor}
                         />
+
+                        {/* MAIN ASSESSMENT CARD */}
+                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
+                            {/* IDENTIFIER / ACCORDION HEADER */}
+                            <div 
+                                className="flex justify-between items-center cursor-pointer select-none"
+                                onClick={() => setIsAssessmentOpen(!isAssessmentOpen)}
+                            >
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
+                                            {registryLabel}
+                                        </span>
+                                        {transaction.revisionCount > 0 ? (
+                                            <Badge className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 border border-orange-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                                Revision Count: {transaction.revisionCount}
+                                            </Badge>
+                                        ) : (
+                                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-black italic uppercase tracking-widest px-3 py-0.5 rounded-full">
+                                                First Submission
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <h1 className="text-3xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                        {subjectName}
+                                    </h1>
+                                </div>
+                                <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
+                                    {isAssessmentOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                </div>
+                            </div>
+
+                            {isAssessmentOpen && (
+                                <div className="space-y-12 animate-in fade-in slide-in-from-top-4 duration-300">
+                                    {/* TOP METRICS GRID */}
+                                    <div className="grid grid-cols-3 gap-6">
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Fulfillment Type</span>
+                                            <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200 uppercase">
+                                                {transaction.fulfillmentType?.replace(/_/g, " ") || "--"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
+                                            <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200 leading-none uppercase">
+                                                {transaction.paymentType?.replace(/_/g, " ") || "--"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                            <p className="text-2xl font-black italic tracking-tighter text-primary">₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* COMPUTATION BREAKDOWN */}
+                                    <div className="space-y-6 pt-6">
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 font-bold">
+                                            Fee Assessment Breakdown
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                <span>Miscellaneous Fee</span>
+                                                <span className="dark:text-slate-200 font-black">
+                                                    {parseFloat(miscFee || "0") > 0
+                                                        ? `₱${(parseFloat(miscFee || "0")).toFixed(2)}`
+                                                        : "FREE"}
+                                                </span>
+                                            </div>
+
+                                            {transaction.fulfillmentType === "DELIVERY" && (
+                                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                    <span>Delivery Fee</span>
+                                                    <span className="dark:text-slate-200 font-black">₱{deliveryFee.toFixed(2)}</span>
+                                                </div>
+                                            )}
+
+                                            {/* RENDER STATIC ADDITIONAL FEES IF NOT FOR_INSPECTION or FOR_REQUESTING */}
+                                            {!["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status) && feeLineItems && feeLineItems.length > 0 && (
+                                                feeLineItems.map((item: any, idx: number) => (
+                                                    <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        <span>{item.label || "Additional Fee"}</span>
+                                                        <span className="dark:text-slate-200 font-black">
+                                                            ₱{(parseFloat(item.amount) || 0).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+
+                                            {/* ADDITIONAL FEES EDITOR — Registrar/Treasury can add additional fee inside this breakdown card when status is FOR_INSPECTION or FOR_REQUESTING */}
+                                            {["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status) && (
+                                                <div className="pt-2 space-y-2 border-t border-slate-100 dark:border-white/5 pt-4">
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                                        Additional Fees
+                                                    </p>
+                                                    <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
+                                                        {feeLineItems?.map((item, idx) => (
+                                                            <div key={idx} className={cn(
+                                                                "flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all",
+                                                                item.readonly && "opacity-75 bg-slate-50 dark:bg-white/[0.02] cursor-not-allowed select-none"
+                                                            )}>
+                                                                <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
+                                                                    {String(idx + 1).padStart(2, '0')}
+                                                                </span>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Fee Description"
+                                                                    value={item.label}
+                                                                    disabled={item.readonly}
+                                                                    onChange={(e) => updateFeeLineItem?.(idx, 'label', e.target.value)}
+                                                                    className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
+                                                                />
+                                                                <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
+                                                                    <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="0.00"
+                                                                        value={item.amount}
+                                                                        disabled={item.readonly}
+                                                                        onChange={(e) => updateFeeLineItem?.(idx, 'amount', e.target.value)}
+                                                                        className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
+                                                                    />
+                                                                </div>
+                                                                {!item.readonly && feeLineItems.length > 1 ? (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => removeFeeLineItem?.(idx)}
+                                                                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                ) : (
+                                                                    <div className="w-8 h-8 shrink-0" />
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            onClick={addFeeLineItem}
+                                                            className="h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 font-black italic text-[10px] tracking-widest gap-2 text-slate-400 hover:text-primary hover:border-primary/50 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all w-full mt-1"
+                                                        >
+                                                            <Plus className="w-3.5 h-3.5" /> ADD FEE LINE ITEM
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
+                                                <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
+                                                <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
+                                                    ₱{calcResult.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {/* RESIDENT IDENTITY PROFILE ACCORDION */}
                         <ResidentIdentityProfile
@@ -707,53 +892,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                     {/* Right Column: Workflow Steps & Dynamic Evaluation Controls */}
                     <div className="lg:col-span-4 space-y-8">
 
-                        {/* BILLING / ASSESSMENT TOTAL DUE */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
-                            <div>
-                                <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Payment Breakdown</h3>
-                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">LCR assessment fees</p>
-                            </div>
 
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center pt-2 gap-4">
-                                    <div>
-                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Miscellaneous Fee</span>
-                                        <p className="text-[10px] text-slate-400 italic">
-                                            {(additional.registrationType || "").toUpperCase() === "LATE"
-                                                ? "Late registration surcharge"
-                                                : "Standard registration — no surcharge"}
-                                        </p>
-                                    </div>
-                                    {(additional.registrationType || "").toUpperCase() === "LATE" ? (
-                                        <span className="text-sm font-black text-amber-600 italic">
-                                            ₱{(additional.miscFee !== undefined ? Number(additional.miscFee) : 300).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </span>
-                                    ) : (
-                                        <span className="text-sm font-black text-emerald-600 italic">FREE</span>
-                                    )}
-                                </div>
-
-                                {transaction.fulfillmentType === "DELIVERY" && (
-                                    <div className="flex justify-between items-center pt-2 gap-4">
-                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
-                                        <span className="text-sm font-black text-primary italic">
-                                            ₱{deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </span>
-                                    </div>
-                                )}
-
-                                <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-8 mt-8 flex justify-between items-center">
-                                    <span className="text-lg font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
-                                    <span className="text-4xl font-black italic tracking-tighter text-primary leading-none">
-                                        {displayTotal > 0 ? (
-                                            `₱${displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                                        ) : (
-                                            "TBD (Upon Evaluation)"
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Status tracker */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
@@ -788,13 +927,9 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
                         {/* Interactive Decision / Actions box */}
                         {(!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM"].includes(transaction.status)) && (
-                            <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
-                                <div>
-                                    <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Evaluation Hub</h3>
-                                    <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Actions & Endorsements</p>
-                                </div>
+                            <div className="space-y-6">
 
-                                {(["FOR_REQUESTING", "UNDER_REVIEW", "EVALUATED"].includes(transaction.status)) && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || (transaction.type?.category === "Civil Registry")) && (
+                                {(["FOR_REQUESTING", "UNDER_REVIEW", "EVALUATED", "FOR_INSPECTION"].includes(transaction.status)) && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || (transaction.type?.category === "Civil Registry")) && (
                                     <div className="space-y-4">
                                         {transaction.status === "EVALUATED" ? (
                                             <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
@@ -804,6 +939,72 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                 <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Assessment Sent</h4>
                                                 <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Assessment has been submitted. Waiting for the citizen to complete GCash payment or walk-in transaction.</p>
                                             </div>
+                                        ) : transaction.status === "FOR_INSPECTION" ? (
+                                            <>
+                                                {/* Registry Book Verification Choices */}
+                                                {transaction.type?.code === "LCR_BIRTH" && (
+                                                    <div className="space-y-3 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                                        <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-1">
+                                                            Registry Book Verification <span className="text-rose-500 font-extrabold">*Required</span>
+                                                        </label>
+                                                        <div className="grid grid-cols-1 gap-2.5">
+                                                            {[
+                                                                { id: "FORM_1A", title: "Form 1A", desc: "Record Found", activeColor: "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+                                                                { id: "FORM_1B", title: "Form 1B", desc: "Record Not Available", activeColor: "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+                                                                { id: "FORM_1C", title: "Form 1C", desc: "Record Destroyed", activeColor: "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400" }
+                                                            ].map((opt) => {
+                                                                const isSelected = registryBookVerification === opt.id;
+                                                                return (
+                                                                    <button
+                                                                        key={opt.id}
+                                                                        type="button"
+                                                                        onClick={() => setRegistryBookVerification?.(opt.id)}
+                                                                        className={cn(
+                                                                            "flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 active:scale-98 select-none",
+                                                                            isSelected ? opt.activeColor + " shadow-md font-bold" : "border-slate-150 dark:border-white/5 text-slate-500 dark:text-slate-400 bg-white dark:bg-[#151b28]/60 hover:bg-slate-50 dark:hover:bg-white/5"
+                                                                        )}
+                                                                    >
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-black uppercase tracking-wider">{opt.title}</span>
+                                                                            <span className="text-[10px] italic opacity-85 mt-0.5">{opt.desc}</span>
+                                                                        </div>
+                                                                        <div className={cn(
+                                                                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                            isSelected ? "border-current bg-current/15" : "border-slate-300 dark:border-white/10"
+                                                                        )}>
+                                                                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <Button
+                                                    onClick={handleEvaluate}
+                                                    disabled={actionLoading}
+                                                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
+                                                >
+                                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                                    Approve Document
+                                                </Button>
+
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
+                                                    >
+                                                        Revision
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                                        className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
+                                                    >
+                                                        Reject
+                                                    </Button>
+                                                </div>
+                                            </>
                                         ) : (
                                             // Original: FOR_REQUESTING / UNDER_REVIEW -> Approve & Send Assessment
                                             <>

@@ -55,6 +55,7 @@ export function Sidebar({
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
     const [isBarangaysOpen, setIsBarangaysOpen] = React.useState(pathname.startsWith("/admin/barangays"));
     const [isTreasuryOpen, setIsTreasuryOpen] = React.useState(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+    const [isRegistrarOpen, setIsRegistrarOpen] = React.useState(pathname.startsWith("/admin/registrar"));
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isEntranceComplete, setIsEntranceComplete] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
@@ -62,14 +63,15 @@ export function Sidebar({
     React.useEffect(() => {
         setMounted(true);
     }, []);
-
+ 
     React.useEffect(() => {
         setIsSettingsOpen(pathname.startsWith("/admin/settings"));
         setIsAboutOpen(pathname.startsWith("/admin/about"));
         setIsBarangaysOpen(pathname.startsWith("/admin/barangays"));
-            setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+        setIsTreasuryOpen(pathname.startsWith("/admin/treasury") && !pathname.includes("/payment-settings"));
+        setIsRegistrarOpen(pathname.startsWith("/admin/registrar"));
     }, [pathname]);
-
+ 
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     const scrollToActive = React.useCallback((behavior: "smooth" | "instant" = "smooth") => {
@@ -168,7 +170,19 @@ export function Sidebar({
         { href: "/admin/residents", label: "Resident Registry", icon: Users },
         // { href: "/admin/services", label: "Barangay Services", icon: ClipboardList, category: "Citizens & Services" },
         { href: "/admin/households", label: "Household Map", icon: MapPin, category: "Data & Analysis" },
-        { href: "/admin/registrar", label: "Registrar Hub", icon: FileText, category: "Registrar" },
+        {
+            label: "Registrar Hub",
+            icon: FileText,
+            category: "Registrar",
+            isDropdown: true,
+            isOpen: isRegistrarOpen,
+            onToggle: () => setIsRegistrarOpen(!isRegistrarOpen),
+            subItems: [
+                { href: "/admin/registrar?category=ALL", label: "All Requests" },
+                { href: "/admin/registrar?category=Birth Registration", label: "Birth Registration" },
+                { href: "/admin/registrar?category=Birth Certificate", label: "Birth Certificate" },
+            ]
+        },
         {
             label: "Treasury Hub",
             icon: LayoutDashboard,
@@ -233,7 +247,7 @@ export function Sidebar({
                 menuItems = [
                     { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
                 ];
-            } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL REGISTRY") {
+            } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL_REGISTRY") {
                 const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
                 menuItems = [
                     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -389,7 +403,11 @@ export function Sidebar({
                                                         const subCategory = urlObj.searchParams.get("category");
                                                         const subTab = urlObj.searchParams.get("tab");
                                                         
-                                                        const isSubActive = (pathname === urlObj.pathname || (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && !pathname.includes("/payments") && urlObj.pathname === "/admin/treasury")) && 
+                                                        const isSubActive = (
+                                                            pathname === urlObj.pathname ||
+                                                            (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && !pathname.includes("/payments") && urlObj.pathname === "/admin/treasury") ||
+                                                            (pathname.startsWith("/admin/registrar/") && urlObj.pathname === "/admin/registrar")
+                                                        ) && 
                                                              (subCategory ? currentCategory === subCategory : true) &&
                                                              (subTab ? currentTab === subTab : true);
                                                         return (

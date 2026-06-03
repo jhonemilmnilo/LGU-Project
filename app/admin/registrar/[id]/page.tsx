@@ -45,7 +45,7 @@ import {
 
 import BusinessPermitView from "@/app/admin/treasury/[id]/views/BusinessPermitView";
 import BuildingPermitView from "@/app/admin/treasury/[id]/views/BuildingPermitView";
-import CivilRegistryView from "@/app/admin/treasury/[id]/views/CivilRegistryView";
+import BirthRegistrationView from "./views/BirthRegistrationView";
 import GenericServiceView from "@/app/admin/treasury/[id]/views/GenericServiceView";
 import DocumentViewerModal from "@/app/admin/treasury/[id]/components/DocumentViewerModal";
 
@@ -246,6 +246,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     const [birthRegDocFile, setBirthRegDocFile] = useState<File | null>(null);
     const [birthRegDocPreview, setBirthRegDocPreview] = useState<string | null>(null);
     const [orSeriesNumber, setOrSeriesNumber] = useState<string>("");
+    const [miscFee, setMiscFee] = useState<string>("0");
 
     useEffect(() => {
         if (!birthRegDocFile) {
@@ -350,7 +351,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     const [showPreviousPhases, setShowPreviousPhases] = useState(false);
 
     const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string }[]>([
-        { label: "Mayor's Permit Fee", amount: "" }
+        { label: "", amount: "" }
     ]);
 
     const addFeeLineItem = () => {
@@ -396,6 +397,16 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 const tx = res.data;
                 setTransaction(tx);
+
+                if (tx) {
+                    const fiscalSnapshot = tx.fiscalSnapshot as any;
+                    const addData = tx.additionalData || {};
+                    const isLate = (addData.registrationType || "").toUpperCase() === "LATE";
+                    const initialMisc = fiscalSnapshot?.miscFee !== undefined
+                        ? String(fiscalSnapshot.miscFee)
+                        : (addData.miscFee !== undefined ? String(addData.miscFee) : (isLate ? "300" : "0"));
+                    setMiscFee(initialMisc);
+                }
 
                 if (tx && tx.type?.code?.startsWith("BUILDING_PERMIT")) {
                     const assessed = tx.additionalData?.feeAssessment;
@@ -689,7 +700,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 }
             }
 
-            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber);
+            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, Number(miscFee));
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -1083,30 +1094,28 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
             const isBirthCert = typeCode === "LCR_BIRTH" || isLcrBirthCertifiedCopy;
+            const isBirthReg = typeCode === "LCR_BIRTH_REG";
             const baseFee = isBirthCert
-                ? 115
-                : (isMarriageReg && !isLate)
+                ? 15
+                : ((isMarriageReg && !isLate) || isBirthReg)
                     ? 0
                     : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
             const typeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
                 : 0;
-            const miscFee = isLate
-                ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300)
-                : 0;
-            const isNotEvaluated = ["FOR_REQUESTING", "UNDER_REVIEW"].includes(transaction.status);
-            const total = isNotEvaluated
-                ? 0
-                : (transaction.totalAmount && Number(transaction.totalAmount) > 0)
-                    ? Number(transaction.totalAmount)
-                    : baseFee + deliveryFeeUsed + miscFee;
+            const miscFeeVal = parseFloat(miscFee) || 0;
+            const isNotEvaluated = ["FOR_REQUESTING", "UNDER_REVIEW", "FOR_INSPECTION"].includes(transaction.status);
+            const itemsSum = feeLineItems.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+            const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0 && !isNotEvaluated)
+                ? Number(transaction.totalAmount)
+                : baseFee + deliveryFeeUsed + miscFeeVal + itemsSum;
             return {
-                basicTax: isNotEvaluated ? 0 : baseFee,
+                basicTax: baseFee,
                 additionalTax: 0,
                 penalty: 0,
                 deliveryFee: deliveryFeeUsed,
-                miscFee,
+                miscFee: miscFeeVal,
                 totalAmount: total
             };
         }
@@ -1156,7 +1165,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             return stepsList;
         }
         const stepsList = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: isLCR ? "FOR_INSPECTION" : "FOR_REQUESTING", label: "EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
             { id: "PAID", label: "PAID" },
         ];
@@ -1184,12 +1193,12 @@ export default function RegistrarDetailPage({ params }: PageProps) {
 
     if (status === "REJECTED") {
         steps = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: isLCR ? "FOR_INSPECTION" : "FOR_REQUESTING", label: "EVALUATION" },
             { id: "REJECTED", label: "REJECTED" }
         ];
     } else if (status === "FOR_REVISION") {
         steps = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: isLCR ? "FOR_INSPECTION" : "FOR_REQUESTING", label: "EVALUATION" },
             { id: "FOR_REVISION", label: "REVISION REQ." }
         ];
     } else if (status === "FOR_REINSPECTION" && !isBusinessPermit) {
@@ -1513,7 +1522,9 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         birthRegDocPreview,
         setBirthRegDocPreview,
         orSeriesNumber,
-        setOrSeriesNumber
+        setOrSeriesNumber,
+        miscFee,
+        setMiscFee
     };
 
     if (isBusinessPermit) {
@@ -1549,7 +1560,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     if (isLCR) {
         return (
             <>
-                <CivilRegistryView {...viewProps} />
+                <BirthRegistrationView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

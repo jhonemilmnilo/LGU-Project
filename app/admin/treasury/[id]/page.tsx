@@ -70,7 +70,7 @@ const checkIsPdf = (url: string | null) => {
 
 import BusinessPermitView from "./views/BusinessPermitView";
 import BuildingPermitView from "./views/BuildingPermitView";
-import CivilRegistryView from "./views/CivilRegistryView";
+import BirthRegistrationView from "./views/BirthRegistrationView";
 import GenericServiceView from "./views/GenericServiceView";
 
 interface PageProps {
@@ -409,9 +409,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     };
     */
 
-    const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string }[]>([
-        { label: "Add a Additional Fee", amount: "" }
-    ]);
+    const [feeLineItems, setFeeLineItems] = useState<{ label: string; amount: string; readonly?: boolean }[]>([]);
 
     const addFeeLineItem = () => {
         setFeeLineItems([...feeLineItems, { label: "", amount: "" }]);
@@ -477,10 +475,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     }
                 } else if (tx) {
                     const fiscal = tx.fiscalSnapshot as any;
+                    const isLcrTx = (tx.type?.code?.startsWith("LCR_") ?? false) || (tx.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
+                    const isLcrRequesting = isLcrTx && tx.status === "FOR_REQUESTING";
+
                     if (fiscal && Array.isArray(fiscal.lineItems) && fiscal.lineItems.length > 0) {
                         const mappedFees = fiscal.lineItems.map((item: any) => ({
                             label: item.label,
-                            amount: String(item.amount)
+                            amount: String(item.amount),
+                            readonly: isLcrRequesting
                         }));
                         setFeeLineItems(mappedFees);
                     } else {
@@ -491,9 +493,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             if (Array.isArray(defaultFees) && defaultFees.length > 0 && (!tx.fiscalSnapshot || Object.keys(tx.fiscalSnapshot).length === 0)) {
                                 const mappedFees = defaultFees.map((fee: any) => ({
                                     label: fee.label,
-                                    amount: ""
+                                    amount: "",
+                                    readonly: isLcrRequesting
                                 }));
                                 setFeeLineItems(mappedFees);
+                            } else {
+                                setFeeLineItems([]);
                             }
                         }
                     }
@@ -1651,7 +1656,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     if (isLCR) {
         return (
             <>
-                <CivilRegistryView {...viewProps} />
+                <BirthRegistrationView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

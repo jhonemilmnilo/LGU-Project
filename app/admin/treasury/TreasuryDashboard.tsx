@@ -39,6 +39,7 @@ const STATUS_TABS = [
     { value: "IN_ROUTE", label: "In Route", color: "text-orange-600", activeColor: "bg-orange-500 text-white" },
     { value: "DELIVERED", label: "Delivered", color: "text-teal-600", activeColor: "bg-teal-500 text-white" },
     { value: "PAID", label: "Paid", color: "text-emerald-600", activeColor: "bg-emerald-500 text-white" },
+    { value: "UNPAID", label: "Unpaid", color: "text-red-500", activeColor: "bg-red-500 text-white" },
     { value: "RELEASED", label: "Released", color: "text-slate-600", activeColor: "bg-slate-700 text-white" },
     { value: "REJECTED", label: "Rejected", color: "text-red-500", activeColor: "bg-red-500 text-white" },
     { value: "CANCELLED", label: "Cancelled", color: "text-red-400", activeColor: "bg-red-600 text-white" },
@@ -83,9 +84,13 @@ export default function TreasuryDashboard() {
             // BPLO Admin sees: inspection, reinspection, claiming, picking, return/refund/dispute resolution tabs
             return STATUS_TABS.filter(tab => ["ALL", "FOR_INSPECTION", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "RETURN_REQUESTED", "REFUND_REQUESTED", "RELEASED", "DELIVERED", "REJECTED"].includes(tab.value));
         }
+        if (categoryParam === "Civil Registry" || categoryParam === "Business Permit") {
+            // Civil Registry and Business Permit categories should only show evaluation, assessment, paid, and unpaid statuses
+            return STATUS_TABS.filter(tab => ["ALL", "FOR_REQUESTING", "EVALUATED", "PAID", "UNPAID"].includes(tab.value));
+        }
         // Treasury Staff should see everything EXCEPT BPLO-exclusive inspection phases
         return STATUS_TABS.filter(tab => !["FOR_INSPECTION", "FOR_REINSPECTION"].includes(tab.value));
-    }, [isAdminAide]);
+    }, [isAdminAide, categoryParam]);
 
     const [status, setStatus] = useState("ALL");
 
@@ -262,7 +267,12 @@ export default function TreasuryDashboard() {
         if ((isLcrBirthCertifiedCopy || isLcrBirthRegistration) && ["FOR_REQUESTING", "EVALUATED", "FOR_PROCESSING"].includes(tx.status)) {
             const isRegistrar = userRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
             if (!isRegistrar) {
-                return false;
+                // If Civil Registry category is active, Treasury needs to see FOR_REQUESTING and EVALUATED
+                if (categoryParam === "Civil Registry" && ["FOR_REQUESTING", "EVALUATED"].includes(tx.status)) {
+                    // allow
+                } else {
+                    return false;
+                }
             }
         }
 
@@ -283,6 +293,14 @@ export default function TreasuryDashboard() {
         const isBuildingPermitTx = tx.type?.code?.startsWith("BUILDING_PERMIT") || tx.type?.name?.toUpperCase().includes("BUILDING PERMIT");
         if (isBuildingPermitTx) {
             const allowedStatuses = ["EVALUATED", "UNPAID", "PAID", "REJECTED"];
+            if (!allowedStatuses.includes(tx.status)) {
+                return false;
+            }
+        }
+
+        // For Civil Registry and Business Permit, Treasury only needs to see FOR_REQUESTING, EVALUATED, PAID, and UNPAID when they are active
+        if (categoryParam === "Civil Registry" || categoryParam === "Business Permit") {
+            const allowedStatuses = ["FOR_REQUESTING", "EVALUATED", "PAID", "UNPAID"];
             if (!allowedStatuses.includes(tx.status)) {
                 return false;
             }
