@@ -1328,7 +1328,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
                     transactionId: sanitizedId.slice(-8).toUpperCase(),
                     amount: result!.totalAmount,
-                    remarks: sanitizedAdminNotes
+                    remarks: sanitizedAdminNotes,
+                    serviceName: updatedTransaction.type?.name
                 });
             } else if (newStatus === "FOR_PROCESSING") {
                 await sendEmail({
@@ -2464,7 +2465,9 @@ export async function rejectTransaction(id: string, remarks: string) {
                         type: "REJECTED",
                         to: updatedUser.email,
                         name: resident?.firstName || updatedUser.name || "Resident",
-                        remarks: remarks
+                        remarks: remarks,
+                        transactionId: tx.id.slice(-8).toUpperCase(),
+                        serviceName: tx.type?.name
                     });
                 }
             }
@@ -2566,7 +2569,9 @@ export async function sendForRevision(id: string, remarks: string) {
                             type: "REJECTED",
                             to: updatedUser.email,
                             name: resident?.firstName || updatedUser.name || "Resident",
-                            remarks: autoRemarks
+                            remarks: autoRemarks,
+                            transactionId: tx.id.slice(-8).toUpperCase(),
+                            serviceName: tx.type?.name
                         });
                     }
                 }
@@ -2594,7 +2599,8 @@ export async function sendForRevision(id: string, remarks: string) {
                     to: tx.user.email,
                     name: resident?.firstName || tx.user.name || "Resident",
                     remarks: remarks,
-                    transactionId: tx.id
+                    transactionId: tx.id.slice(-8).toUpperCase(),
+                    serviceName: tx.type?.name
                 });
             }
 
@@ -2776,8 +2782,9 @@ export async function handoverTransaction(transactionId: string) {
                 type: "IN_ROUTE",
                 to: transaction.user.email,
                 name: `${snapshot?.firstName} ${snapshot?.lastName}`,
-                transactionId: transaction.id,
-                amount: transaction.totalAmount
+                transactionId: transaction.id.slice(-8).toUpperCase(),
+                amount: transaction.totalAmount,
+                serviceName: transaction.type?.name
             });
         }
 
@@ -2977,8 +2984,9 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
                     type: "DISPUTE_APPROVED",
                     to: tx.user.email,
                     name: tx.user.name || "Resident",
-                    transactionId: transactionId,
-                    remarks: remarks
+                    transactionId: transactionId.slice(-8).toUpperCase(),
+                    remarks: remarks,
+                    serviceName: tx.type?.name
                 });
             }
         }
@@ -2990,8 +2998,9 @@ export async function resolveDispute(transactionId: string, action: 'APPROVE' | 
                     type: "DISPUTE_REJECTED",
                     to: tx.user.email,
                     name: tx.user.name || "Resident",
-                    transactionId: transactionId,
-                    remarks: remarks
+                    transactionId: transactionId.slice(-8).toUpperCase(),
+                    remarks: remarks,
+                    serviceName: tx.type?.name
                 });
             }
         }

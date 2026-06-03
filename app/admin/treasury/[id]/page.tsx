@@ -1625,6 +1625,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     fileUrl={viewerUrl}
                     title={viewerTitle}
                     themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
                 />
             </>
         );

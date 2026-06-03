@@ -125,7 +125,7 @@ function ServiceCard({ service, themeColor, isMobile }: { service: Service; them
                         className="text-lg md:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-tight transition-colors"
                         style={{ "--hover-color": themeColor || "var(--primary-theme)" } as any}
                     >
-                        {service.name}
+                        {service.name === "Community Tax Certificate - Individual" ? "Community Tax Certificate" : service.name}
                     </h3>
                     <p className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 italic line-clamp-2">
                         {service.description}
