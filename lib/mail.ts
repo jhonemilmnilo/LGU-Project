@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 
 
 interface SendEmailProps {
-    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET" | "PROCESSING";
+    type: "APPROVED" | "REJECTED" | "FOR_CLAIM" | "FOR_PAYMENT" | "RELEASED" | "DEACTIVATED" | "IN_ROUTE" | "NEW_PICKUP_ALERT" | "DISPUTE_APPROVED" | "DISPUTE_REJECTED" | "FOR_REVISION" | "PASSWORD_RESET" | "PROCESSING" | "FOR_PROCESSING" | "FOR_INSPECTION" | "FOR_REINSPECTION" | "EVALUATED" | "FOR_PICKING" | "UNPAID" | "PAID";
     to: string;
     name: string;
     remarks?: string | null;
@@ -402,7 +402,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
             </div>
         </div>`;
-    } else if (type === "PROCESSING") {
+    } else if (type === "PROCESSING" || type === "FOR_PROCESSING") {
         subject = `Update: Your Request is now in Process - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
@@ -414,7 +414,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request in Process</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We would like to inform you that your request for **${serviceName || "Business Permit"}** (Ref ID: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) is now being officially processed by LGU Mapandan.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We would like to inform you that your request for **${serviceName || "Service"}** (Ref ID: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) is now being officially processed by LGU Mapandan.</p>
                 
                 <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
                     <p style="color: #1e40af; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Current Status: Processing</p>
@@ -428,7 +428,145 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 </div>` : ""}
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan • Official Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "FOR_INSPECTION" || type === "FOR_REINSPECTION") {
+        const primaryAmber = "#f59e0b";
+        const inspectionType = type === "FOR_REINSPECTION" ? "Re-inspection" : "Inspection";
+        subject = `Update: ${inspectionType} Scheduled - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryAmber}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">🔎</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">For ${inspectionType}</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your request for **${serviceName || "Building Permit"}** (Ref ID: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) has been queued for ${inspectionType.toLowerCase()} by the Municipal Engineering Office.</p>
+                
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
+                    <p style="color: #b45309; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Current Status: ${inspectionType}</p>
+                    <p style="color: #b45309; font-size: 13px; margin: 8px 0 0 0; opacity: 0.8;">Our engineers will visit your site. Please ensure that all necessary documents and personnel are available on site during the inspection.</p>
+                </div>
+
+                ${remarks ? `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 32px;">
+                    <p style="color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Engineer's Notes / Schedule</p>
+                    <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5; font-style: italic;">"${remarks}"</p>
+                </div>` : ""}
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Engineering Office • Official Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "EVALUATED") {
+        subject = `Update: Assessment Complete - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryBlue}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">📋</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Evaluation Complete</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Good news! Your request for **${serviceName || "Building Permit"}** has been successfully evaluated by the Municipal Engineering Office.</p>
+                
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
+                    <p style="color: #1e40af; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Final Assessment</p>
+                    <p style="color: #1e40af; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -0.04em;">₱${amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
+                    <p style="color: #3b82f6; font-size: 11px; margin: 8px 0 0 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">Reference ID: ${transactionId || "N/A"}</p>
+                </div>
+
+                ${remarks ? `
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Engineer's Remarks / Assessment Notes</p>
+                    <p style="color: #0f172a; font-size: 14px; margin: 0; line-height: 1.5; font-style: italic;">"${remarks}"</p>
+                </div>` : ""}
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Engineering Office • Automated Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "UNPAID") {
+        subject = `Action Required: Pending Payment - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryRed}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">💳</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Payment Required</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your application for **${serviceName || "Building Permit"}** has been evaluated and is now awaiting payment to proceed with the release.</p>
+                
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
+                    <p style="color: #991b1b; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Amount Due</p>
+                    <p style="color: #991b1b; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -0.04em;">₱${amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
+                    <p style="color: #dc2626; font-size: 11px; margin: 8px 0 0 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">Reference ID: ${transactionId || "N/A"}</p>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 32px;">
+                    <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5;">
+                        <strong>Next Step:</strong> Please log in to the Resident Portal to choose your preferred payment method, or proceed to the Municipal Treasury Office to settle your dues.
+                    </p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Automated Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "PAID") {
+        subject = `Payment Confirmation Received - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryGreen}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">✔️</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Payment Confirmed</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We have successfully received and verified your payment for **${serviceName || "Building Permit"}** (Ref ID: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>).</p>
+                
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
+                    <p style="color: #166534; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Payment Details</p>
+                    <p style="color: #166534; font-size: 24px; font-weight: 900; margin: 8px 0;">₱${amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
+                    <p style="color: #15803d; font-size: 13px; margin: 0; opacity: 0.8;">Your document will now be prepared for release or delivery depending on your chosen method.</p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Receipt Notification</p>
+            </div>
+        </div>`;
+    } else if (type === "FOR_PICKING") {
+        subject = `Action Required: Document Printing/Preparation - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryBlue}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">🖨️</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Document Preparation</h1>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your document for **${serviceName || "Building Permit"}** is now being finalized and printed by our staff.</p>
+                
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
+                    <p style="color: #1e40af; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Current Status: For Picking/Printing</p>
+                    <p style="color: #1e40af; font-size: 13px; margin: 8px 0 0 0; opacity: 0.8;">We will notify you again once it is ready for release or out for delivery.</p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan • Automated Notification</p>
             </div>
         </div>`;
     }
