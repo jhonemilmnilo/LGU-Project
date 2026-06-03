@@ -396,7 +396,7 @@ export default function CedulaApplicationPage() {
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
             case "DECLARATION":
                 if (formData.isStudent) {
-                    return !!formData.purpose?.trim();
+                    return true;
                 }
                 if (formData.applicantType === "JURIDICAL") {
                     const isProp = formData.incomeSource === "PROPERTY";
@@ -409,8 +409,11 @@ export default function CedulaApplicationPage() {
                 }
                 return (parseFloat(formData.income.replace(/,/g, '')) > 0);
             case "CONFIRM":
-                // Final submission requires Data Privacy acceptance (or revisionId) AND either a new upload or an existing ID AND either a new upload or existing proof
-                return (!!revisionId || privacyAccepted) && (!!formData.idFile || !!existingIdUrl) && (!!formData.proofFile || !!existingProofUrl);
+                // Final submission requires Data Privacy acceptance (or revisionId) AND either a new upload or existing proof. Valid ID is optional for student.
+                const hasPrivacy = !!revisionId || privacyAccepted;
+                const hasId = formData.isStudent || !!formData.idFile || !!existingIdUrl;
+                const hasProof = !!formData.proofFile || !!existingProofUrl;
+                return hasPrivacy && hasId && hasProof;
             default:
                 return true;
         }
@@ -475,7 +478,7 @@ export default function CedulaApplicationPage() {
     };
 
     const onSubmit = async () => {
-        const hasId = !!formData.idFile || !!existingIdUrl;
+        const hasId = formData.isStudent || !!formData.idFile || !!existingIdUrl;
         const hasProof = !!formData.proofFile || !!existingProofUrl;
         const hasPrivacy = !!revisionId || privacyAccepted;
 
@@ -483,22 +486,28 @@ export default function CedulaApplicationPage() {
             setShowValidationErrors(true);
             
             // Premium, helpful TagLish micro-notifications and smooth scroll to first missing element
-            if (!hasId && !hasProof) {
-                toast.error(formData.isStudent 
-                    ? "Wait lang, pare! You need to upload both your Valid ID and Student ID/Enrollment Proof to proceed."
-                    : "Wait lang, pare! You need to upload both your Valid ID and Proof of Income to proceed.");
-                idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            } else if (!hasId) {
-                toast.error("Oops! You forgot to attach your Valid ID, bro.");
-                idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            } else if (!hasProof) {
-                toast.error(formData.isStudent 
-                    ? "Hold on, you need to upload your Student ID or Enrollment Proof first."
-                    : "Hold on, you need to upload your Proof of Income first.");
-                proofSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            } else if (!hasPrivacy) {
-                toast.error("Please accept the Data Privacy and Terms Agreement to submit your application.");
-                privacySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (formData.isStudent) {
+                if (!hasProof) {
+                    toast.error("Hold on, you need to upload your Student ID or Enrollment Proof first.");
+                    proofSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                } else if (!hasPrivacy) {
+                    toast.error("Please accept the Data Privacy and Terms Agreement to submit your application.");
+                    privacySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            } else {
+                if (!hasId && !hasProof) {
+                    toast.error("Wait lang, pare! You need to upload both your Valid ID and Proof of Income to proceed.");
+                    idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                } else if (!hasId) {
+                    toast.error("Oops! You forgot to attach your Valid ID, bro.");
+                    idSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                } else if (!hasProof) {
+                    toast.error("Hold on, you need to upload your Proof of Income first.");
+                    proofSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                } else if (!hasPrivacy) {
+                    toast.error("Please accept the Data Privacy and Terms Agreement to submit your application.");
+                    privacySectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
             }
             return;
         }
@@ -945,7 +954,7 @@ export default function CedulaApplicationPage() {
                                         <div className="space-y-6 md:space-y-8">
                                             {formData.isStudent ? (
                                                 <div className="space-y-2 md:space-y-3">
-                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purpose / Reason of Request</Label>
+                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purpose / Reason of Request {formData.isStudent && "(Optional)"}</Label>
                                                     <textarea
                                                         value={formData.purpose || ""}
                                                         onChange={(e) => setFormData(p => ({ ...p, purpose: e.target.value }))}
@@ -1186,7 +1195,7 @@ export default function CedulaApplicationPage() {
                                         <div className="space-y-4 md:space-y-6" ref={idSectionRef}>
                                             <div className={cn(
                                                 "p-4 md:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed flex flex-col items-center text-center gap-3 md:gap-4 transition-all hover:border-primary",
-                                                showValidationErrors && !(formData.idFile || existingIdUrl)
+                                                showValidationErrors && !formData.isStudent && !(formData.idFile || existingIdUrl)
                                                     ? "border-red-500 dark:border-red-500/80 ring-2 ring-red-500/20 bg-red-50/10 animate-pulse"
                                                     : "border-slate-200 dark:border-white/10"
                                             )}>
@@ -1196,7 +1205,7 @@ export default function CedulaApplicationPage() {
                                                     </div>
                                                     <div className="space-y-0.5">
                                                         <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic flex items-center gap-1">
-                                                            Valid ID <span className="text-red-500 font-black not-italic">*</span>
+                                                            Valid ID {formData.isStudent ? <span className="text-slate-400 dark:text-slate-500 font-normal normal-case text-[9px]">(Optional)</span> : <span className="text-red-500 font-black not-italic">*</span>}
                                                         </h4>
                                                         <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">PDF / Image (Max 5MB)</p>
                                                     </div>
@@ -1280,7 +1289,7 @@ export default function CedulaApplicationPage() {
                                                     </div>
                                                     <div className="space-y-0.5">
                                                         <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-white italic flex items-center gap-1">
-                                                            {formData.isStudent ? "Student ID / Enrollment Proof" : "Proof of Income"} <span className="text-red-500 font-black not-italic">*</span>
+                                                            {formData.isStudent ? "Student ID / Enrollment / Copy Of Grades Proof" : "Proof of Income"} <span className="text-red-500 font-black not-italic">*</span>
                                                         </h4>
                                                         <p className="text-[8px] md:text-[9px] text-slate-400 font-bold italic uppercase tracking-tighter line-clamp-1">
                                                             {formData.isStudent ? "School ID / Registration Card (Max 5MB)" : "Payslip / BIR (Max 5MB)"}

@@ -12,7 +12,8 @@ import {
     ExternalLink,
     Upload,
     Clock,
-    Eye
+    Eye,
+    Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +74,8 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
         birthRegDocPreview,
         setBirthRegDocPreview,
         orSeriesNumber,
-        setOrSeriesNumber
+        setOrSeriesNumber,
+        handleViewFile
     } = props;
 
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
@@ -190,7 +192,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                         />
 
                         {/* Primary LCR Specific Details Panel */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
+                        <div className="bg-[#111827] border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl space-y-8 animate-in fade-in duration-300">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-primary rounded-xl text-white shadow-lg shadow-primary/20">
                                     <FileText className="w-5 h-5" />
@@ -201,18 +203,18 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             </div>
 
                             {additional.registryBookVerification && transaction.type?.code === "LCR_BIRTH" && (
-                                <div className="p-6 rounded-3xl border bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 flex items-center justify-between gap-4 animate-in fade-in duration-300">
-                                    <div className="space-y-1">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Registry Book Verification Status</span>
-                                        <p className="text-sm font-black italic uppercase text-slate-700 dark:text-slate-200">
+                                <div className="flex items-center justify-between gap-4 animate-in fade-in duration-300">
+                                    <div className="space-y-1.5 flex-1">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Registry Book Verification Status</span>
+                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                                             {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
                                                 additional.registryBookVerification === "FORM_1B" ? "Form 1B (Record Not Available)" :
                                                     additional.registryBookVerification === "FORM_1C" ? "Form 1C (Record Destroyed)" :
                                                         additional.registryBookVerification}
-                                        </p>
+                                        </div>
                                     </div>
                                     <Badge className={cn(
-                                        "px-4.5 py-2 rounded-full font-black uppercase text-[10px] tracking-wider italic text-white shadow-md border-none",
+                                        "px-4.5 py-2 rounded-full font-black uppercase text-[10px] tracking-wider italic text-white shadow-md border-none shrink-0 self-end mb-0.5",
                                         additional.registryBookVerification === "FORM_1A" ? "bg-emerald-500 hover:bg-emerald-500 shadow-emerald-500/10" :
                                             additional.registryBookVerification === "FORM_1B" ? "bg-amber-500 hover:bg-amber-500 shadow-amber-500/10" :
                                                 "bg-rose-500 hover:bg-rose-500 shadow-rose-500/10"
@@ -227,25 +229,25 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                             {(additional.orSeriesNumber || additional.scannedDocUrl) && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-300">
                                     {additional.orSeriesNumber && (
-                                        <div className="p-6 rounded-3xl border bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 flex flex-col justify-center gap-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">O.R. Series Number</span>
-                                            <p className="text-sm font-black italic uppercase text-slate-700 dark:text-slate-200">
+                                        <div className="flex flex-col justify-center gap-2">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">O.R. Series Number</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                                                 {additional.orSeriesNumber}
-                                            </p>
+                                            </div>
                                         </div>
                                     )}
                                     {additional.scannedDocUrl && (
-                                        <div className="p-6 rounded-3xl border bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 flex flex-col justify-center gap-2">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Verified Birth Doc</span>
-                                            <div>
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="outline" size="sm" className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
-                                                            <FileText className="w-3.5 h-3.5" /> View Scanned Document
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <LightboxView src={additional.scannedDocUrl} alt="Scanned Birth Registration Document" label="Scanned Birth Registration Document" />
-                                                </Dialog>
+                                        <div className="flex flex-col justify-center gap-2">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Verified Birth Doc</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center">
+                                                <Button 
+                                                    onClick={() => handleViewFile?.(additional.scannedDocUrl, "Scanned Birth Registration Document")}
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5" /> View Scanned Document
+                                                </Button>
                                             </div>
                                         </div>
                                     )}
@@ -258,175 +260,199 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
                                         {isDeath ? "Deceased / Event Info" : isMarriage ? "Contracting Parties / Marriage Info" : "Subject / Document Info"}
                                     </h4>
-                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-5">
-                                        {/* Deceased/Subject Name */}
-                                        <div className="space-y-1">
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                {isMarriage ? "Contracting Couple" : isDeath ? "Deceased Full Name" : "Subject Name"}
-                                            </span>
-                                            {!isDeath && !isMarriage && Array.isArray(additional.children) && additional.children.length >= 1 ? (
-                                                <div className="space-y-2 mt-1.5">
-                                                    {additional.birthType && (
-                                                        <Badge variant="outline" className="px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-200 dark:border-white/10 text-primary bg-primary/5">
-                                                            {additional.birthType} Birth ({additional.children.length} {additional.children.length > 1 ? "Children" : "Child"})
-                                                        </Badge>
-                                                    )}
-                                                    <div className="space-y-2">
-                                                        {(additional.children as Array<{ firstName?: string, middleName?: string, lastName?: string, suffix?: string, sex?: string, birthTime?: string }>).map((c, i) => {
-                                                            const name = `${c.firstName || ""} ${c.middleName || ""} ${c.lastName || ""} ${c.suffix || ""}`.replace(/\s+/g, ' ').trim();
-                                                            return (
-                                                                <div key={i} className="flex items-center justify-between bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 px-4 py-2.5 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.01)] gap-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className="text-[9px] font-black uppercase text-primary bg-primary/10 w-5 h-5 rounded-full flex items-center justify-center italic shrink-0">
-                                                                            {i + 1}
-                                                                        </span>
-                                                                        <p className="text-sm font-black italic uppercase text-slate-700 dark:text-slate-200">
-                                                                            {name || "N/A"}
-                                                                        </p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2 shrink-0">
-                                                                        {c.birthTime && (
-                                                                            <Badge variant="outline" className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-200 dark:border-white/10 text-amber-600 bg-amber-500/5 flex items-center gap-1">
-                                                                                <Clock className="w-2.5 h-2.5" /> {c.birthTime}
-                                                                            </Badge>
-                                                                        )}
-                                                                        {c.sex && (
-                                                                            <Badge variant="outline" className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-200 dark:border-white/10 text-primary bg-primary/5">
-                                                                                {c.sex}
-                                                                            </Badge>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                    {isDeath ? (
+                                        <div className="space-y-6">
+                                            {/* Deceased Full Name */}
+                                            <div className="space-y-1.5">
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Deceased Full Name</span>
+                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                    {transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "—"}
+                                                </div>
+                                            </div>
+
+                                            {/* Date of Death & Registry No */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Death</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {safeFormatDate(transaction.deathRegistration?.dateOfEvent || additional.dateOfDeath || additional.dateOfEvent)}
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <p className="text-lg font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                    {isDeath
-                                                        ? (transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A")
-                                                        : isMarriage
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registry No.</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {transaction.deathRegistration?.registryNumber || "PENDING"}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Cause of Death & Place of Death */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Cause of Death</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {additional.causeOfDeath || "—"}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Death</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {transaction.deathRegistration?.placeOfEvent || additional.placeOfEvent || additional.placeOfDeath || "—"}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Issued By info */}
+                                            {(transaction.deathRegistration?.issuedBy || additional.issuedBy) && (
+                                                <div className="space-y-1.5 pt-4 border-t border-slate-800/50">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Issued By</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {transaction.deathRegistration?.issuedBy || additional.issuedBy}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {/* Deceased/Subject Name */}
+                                            <div className="space-y-1.5">
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">
+                                                    {isMarriage ? "Contracting Couple" : "Subject Name"}
+                                                </span>
+                                                {!isDeath && !isMarriage && Array.isArray(additional.children) && additional.children.length >= 1 ? (
+                                                    <div className="space-y-3 mt-1.5">
+                                                        {additional.birthType && (
+                                                            <Badge variant="outline" className="px-2.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-800 text-primary bg-primary/5">
+                                                                {additional.birthType} Birth ({additional.children.length} {additional.children.length > 1 ? "Children" : "Child"})
+                                                            </Badge>
+                                                        )}
+                                                        <div className="space-y-2">
+                                                            {(additional.children as Array<{ firstName?: string, middleName?: string, lastName?: string, suffix?: string, sex?: string, birthTime?: string }>).map((c, i) => {
+                                                                const name = `${c.firstName || ""} ${c.middleName || ""} ${c.lastName || ""} ${c.suffix || ""}`.replace(/\s+/g, ' ').trim();
+                                                                return (
+                                                                    <div key={i} className="flex items-center justify-between bg-[#1f2937]/50 border border-slate-800 px-4 py-2.5 rounded-2xl gap-4">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <span className="text-[9px] font-black uppercase text-primary bg-primary/10 w-5 h-5 rounded-full flex items-center justify-center italic shrink-0">
+                                                                                {i + 1}
+                                                                            </span>
+                                                                            <p className="text-sm font-black italic uppercase text-white">
+                                                                                {name || "N/A"}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            {c.birthTime && (
+                                                                                <Badge variant="outline" className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-850 text-amber-600 bg-amber-500/5 flex items-center gap-1">
+                                                                                    <Clock className="w-2.5 h-2.5" /> {c.birthTime}
+                                                                                </Badge>
+                                                                            )}
+                                                                            {c.sex && (
+                                                                                <Badge variant="outline" className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border-slate-850 text-primary bg-primary/5">
+                                                                                    {c.sex}
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {isMarriage
                                                             ? (transaction.marriageRegistration?.businessName ||
                                                                 (transaction.marriageLicenseApplication
                                                                     ? `${transaction.marriageLicenseApplication.app1FullName} & ${transaction.marriageLicenseApplication.app2FullName}`
                                                                     : additional.subjectName || "N/A"))
                                                             : (transaction.birthCertificateRegistry?.subjectName || transaction.birthCertificateRequest?.subjectName || additional.subjectName || "N/A")}
-                                                </p>
-                                            )}
-                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                        {/* Event Date & Registry No */}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                    {isDeath ? "Date of Death" : isMarriage ? "Date of Marriage" : "Event Date"}
-                                                </span>
-                                                <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                    {isDeath
-                                                        ? safeFormatDate(transaction.deathRegistration?.dateOfEvent || additional.dateOfDeath || additional.dateOfEvent)
-                                                        : isMarriage
+                                            {/* Event Date & Registry No */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">
+                                                        {isMarriage ? "Date of Marriage" : "Event Date"}
+                                                    </span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {isMarriage
                                                             ? safeFormatDate(additional.dateOfMarriage || additional.dateOfEvent || transaction.marriageLicenseApplication?.dateIssued)
                                                             : safeFormatDate(transaction.birthCertificateRegistry?.dateOfEvent || transaction.birthCertificateRequest?.dateOfEvent || additional.dateOfEvent)}
-                                                </p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Registry No.</span>
-                                                <p className="text-md font-black italic text-slate-600 dark:text-slate-200">
-                                                    {isDeath
-                                                        ? (transaction.deathRegistration?.registryNumber || "PENDING")
-                                                        : isMarriage
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registry No.</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {isMarriage
                                                             ? (transaction.marriageRegistration?.ctcNumber || transaction.marriageLicenseApplication?.registryNumber || "PENDING")
                                                             : (transaction.birthCertificateRegistry?.registryNumber || transaction.birthCertificateRequest?.registryNumber || "PENDING")}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Extra Fields specifically for Death */}
-                                        {isDeath && (
-                                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Cause of Death</span>
-                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {additional.causeOfDeath || "N/A"}
-                                                    </p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Death</span>
-                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {transaction.deathRegistration?.placeOfEvent || additional.placeOfEvent || additional.placeOfDeath || "N/A"}
-                                                    </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        )}
 
-                                        {/* Extra Fields specifically for Marriage */}
-                                        {isMarriage && (
-                                            <div className="space-y-1 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Place of Marriage</span>
-                                                <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                    {additional.placeOfMarriage || "N/A"}
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        {/* Issued By info */}
-                                        {(transaction.deathRegistration?.issuedBy ||
-                                            transaction.birthCertificateRegistry?.issuedBy ||
-                                            transaction.birthCertificateRequest?.issuedBy ||
-                                            transaction.marriageRegistration?.issuedBy ||
-                                            transaction.marriageLicenseApplication?.issuedBy ||
-                                            additional.issuedBy) && (
-                                                <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-4">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Issued By</span>
-                                                    <p className="text-md font-black italic uppercase text-slate-600 dark:text-slate-200">
-                                                        {isDeath
-                                                            ? (transaction.deathRegistration?.issuedBy || additional.issuedBy)
-                                                            : isMarriage
-                                                                ? (transaction.marriageRegistration?.issuedBy || transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy)
-                                                                : (transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy)}
-                                                    </p>
+                                            {/* Extra Fields specifically for Marriage */}
+                                            {isMarriage && (
+                                                <div className="space-y-1.5 pt-4 border-t border-slate-800/50">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Marriage</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {additional.placeOfMarriage || "N/A"}
+                                                    </div>
                                                 </div>
                                             )}
-                                    </div>
+
+                                            {/* Issued By info */}
+                                            {(transaction.birthCertificateRegistry?.issuedBy ||
+                                                transaction.birthCertificateRequest?.issuedBy ||
+                                                transaction.marriageRegistration?.issuedBy ||
+                                                transaction.marriageLicenseApplication?.issuedBy ||
+                                                additional.issuedBy) && (
+                                                    <div className="space-y-1.5 border-t border-slate-800/50 pt-4">
+                                                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Issued By</span>
+                                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                            {isMarriage
+                                                                ? (transaction.marriageRegistration?.issuedBy || transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy)
+                                                                : (transaction.birthCertificateRegistry?.issuedBy || transaction.birthCertificateRequest?.issuedBy || additional.issuedBy)}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Column 2: Secondary parties details */}
                                 <div className="space-y-6">
                                     {isDeath ? (
-                                        <>
+                                        <div className="space-y-6">
                                             <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Parental Dossier</h4>
-                                            <div className="space-y-4">
-                                                {/* Parents */}
-                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-3">
-                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Parental Matrix</span>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Father</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                {additional.fathersName || additional.fatherName || "N/A"}
-                                                            </p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[8px] uppercase tracking-wider text-slate-400 block mb-1">Mother</span>
-                                                            <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200">
-                                                                {additional.mothersName || additional.motherName || "N/A"}
-                                                            </p>
-                                                        </div>
+                                            <div className="space-y-1.5">
+                                                <span className="text-sm font-black italic tracking-tighter text-white uppercase">Parental Matrix</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Father</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {additional.fathersName || additional.fatherName || "—"}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Mother</span>
+                                                    <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                        {additional.mothersName || additional.motherName || "—"}
                                                     </div>
                                                 </div>
                                             </div>
-                                        </>
+                                        </div>
                                     ) : isMarriage ? (
-                                        <>
+                                        <div className="space-y-6">
                                             <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Applicants Dossier</h4>
                                             <div className="space-y-4">
                                                 {/* Applicant 1 */}
                                                 {(additional.applicant1 || transaction.marriageLicenseApplication) && (
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
+                                                    <div className="space-y-3">
                                                         <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 1 (Groom/Spouse)</span>
-                                                        <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
+                                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                                                             {additional.applicant1?.fullName || transaction.marriageLicenseApplication?.app1FullName}
-                                                        </p>
+                                                        </div>
                                                         <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
                                                             <span>DOB: {safeFormatDate(additional.applicant1?.birthDate || transaction.marriageLicenseApplication?.app1BirthDate)}</span>
                                                             <span>Citizenship: {additional.applicant1?.citizenship || transaction.marriageLicenseApplication?.app1Citizenship || "N/A"}</span>
@@ -436,11 +462,11 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
                                                 {/* Applicant 2 */}
                                                 {(additional.applicant2 || transaction.marriageLicenseApplication) && (
-                                                    <div className="bg-[#f8fafd] dark:bg-white/5 p-5 rounded-3xl space-y-2">
+                                                    <div className="space-y-3">
                                                         <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Applicant 2 (Bride/Spouse)</span>
-                                                        <p className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 leading-none">
+                                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                                                             {additional.applicant2?.fullName || transaction.marriageLicenseApplication?.app2FullName}
-                                                        </p>
+                                                        </div>
                                                         <div className="grid grid-cols-2 gap-2 text-[9px] font-medium text-slate-400 italic pt-1">
                                                             <span>DOB: {safeFormatDate(additional.applicant2?.birthDate || transaction.marriageLicenseApplication?.app2BirthDate)}</span>
                                                             <span>Citizenship: {additional.applicant2?.citizenship || transaction.marriageLicenseApplication?.app2Citizenship || "N/A"}</span>
@@ -448,28 +474,28 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                     </div>
                                                 )}
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <>
+                                        <div className="space-y-6">
                                             {/* Birth Details */}
                                             {(additional.fatherName || additional.motherName || transaction.birthCertificateRegistry?.fatherName || transaction.birthCertificateRegistry?.motherName) && (
                                                 <div className="space-y-6">
                                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Parental Matrix</h4>
-                                                    <div className="space-y-4">
+                                                    <div className="space-y-6">
                                                         {(additional.fatherName || transaction.birthCertificateRegistry?.fatherName) && (
-                                                            <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Father</span>
-                                                                <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            <div className="space-y-1.5">
+                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Father</span>
+                                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                                                                     {transaction.birthCertificateRegistry?.fatherName || additional.fatherName}
-                                                                </p>
+                                                                </div>
                                                             </div>
                                                         )}
                                                         {(additional.motherName || transaction.birthCertificateRegistry?.motherName) && (
-                                                            <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic mb-2 block">Mother</span>
-                                                                <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200">
+                                                            <div className="space-y-1.5">
+                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic block">Mother</span>
+                                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
                                                                     {transaction.birthCertificateRegistry?.motherName || additional.motherName}
-                                                                </p>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -485,19 +511,19 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                 if (!label1 && !label2) return null;
 
                                                 return (
-                                                    <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5 w-full">
+                                                    <div className="space-y-4 pt-6 border-t border-slate-800 w-full">
                                                         <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Selected Supporting Evidence</h4>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             {label1 && (
-                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200 leading-normal">
+                                                                <div className="bg-[#1f2937]/20 border border-slate-800/60 rounded-[2rem] p-6">
+                                                                    <p className="text-sm font-black italic uppercase text-white leading-normal">
                                                                         {label1}
                                                                     </p>
                                                                 </div>
                                                             )}
                                                             {label2 && (
-                                                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl">
-                                                                    <p className="text-sm font-black italic uppercase text-slate-600 dark:text-slate-200 leading-normal">
+                                                                <div className="bg-[#1f2937]/20 border border-slate-800/60 rounded-[2rem] p-6">
+                                                                    <p className="text-sm font-black italic uppercase text-white leading-normal">
                                                                         {label2}
                                                                     </p>
                                                                 </div>
@@ -506,7 +532,7 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
                                                     </div>
                                                 );
                                             })()}
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -515,52 +541,69 @@ export default function CivilRegistryView(props: TreasuryViewProps) {
 
 
                         {/* Evidence Uploads & Attachments */}
-                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
+                        <div className="bg-[#111827] border border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl space-y-6">
                             <div>
-                                <h3 className="text-lg font-black italic uppercase tracking-tight text-[#1e293b] dark:text-white">Evidence & Required Dossier</h3>
-                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Uploaded verification materials</p>
+                                <h3 className="text-lg font-black italic uppercase tracking-tight text-white">Evidence & Required Dossier</h3>
+                                <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest italic mt-1">Uploaded verification materials</p>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {finalEvidenceDocs.map((doc, i) => (
-                                    <div key={i} className="p-4 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                                                <FileText className="w-4 h-4" />
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase leading-none">{doc.label}</p>
-                                            </div>
-                                        </div>
-
-                                        {doc.url ? (
-                                            /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url) ? (
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img
-                                                            src={doc.url}
-                                                            alt={doc.label}
-                                                            className="w-28 h-20 object-cover rounded-md cursor-pointer border border-slate-100 dark:border-white/5"
-                                                        />
-                                                    </DialogTrigger>
-                                                    <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                                </Dialog>
+                                {finalEvidenceDocs.map((doc, i) => {
+                                    const isImg = doc.url && /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url);
+                                    const validDocs = finalEvidenceDocs.filter(d => !!d.url);
+                                    const validIndex = validDocs.findIndex(d => d.url === doc.url);
+                                    return doc.url ? (
+                                        <div 
+                                            key={i}
+                                            onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, validDocs, validIndex)}
+                                            className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/20 border border-slate-800 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
+                                        >
+                                            {isImg ? (
+                                                <>
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                                                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
+                                                        {doc.label}
+                                                    </div>
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                        <div
+                                                            style={{ backgroundColor: themeColor }}
+                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                        >
+                                                            <span>View</span>
+                                                        </div>
+                                                    </div>
+                                                </>
                                             ) : (
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                                            <ExternalLink className="w-3.5 h-3.5" />
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <LightboxView src={doc.url} alt={doc.label} label={doc.label} />
-                                                </Dialog>
-                                            )
-                                        ) : (
-                                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider italic">Pending Attachment</span>
-                                        )}
-                                    </div>
-                                ))}
+                                                <>
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#1f2937]/10 to-[#111827]" />
+                                                    <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
+                                                        <div className="w-14 h-14 rounded-2xl bg-[#1f2937]/50 border border-slate-800 shadow-sm flex items-center justify-center text-primary">
+                                                            <FileText className="w-7 h-7" />
+                                                        </div>
+                                                        <div className="text-center min-w-0">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                                                                Document File
+                                                            </p>
+                                                            <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-white truncate max-w-[220px]">
+                                                                {doc.label}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
+                                                        Open Document
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div key={i} className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/10 border border-dashed border-slate-800 overflow-hidden flex flex-col items-center justify-center text-slate-500 gap-1.5 p-4 select-none">
+                                            <Camera className="w-6 h-6 mx-auto" />
+                                            <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
+                                            <span className="text-[7px] italic text-slate-600 uppercase">Pending Attachment</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             {(() => {

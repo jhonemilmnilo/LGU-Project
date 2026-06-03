@@ -58,31 +58,58 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "REJECTED") {
-        subject = `Update on Your Registration Request - LGU ${municipalityName}`;
-        htmlBody = `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
-            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-                <div style="text-align: center; margin-bottom: 32px;">
-                    <div style="width: 64px; height: 64px; background: ${primaryRed}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-                        <span style="color: white; font-size: 32px;">✗</span>
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        if (transactionId) {
+            subject = `Update on Your Request for ${docName} - LGU ${municipalityName}`;
+            htmlBody = `
+            <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+                <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                    <div style="text-align: center; margin-bottom: 32px;">
+                        <div style="width: 64px; height: 64px; background: ${primaryRed}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                            <span style="color: white; font-size: 32px;">✗</span>
+                        </div>
+                        <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request Declined</h1>
                     </div>
-                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Registration Update</h1>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6;">After careful review, your request for <strong>${docName}</strong> (Ref ID: <strong style="font-family: monospace;">${transactionId}</strong>) could not be approved at this time.</p>
+                    ${remarks ? `
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                        <p style="color: #991b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Reason for Rejection</p>
+                        <p style="color: #7f1d1d; font-size: 14px; margin: 0; line-height: 1.5;">${remarks}</p>
+                    </div>` : ""}
+                    <p style="color: #64748b; font-size: 13px;">Please re-submit your application with the corrected information to proceed.</p>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                    <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Resident Services Portal • Automated Notification</p>
                 </div>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">After careful review, your resident registration request could not be approved at this time.</p>
-                ${remarks ? `
-                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0;">
-                    <p style="color: #991b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Reason for Rejection</p>
-                    <p style="color: #7f1d1d; font-size: 14px; margin: 0; line-height: 1.5;">${remarks}</p>
-                </div>` : ""}
-                <p style="color: #64748b; font-size: 13px;">Please re-submit your application with the corrected information to proceed.</p>
-                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Resident Services Portal • Automated Notification</p>
-            </div>
-        </div>`;
+            </div>`;
+        } else {
+            subject = `Update on Your Registration Request - LGU ${municipalityName}`;
+            htmlBody = `
+            <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+                <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                    <div style="text-align: center; margin-bottom: 32px;">
+                        <div style="width: 64px; height: 64px; background: ${primaryRed}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                            <span style="color: white; font-size: 32px;">✗</span>
+                        </div>
+                        <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Registration Update</h1>
+                    </div>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6;">After careful review, your resident registration request could not be approved at this time.</p>
+                    ${remarks ? `
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                        <p style="color: #991b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Reason for Rejection</p>
+                        <p style="color: #7f1d1d; font-size: 14px; margin: 0; line-height: 1.5;">${remarks}</p>
+                    </div>` : ""}
+                    <p style="color: #64748b; font-size: 13px;">Please re-submit your application with the corrected information to proceed.</p>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                    <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Resident Services Portal • Automated Notification</p>
+                </div>
+            </div>`;
+        }
     } else if (type === "FOR_REVISION") {
         const primaryAmber = "#f59e0b";
-        subject = `Action Required: Revision Needed - LGU ${municipalityName}`;
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        subject = `Action Required: Revision Needed for ${docName} - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
             <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
@@ -93,7 +120,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Revision Required</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your service request (Ref: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) requires some corrections or additional documents before we can proceed.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your service request for <strong>${docName}</strong> (Ref: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) requires some corrections or additional documents before we can proceed.</p>
                 ${remarks ? `
                 <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 24px; margin: 32px 0;">
                     <p style="color: #b45309; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Admin Remarks (What to Fix)</p>
@@ -105,7 +132,8 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "FOR_PAYMENT") {
-        subject = `Action Required: Assessment Complete - LGU ${municipalityName}`;
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        subject = `Action Required: Assessment Complete for ${docName} - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
             <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
@@ -116,7 +144,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Payment Ready</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Good news! Your service request has been successfully evaluated by the Municipal Treasury Office. You may now proceed to payment to finalize your application.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Good news! Your service request for <strong>${docName}</strong> has been successfully evaluated by the Municipal Treasury Office. You may now proceed to payment to finalize your application.</p>
                 
                 <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
                     <p style="color: #1e40af; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Final Assessment</p>
@@ -141,8 +169,8 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "FOR_CLAIM") {
-        const docName = serviceName || "Community Tax Certificate (Cedula)";
-        const subjectDocName = serviceName || "Cedula";
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        const subjectDocName = serviceName || "Community Tax Certificate - Individual";
         subject = `Ready for Claiming: Your ${subjectDocName} is Prepared - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
@@ -154,7 +182,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Document Ready for Claiming</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We are pleased to inform you that your **${docName}** has been processed and is now <strong style="color: ${primaryBlue};">READY FOR CLAIMING</strong> at the Municipal Treasury Office.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">We are pleased to inform you that your <strong>${docName}</strong> has been processed and is now <strong style="color: ${primaryBlue};">READY FOR CLAIMING</strong> at the Municipal Treasury Office.</p>
                 
                 <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 24px; margin: 32px 0;">
                     <p style="color: #1e40af; font-size: 12px; font-weight: 800; text-transform: uppercase; margin: 0 0 12px 0; letter-spacing: 0.05em;">Claiming Details</p>
@@ -187,8 +215,8 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "RELEASED") {
-        const docName = serviceName || "Community Tax Certificate (Cedula)";
-        const subjectDocName = serviceName || "Cedula";
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        const subjectDocName = serviceName || "Community Tax Certificate - Individual";
         subject = `Document Released: Your ${subjectDocName} is Ready - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
@@ -236,7 +264,9 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "IN_ROUTE") {
-        subject = `🚚 On the Way: Your Document is Out for Delivery! - LGU ${municipalityName}`;
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        const subjectDocName = serviceName || "Community Tax Certificate - Individual";
+        subject = `🚚 On the Way: Your ${subjectDocName} is Out for Delivery! - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
             <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
@@ -248,7 +278,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <p style="color: #3b82f6; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px;">Your Rider is on the way!</p>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Good news! Your requested document (Ref: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) has been picked up by our municipal logistics fleet and is now <strong style="color: ${primaryBlue};">ON THE WAY</strong> to your registered address.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Good news! Your requested document <strong>${docName}</strong> (Ref: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) has been picked up by our municipal logistics fleet and is now <strong style="color: ${primaryBlue};">ON THE WAY</strong> to your registered address.</p>
                 
                 <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 16px; padding: 24px; margin: 32px 0;">
                     <p style="color: #0369a1; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 12px 0; letter-spacing: 0.05em;">Payment Information</p>
@@ -314,7 +344,8 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "DISPUTE_APPROVED") {
-        subject = `Update: Your Request is Being Re-processed - LGU ${municipalityName}`;
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        subject = `Update: Your ${docName} Request is Being Re-processed - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
             <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
@@ -325,7 +356,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request Approved</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your recent return/refund request for Transaction ID <strong style="font-family: monospace;">${transactionId || "N/A"}</strong> has been <strong>APPROVED</strong> by the Municipal Treasury Office.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your recent return/refund request for <strong>${docName}</strong> (Transaction ID <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) has been <strong>APPROVED</strong> by the Municipal Treasury Office.</p>
                 
                 <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 24px; margin: 32px 0; text-align: center;">
                     <p style="color: #166534; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Status: Re-processing</p>
@@ -378,7 +409,8 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
             </div>
         </div>`;
     } else if (type === "DISPUTE_REJECTED") {
-        subject = `Update: Resolution Notice - LGU ${municipalityName}`;
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        subject = `Update: Resolution Notice for ${docName} - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
             <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
@@ -389,7 +421,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                     <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Request Declined</h1>
                 </div>
                 <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
-                <p style="color: #475569; font-size: 15px; line-height: 1.6;">This is to inform you that your recent request (Return/Refund) for Transaction ID <strong style="font-family: monospace;">${transactionId || "N/A"}</strong> has been <strong>DECLINED</strong> after further review by the Municipal Treasury Office.</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">This is to inform you that your recent request (Return/Refund) for <strong>${docName}</strong> (Transaction ID <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>) has been <strong>DECLINED</strong> after further review by the Municipal Treasury Office.</p>
                 
                 <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 32px 0;">
                     <p style="color: #991b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.05em;">Reason for Decision</p>
@@ -402,8 +434,9 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
             </div>
         </div>`;
-    } else if (type === "PROCESSING" || type === "FOR_PROCESSING") {
-        subject = `Update: Your Request is now in Process - LGU ${municipalityName}`;
+    } else if (type === "PROCESSING") {
+        const docName = serviceName || "Community Tax Certificate - Individual";
+        subject = `Update: Your ${docName} Request is now in Process - LGU ${municipalityName}`;
         htmlBody = `
         <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
             <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
