@@ -136,12 +136,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
             style={{ "--theme_color": themeColor, "--primary-theme": themeColor } as React.CSSProperties}
         >
             {/* Minimal Header */}
-            <header className="h-16 px-8 flex items-center justify-between border-b border-transparent dark:border-white/5">
-                <Link href={backUrl}>
-                    <Button variant="ghost" className="gap-2 text-slate-400 dark:text-slate-500 font-bold hover:text-primary">
-                        <ArrowLeft className="w-4 h-4" /> BACK TO DASHBOARD
-                    </Button>
-                </Link>
+            <header className="h-16 px-8 flex items-center justify-end border-b border-transparent dark:border-white/5">
                 <Badge variant="outline" className="font-black italic uppercase tracking-widest text-[10px] border-primary/20 text-primary bg-primary/5 px-4 py-1">
                     Type Of Request: {transaction.fulfillmentType?.replace("_", " ") || "Processing"}
                 </Badge>
