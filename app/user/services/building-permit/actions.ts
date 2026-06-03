@@ -74,7 +74,7 @@ export async function submitBuildingPermit(formData: FormData) {
     await processFile("tctFile", "tct");
 
     // Loop through requirements and permits
-    for (const [key, value] of Array.from(formData.entries())) {
+    for (const [key] of Array.from(formData.entries())) {
       if (key.startsWith("req_") || key.startsWith("permit_")) {
          await processFile(key, key.startsWith("req_") ? "requirements" : "permits");
       }
@@ -222,7 +222,7 @@ export async function resubmitBuildingPermit(transactionId: string, formData: Fo
     await processFile("tctFile", "tct");
 
     // Loop through requirements and permits
-    for (const [key, value] of Array.from(formData.entries())) {
+    for (const [key] of Array.from(formData.entries())) {
       if (key.startsWith("req_") || key.startsWith("permit_")) {
          await processFile(key, key.startsWith("req_") ? "requirements" : "permits");
       }
