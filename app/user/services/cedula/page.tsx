@@ -394,9 +394,9 @@ export default function CedulaApplicationPage() {
             case "RESIDENT":
                 const r = formData.residentData;
                 return !!(r?.firstName && r?.lastName && r?.dateOfBirth && r?.occupation && r?.contactNumber);
-            case "DECLARATION":
+             case "DECLARATION":
                 if (formData.isStudent) {
-                    return true;
+                    return !!formData.purpose?.trim();
                 }
                 if (formData.applicantType === "JURIDICAL") {
                     const isProp = formData.incomeSource === "PROPERTY";
@@ -449,7 +449,9 @@ export default function CedulaApplicationPage() {
                 contactInputRef.current?.focus();
                 toast.error("Please provide your contact number for better coordination.");
             } else if (currentStep === "DECLARATION") {
-                if (formData.applicantType === "JURIDICAL" && !formData.businessName?.trim()) {
+                if (formData.isStudent) {
+                    toast.error("Please state the purpose / reason of your Cedula request, bro.");
+                } else if (formData.applicantType === "JURIDICAL" && !formData.businessName?.trim()) {
                     toast.error("Oops! You need to enter your Business Name, boss.");
                 } else if (formData.applicantType === "JURIDICAL" && formData.incomeSource === "PROPERTY") {
                     incomeInputRef.current?.focus();
@@ -954,7 +956,9 @@ export default function CedulaApplicationPage() {
                                         <div className="space-y-6 md:space-y-8">
                                             {formData.isStudent ? (
                                                 <div className="space-y-2 md:space-y-3">
-                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">Purpose / Reason of Request {formData.isStudent && "(Optional)"}</Label>
+                                                    <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-1">
+                                                        Purpose / Reason of Request <span className="text-rose-500 font-black not-italic">*</span>
+                                                    </Label>
                                                     <textarea
                                                         value={formData.purpose || ""}
                                                         onChange={(e) => setFormData(p => ({ ...p, purpose: e.target.value }))}

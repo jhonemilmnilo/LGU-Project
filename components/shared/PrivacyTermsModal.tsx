@@ -64,10 +64,6 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
         if (reachedBottom) {
             if (tab === "PRIVACY") {
                 setHasReadPrivacy(true);
-                // Reset scroll position synchronously to prevent carrying over to the next tab
-                target.scrollTop = 0;
-                // Auto switch to TERMS tab for seamless legal onboarding!
-                setActiveTab("TERMS");
             }
             if (tab === "TERMS") {
                 setHasReadTerms(true);
@@ -195,6 +191,31 @@ export default function PrivacyTermsModal({ isOpen, onClose, onAccept, onDecline
                                     <p>
                                         We employ industry-standard encryption, strict access control, and dynamic security audits to protect your data from unauthorized access or leakage. Records are securely retained in our government system for as long as legally required for local audit and municipal validation.
                                     </p>
+
+                                    <AnimatePresence>
+                                        {hasReadPrivacy && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="pt-4 flex justify-end"
+                                            >
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (containerRef.current) {
+                                                            containerRef.current.scrollTop = 0;
+                                                        }
+                                                        setActiveTab("TERMS");
+                                                    }}
+                                                    className="h-9 px-5 text-white rounded-full text-[9px] font-black uppercase tracking-widest italic transition-all shadow-md flex items-center gap-2 hover:scale-[1.02] active:scale-95"
+                                                    style={{ backgroundColor: themeColor }}
+                                                >
+                                                    Continue to Terms of Service
+                                                    <span className="text-xs">→</span>
+                                                </Button>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             ) : (
                                 <div className="space-y-3 sm:space-y-4 text-[11px] sm:text-xs md:text-sm font-medium leading-relaxed italic">

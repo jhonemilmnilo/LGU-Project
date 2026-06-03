@@ -38,7 +38,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { calculateBusinessPermit } from "@/lib/business-permit";
 import { useDraft } from "@/hooks/useDraft";
-import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits } from "@/app/admin/transactions/actions";
+import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits, getUserTransactions } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
@@ -253,6 +253,8 @@ export default function BusinessPermitWizardPage() {
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
     const [bpTypes, setBpTypes] = useState<any[]>([]);
+    const [hasActiveNewPermit, setHasActiveNewPermit] = useState(false);
+    const [hasActiveRenewPermit, setHasActiveRenewPermit] = useState(false);
     const [dbBarangays, setDbBarangays] = useState<string[]>([]);
     const [isOtherLine, setIsOtherLine] = useState(false);
     const [isDtiGuideOpen, setIsDtiGuideOpen] = useState(false);
@@ -370,6 +372,24 @@ export default function BusinessPermitWizardPage() {
                     });
                     const uniqueList = Object.values(uniqueBusinessesMap);
                     setPreviousPermits(uniqueList);
+                }
+
+                // Fetch User Transactions to verify pending requests for BUSINESS_PERMIT_NEW and BUSINESS_PERMIT_RENEW
+                const txsRes = await getUserTransactions();
+                if (txsRes.success && txsRes.data) {
+                    const activeNew = txsRes.data.some((tx: any) => 
+                        tx.type?.code === "BUSINESS_PERMIT_NEW" && 
+                        !tx.isCancelled && 
+                        !["DELIVERED", "RELEASED", "REJECTED", "DRAFT"].includes(tx.status)
+                    );
+                    setHasActiveNewPermit(activeNew);
+
+                    const activeRenew = txsRes.data.some((tx: any) => 
+                        tx.type?.code === "BUSINESS_PERMIT_RENEW" && 
+                        !tx.isCancelled && 
+                        !["DELIVERED", "RELEASED", "REJECTED", "DRAFT"].includes(tx.status)
+                    );
+                    setHasActiveRenewPermit(activeRenew);
                 }
 
                 // Check search parameters for revision ID
@@ -665,6 +685,13 @@ export default function BusinessPermitWizardPage() {
     const canNavigate = (targetStep: Step) => {
         if (targetStep === "PATHWAY" && revisionId) return false;
 
+        if (formData.businessType === "NEW" && hasActiveNewPermit && !revisionId && targetStep !== "PATHWAY") {
+            return false;
+        }
+        if (formData.businessType === "RENEWAL" && hasActiveRenewPermit && !revisionId && targetStep !== "PATHWAY") {
+            return false;
+        }
+
         const targetIdx = STEPS.findIndex(s => s.id === targetStep);
         const currentIdx = STEPS.findIndex(s => s.id === currentStep);
 
@@ -679,6 +706,16 @@ export default function BusinessPermitWizardPage() {
     };
 
     const handleNext = () => {
+        if (currentStep === "PATHWAY") {
+            if (formData.businessType === "NEW" && hasActiveNewPermit && !revisionId) {
+                toast.error("You already have an active New Business Permit request in progress.");
+                return;
+            }
+            if (formData.businessType === "RENEWAL" && hasActiveRenewPermit && !revisionId) {
+                toast.error("You already have an active Business Permit Renewal request in progress.");
+                return;
+            }
+        }
         if (!isStepValid(currentStep)) {
             if (currentStep === "USER_IDENTITY") {
                 toast.error("Municipal profile record not loaded. Please contact administration.");
@@ -1040,6 +1077,14 @@ export default function BusinessPermitWizardPage() {
                                                 <button
                                                     key={opt.id}
                                                     onClick={() => {
+                                                        if (opt.id === "NEW" && hasActiveNewPermit && !revisionId) {
+                                                            toast.error("You already have an active New Business Permit request in progress.");
+                                                            return;
+                                                        }
+                                                        if (opt.id === "RENEWAL" && hasActiveRenewPermit && !revisionId) {
+                                                            toast.error("You already have an active Business Permit Renewal request in progress.");
+                                                            return;
+                                                        }
                                                         if (opt.id === "RENEWAL" && previousPermits.length > 0) {
                                                             setShowRenewalModal(true);
                                                         } else {
