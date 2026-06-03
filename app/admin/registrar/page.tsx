@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Helper: format exact date & time
 function formatDateTime(date: string | Date): { date: string; time: string } {
@@ -51,7 +51,7 @@ function isRegistrarLcrRequest(tx: any) {
     const typeCode = tx.type?.code;
     const typeCategory = tx.type?.category;
 
-    return tx.status === "FOR_REQUESTING" && (
+    return (tx.status === "FOR_REQUESTING" || tx.status === "FOR_INSPECTION") && (
         typeCategory === "Civil Registry" ||
         (typeCode && (typeCode.startsWith("LCR_") || typeCode.startsWith("CIVIL_REGISTRY")))
     );
@@ -62,6 +62,7 @@ const getStatusClassName = (status: string, isCancelled?: boolean) => {
     if (isCancelled) return "text-red-600";
     const statusMap: Record<string, string> = {
         "FOR_REQUESTING": "text-amber-600",
+        "FOR_INSPECTION": "text-blue-600",
         "FOR_REVISION": "text-amber-600",
         "EVALUATED": "text-blue-600",
         "FOR_CLAIM": "text-indigo-600",
@@ -96,7 +97,14 @@ export default function RegistrarPage() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [sortBy, setSortBy] = useState<"date" | "service" | "status">("date");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+    const searchParams = useSearchParams();
+    const categoryParam = searchParams.get("category");
     const [serviceFilter, setServiceFilter] = useState<string | null>(null);
+
+    // Reset service filter when category param changes
+    useEffect(() => {
+        setServiceFilter(null);
+    }, [categoryParam]);
 
     // Fetch all active service types for the filter dropdown
     useEffect(() => {
@@ -125,18 +133,23 @@ export default function RegistrarPage() {
         );
     }, [allServices, serviceSearch]);
 
-    // Fetch Verification, Billing & Release requests (FOR_REQUESTING and FOR_PROCESSING)
+    // Fetch Verification, Billing & Release requests (FOR_REQUESTING, FOR_INSPECTION and FOR_PROCESSING)
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
-            const [reqRes, procRes] = await Promise.all([
+            const [reqRes, inspRes, procRes] = await Promise.all([
                 getTreasuryTransactions("FOR_REQUESTING"),
+                getTreasuryTransactions("FOR_INSPECTION"),
                 getTreasuryTransactions("FOR_PROCESSING")
             ]);
 
             let combined: any[] = [];
             if (reqRes.success && reqRes.data) {
                 const lcrTxs = reqRes.data.filter(isRegistrarLcrRequest);
+                combined = [...combined, ...lcrTxs];
+            }
+            if (inspRes.success && inspRes.data) {
+                const lcrTxs = inspRes.data.filter(isRegistrarLcrRequest);
                 combined = [...combined, ...lcrTxs];
             }
             if (procRes.success && procRes.data) {
@@ -176,9 +189,18 @@ export default function RegistrarPage() {
 
             const matchesService = !serviceFilter || serviceFilter === "ALL" || tx.type?.name === serviceFilter;
 
-            return matchesSearch && matchesService;
+            let matchesCategory = true;
+            if (categoryParam && categoryParam !== "ALL") {
+                if (categoryParam === "Birth Registration") {
+                    matchesCategory = tx.type?.code === "LCR_BIRTH_REG";
+                } else if (categoryParam === "Birth Certificate") {
+                    matchesCategory = tx.type?.code === "LCR_BIRTH";
+                }
+            }
+
+            return matchesSearch && matchesService && matchesCategory;
         });
-    }, [transactions, search, serviceFilter]);
+    }, [transactions, search, serviceFilter, categoryParam]);
 
     const sortedTransactions = useMemo(() => {
         return [...filteredTransactions].sort((a, b) => {
@@ -246,7 +268,7 @@ export default function RegistrarPage() {
                     <div className="flex items-center gap-3 mb-1">
                         <div className="w-2 h-8 bg-primary rounded-full" />
                         <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
-                            Registrar Hub
+                            {categoryParam && categoryParam !== "ALL" ? categoryParam : "Registrar Hub"}
                         </h1>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">

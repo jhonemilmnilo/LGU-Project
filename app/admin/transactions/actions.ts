@@ -501,7 +501,7 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                 data: {
                     userId: session.user.id,
                     typeId,
-                    status: "FOR_REQUESTING",
+                    status: "FOR_INSPECTION",
                     fulfillmentType: additionalData.fulfillmentType || null,
                     paymentType: null,
                     residentSnapshot,
@@ -720,15 +720,15 @@ export async function submitBusinessPermitTransaction(formData: FormData) {
         const birCorFile = formData.get("birCorFile") as File | null;
         const previousPermitFile = formData.get("previousPermitFile") as File | null;
 
-        const ctcUrl = ctcFile ? await processFileUpload(ctcFile, "bp_ctc") : existingAddData?.ctcUrl;
-        const dtiSecUrl = dtiSecFile ? await processFileUpload(dtiSecFile, "bp_dti") : existingAddData?.dtiSecUrl;
-        const brgyClearanceUrl = brgyClearanceFile ? await processFileUpload(brgyClearanceFile, "bp_brgy") : existingAddData?.brgyClearanceUrl;
-        const ownerIdUrl = ownerIdFile ? await processFileUpload(ownerIdFile, "bp_owner_id") : (existingAddData?.ownerIdUrl || residentSnapshot?.idFrontUrl);
-        const locationPhotoUrl = locationPhotoFile ? await processFileUpload(locationPhotoFile, "bp_location") : existingAddData?.locationPhotoUrl;
-        const sanitaryPermitUrl = sanitaryPermitFile ? await processFileUpload(sanitaryPermitFile, "bp_sanitary") : existingAddData?.sanitaryPermitUrl;
-        const fireSafetyUrl = fireSafetyFile ? await processFileUpload(fireSafetyFile, "bp_fire") : existingAddData?.fireSafetyUrl;
-        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : existingAddData?.birCorUrl;
-        const previousPermitUrl = previousPermitFile ? await processFileUpload(previousPermitFile, "bp_prev_permit") : existingAddData?.previousPermitUrl;
+        const ctcUrl = ctcFile ? await processFileUpload(ctcFile, "bp_ctc") : (additionalData.ctcUrl || existingAddData?.ctcUrl);
+        const dtiSecUrl = dtiSecFile ? await processFileUpload(dtiSecFile, "bp_dti") : (additionalData.dtiSecUrl || existingAddData?.dtiSecUrl);
+        const brgyClearanceUrl = brgyClearanceFile ? await processFileUpload(brgyClearanceFile, "bp_brgy") : (additionalData.brgyClearanceUrl || existingAddData?.brgyClearanceUrl);
+        const ownerIdUrl = ownerIdFile ? await processFileUpload(ownerIdFile, "bp_owner_id") : (additionalData.ownerIdUrl || existingAddData?.ownerIdUrl || residentSnapshot?.idFrontUrl);
+        const locationPhotoUrl = locationPhotoFile ? await processFileUpload(locationPhotoFile, "bp_location") : (additionalData.locationPhotoUrl || existingAddData?.locationPhotoUrl);
+        const sanitaryPermitUrl = sanitaryPermitFile ? await processFileUpload(sanitaryPermitFile, "bp_sanitary") : (additionalData.sanitaryPermitUrl || existingAddData?.sanitaryPermitUrl);
+        const fireSafetyUrl = fireSafetyFile ? await processFileUpload(fireSafetyFile, "bp_fire") : (additionalData.fireSafetyUrl || existingAddData?.fireSafetyUrl);
+        const birCorUrl = birCorFile ? await processFileUpload(birCorFile, "bp_bir") : (additionalData.birCorUrl || existingAddData?.birCorUrl);
+        const previousPermitUrl = previousPermitFile ? await processFileUpload(previousPermitFile, "bp_prev_permit") : (additionalData.previousPermitUrl || existingAddData?.previousPermitUrl);
 
         // Merge all BPLO file URLs into additionalData
         const updatedAdditionalData = {
@@ -1112,7 +1112,7 @@ export async function submitTransaction(formData: FormData) {
 /**
  * Evaluate a Cedula Transaction (Treasury Staff side)
  */
-export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string, bpFeeLineItems?: { label: string; amount: number }[], registryBookVerification?: string, scannedDocUrl?: string, orSeriesNumber?: string) {
+export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?: number, adminNotes?: string, bpFeeLineItems?: { label: string; amount: number }[], registryBookVerification?: string, scannedDocUrl?: string, orSeriesNumber?: string, miscFeeOverride?: number) {
     try {
         const sanitizedId = sanitizeString(id);
         const sanitizedAdminNotes = adminNotes ? sanitizeString(adminNotes) : undefined;
@@ -1127,11 +1127,12 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         const sanitizedRegistryBookVerification = registryBookVerification ? sanitizeString(registryBookVerification) : undefined;
         const sanitizedScannedDocUrl = scannedDocUrl ? sanitizeString(scannedDocUrl) : undefined;
         const sanitizedOrSeriesNumber = orSeriesNumber ? sanitizeString(orSeriesNumber) : undefined;
+        const sanitizedMiscFeeOverride = miscFeeOverride !== undefined ? Number(miscFeeOverride) : undefined;
 
         const session = await getSession();
         // Check for TREASURY_STAFF or ADMIN role
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER" && user.role !== "REGISTRAR")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -1192,6 +1193,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             penalty: number;
             deliveryFee: number;
             totalAmount: number;
+            miscFee?: number;
         } = {
             basicTax: 0,
             additionalTax: 0,
@@ -1257,30 +1259,34 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
             const isBirthCert = typeCode === "LCR_BIRTH";
+            const isBirthReg = typeCode === "LCR_BIRTH_REG";
 
             const baseFee = isBirthCert
-                ? 115
-                : (isMarriageReg && !isLate)
+                ? 15
+                : ((isMarriageReg && !isLate) || isBirthReg)
                     ? 0
                     : Number(transaction.type?.baseFee || 0);
             const feeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = deliveryFeeOverride !== undefined ? deliveryFeeOverride : dynamicDeliveryFee || feeDelivery;
 
-            const persistedTotal = Number(transaction.totalAmount || 0);
-            const total = persistedTotal > 0
-                ? persistedTotal
-                : baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0);
+            const miscFee = sanitizedMiscFeeOverride !== undefined
+                ? sanitizedMiscFeeOverride
+                : (isLate ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300) : 0);
+
+            const itemsSum = sanitizedBpFeeLineItems ? sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) : 0;
+            const total = baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0) + miscFee + itemsSum;
 
             result = {
-                basicTax: 0,
+                basicTax: baseFee,
                 additionalTax: 0,
                 penalty: 0,
                 deliveryFee: deliveryFeeUsed,
+                miscFee: miscFee,
                 totalAmount: total
             };
         }
 
-        if (!isBusinessPermit && !isBuildingPermit && sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0) {
+        if (!isBusinessPermit && !isBuildingPermit && sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0 && !isLCR) {
             const itemsSum = sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
             result.totalAmount += itemsSum;
         }
@@ -1289,6 +1295,9 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         // New BPLO requests that pass inspection move to Treasury requesting.
         // Re-inspection keeps the existing later-phase flow and returns to processing.
         let newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
+        if (isLCR && transaction.status === "FOR_INSPECTION") {
+            newStatus = "FOR_REQUESTING";
+        }
         if (isBusinessPermit && transaction.status === "FOR_REINSPECTION") {
             newStatus = "FOR_PROCESSING";
         }
@@ -1304,7 +1313,8 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     ...(additionalData || {}),
                     ...(sanitizedRegistryBookVerification ? { registryBookVerification: sanitizedRegistryBookVerification } : {}),
                     ...(sanitizedScannedDocUrl ? { scannedDocUrl: sanitizedScannedDocUrl } : {}),
-                    ...(sanitizedOrSeriesNumber ? { orSeriesNumber: sanitizedOrSeriesNumber } : {})
+                    ...(sanitizedOrSeriesNumber ? { orSeriesNumber: sanitizedOrSeriesNumber } : {}),
+                    ...(sanitizedMiscFeeOverride !== undefined ? { miscFee: sanitizedMiscFeeOverride } : {})
                 },
                 fiscalSnapshot: {
                     basicTax: result!.basicTax,
@@ -1312,6 +1322,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
                     penaltyCharge: result!.penalty,
                     deliveryFee: result!.deliveryFee, // Persist delivery fee here
                     totalAmount: result!.totalAmount,
+                    ...(result!.miscFee !== undefined ? { miscFee: result!.miscFee } : {}),
                     ...(sanitizedBpFeeLineItems ? { lineItems: sanitizedBpFeeLineItems } : {})
                 }
             } as any,
@@ -2407,7 +2418,7 @@ export async function rejectTransaction(id: string, remarks: string) {
 
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER" && user.role !== "REGISTRAR")) {
             return { success: false, error: "Forbidden" };
         }
 
@@ -2520,7 +2531,7 @@ export async function sendForRevision(id: string, remarks: string) {
 
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
+        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER" && user.role !== "REGISTRAR")) {
             return { success: false, error: "Forbidden" };
         }
 

@@ -42,6 +42,7 @@ import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransa
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import { supabase } from "@/lib/supabase";
 
 // --- TYPES ---
 type Step = "PATHWAY" | "USER_IDENTITY" | "PROFILE" | "CHECKLIST" | "SUBMIT";
@@ -838,10 +839,74 @@ export default function BusinessPermitWizardPage() {
         }
     };
 
+    // --- UPLOAD FILE CLIENT-SIDE HELPER ---
+    const uploadFileClientSide = async (file: File | null, fieldName: string) => {
+        if (!file) return null;
+        try {
+            const userId = formData.residentData?.id || "anonymous";
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
+            const filePath = `business-permits/${fileName}`;
+            
+            const { error } = await supabase.storage
+                .from("system-assets")
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                });
+                
+            if (error) {
+                console.error(`Upload error for ${fieldName}:`, error);
+                throw error;
+            }
+            
+            const { data: { publicUrl } } = supabase.storage
+                .from("system-assets")
+                .getPublicUrl(filePath);
+                
+            return publicUrl;
+        } catch (err) {
+            console.error(`Failed uploading ${fieldName}:`, err);
+            throw new Error(`Failed to upload ${file.name}`);
+        }
+    };
+
     // --- FORM ACTIONS SUBMISSION ---
     const onSubmit = async () => {
         setSubmitting(true);
         try {
+            // Upload all checklist files client-side first to avoid Vercel 4.5MB payload limit
+            toast.loading("Uploading files to secure storage...", { id: "bp-upload-toast" });
+            const ctcUrl = formData.ctcFile 
+                ? await uploadFileClientSide(formData.ctcFile, 'ctc') 
+                : (revisionTx?.additionalData?.ctcUrl || null);
+            const dtiSecUrl = formData.dtiSecFile 
+                ? await uploadFileClientSide(formData.dtiSecFile, 'dtiSec') 
+                : (revisionTx?.additionalData?.dtiSecUrl || null);
+            const brgyClearanceUrl = formData.brgyClearanceFile 
+                ? await uploadFileClientSide(formData.brgyClearanceFile, 'brgyClearance') 
+                : (revisionTx?.additionalData?.brgyClearanceUrl || null);
+            const ownerIdUrl = formData.ownerIdFile 
+                ? await uploadFileClientSide(formData.ownerIdFile, 'ownerId') 
+                : (formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl || null);
+            const locationPhotoUrl = formData.locationPhotoFile 
+                ? await uploadFileClientSide(formData.locationPhotoFile, 'locationPhoto') 
+                : (revisionTx?.additionalData?.locationPhotoUrl || null);
+            const sanitaryPermitUrl = formData.sanitaryPermitFile 
+                ? await uploadFileClientSide(formData.sanitaryPermitFile, 'sanitaryPermit') 
+                : (revisionTx?.additionalData?.sanitaryPermitUrl || null);
+            const fireSafetyUrl = formData.fireSafetyFile 
+                ? await uploadFileClientSide(formData.fireSafetyFile, 'fireSafety') 
+                : (revisionTx?.additionalData?.fireSafetyUrl || null);
+            const birCorUrl = formData.birCorFile 
+                ? await uploadFileClientSide(formData.birCorFile, 'birCor') 
+                : (revisionTx?.additionalData?.birCorUrl || null);
+            const previousPermitUrl = formData.previousPermitFile 
+                ? await uploadFileClientSide(formData.previousPermitFile, 'previousPermit') 
+                : (revisionTx?.additionalData?.previousPermitUrl || null);
+
+            toast.success("All files uploaded successfully! Submitting application...", { id: "bp-upload-toast" });
+
             const submitData = new FormData();
             submitData.append("typeId", formData.typeId);
             submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
@@ -849,7 +914,7 @@ export default function BusinessPermitWizardPage() {
                 submitData.append("revisionId", revisionId);
             }
 
-            // Merge textual profiles into additionalData metadata
+            // Merge textual profiles and storage URLs into additionalData metadata
             submitData.append("additionalData", JSON.stringify({
                 businessType: formData.businessType,
                 businessName: formData.businessName,
@@ -868,20 +933,18 @@ export default function BusinessPermitWizardPage() {
                 fulfillmentType: null,
                 deliveryAddress: null,
                 deliveryPhone: null,
-                ownerIdUrl: formData.residentData?.idFrontUrl || null
+                ctcUrl,
+                dtiSecUrl,
+                brgyClearanceUrl,
+                ownerIdUrl,
+                locationPhotoUrl,
+                sanitaryPermitUrl,
+                fireSafetyUrl,
+                birCorUrl,
+                previousPermitUrl
             }));
 
-            // Append BPLO checklist files
-            if (formData.ctcFile) submitData.append("ctcFile", formData.ctcFile);
-            if (formData.dtiSecFile) submitData.append("dtiSecFile", formData.dtiSecFile);
-            if (formData.brgyClearanceFile) submitData.append("brgyClearanceFile", formData.brgyClearanceFile);
-            if (formData.ownerIdFile) submitData.append("ownerIdFile", formData.ownerIdFile);
-            if (formData.locationPhotoFile) submitData.append("locationPhotoFile", formData.locationPhotoFile);
-            if (formData.sanitaryPermitFile) submitData.append("sanitaryPermitFile", formData.sanitaryPermitFile);
-            if (formData.fireSafetyFile) submitData.append("fireSafetyFile", formData.fireSafetyFile);
-            if (formData.birCorFile) submitData.append("birCorFile", formData.birCorFile);
-            if (formData.previousPermitFile) submitData.append("previousPermitFile", formData.previousPermitFile);
-
+            // No files appended to FormData payload to bypass Vercel incoming payload limit!
             const res = await submitBusinessPermitTransaction(submitData);
             if (res.success) {
                 clearDraft(); // Purge draft upon successful submission
@@ -892,7 +955,7 @@ export default function BusinessPermitWizardPage() {
             }
         } catch (err) {
             console.error("Submit error:", err);
-            toast.error("An error occurred during submission.");
+            toast.error("An error occurred during submission.", { id: "bp-upload-toast" });
         } finally {
             setSubmitting(false);
         }
