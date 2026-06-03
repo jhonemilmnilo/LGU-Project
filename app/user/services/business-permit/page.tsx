@@ -896,7 +896,6 @@ export default function BusinessPermitWizardPage() {
         setSubmitting(true);
         try {
             toast.loading("Uploading files to secure storage...", { id: "bp-upload-toast" });
-            const userId = formData.residentData?.id || "anonymous";
 
             // Process residentSnapshot base64 files if present (e.g. webcam selfie or scanned IDs)
             const updatedResidentData = { ...formData.residentData };
