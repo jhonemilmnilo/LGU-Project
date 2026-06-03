@@ -1498,8 +1498,22 @@ export async function confirmTransactionPayment(id: string, referenceNo?: string
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id: sanitizedId },
-            data: transactionData
+            data: transactionData,
+            include: { user: true, type: true }
         });
+
+        // Send PAID email if status became PAID
+        if (nextStatus === "PAID" && updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: "PAID",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: sanitizedId.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Service",
+                amount: updatedTransaction.totalAmount || 0
+            });
+        }
 
         revalidatePath("/admin/treasury");
         return { success: true, data: updatedTransaction };
@@ -1564,8 +1578,22 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
                 status: "PAID",
                 updatedAt: new Date(),
                 additionalData: updatedAdditionalData
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send PAID email
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: "PAID",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: sanitizedId.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Service",
+                amount: updatedTransaction.totalAmount || 0
+            });
+        }
 
         revalidatePath("/admin/treasury");
         return { success: true, data: updatedTransaction };
@@ -3214,17 +3242,17 @@ export async function scheduleBuildingInspection(id: string, details: any) {
             include: { type: true, user: true }
         });
 
-        // Optionally send an email notification about the inspection
+        // Send an email notification about the inspection
         if (transaction.user?.email) {
             const resident = transaction.residentSnapshot as any;
             await sendEmail({
-                type: "NOTIFICATION",
+                type: "FOR_INSPECTION",
                 to: transaction.user.email,
                 name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : transaction.user.name || "Resident",
-                subject: "Building Permit Inspection Scheduled",
-                text: `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been scheduled for inspection on ${details.date} at ${details.time}.\n\nInspector: ${details.inspectorName}\nType: ${details.type}\nNotes: ${details.notes || 'None'}\n\nPlease ensure someone is available on-site.`,
-                html: `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been scheduled for inspection on <b>${details.date}</b> at <b>${details.time}</b>.</p><p><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}<br/><b>Notes:</b> ${details.notes || 'None'}</p><p>Please ensure someone is available on-site.</p>`
-            } as any);
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: transaction.type?.name || "Building Permit",
+                remarks: `Inspector: ${details.inspectorName} | Date: ${details.date} | Time: ${details.time} | Notes: ${details.notes || 'None'}`
+            });
         }
 
         revalidatePath("/admin/engineer");
@@ -3315,30 +3343,15 @@ export async function markForReinspection(id: string, reason: string, details?: 
         // Email notification
         if (transaction.user?.email) {
             const resident = transaction.residentSnapshot as any;
-            let textMsg = "";
-            let htmlMsg = "";
-
-            if (count >= 4) {
-                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been rejected after exceeding the maximum number of re-inspections.\n\nReason: ${reason}`;
-                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) has been <b>rejected</b> after exceeding the maximum number of re-inspections.</p><p><b>Reason:</b> ${reason}</p>`;
-            } else {
-                textMsg = `Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires re-inspection.\n\nReason: ${reason}\n\nThis is attempt ${count} out of 3.`;
-                htmlMsg = `<p>Your building permit application (Ref: ${id.slice(-8).toUpperCase()}) requires <b>re-inspection</b>.</p><p><b>Reason:</b> ${reason}</p><p><i>This is attempt ${count} out of 3.</i></p>`;
-
-                if (details) {
-                    textMsg += `\n\nRe-inspection Schedule:\nDate: ${details.date}\nTime: ${details.time}\nInspector: ${details.inspectorName}\nType: ${details.type}`;
-                    htmlMsg += `<br/><br/><h4>Re-inspection Schedule:</h4><p><b>Date:</b> ${details.date}<br/><b>Time:</b> ${details.time}<br/><b>Inspector:</b> ${details.inspectorName}<br/><b>Type:</b> ${details.type}</p>`;
-                }
-            }
 
             await sendEmail({
-                type: "NOTIFICATION",
+                type: count >= 4 ? "REJECTED" : "FOR_REINSPECTION",
                 to: transaction.user.email,
                 name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : transaction.user.name || "Resident",
-                subject: count >= 4 ? "Building Permit Application Rejected" : "Building Permit Requires Re-inspection",
-                text: textMsg,
-                html: htmlMsg
-            } as any);
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: transaction.type?.name || "Building Permit",
+                remarks: count >= 4 ? reason : `Attempt ${count} of 3. Reason: ${reason} ${details ? `| Date: ${details.date} | Time: ${details.time}` : ''}`
+            });
         }
 
         revalidatePath("/admin/engineer");
@@ -3392,8 +3405,28 @@ export async function endorseBuildingPermitFees(
             where: { id },
             data: {
                 additionalData: updatedAdditionalData
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send EVALUATED email
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            const totalFees = Number(fees.buildingPermitFee || 0) + 
+                              Number(fees.electricalPermitFee || 0) + 
+                              Number(fees.sanitaryPermitFee || 0) + 
+                              (fees.engineerMunicipalCharges || []).reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
+                              
+            await sendEmail({
+                type: "EVALUATED",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                amount: totalFees,
+                remarks: "Assessment endorsed by the Municipal Engineer."
+            });
+        }
 
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
@@ -3426,8 +3459,22 @@ export async function approveBuildingPermit(id: string) {
             data: {
                 status: "FOR_PROCESSING",
                 updatedAt: new Date()
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send FOR_PROCESSING email
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: "FOR_PROCESSING",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: "Your application is now officially being processed by the Engineer's Office."
+            });
+        }
 
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
@@ -3673,8 +3720,22 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
                     totalAmount: finalTotal,
                     lineItems: lineItems
                 }
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send UNPAID email
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: "UNPAID",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                amount: finalTotal
+            });
+        }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/admin/engineer");
@@ -3739,8 +3800,22 @@ export async function submitBuildingPermitAction(id: string, eCopyUrl: string) {
                 status: nextStatus,
                 eCopyUrl: eCopyUrl,
                 updatedAt: new Date()
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send FOR_PICKING or FOR_CLAIM email
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: nextStatus as any,
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: "Your document has been prepared by the Engineer's Office."
+            });
+        }
 
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
