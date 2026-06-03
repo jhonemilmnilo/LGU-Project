@@ -400,7 +400,7 @@ export function Sidebar({
                                                         const subCategory = urlObj.searchParams.get("category");
                                                         const subTab = urlObj.searchParams.get("tab");
                                                         
-                                                        const isSubActive = pathname === urlObj.pathname && 
+                                                        const isSubActive = (pathname === urlObj.pathname || (pathname.startsWith("/admin/treasury/") && !pathname.includes("/payment-settings") && urlObj.pathname === "/admin/treasury")) && 
                                                             (subCategory ? currentCategory === subCategory : true) &&
                                                             (subTab ? currentTab === subTab : true);
                                                         return (

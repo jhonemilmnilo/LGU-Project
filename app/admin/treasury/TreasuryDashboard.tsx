@@ -458,7 +458,7 @@ export default function TreasuryDashboard() {
                                             paginatedTransactions.map((tx, index) => (
                                                 <TableRow
                                                     key={tx.id}
-                                                    onClick={() => router.push(`/admin/treasury/${tx.id}`)}
+                                                    onClick={() => router.push(`/admin/treasury/${tx.id}?category=${categoryParam || "ALL"}`)}
                                                     className="border-b border-slate-100 dark:border-[#2a3040]/50 hover:bg-slate-50/50 dark:hover:bg-[#1a1f2e]/50 transition-colors cursor-pointer select-none"
                                                 >
                                                     <TableCell className="py-4">

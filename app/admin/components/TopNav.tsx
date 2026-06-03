@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
     ChevronRight,
@@ -71,6 +71,7 @@ function formatSegment(seg: string): string {
 
 export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", brandWord2 = "Mapandan", logoUrl }: TopNavProps) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { theme, setTheme } = useTheme();
     const { isOpen, toggle: toggleSidebar } = useSidebar();
     const [dropdownOpen, setDropdownOpen] = React.useState(false);
@@ -86,24 +87,54 @@ export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", bran
                (s.length >= 20 && /^[a-zA-Z0-9]+$/.test(s));
     };
 
-    // Filter out dynamic ID segments so the breadcrumbs remain clean and readable
-    const filteredSegments = segments.filter(s => !isId(s));
+    // Check if route matches /admin/treasury/[id]
+    const isTreasuryDetail = segments.length === 3 && segments[0] === "admin" && segments[1] === "treasury" && isId(segments[2]);
 
-    const origCrumbs = filteredSegments.map((seg, i) => ({
-        seg,
-        label: formatSegment(seg),
-        href: "/" + filteredSegments.slice(0, i + 1).join("/"),
-        isLast: i === filteredSegments.length - 1,
-    }));
+    let crumbsToRender;
 
-    // Always show 'Dashboard' as the first breadcrumb. Exclude 'admin' and 'dashboard' from the tail.
-    const nonAdminSegments = filteredSegments.filter((s) => s !== "admin");
-    const tailCrumbs = origCrumbs.filter((c) => c.seg !== "admin" && c.seg !== "dashboard");
-    const dashboardIsLast = nonAdminSegments.length === 1 && nonAdminSegments[0] === "dashboard";
-    const crumbsToRender = [
-        { seg: "dashboard", label: formatSegment("dashboard"), href: "/admin/dashboard", isLast: dashboardIsLast },
-        ...tailCrumbs,
-    ];
+    if (isTreasuryDetail) {
+        const category = searchParams.get("category") || "ALL";
+        const categoryLabel = category === "ALL" ? "All Categories" : category;
+        const transactionId = segments[2];
+        const shortId = transactionId.slice(-8).toUpperCase();
+
+        crumbsToRender = [
+            { seg: "dashboard", label: formatSegment("dashboard"), href: "/admin/dashboard", isLast: false },
+            { seg: "treasury", label: formatSegment("treasury"), href: "/admin/treasury?category=ALL", isLast: false },
+            { seg: "category", label: categoryLabel, href: `/admin/treasury?category=${category}`, isLast: false },
+            { seg: "detail", label: `Request #${shortId}`, href: "", isLast: true }
+        ];
+    } else {
+        const isTreasuryList = segments.length === 2 && segments[0] === "admin" && segments[1] === "treasury";
+        const category = searchParams.get("category");
+
+        if (isTreasuryList && category && category !== "ALL") {
+            crumbsToRender = [
+                { seg: "dashboard", label: formatSegment("dashboard"), href: "/admin/dashboard", isLast: false },
+                { seg: "treasury", label: formatSegment("treasury"), href: "/admin/treasury?category=ALL", isLast: false },
+                { seg: "category", label: category, href: `/admin/treasury?category=${category}`, isLast: true }
+            ];
+        } else {
+            // Filter out dynamic ID segments so the breadcrumbs remain clean and readable
+            const filteredSegments = segments.filter(s => !isId(s));
+
+            const origCrumbs = filteredSegments.map((seg, i) => ({
+                seg,
+                label: formatSegment(seg),
+                href: "/" + filteredSegments.slice(0, i + 1).join("/"),
+                isLast: i === filteredSegments.length - 1,
+            }));
+
+            // Always show 'Dashboard' as the first breadcrumb. Exclude 'admin' and 'dashboard' from the tail.
+            const nonAdminSegments = filteredSegments.filter((s) => s !== "admin");
+            const tailCrumbs = origCrumbs.filter((c) => c.seg !== "admin" && c.seg !== "dashboard");
+            const dashboardIsLast = nonAdminSegments.length === 1 && nonAdminSegments[0] === "dashboard";
+            crumbsToRender = [
+                { seg: "dashboard", label: formatSegment("dashboard"), href: "/admin/dashboard", isLast: dashboardIsLast },
+                ...tailCrumbs,
+            ];
+        }
+    }
 
     // Close dropdown on outside click
     React.useEffect(() => {
@@ -177,8 +208,8 @@ export function TopNav({ session, themeColor = "#2563eb", brandWord1 = "E", bran
                             </div>
                         </div>
                     )}
-                    {crumbsToRender.map((crumb) => (
-                        <React.Fragment key={crumb.href}>
+                    {crumbsToRender.map((crumb, idx) => (
+                        <React.Fragment key={`${crumb.seg}-${idx}`}>
                             <ChevronRight size={13} className="text-slate-300 dark:text-slate-600 shrink-0" />
                             {crumb.isLast ? (
                                 <span className="font-semibold text-slate-700 dark:text-slate-200 truncate">
