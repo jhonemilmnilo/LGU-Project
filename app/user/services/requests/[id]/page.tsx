@@ -757,15 +757,15 @@ export default function RequestHubPage() {
     const documentList = useMemo(() => {
         if (!request) return [] as { label: string; url: string }[];
         const addData = request.additionalData || {};
-        
+
         if (isBuildingPermit) {
             const docs = [];
             const d = addData.documents || {};
-            
+
             // Requirements
             const reqLabels = [
-                "Barangay Clearance/Certification", "Tax Declaration", "Land Title (if any)",
-                "Community Tax Certificate", "Latest Tax Receipts", "Electrical & Sanitary Permit",
+                "Barangay Clearance/Certification", "Tax Declaration", "Land Title",
+                "Community Tax Certificate", "Latest Tax Receipts",
                 "Adjoining Owners Confirmation", "Locational Clearance", "2 Affidavits",
                 "Affidavit of Consent", "Affidavit of Adjoining Owners", "Signed & Sealed Plans",
                 "Fire Safety Clearance"
@@ -773,22 +773,22 @@ export default function RequestHubPage() {
             reqLabels.forEach((label, i) => {
                 if (d[`req_${i}`]) docs.push({ label, url: d[`req_${i}`] });
             });
-            
+
             // Permits
             const permitLabels = [
                 "1. Building Permit", "2. Electrical Permit", "3. Plumbing Permit",
-                "4. Sanitary Permit", "5. Excavation & Ground Preparation Permit", 
-                "6. Fencing Permit (if any)", "7. Affidavit Form", "8. Scaffolding Permit", 
+                "4. Sanitary Permit", "5. Excavation & Ground Preparation Permit",
+                "6. Fencing Permit (if any)", "7. Affidavit Form", "8. Scaffolding Permit",
                 "9. Mechanical Permit"
             ];
             permitLabels.forEach((label, i) => {
                 if (d[`permit_${i}`]) docs.push({ label, url: d[`permit_${i}`] });
             });
-            
+
             if (d.newIdFile) docs.push({ label: "Applicant ID", url: d.newIdFile });
             if (d.tctFile) docs.push({ label: "TCT File", url: d.tctFile });
             if (addData.signature) docs.push({ label: "Digital Signature", url: addData.signature });
-            
+
             return docs.filter(doc => !!doc.url) as { label: string; url: string }[];
         }
 
