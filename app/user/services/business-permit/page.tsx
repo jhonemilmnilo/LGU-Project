@@ -848,7 +848,7 @@ export default function BusinessPermitWizardPage() {
             const fileName = `${userId}/${fieldName}_${Date.now()}.${fileExt}`;
             const filePath = `business-permits/${fileName}`;
             
-            const { data, error } = await supabase.storage
+            const { error } = await supabase.storage
                 .from("system-assets")
                 .upload(filePath, file, {
                     cacheControl: '3600',
