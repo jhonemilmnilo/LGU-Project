@@ -46,12 +46,12 @@ function getResidentSnapshot(tx: any): any {
     return tx.residentSnapshot;
 }
 
-// Helper: check if transaction is registrar civil registry request under evaluation
+// Helper: check if transaction is registrar civil registry request
 function isRegistrarLcrRequest(tx: any) {
     const typeCode = tx.type?.code;
     const typeCategory = tx.type?.category;
 
-    return (tx.status === "FOR_REQUESTING" || tx.status === "FOR_INSPECTION") && (
+    return (
         typeCategory === "Civil Registry" ||
         (typeCode && (typeCode.startsWith("LCR_") || typeCode.startsWith("CIVIL_REGISTRY")))
     );
@@ -133,30 +133,17 @@ export default function RegistrarPage() {
         );
     }, [allServices, serviceSearch]);
 
-    // Fetch Verification, Billing & Release requests (FOR_REQUESTING, FOR_INSPECTION and FOR_PROCESSING)
+    // Fetch all requests for Civil Registry
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
-            const [reqRes, inspRes, procRes] = await Promise.all([
-                getTreasuryTransactions("FOR_REQUESTING"),
-                getTreasuryTransactions("FOR_INSPECTION"),
-                getTreasuryTransactions("FOR_PROCESSING")
-            ]);
-
-            let combined: any[] = [];
-            if (reqRes.success && reqRes.data) {
-                const lcrTxs = reqRes.data.filter(isRegistrarLcrRequest);
-                combined = [...combined, ...lcrTxs];
+            const res = await getTreasuryTransactions("ALL");
+            if (res.success && res.data) {
+                const lcrTxs = res.data.filter(isRegistrarLcrRequest);
+                setTransactions(lcrTxs);
+            } else {
+                toast.error(res.error || "Failed to load transactions");
             }
-            if (inspRes.success && inspRes.data) {
-                const lcrTxs = inspRes.data.filter(isRegistrarLcrRequest);
-                combined = [...combined, ...lcrTxs];
-            }
-            if (procRes.success && procRes.data) {
-                const civilTxs = procRes.data.filter((tx: any) => tx.type?.category === "Civil Registry");
-                combined = [...combined, ...civilTxs];
-            }
-            setTransactions(combined);
         } catch (err) {
             console.error("Failed to load registrar transactions:", err);
             toast.error("Failed to load transactions");

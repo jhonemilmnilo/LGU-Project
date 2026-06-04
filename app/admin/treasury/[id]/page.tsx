@@ -484,6 +484,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             amount: String(item.amount),
                             readonly: isLcrRequesting
                         }));
+                        // For LCR FOR_REQUESTING, add one blank editable row for new additional fees
+                        if (isLcrRequesting) {
+                            mappedFees.push({ label: "", amount: "", readonly: false });
+                        }
                         setFeeLineItems(mappedFees);
                     } else {
                         if (tx.isStudent) {
@@ -496,9 +500,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                                     amount: "",
                                     readonly: isLcrRequesting
                                 }));
+                                // For LCR FOR_REQUESTING, also append a blank editable row
+                                if (isLcrRequesting) {
+                                    mappedFees.push({ label: "", amount: "", readonly: false });
+                                }
                                 setFeeLineItems(mappedFees);
                             } else {
-                                setFeeLineItems([]);
+                                // If LCR FOR_REQUESTING, ensure at least one blank editable row
+                                setFeeLineItems(isLcrRequesting ? [{ label: "", amount: "", readonly: false }] : []);
                             }
                         }
                     }
@@ -780,7 +789,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         : null;
 
     const calcResult = (() => {
-        if (fiscal && !(isBusinessPermit && transaction.status === "FOR_REQUESTING") && !(isBuildingPermit && transaction.status === "EVALUATED")) {
+        if (fiscal && !(isBusinessPermit && transaction.status === "FOR_REQUESTING") && !(isBuildingPermit && transaction.status === "EVALUATED") && !(isLCR && transaction.status === "FOR_REQUESTING")) {
             return {
                 basicTax: fiscal.basicTax,
                 additionalTax: fiscal.additionalTax,
@@ -823,31 +832,40 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         }
 
         if (isLCR) {
-            // For Civil Registry (LCR) services, prefer persisted transaction.totalAmount
-            // (set at submission time) or fall back to type baseFee + delivery fee.
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
-            const baseFee = (isMarriageReg && !isLate)
-                ? 0
-                : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
+            
+            // Pag FOR_REQUESTING, gamitin ang standard type baseFee (huwag yung transaction.totalAmount para maiwasan ang loop/double mapping)
+            const baseFee = (transaction.status === "FOR_REQUESTING")
+                ? Number(transaction.type?.baseFee || 0)
+                : ((isMarriageReg && !isLate)
+                    ? 0
+                    : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0));
+
             const typeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
                 : 0;
-            // Miscellaneous fee: Late registration = ₱300 (or custom from additional.miscFee), Standard = ₱0
-            const miscFee = isLate
-                ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300)
-                : 0;
-            const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0)
+
+            const miscFee = (transaction.status === "FOR_REQUESTING")
+                ? (additional.miscFee !== undefined ? Number(additional.miscFee) : (isLate ? 300 : 0))
+                : (isLate
+                    ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300)
+                    : 0);
+
+            const itemsSum = feeLineItems.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+            const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0 && transaction.status !== "FOR_REQUESTING")
                 ? Number(transaction.totalAmount)
-                : baseFee + deliveryFeeUsed + miscFee;
+                : deliveryFeeUsed + miscFee + itemsSum;
+
             return {
                 basicTax: baseFee,
                 additionalTax: 0,
                 penalty: 0,
                 deliveryFee: deliveryFeeUsed,
                 miscFee,
-                totalAmount: total
+                totalAmount: total,
+                lineItems: feeLineItems.filter(item => (parseFloat(item.amount) || 0) > 0)
             };
         }
 
@@ -878,7 +896,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     })();
 
     // Prefer persisted `transaction.totalAmount` when available (greater than 0); otherwise use calculated result
-    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
+    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !((isBusinessPermit || isLCR) && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
@@ -1213,6 +1231,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     label: item.label.trim(),
                     amount: parseFloat(item.amount) || 0
                 }));
+            } else if (isLCR) {
+                // LCR: include ALL feeLineItems (readonly pre-existing + new editable) that have valid label & amount
+                const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "" && (parseFloat(item.amount) || 0) > 0);
+                if (validItems.length > 0) {
+                    itemsToSend = validItems.map(item => ({
+                        label: item.label.trim(),
+                        amount: parseFloat(item.amount) || 0
+                    }));
+                }
             } else {
                 // Cedula / Generic: additional fees are optional — only send if filled in
                 const validItems = feeLineItems.filter(item => item.label.trim() !== "" && item.amount.trim() !== "");
@@ -1234,9 +1261,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
 
 
+            // For LCR, resolve miscFee from additionalData to pass explicitly to the server
+            const lcrMiscFee = isLCR && additional.miscFee !== undefined ? Number(additional.miscFee) : undefined;
+
             const res = transaction.isStudent
                 ? await evaluateStudentCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber)
-                : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber);
+                : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee);
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -1252,10 +1282,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
                 const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
-                    toast.success("Proceeding to Processing");
+                    toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
                     fetchTransaction();
                 } else {
-                    toast.error(rel.error || "Failed to proceed to processing");
+                    toast.error(rel.error || (isLCR || isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
                 return;
             }
@@ -1276,9 +1306,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 // Immediately proceed to processing after confirmation
                 const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
-                    toast.success("Proceeding to Processing");
+                    toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
                 } else {
-                    toast.error(rel.error || "Failed to proceed to processing");
+                    toast.error(rel.error || (isLCR || isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
                 fetchTransaction();
             } else toast.error(res.error || "Failed");

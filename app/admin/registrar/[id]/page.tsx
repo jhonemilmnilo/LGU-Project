@@ -32,7 +32,8 @@ import {
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
     declinePaymentProofAction,
-    confirmTransactionPaymentWithReceipt
+    confirmTransactionPaymentWithReceipt,
+    processRegistrarRequest
 } from "@/app/admin/transactions/actions";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
@@ -744,6 +745,21 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 fetchTransaction();
             } else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
+    };
+
+    const handleProcessRequest = async () => {
+        setActionLoading(true);
+        try {
+            const res = await processRegistrarRequest(transaction.id);
+            if (res.success) {
+                toast.success("Request processed successfully!");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to process request");
+            }
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     const handleReceiptFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1524,7 +1540,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         orSeriesNumber,
         setOrSeriesNumber,
         miscFee,
-        setMiscFee
+        setMiscFee,
+        handleProcessRequest
     };
 
     if (isBusinessPermit) {

@@ -1271,7 +1271,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
 
             const miscFee = sanitizedMiscFeeOverride !== undefined
                 ? sanitizedMiscFeeOverride
-                : (isLate ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300) : 0);
+                : (additional.miscFee !== undefined ? Number(additional.miscFee) : (isLate ? 300 : 0));
 
             const itemsSum = sanitizedBpFeeLineItems ? sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) : 0;
             const total = baseFee + (transaction.fulfillmentType === "DELIVERY" ? deliveryFeeUsed : 0) + miscFee + itemsSum;
@@ -1704,12 +1704,13 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
         // Let's check: if we click "Proceed to Processing", the current status is probably PAID. If we click it, it should transition to FOR_PROCESSING (or FOR_PROCESS).
         // Let's check what the valid transaction statuses are in schema/prisma: "PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED", etc.
         // Let's modify targetStatus:
+        const isLcrTx = transaction.type.code.startsWith("LCR_") || transaction.type.code.startsWith("CIVIL_REGISTRY");
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
         const isBusinessPermitTreasuryHandoff = isBusinessPermit && user.role === "TREASURY_STAFF" && ["PAID", "FOR_PROCESSING"].includes(transaction.status as any);
         const targetStatus = isBusinessPermit
             ? (isBusinessPermitTreasuryHandoff ? "FOR_REINSPECTION" : (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM"))
             : (transaction.status as any) === "PAID"
-                ? "FOR_PROCESSING"
+                ? (isLcrTx ? "FOR_REINSPECTION" : "FOR_PROCESSING")
                 : isInitialRelease
                     ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
                     : "RELEASED";
@@ -4592,5 +4593,53 @@ export async function requestPsaEndorsement(formData: FormData) {
     } catch (error) {
         console.error("Request PSA endorsement error:", error);
         return { success: false, error: "Failed to submit PSA endorsement request" };
+    }
+}
+
+/**
+ * Transition registrar civil registry request to FOR_PROCESSING and email the citizen
+ */
+export async function processRegistrarRequest(id: string) {
+    try {
+        const sanitizedId = sanitizeString(id);
+        const session = await getSession();
+        const user = session?.user as any;
+        if (!user || (user.role !== "ADMIN" && user.role !== "REGISTRAR" && !isUserAdminAide(user))) {
+            return { success: false, error: "Forbidden" };
+        }
+
+        const transaction = await prisma.transaction.findUnique({
+            where: { id: sanitizedId },
+            include: { type: true, user: true }
+        });
+
+        if (!transaction) return { success: false, error: "Transaction not found" };
+
+        const updatedTransaction = await prisma.transaction.update({
+            where: { id: sanitizedId },
+            data: {
+                status: "FOR_PROCESSING",
+                updatedAt: new Date()
+            },
+            include: { user: true, type: true }
+        });
+
+        // Send processing email to the citizen using sendEmail
+        if (updatedTransaction.user?.email) {
+            const resident = updatedTransaction.residentSnapshot as any;
+            await sendEmail({
+                type: "PROCESSING",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: sanitizedId.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Civil Registry Request"
+            });
+        }
+
+        revalidatePath("/admin/registrar");
+        return { success: true, data: updatedTransaction };
+    } catch (error) {
+        console.error("Process registrar request error:", error);
+        return { success: false, error: "Failed to process request" };
     }
 }
