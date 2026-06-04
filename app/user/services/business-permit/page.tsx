@@ -312,6 +312,13 @@ export default function BusinessPermitWizardPage() {
         setViewerOpen(true);
     };
 
+    // Scroll to top when transitioning to the submit step
+    useEffect(() => {
+        if (currentStep === "SUBMIT") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    }, [currentStep]);
+
     // --- INITIALIZATION & DRAFT HYDRATION ---
     useEffect(() => {
         async function init() {
@@ -871,12 +878,50 @@ export default function BusinessPermitWizardPage() {
         }
     };
 
+    // --- CONVERT BASE64 DATAURL TO FILE ---
+    const dataURLtoFile = (dataurl: string, filename: string) => {
+        try {
+            const arr = dataurl.split(',');
+            const mimeMatch = arr[0].match(/:(.*?);/);
+            if (!mimeMatch) return null;
+            const mime = mimeMatch[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new File([u8arr], filename, { type: mime });
+        } catch (e) {
+            console.error("Failed to parse base64 data url", e);
+            return null;
+        }
+    };
+
     // --- FORM ACTIONS SUBMISSION ---
     const onSubmit = async () => {
         setSubmitting(true);
         try {
-            // Upload all checklist files client-side first to avoid Vercel 4.5MB payload limit
             toast.loading("Uploading files to secure storage...", { id: "bp-upload-toast" });
+
+            // Process residentSnapshot base64 files if present (e.g. webcam selfie or scanned IDs)
+            const updatedResidentData = { ...formData.residentData };
+            if (updatedResidentData.idFrontUrl && updatedResidentData.idFrontUrl.startsWith("data:")) {
+                const file = dataURLtoFile(updatedResidentData.idFrontUrl, "id_front.png");
+                if (file) {
+                    const publicUrl = await uploadFileClientSide(file, 'resident_id_front');
+                    if (publicUrl) updatedResidentData.idFrontUrl = publicUrl;
+                }
+            }
+            if (updatedResidentData.idBackUrl && updatedResidentData.idBackUrl.startsWith("data:")) {
+                const file = dataURLtoFile(updatedResidentData.idBackUrl, "id_back.png");
+                if (file) {
+                    const publicUrl = await uploadFileClientSide(file, 'resident_id_back');
+                    if (publicUrl) updatedResidentData.idBackUrl = publicUrl;
+                }
+            }
+
+            // Upload all checklist files client-side first to avoid Vercel 4.5MB payload limit
             const ctcUrl = formData.ctcFile 
                 ? await uploadFileClientSide(formData.ctcFile, 'ctc') 
                 : (revisionTx?.additionalData?.ctcUrl || null);
@@ -888,7 +933,7 @@ export default function BusinessPermitWizardPage() {
                 : (revisionTx?.additionalData?.brgyClearanceUrl || null);
             const ownerIdUrl = formData.ownerIdFile 
                 ? await uploadFileClientSide(formData.ownerIdFile, 'ownerId') 
-                : (formData.residentData?.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl || null);
+                : (updatedResidentData.idFrontUrl || revisionTx?.additionalData?.ownerIdUrl || null);
             const locationPhotoUrl = formData.locationPhotoFile 
                 ? await uploadFileClientSide(formData.locationPhotoFile, 'locationPhoto') 
                 : (revisionTx?.additionalData?.locationPhotoUrl || null);
@@ -909,7 +954,7 @@ export default function BusinessPermitWizardPage() {
 
             const submitData = new FormData();
             submitData.append("typeId", formData.typeId);
-            submitData.append("residentSnapshot", JSON.stringify(formData.residentData));
+            submitData.append("residentSnapshot", JSON.stringify(updatedResidentData));
             if (revisionId) {
                 submitData.append("revisionId", revisionId);
             }
@@ -943,6 +988,16 @@ export default function BusinessPermitWizardPage() {
                 birCorUrl,
                 previousPermitUrl
             }));
+
+            // Console log payload sizes to help debug
+            console.log("=== SUBMIT PAYLOAD DIAGNOSTICS ===");
+            for (const [key, value] of (submitData as any).entries()) {
+                if (typeof value === "string") {
+                    console.log(`Key: ${key}, Length: ${value.length} chars (approx ${(value.length / 1024).toFixed(2)} KB)`);
+                } else {
+                    console.log(`Key: ${key}, File: ${value.name}, Size: ${(value.size / 1024 / 1024).toFixed(2)} MB`);
+                }
+            }
 
             // No files appended to FormData payload to bypass Vercel incoming payload limit!
             const res = await submitBusinessPermitTransaction(submitData);

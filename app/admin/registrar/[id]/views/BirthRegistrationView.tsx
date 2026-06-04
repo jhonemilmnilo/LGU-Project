@@ -17,8 +17,11 @@ import {
     Plus,
     Trash2,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Copy,
+    Hash
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,7 +89,9 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
         removeFeeLineItem,
         updateFeeLineItem,
         miscFee,
-        setMiscFee
+        setMiscFee,
+        handleProcessRequest,
+        handlePrintWaybill
     } = props;
 
     const [isAssessmentOpen, setIsAssessmentOpen] = React.useState(true);
@@ -733,11 +738,22 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {finalEvidenceDocs.map((doc, i) => {
-                                    const isImg = doc.url && /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url);
-                                    const validDocs = finalEvidenceDocs.filter(d => !!d.url);
-                                    const validIndex = validDocs.findIndex(d => d.url === doc.url);
-                                    return doc.url ? (
+                                {finalEvidenceDocs
+                                    .filter(doc => {
+                                        const label = (doc.label || '').toLowerCase();
+                                        const url = (doc.url || '').toLowerCase();
+                                        return !label.includes('receipt') && 
+                                               !label.includes('o.r.') && 
+                                               !label.includes('or doc') && 
+                                               !url.includes('receipt') && 
+                                               !url.includes('or_doc') && 
+                                               doc.url !== transaction.orUrl;
+                                    })
+                                    .map((doc, i, arr) => {
+                                        const isImg = doc.url && /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url);
+                                        const validDocs = arr.filter(d => !!d.url);
+                                        const validIndex = validDocs.findIndex(d => d.url === doc.url);
+                                        return doc.url ? (
                                         <div 
                                             key={i}
                                             onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, validDocs, validIndex)}
@@ -925,8 +941,166 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
+                        {/* Reference Number Card for copy */}
+                        {(() => {
+                            const refNo = 
+                                additional?.paymentId || 
+                                additional?.reference_number || 
+                                additional?.gcashReferenceNo || 
+                                (transaction.paymentReference && !transaction.paymentReference.startsWith("http") && !transaction.paymentReference.startsWith("/") ? transaction.paymentReference : null) ||
+                                additional?.payment_id || 
+                                transaction.paymentId;
+
+                            const isAllowedStatus = ["FOR_REINSPECTION", "FOR_PROCESSING", "FOR_CLAIM", "RELEASED", "DELIVERED", "IN_ROUTE", "FOR_PICKING"].includes(transaction.status);
+                            
+                            if (!isAllowedStatus) return null;
+
+                            const displayRefNo = refNo || "No payment reference ID stored";
+
+                            return (
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                            <Hash className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Payment Reference</span>
+                                            <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Reference ID</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                                    {refNo ? "Copy reference to clipboard" : "Reference ID unavailable"}
+                                                </span>
+                                            </div>
+                                            {refNo && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(refNo);
+                                                        toast.success("Reference number copied!");
+                                                    }}
+                                                    className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
+                                                >
+                                                    <Copy className="w-4.5 h-4.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">
+                                            {displayRefNo}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Official Receipt (O.R.) Details Card for Registrar */}
+                        {(() => {
+                            const orNo = additional?.orSeriesNumber || transaction.orSeriesNumber || additional?.orNumber || additional?.orNo;
+                            const orDocUrl = additional?.orDocumentUrl || transaction.orUrl || additional?.orUrl;
+
+                            if (!orNo && !orDocUrl) return null;
+
+                            return (
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
+                                            <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Treasury Official Receipt</span>
+                                            <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">O.R. Details</span>
+                                        </div>
+                                    </div>
+
+                                    {orNo && (
+                                        <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">O.R. Series Number</span>
+                                            <p className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200">
+                                                {orNo}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {orDocUrl && (
+                                        <div className="space-y-2">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1 block leading-none">Scanned O.R. Copy</span>
+                                            {(() => {
+                                                const isPdf = orDocUrl.toLowerCase().endsWith(".pdf") || orDocUrl.includes("application/pdf") || orDocUrl.includes(".pdf?");
+                                                if (isPdf) {
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt PDF")}
+                                                            className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                                    📕
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Receipt PDF</p>
+                                                                    <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0">
+                                                                Open PDF ➔
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <div
+                                                        onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
+                                                        className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
+                                                    >
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img 
+                                                            src={orDocUrl} 
+                                                            alt="OR Preview" 
+                                                            className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                        />
+                                                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                            <div 
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                            >
+                                                                <span>View</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+
                         {/* Interactive Decision / Actions box */}
-                        {(!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM"].includes(transaction.status)) && (
+                        {["FOR_REQUESTING", "EVALUATED", "PAID", "UNPAID"].includes(transaction.status) ? (
+                            <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
+                                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 mx-auto">
+                                    <Clock className="w-6 h-6 animate-pulse" />
+                                </div>
+                                <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">
+                                    {transaction.status === "FOR_REQUESTING" && "Checking by Treasury"}
+                                    {transaction.status === "EVALUATED" && "Assessment Sent"}
+                                    {transaction.status === "UNPAID" && "Awaiting Payment"}
+                                    {transaction.status === "PAID" && "Payment Confirmed"}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
+                                    {transaction.status === "FOR_REQUESTING" && "This request is currently under checking/verification by the Treasury department."}
+                                    {transaction.status === "EVALUATED" && "Assessment has been submitted. Waiting for the citizen to complete GCash payment or walk-in transaction."}
+                                    {transaction.status === "UNPAID" && "This request is currently awaiting payment from the citizen."}
+                                    {transaction.status === "PAID" && "Payment has been confirmed. The request is proceeding to the next processing phase."}
+                                </p>
+                            </div>
+                        ) : (!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status)) && (
                             <div className="space-y-6">
 
                                 {(["FOR_REQUESTING", "UNDER_REVIEW", "EVALUATED", "FOR_INSPECTION"].includes(transaction.status)) && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || (transaction.type?.category === "Civil Registry")) && (
@@ -1085,6 +1259,27 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                         )}
                                     </div>
                                 )}
+
+                                 {transaction.status === "FOR_REINSPECTION" && (
+                                     <div className="space-y-4">
+                                         <div className="p-6 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
+                                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                                                 <Clock className="w-6 h-6 animate-pulse" />
+                                             </div>
+                                             <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Ready for Registrar Processing</h4>
+                                             <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Payment has been confirmed. Click below to begin processing this document and officially notify the resident.</p>
+                                         </div>
+
+                                         <Button
+                                             onClick={handleProcessRequest}
+                                             disabled={actionLoading}
+                                             className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
+                                         >
+                                             {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                             Process the request
+                                         </Button>
+                                     </div>
+                                 )}
 
                                 {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
                                     <div className="space-y-4">
@@ -1290,12 +1485,28 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     {(eCopyPreview || transaction.eCopyUrl) ? (
                                                         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center">
                                                             {((eCopyFile && eCopyFile.type.startsWith("image/")) || (!eCopyFile && transaction.eCopyUrl && /\.(png|jpe?g|gif|webp|svg)$/i.test(transaction.eCopyUrl))) ? (
-                                                                // eslint-disable-next-line @next/next/no-img-element
-                                                                <img
-                                                                    src={eCopyPreview || transaction.eCopyUrl}
-                                                                    alt="E-Copy Preview"
-                                                                    className="w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
-                                                                />
+                                                                <div className="relative w-full h-full group/img select-none">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img
+                                                                        src={eCopyPreview || transaction.eCopyUrl}
+                                                                        alt="E-Copy Preview"
+                                                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity duration-350 backdrop-blur-[1px] z-10">
+                                                                        <Button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                e.preventDefault();
+                                                                                handleViewFile?.(eCopyPreview || transaction.eCopyUrl, "Official E-Copy Document");
+                                                                            }}
+                                                                            style={{ backgroundColor: themeColor }}
+                                                                            className="h-9 px-4 rounded-xl border border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
+                                                                        >
+                                                                            <Eye className="w-3.5 h-3.5 mr-1" /> View
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
                                                             ) : (
                                                                 <div className="flex flex-col items-center justify-center text-primary/60 group-hover:text-primary transition-colors">
                                                                     <FileText className="w-10 h-10" />
@@ -1319,29 +1530,21 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                                         {eCopyFile?.name || "Registry-Record.pdf"}
                                                                     </span>
                                                                 </div>
-                                                                {(eCopyPreview || transaction.eCopyUrl) && (() => {
-                                                                    const isPdf = eCopyFile
-                                                                        ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
-                                                                        : (transaction.eCopyUrl
-                                                                            ? (transaction.eCopyUrl.toLowerCase().endsWith(".pdf") || transaction.eCopyUrl.includes("application/pdf") || transaction.eCopyUrl.includes(".pdf?"))
-                                                                            : false);
-                                                                    return (
-                                                                        <Dialog>
-                                                                            <DialogTrigger asChild>
-                                                                                <Button
-                                                                                    type="button"
-                                                                                    variant="outline"
-                                                                                    size="sm"
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                    className="h-7 px-2.5 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none z-30"
-                                                                                >
-                                                                                    <Eye className="w-3 h-3" /> Preview
-                                                                                </Button>
-                                                                            </DialogTrigger>
-                                                                            <LightboxView src={eCopyPreview || transaction.eCopyUrl} alt="Digital E-Copy" label="Digital E-Copy Registry Record" isPdf={isPdf} />
-                                                                        </Dialog>
-                                                                    );
-                                                                })()}
+                                                                {(eCopyPreview || transaction.eCopyUrl) && (
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            e.preventDefault();
+                                                                            handleViewFile?.(eCopyPreview || transaction.eCopyUrl, "Digital E-Copy Registry Record");
+                                                                        }}
+                                                                        className="h-7 px-2.5 text-[8px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none z-30"
+                                                                    >
+                                                                        <Eye className="w-3 h-3" /> Preview
+                                                                    </Button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     ) : (
@@ -1381,27 +1584,63 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             )}
 
                                             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                {transaction.fulfillmentMode === "DELIVERY" ? (
-                                                    <Button
-                                                        onClick={handleRelease}
-                                                        disabled={isReleaseDisabled}
-                                                        className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Dispatch to Courier"}
-                                                    </Button>
+                                                {(transaction.fulfillmentMode === "DELIVERY" || transaction.fulfillmentType === "DELIVERY") ? (
+                                                    <div className="space-y-3 w-full">
+                                                        <Button
+                                                            onClick={handlePrintWaybill}
+                                                            variant="outline"
+                                                            className="w-full h-12 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all flex items-center justify-center"
+                                                        >
+                                                            Generate & Print Waybill
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handleRelease}
+                                                            disabled={isReleaseDisabled}
+                                                            className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Proceed to For Pick Up"}
+                                                        </Button>
+                                                    </div>
                                                 ) : (
                                                     <Button
                                                         onClick={handleRelease}
                                                         disabled={isReleaseDisabled}
                                                         className="w-full h-12 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-wider shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
-                                                        {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Release Document to Resident"}
+                                                        {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Proceed to For Claim"}
                                                     </Button>
                                                 )}
                                             </div>
                                         </div>
                                     );
                                 })()}
+
+                                {transaction.status === "FOR_PICKING" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (
+                                    <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <PrintWaybill
+                                            transaction={transaction}
+                                            resident={resident}
+                                            deliveryAddr={null}
+                                            fiscal={null}
+                                            branding={branding}
+                                            themeColor={themeColor}
+                                        />
+                                        <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 text-primary flex items-start gap-3">
+                                            <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] font-bold leading-relaxed">
+                                                This document is currently queued for delivery. You can generate and print the shipping waybill using the button below.
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            onClick={handlePrintWaybill}
+                                            variant="outline"
+                                            className="w-full h-12 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all flex items-center justify-center"
+                                        >
+                                            Generate & Print Waybill
+                                        </Button>
+                                    </div>
+                                )}
 
                                 {transaction.status === "FOR_CLAIM" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
                                     <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">

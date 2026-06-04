@@ -17,8 +17,11 @@ import {
     Plus,
     Trash2,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Copy,
+    Hash
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -267,9 +270,12 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
                                                 <span>Miscellaneous Fee</span>
                                                 <span className="dark:text-slate-200 font-black">
-                                                    {parseFloat(miscFee || "0") > 0
-                                                        ? `₱${(parseFloat(miscFee || "0")).toFixed(2)}`
-                                                        : "FREE"}
+                                                    {(() => {
+                                                        const mFee = additional?.miscFee !== undefined
+                                                            ? Number(additional.miscFee)
+                                                            : (miscFee !== undefined ? Number(miscFee) : 0);
+                                                        return mFee > 0 ? `₱${mFee.toFixed(2)}` : "FREE";
+                                                    })()}
                                                 </span>
                                             </div>
 
@@ -280,67 +286,74 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                 </div>
                                             )}
 
-                                            {/* RENDER STATIC ADDITIONAL FEES IF NOT FOR_INSPECTION or FOR_REQUESTING */}
-                                            {!["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status) && feeLineItems && feeLineItems.length > 0 && (
-                                                feeLineItems.map((item: any, idx: number) => (
-                                                    <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                        <span>{item.label || "Additional Fee"}</span>
-                                                        <span className="dark:text-slate-200 font-black">
-                                                            ₱{(parseFloat(item.amount) || 0).toFixed(2)}
-                                                        </span>
-                                                    </div>
-                                                ))
+                                            {/* RENDER STATIC ADDITIONAL FEES (E.G. READONLY ITEMS) AND ANY PERSISTED ITEMS WHEN NOT IN REQUESTING STATUS */}
+                                            {feeLineItems && feeLineItems.length > 0 && (
+                                                feeLineItems.map((item: any, idx: number) => {
+                                                    // Render statically if: (1) we are NOT in FOR_REQUESTING status, OR (2) the item is marked as readonly
+                                                    if (transaction.status !== "FOR_REQUESTING" || item.readonly) {
+                                                        return (
+                                                            <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                                <span>{item.label || "Additional Fee"}</span>
+                                                                <span className="dark:text-slate-200 font-black">
+                                                                    ₱{(parseFloat(item.amount) || 0).toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })
                                             )}
 
-                                            {/* ADDITIONAL FEES EDITOR — Registrar/Treasury can add additional fee inside this breakdown card when status is FOR_INSPECTION or FOR_REQUESTING */}
-                                            {["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status) && (
+                                            {/* ADDITIONAL FEES EDITOR — Treasury can add additional fee inside this breakdown card only when status is FOR_REQUESTING */}
+                                            {transaction.status === "FOR_REQUESTING" && (
                                                 <div className="pt-2 space-y-2 border-t border-slate-100 dark:border-white/5 pt-4">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                                                         Additional Fees
                                                     </p>
                                                     <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
-                                                        {feeLineItems?.map((item, idx) => (
-                                                            <div key={idx} className={cn(
-                                                                "flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all",
-                                                                item.readonly && "opacity-75 bg-slate-50 dark:bg-white/[0.02] cursor-not-allowed select-none"
-                                                            )}>
-                                                                <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
-                                                                    {String(idx + 1).padStart(2, '0')}
-                                                                </span>
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Fee Description"
-                                                                    value={item.label}
-                                                                    disabled={item.readonly}
-                                                                    onChange={(e) => updateFeeLineItem?.(idx, 'label', e.target.value)}
-                                                                    className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
-                                                                />
-                                                                <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
-                                                                    <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
+                                                        {feeLineItems?.map((item, idx) => {
+                                                            // Hide readonly items from the editor because they are rendered statically above
+                                                            if (item.readonly) return null;
+                                                            return (
+                                                                <div key={idx} className={cn(
+                                                                    "flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all"
+                                                                )}>
+                                                                    <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
+                                                                        {String(idx + 1).padStart(2, '0')}
+                                                                    </span>
                                                                     <input
-                                                                        type="number"
-                                                                        placeholder="0.00"
-                                                                        value={item.amount}
-                                                                        disabled={item.readonly}
-                                                                        onChange={(e) => updateFeeLineItem?.(idx, 'amount', e.target.value)}
-                                                                        className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
+                                                                        type="text"
+                                                                        placeholder="Fee Description"
+                                                                        value={item.label}
+                                                                        onChange={(e) => updateFeeLineItem?.(idx, 'label', e.target.value)}
+                                                                        className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
                                                                     />
+                                                                    <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
+                                                                        <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="0.00"
+                                                                            value={item.amount}
+                                                                            onChange={(e) => updateFeeLineItem?.(idx, 'amount', e.target.value)}
+                                                                            className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                        />
+                                                                    </div>
+                                                                    {feeLineItems.filter(f => !f.readonly).length > 1 ? (
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            onClick={() => removeFeeLineItem?.(idx)}
+                                                                            className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <div className="w-8 h-8 shrink-0" />
+                                                                    )}
                                                                 </div>
-                                                                {!item.readonly && feeLineItems.length > 1 ? (
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => removeFeeLineItem?.(idx)}
-                                                                        className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                    </Button>
-                                                                ) : (
-                                                                    <div className="w-8 h-8 shrink-0" />
-                                                                )}
-                                                            </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
@@ -356,7 +369,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
                                                 <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
                                                 <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
-                                                    ₱{calcResult.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </span>
                                             </div>
                                         </div>
@@ -925,6 +938,62 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
+                        {/* Reference Number Card for copy */}
+                        {(() => {
+                            const refNo = 
+                                additional?.paymentId || 
+                                additional?.reference_number || 
+                                additional?.gcashReferenceNo || 
+                                (transaction.paymentReference && !transaction.paymentReference.startsWith("http") && !transaction.paymentReference.startsWith("/") ? transaction.paymentReference : null) ||
+                                additional?.payment_id || 
+                                transaction.paymentId;
+
+                            const isPaidOrPending = ["PAID", "FOR_PROCESSING", "FOR_CLAIM", "RELEASED", "DELIVERED", "IN_ROUTE", "FOR_PICKING"].includes(transaction.status);
+                            
+                            if (!refNo && !isPaidOrPending) return null;
+
+                            const displayRefNo = refNo || "No payment reference ID stored";
+
+                            return (
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                            <Hash className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Payment Reference</span>
+                                            <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Reference ID</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                                    {refNo ? "Copy reference to clipboard" : "Reference ID unavailable"}
+                                                </span>
+                                            </div>
+                                            {refNo && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(refNo);
+                                                        toast.success("Reference number copied!");
+                                                    }}
+                                                    className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
+                                                >
+                                                    <Copy className="w-4.5 h-4.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">
+                                            {displayRefNo}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* Interactive Decision / Actions box */}
                         {(!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM"].includes(transaction.status)) && (
                             <div className="space-y-6">
@@ -980,7 +1049,6 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                         </div>
                                                     </div>
                                                 )}
-
                                                 <Button
                                                     onClick={handleEvaluate}
                                                     disabled={actionLoading}
@@ -989,21 +1057,6 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
                                                     Approve Document
                                                 </Button>
-
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
-                                                    >
-                                                        Revision
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
-                                                    >
-                                                        Reject
-                                                    </Button>
-                                                </div>
                                             </>
                                         ) : (
                                             // Original: FOR_REQUESTING / UNDER_REVIEW -> Approve & Send Assessment
@@ -1047,9 +1100,6 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                         </div>
                                                     </div>
                                                 )}
-
-
-
                                                 <Button
                                                     onClick={handleEvaluate}
                                                     disabled={actionLoading}
@@ -1058,27 +1108,12 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
                                                     Approve & Send Assessment
                                                 </Button>
-
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
-                                                    >
-                                                        Request Revision
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                        className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
-                                                    >
-                                                        Decline
-                                                    </Button>
-                                                </div>
                                             </>
                                         )}
                                     </div>
                                 )}
 
-                                {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
+                                {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || rawUserRole === "ADMIN_AIDE") && (
                                     <div className="space-y-4">
                                         {/* Proof of Payment Lightbox */}
                                         {transaction.paymentReference && additional?.gcashReferenceNo && additional.gcashReferenceNo.toLowerCase() !== "n/a" && additional.gcashReferenceNo.toLowerCase() !== "na" && (
@@ -1091,24 +1126,22 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                             Reference No: {additional?.gcashReferenceNo || "N/A"}
                                                         </span>
                                                     </div>
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <div className="relative aspect-[4/3] rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none">
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img
-                                                                    src={transaction.paymentReference}
-                                                                    alt="GCash Receipt"
-                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-all"
-                                                                />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                                    <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full flex items-center gap-1.5">
-                                                                        <ExternalLink className="w-3 h-3" /> Zoom Receipt
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </DialogTrigger>
-                                                        <LightboxView src={transaction.paymentReference} alt="GCash Receipt" label="GCash Payment Proof" />
-                                                    </Dialog>
+                                                    <div
+                                                        onClick={() => handleViewFile?.(transaction.paymentReference, "GCash Payment Proof")}
+                                                        className="relative aspect-[4/3] rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
+                                                    >
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img
+                                                            src={transaction.paymentReference}
+                                                            alt="GCash Receipt"
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-all"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                            <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full flex items-center gap-1.5">
+                                                                <ExternalLink className="w-3 h-3" /> Zoom Receipt
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -1153,85 +1186,92 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     }}
                                                     className="hidden"
                                                     id="or-document-upload-paid"
-                                                />
-                                                    {orFile || transaction.orUrl ? (
-                                                        <div className="flex items-center justify-between p-4 bg-white dark:bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl group shadow-sm">
-                                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 flex-shrink-0">
-                                                                    <Check className="w-4 h-4 stroke-[3]" />
-                                                                </div>
-                                                                <div className="overflow-hidden">
-                                                                    <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none truncate max-w-[180px]" title={orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}>
-                                                                        {orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}
-                                                                    </p>
-                                                                    <p className="text-[8px] text-slate-400 italic mt-1 uppercase">
-                                                                        {orFile ? "Ready for submission" : "Uploaded Official Receipt"}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                {(orPreview || transaction.orUrl) && (() => {
-                                                                    const isPdf = orFile 
-                                                                        ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf")) 
-                                                                        : (transaction.orUrl 
-                                                                            ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
-                                                                            : false);
-                                                                    return (
-                                                                        <Dialog>
-                                                                            <DialogTrigger asChild>
-                                                                                <Button type="button" variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none">
-                                                                                    <Eye className="w-3.5 h-3.5" /> Preview
-                                                                                </Button>
-                                                                            </DialogTrigger>
-                                                                            <LightboxView src={orPreview || transaction.orUrl} alt="Attached O.R." label="Attached Official Treasury Receipt" isPdf={isPdf} />
-                                                                        </Dialog>
-                                                                    );
-                                                                })()}
-                                                                <label
-                                                                    htmlFor="or-document-upload-paid"
-                                                                    className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
+                                                 />
+                                                 {orFile || transaction.orUrl ? (
+                                                    <div className="space-y-3">
+                                                        {(() => {
+                                                            const isPdf = orFile 
+                                                                ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf")) 
+                                                                : (transaction.orUrl 
+                                                                    ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
+                                                                    : false);
+                                                            
+                                                            if (isPdf) {
+                                                                return (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Receipt PDF")}
+                                                                        className="w-full flex items-center justify-between p-5 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                                    >
+                                                                        <div className="flex items-center gap-4">
+                                                                            <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                                📕
+                                                                            </div>
+                                                                            <div className="space-y-1">
+                                                                                <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Official Receipt PDF</p>
+                                                                                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View PDF in Modal</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="h-9 px-4 rounded-xl border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0">
+                                                                            Open PDF ➔
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <div
+                                                                    onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Treasury Receipt")}
+                                                                    className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
                                                                 >
-                                                                    <Upload className="w-3 h-3" /> Replace
-                                                                </label>
-                                                            </div>
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img 
+                                                                        src={orPreview || transaction.orUrl} 
+                                                                        alt="OR Preview" 
+                                                                        className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                        <div 
+                                                                            style={{ backgroundColor: themeColor }}
+                                                                            className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                                        >
+                                                                            <span>View</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        <div className="flex justify-end">
+                                                            <label
+                                                                htmlFor="or-document-upload-paid"
+                                                                className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
+                                                            >
+                                                                <Upload className="w-3 h-3" /> Replace O.R. File
+                                                            </label>
                                                         </div>
-                                                    ) : (
-                                                        <label
-                                                            htmlFor="or-document-upload-paid"
-                                                            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer border-slate-200 dark:border-white/10 hover:border-primary/30"
-                                                        >
-                                                            <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
-                                                            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
-                                                                Upload Scanned O.R. Document
-                                                            </span>
-                                                        </label>
-                                                    )}
+                                                    </div>
+                                                ) : (
+                                                    <label
+                                                        htmlFor="or-document-upload-paid"
+                                                        className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer border-slate-200 dark:border-white/10 hover:border-primary/30"
+                                                    >
+                                                        <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
+                                                            Upload Scanned O.R. Document
+                                                        </span>
+                                                    </label>
+                                                )}
                                             </div>
                                         </div>
-
+ 
                                         <Button
                                             onClick={handleConfirmPayment}
-                                            disabled={actionLoading || !orSeriesNumber || !orFile}
+                                            disabled={actionLoading || !orSeriesNumber || (!orFile && !transaction.orUrl)}
                                             className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
                                         >
                                             {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
                                             Upload O.R. & Mark as Paid
                                         </Button>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
-                                            >
-                                                Request Revision
-                                            </Button>
-                                            <Button
-                                                onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
-                                            >
-                                                Decline
-                                            </Button>
-                                        </div>
                                     </div>
                                 )}
 

@@ -20,8 +20,6 @@ import { toast } from "sonner";
 import {
     getTransactionById,
     evaluateCedulaTransaction,
-    confirmTransactionPayment,
-    releaseCedula,
     rejectTransaction,
     sendForRevision,
     uploadECopyAction,
@@ -32,8 +30,15 @@ import {
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
     declinePaymentProofAction,
-    confirmTransactionPaymentWithReceipt
+    processRegistrarRequest
 } from "@/app/admin/transactions/actions";
+import {
+    confirmTransactionPayment,
+    confirmTransactionPaymentWithReceipt,
+    releaseCedula
+} from "@/app/admin/transactions/cedula-actions";
+import { releaseBirthRegistry } from "@/app/admin/transactions/birth-regis-actions";
+import { releaseBirthCertificate } from "@/app/admin/transactions/birth-cert-actions";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
 import { Button } from "@/components/ui/button";
@@ -590,7 +595,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 else { toast.error(uploadRes.error || "Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, stickerNumber);
+            const res = typeCode === "LCR_BIRTH"
+                ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                : typeCode === "LCR_BIRTH_REG"
+                    ? await releaseBirthRegistry(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                    : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -610,7 +619,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode]);
 
     // Handle QR Scan Landing: Auto-focus or Auto-release
     useEffect(() => {
@@ -713,7 +722,12 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             if (transaction.status === "PAID") {
-                const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                const releaseFn = typeCode === "LCR_BIRTH"
+                    ? releaseBirthCertificate
+                    : typeCode === "LCR_BIRTH_REG"
+                        ? releaseBirthRegistry
+                        : releaseCedula;
+                const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success("Proceeding to Processing");
                     fetchTransaction();
@@ -735,7 +749,12 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 toast.success("Payment Confirmed");
                 setReceiptFile(null);
                 setReceiptPreview(null);
-                const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                const releaseFn = typeCode === "LCR_BIRTH"
+                    ? releaseBirthCertificate
+                    : typeCode === "LCR_BIRTH_REG"
+                        ? releaseBirthRegistry
+                        : releaseCedula;
+                const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success("Proceeding to Processing");
                 } else {
@@ -744,6 +763,21 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 fetchTransaction();
             } else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
+    };
+
+    const handleProcessRequest = async () => {
+        setActionLoading(true);
+        try {
+            const res = await processRegistrarRequest(transaction.id);
+            if (res.success) {
+                toast.success("Request processed successfully!");
+                fetchTransaction();
+            } else {
+                toast.error(res.error || "Failed to process request");
+            }
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     const handleReceiptFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1524,7 +1558,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         orSeriesNumber,
         setOrSeriesNumber,
         miscFee,
-        setMiscFee
+        setMiscFee,
+        handleProcessRequest
     };
 
     if (isBusinessPermit) {
