@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-    getTreasuryTransactions,
     getTransactionTypes
 } from "@/app/admin/transactions/actions";
+import {
+    getTreasuryTransactions
+} from "@/app/admin/transactions/treasury-actions";
 import {
     Table,
     TableBody,

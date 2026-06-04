@@ -30,8 +30,6 @@ import { toast } from "sonner";
 import {
     getTransactionById,
     evaluateCedulaTransaction,
-    confirmTransactionPayment,
-    releaseCedula,
     rejectTransaction,
     sendForRevision,
     uploadECopyAction,
@@ -42,9 +40,16 @@ import {
     addAdditionalBuildingPermitFee,
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
-    declinePaymentProofAction,
-    confirmTransactionPaymentWithReceipt
+    declinePaymentProofAction
 } from "@/app/admin/transactions/actions";
+import {
+    releaseBusinessPermit
+} from "@/app/admin/transactions/bplo-actions";
+import {
+    confirmTransactionPayment,
+    confirmTransactionPaymentWithReceipt,
+    releaseCedula
+} from "@/app/admin/transactions/treasury-actions";
 import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -560,6 +565,15 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }, [session, id, router]);
 
     useEffect(() => {
+        if (!transaction || !session) return;
+        const isBp = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
+        if (isBp && isTreasuryStaff && transaction.status === "FOR_REINSPECTION") {
+            toast.error("Access Forbidden: Treasury Staff cannot access this status");
+            router.push("/admin/treasury?category=Business%20Permit");
+        }
+    }, [transaction, session, isTreasuryStaff, router]);
+
+    useEffect(() => {
         fetchTransaction();
 
         // Fetch theme color
@@ -674,7 +688,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 else { toast.error(uploadRes.error || "Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, stickerNumber);
+            const res = isBusinessPermit
+                ? await releaseBusinessPermit(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, stickerNumber)
+                : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"

@@ -28,8 +28,6 @@ import { toast } from "sonner";
 import {
     getTransactionById,
     evaluateCedulaTransaction,
-    confirmTransactionPayment,
-    releaseCedula,
     rejectTransaction,
     sendForRevision,
     uploadECopyAction,
@@ -39,6 +37,10 @@ import {
     scheduleBuildingInspection,
     markForReinspection
 } from "@/app/admin/transactions/actions";
+import {
+    confirmTransactionPayment,
+    releaseCedula
+} from "@/app/admin/transactions/treasury-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";

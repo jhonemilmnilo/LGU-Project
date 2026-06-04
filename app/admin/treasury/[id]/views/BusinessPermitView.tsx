@@ -120,7 +120,9 @@ export default function BusinessPermitView({
     isRequirementsAlone,
     handleReject,
     handleRequestRevision,
-    handleViewFile
+    handleViewFile,
+    orSeriesNumber,
+    setOrSeriesNumber
 }: TreasuryViewProps) {
     const additional = transaction.additionalData || {};
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
@@ -212,23 +214,29 @@ export default function BusinessPermitView({
                                 <div className="space-y-12 animate-in fade-in slide-in-from-top-4 duration-300">
 
                             {/* TOP METRICS GRID */}
-                            <div className="grid grid-cols-3 gap-6">
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
-                                    <p className="text-2xl font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
+                                    <p className="text-lg font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
                                 </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Fulfillment Type</span>
+                                    <p className="text-lg font-black italic tracking-tighter dark:text-slate-200 uppercase truncate" title={transaction.fulfillmentType}>
+                                        {transaction.fulfillmentType?.replace(/_/g, " ") || "--"}
+                                    </p>
+                                </div>
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
                                     <p className={cn(
                                         "font-black italic tracking-tighter dark:text-slate-200 leading-none",
-                                        (transaction.paymentType?.length || 0) > 12 ? "text-xl" : "text-2xl"
+                                        (transaction.paymentType?.length || 0) > 12 ? "text-base" : "text-lg"
                                     )}>
                                         {transaction.paymentType?.replace(/_/g, " ") || "--"}
                                     </p>
                                 </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
-                                    <p className="text-2xl font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
+                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                    <p className="text-lg font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
                                 </div>
                             </div>
 
@@ -688,6 +696,18 @@ export default function BusinessPermitView({
                                         {/* Upload Official Receipt (OR) */}
                                         {(transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && (
                                             <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
+                                                {transaction.status === "PAID" && (
+                                                    <div className="space-y-1.5 mb-2">
+                                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">O.R. Series Number <span className="text-slate-400 ml-0.5">(Optional)</span></Label>
+                                                        <Input
+                                                            type="text"
+                                                            value={orSeriesNumber || ""}
+                                                            onChange={(e) => setOrSeriesNumber?.(e.target.value)}
+                                                            placeholder="ENTER O.R. SERIES NUMBER..."
+                                                            className="h-11 rounded-xl border-slate-150 dark:border-white/5 bg-white dark:bg-[#151b28]/60 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-primary transition-all"
+                                                        />
+                                                    </div>
+                                                )}
                                                 <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR) <span className="text-rose-500">*</span></Label>
                                                 <Input
                                                     type="file"
@@ -817,7 +837,7 @@ export default function BusinessPermitView({
                                             {transaction.status !== "FOR_PICKING" && (
                                                 <>
                                                     <Button
-                                                        onClick={handleRelease}
+                                                        onClick={["FOR_PROCESSING", "PAID"].includes(transaction.status) ? handleConfirmPayment : handleRelease}
                                                         disabled={
                                                             actionLoading ||
                                                             (isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
@@ -830,22 +850,7 @@ export default function BusinessPermitView({
                                                     >
                                                         {actionLoading ? "Submitting..." : ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Payment Received" : (transaction.status === "FOR_REINSPECTION" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document")}
                                                     </Button>
-                                                    {transaction.status === "PAID" && (
-                                                        <div className="flex gap-2 w-full mb-2">
-                                                            <Button
-                                                                onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                                className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-amber-500/20 transition-all active:scale-95"
-                                                            >
-                                                                Revise Payment Proof
-                                                            </Button>
-                                                            <Button
-                                                                onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                                className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg shadow-red-600/20 transition-all active:scale-95"
-                                                            >
-                                                                Reject
-                                                            </Button>
-                                                        </div>
-                                                    )}
+
 
                                                     {!(["PAID", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) && (
                                                         <Button

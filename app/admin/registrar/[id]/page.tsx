@@ -20,8 +20,6 @@ import { toast } from "sonner";
 import {
     getTransactionById,
     evaluateCedulaTransaction,
-    confirmTransactionPayment,
-    releaseCedula,
     rejectTransaction,
     sendForRevision,
     uploadECopyAction,
@@ -32,9 +30,13 @@ import {
     removeAdditionalBuildingPermitFee,
     approveAndSendBuildingPermitBilling,
     declinePaymentProofAction,
-    confirmTransactionPaymentWithReceipt,
     processRegistrarRequest
 } from "@/app/admin/transactions/actions";
+import {
+    confirmTransactionPayment,
+    confirmTransactionPaymentWithReceipt,
+    releaseCedula
+} from "@/app/admin/transactions/treasury-actions";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
 import { Button } from "@/components/ui/button";
@@ -591,7 +593,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 else { toast.error(uploadRes.error || "Official Receipt upload failed"); setActionLoading(false); return; }
             }
 
-            const res = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, stickerNumber);
+            const res = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -611,7 +613,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy]);
 
     // Handle QR Scan Landing: Auto-focus or Auto-release
     useEffect(() => {
