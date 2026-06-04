@@ -1330,7 +1330,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
-                    fetchTransaction();
+                    router.push(backUrl);
                 } else {
                     toast.error(rel.error || (isLCR || isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
@@ -1362,7 +1362,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 } else {
                     toast.error(rel.error || (isLCR || isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
-                fetchTransaction();
+                router.push(backUrl);
             } else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };
