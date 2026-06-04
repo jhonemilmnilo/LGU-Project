@@ -237,6 +237,18 @@ export function LoginForm({ themeColor = "#2563eb" }: LoginFormProps) {
             });
 
             if (result?.error) {
+                const errorMessage = result.error;
+                if (
+                    errorMessage.includes("approved") ||
+                    errorMessage.includes("deactivated") ||
+                    errorMessage.includes("rejected") ||
+                    errorMessage.includes("cooldown") ||
+                    errorMessage.includes("attempts")
+                ) {
+                    toast.error(errorMessage);
+                    return;
+                }
+
                 const emailCheck = await checkEmailExists(normalizedEmail);
                 if (emailCheck.success && emailCheck.exists) {
                     handleFailedAttempt(normalizedEmail);
