@@ -30,7 +30,10 @@ import {
     Search,
     Package,
     ShieldCheck,
-    Hash
+    Hash,
+    Eye,
+    ChevronDown,
+    ChevronUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -241,6 +244,7 @@ export default function RequestHubPage() {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
+    const [isTreasuryOpen, setIsTreasuryOpen] = useState(true);
 
     const handleViewFile = (url: string | null, title: string) => {
         setViewerUrl(url);
@@ -954,69 +958,89 @@ export default function RequestHubPage() {
                                         <Calculator className="w-32 h-32 md:w-48 md:h-48" />
                                     </div>
                                     <div className="relative z-10 space-y-6 md:space-y-10">
-                                        <div className="space-y-2">
-                                            <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic flex items-center gap-2">
-                                                <ShieldCheck className="w-3.5 h-3.5" />
-                                                Treasury Protocol
-                                            </h3>
-                                            <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed">Evaluation complete. Secure your issuance below.</p>
-                                        </div>
-                                        <div className="space-y-4 md:space-y-5">
-                                            {/* Miscellaneous Fee for Civil Registry requests */}
-                                            {computation?.miscFee !== undefined && (
-                                                <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Miscellaneous Fee</span>
-                                                    <span className="text-lg md:text-2xl font-black italic">₱{computation.miscFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Structured Line Items (Additional fees or itemized breakdown) */}
-                                            {computation?.lineItems && computation.lineItems.length > 0 && (
-                                                computation.lineItems.map((item: any, idx: number) => (
-                                                    <div key={idx} className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">{item.label}</span>
-                                                        <span className="text-lg md:text-2xl font-black italic">₱{(Number(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                        <div 
+                                            className="flex justify-between items-center cursor-pointer select-none"
+                                            onClick={() => setIsTreasuryOpen(!isTreasuryOpen)}
+                                        >
+                                            <div className="space-y-2 min-w-0 pr-4">
+                                                <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic flex items-center gap-2">
+                                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                                    Treasury Protocol
+                                                </h3>
+                                                <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed truncate">Evaluation complete. Secure your issuance below.</p>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                {!isTreasuryOpen && (
+                                                    <div className="text-right animate-in fade-in zoom-in-95 duration-200">
+                                                        <p className="text-[8px] font-black uppercase text-emerald-400 tracking-wider italic leading-none">Total Amount</p>
+                                                        <p className="text-sm md:text-base font-black italic tracking-tighter text-white mt-1 leading-none">
+                                                            ₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </p>
                                                     </div>
-                                                ))
-                                            )}
-
-                                            {/* Basic & Additional Taxes for non-BPLO / non-itemized defaults */}
-                                            {(!isBusinessPermit && !isBuildingPermit) && (
-                                                <>
-                                                    {computation && computation.basicTax > 0 && (
-                                                        <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
-                                                            <span className="text-lg md:text-2xl font-black italic">₱{computation.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                        </div>
-                                                    )}
-                                                    {computation && computation.additionalTax > 0 && (
-                                                        <div className="flex justify-between items-end pb-3 border-b border-white/5">
-                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
-                                                            <span className="text-lg md:text-2xl font-black italic">₱{computation.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                            {computation && computation.penaltyAmount > 0 && (
-                                                <div className="flex justify-between items-end pb-3 border-b border-white/5 text-orange-500">
-                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">Penalty</span>
-                                                    <span className="text-lg md:text-2xl font-black italic">₱{computation.penaltyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                )}
+                                                <div className="w-8 h-8 rounded-full hover:bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all shrink-0">
+                                                    {isTreasuryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </div>
-                                            )}
-                                            {localFulfillment === "DELIVERY" && (
-                                                <div className="flex justify-between items-end pb-3 border-b border-white/5 text-emerald-400">
-                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">Delivery Service</span>
-                                                    <span className="text-lg md:text-2xl font-black italic">₱{computation?.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                </div>
-                                            )}
-                                            <div className="pt-4 md:pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 md:gap-4">
-                                                <div className="space-y-0.5">
-                                                    <p className="text-[9px] md:text-[11px] font-black uppercase text-emerald-400 tracking-[0.3em] italic leading-none">Grand Total</p>
-                                                    <p className="text-[7px] md:text-[9px] font-bold text-white/20 uppercase italic">Payable via Channel</p>
-                                                </div>
-                                                <span className="text-lg md:text-2xl font-black italic tracking-tighter text-white truncate min-w-0">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
+                                        {isTreasuryOpen && (
+                                            <div className="space-y-4 md:space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {/* Miscellaneous Fee for Civil Registry requests */}
+                                                {computation?.miscFee !== undefined && (
+                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Miscellaneous Fee</span>
+                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation.miscFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Structured Line Items (Additional fees or itemized breakdown) */}
+                                                {computation?.lineItems && computation.lineItems.length > 0 && (
+                                                    computation.lineItems.map((item: any, idx: number) => (
+                                                        <div key={idx} className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">{item.label}</span>
+                                                            <span className="text-lg md:text-2xl font-black italic">₱{(Number(item.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    ))
+                                                )}
+
+                                                {/* Basic & Additional Taxes for non-BPLO / non-itemized defaults */}
+                                                {(!isBusinessPermit && !isBuildingPermit) && (
+                                                    <>
+                                                        {computation && computation.basicTax > 0 && (
+                                                            <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Basic Tax</span>
+                                                                <span className="text-lg md:text-2xl font-black italic">₱{computation.basicTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                        )}
+                                                        {computation && computation.additionalTax > 0 && (
+                                                            <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Additional Tax</span>
+                                                                <span className="text-lg md:text-2xl font-black italic">₱{computation.additionalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                                {computation && computation.penaltyAmount > 0 && (
+                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5 text-orange-500">
+                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">Penalty</span>
+                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation.penaltyAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                {localFulfillment === "DELIVERY" && (
+                                                    <div className="flex justify-between items-end pb-3 border-b border-white/5 text-emerald-400">
+                                                        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest italic">Delivery Service</span>
+                                                        <span className="text-lg md:text-2xl font-black italic">₱{computation?.deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                    </div>
+                                                )}
+                                                <div className="pt-4 md:pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 md:gap-4">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-[9px] md:text-[11px] font-black uppercase text-emerald-400 tracking-[0.3em] italic leading-none">Grand Total</p>
+                                                        <p className="text-[7px] md:text-[9px] font-bold text-white/20 uppercase italic">Payable via Channel</p>
+                                                    </div>
+                                                    <span className="text-lg md:text-2xl font-black italic tracking-tighter text-white truncate min-w-0">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </Card>
                             </div>
@@ -1547,18 +1571,16 @@ export default function RequestHubPage() {
                                                             Download
                                                         </Button>
                                                         <Button
-                                                            asChild
+                                                            onClick={() => {
+                                                                if (paymentProofUrl) {
+                                                                    handleViewFile(paymentProofUrl, "Proof of Payment");
+                                                                }
+                                                            }}
                                                             variant="outline"
                                                             className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
                                                         >
-                                                            <a
-                                                                href={paymentProofUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                            >
-                                                                <ExternalLink className="w-4 h-4" />
-                                                                New Tab
-                                                            </a>
+                                                            <Eye className="w-4 h-4" />
+                                                            Preview
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -1639,18 +1661,16 @@ export default function RequestHubPage() {
                                                                 Download
                                                             </Button>
                                                             <Button
-                                                                asChild
+                                                                onClick={() => {
+                                                                    if (request.orUrl) {
+                                                                        handleViewFile(request.orUrl, "Official Receipt");
+                                                                    }
+                                                                }}
                                                                 variant="outline"
                                                                 className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
                                                             >
-                                                                <a
-                                                                    href={request.orUrl}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                >
-                                                                    <ExternalLink className="w-4 h-4" />
-                                                                    New Tab
-                                                                </a>
+                                                                <Eye className="w-4 h-4" />
+                                                                Preview
                                                             </Button>
                                                         </div>
                                                     </div>
@@ -1737,18 +1757,16 @@ export default function RequestHubPage() {
                                                                         Download
                                                                     </Button>
                                                                     <Button
-                                                                        asChild
+                                                                        onClick={() => {
+                                                                            if (request.eCopyUrl) {
+                                                                                handleViewFile(request.eCopyUrl, isCedula ? "E-Copy of CEDULA" : "Official Document");
+                                                                            }
+                                                                        }}
                                                                         variant="outline"
                                                                         className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
                                                                     >
-                                                                        <a
-                                                                            href={request.eCopyUrl}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                        >
-                                                                            <ExternalLink className="w-4 h-4" />
-                                                                            View Document
-                                                                        </a>
+                                                                        <Eye className="w-4 h-4" />
+                                                                        Preview
                                                                     </Button>
                                                                 </div>
                                                             )}
@@ -1764,7 +1782,7 @@ export default function RequestHubPage() {
                                                 <div className="relative z-10 space-y-6">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><FileText className="w-5 h-5 text-white" /></div>
-                                                        <div><p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Issuance Secured</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Official Digital Record</p></div>
+                                                        <div><p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Issuance Secured</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">{isCedula ? "E-Copy of CEDULA" : "Official Digital Record"}</p></div>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <Button
@@ -1779,14 +1797,14 @@ export default function RequestHubPage() {
                                                                 const url = request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl;
                                                                 if (url) {
                                                                     setViewerUrl(url);
-                                                                    setViewerTitle("Official Digital Record");
+                                                                    setViewerTitle(isCedula ? "E-Copy of CEDULA" : "Official Digital Record");
                                                                     setViewerOpen(true);
                                                                 }
                                                             }}
                                                             variant="outline"
                                                             className="h-12 border-white/20 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-white/10 bg-transparent"
                                                         >
-                                                            <FileText className="w-4 h-4" />
+                                                            <Eye className="w-4 h-4" />
                                                             Preview
                                                         </Button>
                                                     </div>
@@ -1819,8 +1837,12 @@ export default function RequestHubPage() {
                                                         </Dialog>
                                                     )}
                                                 </div>
-                                                <Button asChild variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10">
-                                                    <a href={request.podUrl} target="_blank" rel="noopener noreferrer">View Deployment Snapshot <ExternalLink className="w-3 h-3 ml-2" /></a>
+                                                <Button onClick={() => {
+                                                    if (request.podUrl) {
+                                                        handleViewFile(request.podUrl, "Fulfillment Snapshot");
+                                                    }
+                                                }} variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10">
+                                                    View Deployment Snapshot <Eye className="w-3.5 h-3.5 ml-2" />
                                                 </Button>
                                             </div>
                                         )}

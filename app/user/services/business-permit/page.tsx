@@ -312,6 +312,13 @@ export default function BusinessPermitWizardPage() {
         setViewerOpen(true);
     };
 
+    // Scroll to top when transitioning to the submit step
+    useEffect(() => {
+        if (currentStep === "SUBMIT") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    }, [currentStep]);
+
     // --- INITIALIZATION & DRAFT HYDRATION ---
     useEffect(() => {
         async function init() {

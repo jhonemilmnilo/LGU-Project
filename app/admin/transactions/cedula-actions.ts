@@ -158,7 +158,7 @@ export async function confirmTransactionPaymentWithReceipt(formData: FormData) {
 }
 
 /**
- * Release Cedula (Treasury Staff side)
+ * Release Cedula / LCR (Fallback LCR support excluding Birth Certificate/Registry)
  */
 export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: string, orUrl?: string) {
     try {
@@ -179,8 +179,6 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                 type: true,
                 user: true,
                 cedula: true,
-                birthCertificateRequest: true,
-                birthCertificateRegistry: true,
                 deathRegistration: true,
                 marriageRegistration: true,
                 marriageLicenseApplication: true
@@ -287,37 +285,7 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
 
         if (isLCR) {
             const typeCode = (transaction.type.code || "").toUpperCase();
-            if (typeCode === "LCR_BIRTH") {
-                const bcrExisting = (transaction as any).birthCertificateRequest;
-                if (!bcrExisting && targetStatus === "RELEASED") {
-                    const src: any = additionalData || {};
-                    const subjectName = src.subjectName || src.fullName || null;
-                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : null;
-                    const placeOfEvent = src.placeOfEvent || null;
-
-                    if (subjectName && dateOfEvent && placeOfEvent) {
-                        const generatedRegistryNumber = ctcNumber?.trim() || src.registryNumber || `REQ-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                        try {
-                            await prisma.birthCertificateRequest.create({
-                                data: {
-                                    transactionId: id,
-                                    registryNumber: generatedRegistryNumber,
-                                    subjectName: subjectName,
-                                    dateOfEvent: dateOfEvent,
-                                    placeOfEvent: placeOfEvent,
-                                    fatherName: src.fatherName || src.father || null,
-                                    motherName: src.motherName || src.mother || null,
-                                    issuedBy: user.name || "System Administrator",
-                                    documentUrl: eCopyUrl || transaction.eCopyUrl || null,
-                                    verificationId: `VER-BCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-                                }
-                            });
-                        } catch (createErr) {
-                            console.error("Failed to create BirthCertificateRequest:", createErr);
-                        }
-                    }
-                }
-            } else if (typeCode === "LCR_DEATH") {
+            if (typeCode === "LCR_DEATH") {
                 const dcrExisting = (transaction as any).deathCertificateRequest;
                 if (!dcrExisting && targetStatus === "RELEASED") {
                     const src: any = additionalData || {};
@@ -344,38 +312,6 @@ export async function releaseCedula(id: string, ctcNumber: string, eCopyUrl?: st
                             });
                         } catch (createErr) {
                             console.error("Failed to create DeathCertificateRequest:", createErr);
-                        }
-                    }
-                }
-            } else if (typeCode === "LCR_BIRTH_REG") {
-                const brExisting = (transaction as any).birthCertificateRegistry;
-                if (!brExisting && targetStatus === "RELEASED") {
-                    const bcr = (transaction as any).birthCertificateRequest;
-                    const src: any = bcr || additionalData || {};
-
-                    const subjectName = src.subjectName || src.fullName || src.primaryChildName || null;
-                    const dateOfEvent = src.dateOfEvent ? new Date(src.dateOfEvent) : (src.dateOfBirth ? new Date(src.dateOfBirth) : null);
-                    const placeOfEvent = src.placeOfEvent || src.placeOfBirth || null;
-
-                    if (subjectName && dateOfEvent && placeOfEvent) {
-                        const generatedRegistryNumber = src.registryNumber || `BIRTH-${new Date().getFullYear()}-${id.slice(-6).toUpperCase()}`;
-                        try {
-                            await prisma.birthCertificateRegistry.create({
-                                data: {
-                                    transactionId: id,
-                                    registryNumber: generatedRegistryNumber,
-                                    issuedBy: user.name || "System Administrator",
-                                    subjectName: subjectName,
-                                    dateOfEvent: dateOfEvent,
-                                    placeOfEvent: placeOfEvent,
-                                    fatherName: src.fatherName || src.father || null,
-                                    motherName: src.motherName || src.mother || null,
-                                    supportingEvidence1Type: src.supportingEvidence1Type || null,
-                                    supportingEvidence2Type: src.supportingEvidence2Type || null
-                                } as any
-                            });
-                        } catch (createErr) {
-                            console.error("Failed to create BirthCertificateRegistry:", createErr);
                         }
                     }
                 }

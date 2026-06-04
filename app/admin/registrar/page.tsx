@@ -6,7 +6,7 @@ import {
 } from "@/app/admin/transactions/actions";
 import {
     getTreasuryTransactions
-} from "@/app/admin/transactions/treasury-actions";
+} from "@/app/admin/transactions/cedula-actions";
 import {
     Table,
     TableBody,

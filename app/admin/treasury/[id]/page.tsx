@@ -49,7 +49,9 @@ import {
     confirmTransactionPayment,
     confirmTransactionPaymentWithReceipt,
     releaseCedula
-} from "@/app/admin/transactions/treasury-actions";
+} from "@/app/admin/transactions/cedula-actions";
+import { releaseBirthRegistry } from "@/app/admin/transactions/birth-regis-actions";
+import { releaseBirthCertificate } from "@/app/admin/transactions/birth-cert-actions";
 import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -690,7 +692,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
             const res = isBusinessPermit
                 ? await releaseBusinessPermit(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, stickerNumber)
-                : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
+                : typeCode === "LCR_BIRTH"
+                    ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                    : typeCode === "LCR_BIRTH_REG"
+                        ? await releaseBirthRegistry(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                        : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -710,7 +716,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -1296,7 +1302,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         try {
             // If already PAID and no O.R. document/number is provided, proceed directly to processing
             if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
-                const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                const releaseFn = typeCode === "LCR_BIRTH"
+                    ? releaseBirthCertificate
+                    : typeCode === "LCR_BIRTH_REG"
+                        ? releaseBirthRegistry
+                        : releaseCedula;
+                const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
                     fetchTransaction();
@@ -1320,7 +1331,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 setReceiptFile(null);
                 setReceiptPreview(null);
                 // Immediately proceed to processing after confirmation
-                const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                const releaseFn = typeCode === "LCR_BIRTH"
+                    ? releaseBirthCertificate
+                    : typeCode === "LCR_BIRTH_REG"
+                        ? releaseBirthRegistry
+                        : releaseCedula;
+                const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
                 } else {

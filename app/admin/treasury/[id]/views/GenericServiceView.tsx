@@ -108,6 +108,8 @@ export default function GenericServiceView(props: TreasuryViewProps) {
         handleRelease,
         handlePrintWaybill,
         userRole,
+        orSeriesNumber,
+        setOrSeriesNumber,
         handleViewFile,
         isResolvingDispute,
         disputeModalOpen,
@@ -736,14 +738,28 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                         )}
 
                                         {/* Separate Card 2: Official Receipt (OR) Upload */}
-                                        <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
-                                            <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR) <span className="text-rose-500">*</span></Label>
-                                            <Input
-                                                type="file"
-                                                accept="image/*,.pdf"
-                                                onChange={(e) => setOrFile(e.target.files?.[0] || null)}
-                                                className="h-12 rounded-xl border-slate-100 dark:border-white/5 text-xs focus:ring-primary/10 dark:bg-slate-950 dark:text-white"
-                                            />
+                                        <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-4">
+                                            {/* O.R. Series Number input */}
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">O.R. Series Number <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    type="text"
+                                                    value={orSeriesNumber || ""}
+                                                    onChange={(e) => setOrSeriesNumber?.(e.target.value)}
+                                                    placeholder="Enter O.R. Series Number..."
+                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-950 dark:text-white"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR) <span className="text-rose-500">*</span></Label>
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*,.pdf"
+                                                    onChange={(e) => setOrFile(e.target.files?.[0] || null)}
+                                                    className="h-12 rounded-xl border-slate-100 dark:border-white/5 text-xs focus:ring-primary/10 dark:bg-slate-950 dark:text-white"
+                                                />
+                                            </div>
                                             {(orPreview || (transaction.orUrl && transaction.orUrl !== "null" && transaction.orUrl !== "undefined" && transaction.orUrl !== "")) && (
                                                 <div className="mt-2">
                                                     {(() => {
@@ -902,7 +918,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             onClick={handleRelease}
                                             disabled={
                                                 actionLoading ||
-                                                (transaction.status === "PAID" && !orFile && !transaction.orUrl) ||
+                                                (transaction.status === "PAID" && (!orSeriesNumber || (!orFile && !transaction.orUrl))) ||
                                                 (transaction.status === "FOR_PROCESSING" && (
                                                     (!ctcNumber && !transaction.cedula?.ctcNumber) ||
                                                     (!eCopyFile && !transaction.eCopyUrl)
@@ -918,34 +934,14 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             }
                                         </Button>
 
-                                        {transaction.status === "PAID" && (
-                                            <div className="flex gap-3 pt-2">
-                                                <Button
-                                                    onClick={() => {
-                                                        setRemarks("");
-                                                        setIsRequestingRevision(true);
-                                                    }}
-                                                    disabled={actionLoading}
-                                                    className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-amber-500/10 active:scale-95 transition-all"
-                                                >
-                                                    Revise Payment Proof
-                                                </Button>
-                                                <Button
-                                                    onClick={() => { setRemarks(""); setIsRejecting(true); }}
-                                                    disabled={actionLoading}
-                                                    className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] rounded-2xl shadow-lg shadow-red-600/10 active:scale-95 transition-all"
-                                                >
-                                                    Decline
-                                                </Button>
-                                            </div>
-                                        )}
+
                                     </>
                                 ) : (
                                     !(transaction.status === "FOR_PICKING" && transaction.fulfillmentType === "DELIVERY") && (
                                         <Button
                                             onClick={handleRelease}
                                             disabled={actionLoading}
-                                            className="w-full h-16 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-green-500/20"
+                                            className="w-full h-16 rounded-2xl bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                         >
                                             {actionLoading ? "Releasing..." : transaction.fulfillmentType === "DELIVERY" ? "Dispatch to Courier" : "Release Document to Resident"}
                                         </Button>

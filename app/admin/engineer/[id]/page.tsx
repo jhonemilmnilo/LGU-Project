@@ -40,7 +40,7 @@ import {
 import {
     confirmTransactionPayment,
     releaseCedula
-} from "@/app/admin/transactions/treasury-actions";
+} from "@/app/admin/transactions/cedula-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
