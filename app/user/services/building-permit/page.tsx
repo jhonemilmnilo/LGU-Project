@@ -504,7 +504,8 @@ export default function BuildingPermitPage() {
     signatureData,
     activeDocTab,
     loading,
-    persistDraft
+    persistDraft,
+    selectedApplication
   ]);
 
   useEffect(() => {
