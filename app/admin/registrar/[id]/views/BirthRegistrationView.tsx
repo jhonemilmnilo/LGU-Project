@@ -90,7 +90,8 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
         updateFeeLineItem,
         miscFee,
         setMiscFee,
-        handleProcessRequest
+        handleProcessRequest,
+        handlePrintWaybill
     } = props;
 
     const [isAssessmentOpen, setIsAssessmentOpen] = React.useState(true);
@@ -950,9 +951,9 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                 additional?.payment_id || 
                                 transaction.paymentId;
 
-                            const isPaidOrPending = ["PAID", "FOR_PROCESSING", "FOR_CLAIM", "RELEASED", "DELIVERED", "IN_ROUTE", "FOR_PICKING", "FOR_REINSPECTION"].includes(transaction.status);
+                            const isAllowedStatus = ["FOR_REINSPECTION", "FOR_PROCESSING", "FOR_CLAIM", "RELEASED", "DELIVERED", "IN_ROUTE", "FOR_PICKING"].includes(transaction.status);
                             
-                            if (!refNo && !isPaidOrPending) return null;
+                            if (!isAllowedStatus) return null;
 
                             const displayRefNo = refNo || "No payment reference ID stored";
 
@@ -1099,7 +1100,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                     {transaction.status === "PAID" && "Payment has been confirmed. The request is proceeding to the next processing phase."}
                                 </p>
                             </div>
-                        ) : (!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM"].includes(transaction.status)) && (
+                        ) : (!isReadOnlyAide || ["FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status)) && (
                             <div className="space-y-6">
 
                                 {(["FOR_REQUESTING", "UNDER_REVIEW", "EVALUATED", "FOR_INSPECTION"].includes(transaction.status)) && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "REGISTRAR" || (transaction.type?.category === "Civil Registry")) && (
@@ -1583,14 +1584,23 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             )}
 
                                             <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                {transaction.fulfillmentMode === "DELIVERY" ? (
-                                                    <Button
-                                                        onClick={handleRelease}
-                                                        disabled={isReleaseDisabled}
-                                                        className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Dispatch to Courier"}
-                                                    </Button>
+                                                {(transaction.fulfillmentMode === "DELIVERY" || transaction.fulfillmentType === "DELIVERY") ? (
+                                                    <div className="space-y-3 w-full">
+                                                        <Button
+                                                            onClick={handlePrintWaybill}
+                                                            variant="outline"
+                                                            className="w-full h-12 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all flex items-center justify-center"
+                                                        >
+                                                            Generate & Print Waybill
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handleRelease}
+                                                            disabled={isReleaseDisabled}
+                                                            className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/95 text-white font-black italic uppercase tracking-wider shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            {actionLoading ? <RotateCw className="w-4 h-4 animate-spin" /> : "Proceed to For Pick Up"}
+                                                        </Button>
+                                                    </div>
                                                 ) : (
                                                     <Button
                                                         onClick={handleRelease}
@@ -1604,6 +1614,33 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                         </div>
                                     );
                                 })()}
+
+                                {transaction.status === "FOR_PICKING" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN" || rawUserRole === "COURIER") && (
+                                    <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <PrintWaybill
+                                            transaction={transaction}
+                                            resident={resident}
+                                            deliveryAddr={null}
+                                            fiscal={null}
+                                            branding={branding}
+                                            themeColor={themeColor}
+                                        />
+                                        <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 text-primary flex items-start gap-3">
+                                            <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] font-bold leading-relaxed">
+                                                This document is currently queued for delivery. You can generate and print the shipping waybill using the button below.
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            onClick={handlePrintWaybill}
+                                            variant="outline"
+                                            className="w-full h-12 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all flex items-center justify-center"
+                                        >
+                                            Generate & Print Waybill
+                                        </Button>
+                                    </div>
+                                )}
 
                                 {transaction.status === "FOR_CLAIM" && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
                                     <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">

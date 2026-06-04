@@ -714,10 +714,20 @@ export default function RequestHubPage() {
 
         // Handle Civil Registry (Usually simple total or evaluated amount)
         if (isCivilRegistry) {
-            const savedDeliveryFee = Number(request.fiscalSnapshot?.deliveryFee || 0);
-            const cleanBase = Math.max(0, (Number(request.totalAmount) || 0) - savedDeliveryFee);
+            const fiscal = request.fiscalSnapshot as any;
+            const savedDeliveryFee = Number(fiscal?.deliveryFee || 0);
+            const cleanBase = Math.max(0, (Number(request.totalAmount) || Number(fiscal?.totalAmount) || 0) - savedDeliveryFee);
             const finalTotal = cleanBase + dFee;
-            return { basicTax: 0, additionalTax: 0, penaltyAmount: 0, deliveryFee: dFee, finalTotal, cedulaType: "INDIVIDUAL" };
+            return {
+                basicTax: 0,
+                additionalTax: 0,
+                penaltyAmount: 0,
+                deliveryFee: dFee,
+                finalTotal,
+                cedulaType: "INDIVIDUAL",
+                miscFee: fiscal?.miscFee !== undefined ? Number(fiscal.miscFee) : undefined,
+                lineItems: fiscal?.lineItems || []
+            };
         }
 
         const cedulaType = (addData.applicantType === "JURIDICAL" || addData.applicantType === "COMPANY") ? "JURIDICAL" : "INDIVIDUAL";
@@ -952,6 +962,14 @@ export default function RequestHubPage() {
                                             <p className="text-[10px] md:text-sm text-slate-400 font-medium italic leading-relaxed">Evaluation complete. Secure your issuance below.</p>
                                         </div>
                                         <div className="space-y-4 md:space-y-5">
+                                            {/* Miscellaneous Fee for Civil Registry requests */}
+                                            {computation?.miscFee !== undefined && (
+                                                <div className="flex justify-between items-end pb-3 border-b border-white/5">
+                                                    <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Miscellaneous Fee</span>
+                                                    <span className="text-lg md:text-2xl font-black italic">₱{computation.miscFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                </div>
+                                            )}
+
                                             {/* Structured Line Items (Additional fees or itemized breakdown) */}
                                             {computation?.lineItems && computation.lineItems.length > 0 && (
                                                 computation.lineItems.map((item: any, idx: number) => (
