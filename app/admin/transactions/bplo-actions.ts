@@ -192,8 +192,8 @@ export async function releaseBusinessPermit(id: string, permitNumber: string, eC
 
         const session = await getSession();
         const user = session?.user as any;
-        if (!user || (user.role !== "TREASURY_STAFF" && user.role !== "ADMIN" && !isUserAdminAide(user) && user.role !== "ENGINEER")) {
-            return { success: false, error: "Forbidden" };
+        if (!user || (user.role !== "ADMIN" && !isUserAdminAide(user))) {
+            return { success: false, error: "Forbidden: Only BPLO Administrators and Staff can release business permits." };
         }
 
         const transaction = await prisma.transaction.findUnique({
@@ -206,12 +206,7 @@ export async function releaseBusinessPermit(id: string, permitNumber: string, eC
         });
 
         if (!transaction || !["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status as any)) {
-            return { success: false, error: "Transaction must be paid, processing, ready for claiming, or under re-inspection before release" };
-        }
-
-        // BPLO checks
-        if (user.role === "TREASURY_STAFF" && !["PAID", "FOR_PROCESSING"].includes(transaction.status as any)) {
-            return { success: false, error: "Forbidden: Treasury Staff can only mark Business Permits as Ready for Reinspection. Further processing must be handled by BPLO Admin." };
+            return { success: false, error: "Transaction must be paid, processing, ready for claiming, or under re-inspection before release." };
         }
 
         if (isUserAdminAide(user) && !["FOR_INSPECTION", "FOR_PROCESSING", "PAID", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status as any)) {
@@ -224,12 +219,9 @@ export async function releaseBusinessPermit(id: string, permitNumber: string, eC
         }
 
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
-        const isBusinessPermitTreasuryHandoff = user.role === "TREASURY_STAFF" && ["PAID", "FOR_PROCESSING"].includes(transaction.status as any);
-        const targetStatus = isBusinessPermitTreasuryHandoff
-            ? "FOR_REINSPECTION"
-            : isInitialRelease
-                ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
-                : "RELEASED";
+        const targetStatus = isInitialRelease
+            ? (transaction.fulfillmentType === "DELIVERY" ? "FOR_PICKING" : "FOR_CLAIM")
+            : "RELEASED";
 
         if (isInitialRelease) {
             const currentOr = transaction.orUrl;

@@ -43,8 +43,9 @@ import {
     declinePaymentProofAction
 } from "@/app/admin/transactions/actions";
 import {
-    releaseBusinessPermit
-} from "@/app/admin/transactions/bplo-actions";
+    treasuryReleaseBusinessPermit,
+    confirmBusinessPermitPayment
+} from "@/app/admin/transactions/business-permit-actions";
 import {
     confirmTransactionPayment,
     confirmTransactionPaymentWithReceipt,
@@ -691,7 +692,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
 
             const res = isBusinessPermit
-                ? await releaseBusinessPermit(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, stickerNumber)
+                ? await treasuryReleaseBusinessPermit(transaction.id, orUrl)
                 : typeCode === "LCR_BIRTH"
                     ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
                     : typeCode === "LCR_BIRTH_REG"
@@ -716,7 +717,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, stickerNumber, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode]);
 
     const handleResolveDispute = async () => {
         if (!remarks) { toast.error("Remarks required for resolution"); return; }
@@ -1300,6 +1301,25 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
+            if (isBusinessPermit) {
+                const formData = new FormData();
+                formData.append("id", transaction.id);
+                if (remarks) formData.append("remarks", remarks);
+                if (orSeriesNumber) formData.append("orSeriesNumber", orSeriesNumber);
+                if (orFile) formData.append("orFile", orFile);
+
+                const res = await confirmBusinessPermitPayment(formData);
+                if (res.success) {
+                    toast.success("Payment Received & Sent to BPLO for Re-Inspection");
+                    setReceiptFile(null);
+                    setReceiptPreview(null);
+                    router.push("/admin/treasury?category=Business%20Permit");
+                } else {
+                    toast.error(res.error || "Failed to confirm payment");
+                }
+                return;
+            }
+
             // If already PAID and no O.R. document/number is provided, proceed directly to processing
             if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
                 const releaseFn = typeCode === "LCR_BIRTH"

@@ -205,15 +205,18 @@ export default function BploDetailPage({ params }: PageProps) {
     }, [fetchTransaction]);
 
     const handleEvaluate = async () => {
-        const hasIncompleteFee = feeItems.some(f => f.label.trim() && f.amount.trim() === "");
-        const hasAmountWithoutLabel = feeItems.some(f => !f.label.trim() && f.amount.trim() !== "");
-        if (hasIncompleteFee) {
-            toast.error("Please enter an amount for every fee line, or remove empty additional fees.");
-            return;
-        }
-        if (hasAmountWithoutLabel) {
-            toast.error("Please add a label for every additional fee amount.");
-            return;
+        const isReinspection = transaction.status === "FOR_REINSPECTION";
+        if (!isReinspection) {
+            const hasIncompleteFee = feeItems.some(f => f.label.trim() && f.amount.trim() === "");
+            const hasAmountWithoutLabel = feeItems.some(f => !f.label.trim() && f.amount.trim() !== "");
+            if (hasIncompleteFee) {
+                toast.error("Please enter an amount for every fee line, or remove empty additional fees.");
+                return;
+            }
+            if (hasAmountWithoutLabel) {
+                toast.error("Please add a label for every additional fee amount.");
+                return;
+            }
         }
 
         setActionLoading(true);
@@ -229,11 +232,11 @@ export default function BploDetailPage({ params }: PageProps) {
             const res = await evaluateBusinessPermitTransaction(
                 transaction.id,
                 deliveryFee,
-                remarks || "Business Permit Assessment",
+                remarks || (isReinspection ? "Business Permit Re-inspection Approved" : "Business Permit Assessment"),
                 itemsToSend.length > 0 ? itemsToSend : undefined
             );
             if (res.success) {
-                toast.success("Assessment details updated and submitted successfully!");
+                toast.success(isReinspection ? "Re-inspection approved! Transaction status is now FOR PROCESSING." : "Assessment details updated and submitted successfully!");
                 router.push("/admin/bplo");
             } else {
                 toast.error(res.error || "Evaluation failed.");
@@ -577,8 +580,8 @@ export default function BploDetailPage({ params }: PageProps) {
     const isDelivery = transaction.fulfillmentType === "DELIVERY";
     const buttonText = transaction.status === "FOR_CLAIM"
         ? "Release the Document"
-        : (isProcessing && isDelivery)
-            ? "Ready For Picking"
+        : isProcessing
+            ? (isDelivery ? "Proceed for Picking" : "Proceed for claim")
             : "Update & Release Permit";
 
     const evidenceDocs = [
@@ -1360,7 +1363,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                                     </div>
                                                 ) : (
                                                     <div className="flex justify-end">
-                                                        {!isReadOnly && (
+                                                        {!isReadOnly && transaction.status !== "FOR_CLAIM" && (
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"

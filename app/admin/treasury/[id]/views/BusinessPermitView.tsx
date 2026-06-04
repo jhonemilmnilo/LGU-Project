@@ -522,7 +522,7 @@ export default function BusinessPermitView({
                 </div>
 
                 {/* RIGHT COLUMN */}
-                <div className="col-span-12 lg:col-span-4 space-y-8">
+                <div className="col-span-12 lg:col-span-4 space-y-8 lg:sticky lg:top-8 lg:self-start">
                     {/* WORKFLOW TRACKING TIMELINE */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-10 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-8">
                         <div>

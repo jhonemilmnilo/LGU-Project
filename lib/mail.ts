@@ -464,6 +464,30 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan • Official Notification</p>
             </div>
         </div>`;
+    } else if (type === "FOR_REINSPECTION" && serviceName?.toLowerCase().includes("business")) {
+        subject = `Payment Confirmed & BPLO Verification in Progress - LGU ${municipalityName}`;
+        htmlBody = `
+        <div style="font-family: Inter, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+            <div style="background: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="width: 64px; height: 64px; background: ${primaryGreen}; border-radius: 20px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <span style="color: white; font-size: 32px;">✓</span>
+                    </div>
+                    <h1 style="color: #0f172a; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: -0.02em;">Payment Received</h1>
+                    <p style="color: ${primaryGreen}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px;">Treasury Verification Complete</p>
+                </div>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">Dear <strong>${name}</strong>,</p>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6;">This is to officially confirm that the Municipal Treasury Office of Mapandan has received your payment for the **${serviceName}** application (Ref ID: <strong style="font-family: monospace;">${transactionId || "N/A"}</strong>).</p>
+                
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 24px; margin: 32px 0;">
+                    <p style="color: #166534; font-size: 14px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">Status: BPLO Verification</p>
+                    <p style="color: #166534; font-size: 13px; margin: 8px 0 0 0; opacity: 0.8;">Your application has been successfully advanced to the Business Permits and Licensing Office (BPLO) for final validation. Your permit will be processed once BPLO finishes their secondary verification.</p>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+                <p style="color: #94a3b8; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.1em;">Mapandan Treasury Department • Official Notification</p>
+            </div>
+        </div>`;
     } else if (type === "FOR_INSPECTION" || type === "FOR_REINSPECTION") {
         const primaryAmber = "#f59e0b";
         const inspectionType = type === "FOR_REINSPECTION" ? "Re-inspection" : "Inspection";
