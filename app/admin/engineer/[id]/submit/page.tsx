@@ -21,6 +21,7 @@ import {
 } from "@/app/admin/transactions/actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -43,6 +44,9 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
     const [, setECopyFile] = useState<File | null>(null);
     const [eCopyUrl, setECopyUrl] = useState<string>("");
     const [uploading, setUploading] = useState(false);
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
     const isSubmitted = ["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(transaction?.status || "");
     const isViewOnly = isForcedView || isSubmitted;
 
@@ -153,6 +157,14 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
             className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
             style={{ "--theme_color": themeColor, "--primary-theme": themeColor } as React.CSSProperties}
         >
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => { setViewerOpen(false); setViewerUrl(null); }}
+                file={null}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor={themeColor}
+            />
             <header className="h-16 px-8 flex items-center justify-between border-b border-transparent dark:border-white/5">
                 <div className="flex items-center gap-4">
                     <Link href={backUrl}>
@@ -207,7 +219,7 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                         <div className="space-y-2 relative z-10">
                             <span className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-[0.2em] italic">Phase 5: Building Permit Submission</span>
                             <h2 className="text-3xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">SUBMIT E-COPY</h2>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Upload the digital building permit file (E-Copy) to officially release it to the constituent.</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Upload the digital building permit file (E-Copy) to officially release it to the Resident.</p>
                         </div>
                         <div className="text-5xl font-black italic text-blue-500/20 select-none hidden md:block">SUBMIT</div>
                     </div>
@@ -279,11 +291,17 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                                         <span className="text-[11px] font-medium text-slate-400 block mt-0.5">Click preview to view the uploaded file.</span>
                                     </div>
                                 </div>
-                                <a href={eCopyUrl} target="_blank" rel="noreferrer">
-                                    <Button variant="outline" className="h-10 gap-2 font-black text-[10px] uppercase tracking-wider rounded-xl">
-                                        Preview <ExternalLink className="w-3.5 h-3.5" />
-                                    </Button>
-                                </a>
+                                <Button
+                                    onClick={() => {
+                                        setViewerUrl(eCopyUrl);
+                                        setViewerTitle("Building Permit E-Copy");
+                                        setViewerOpen(true);
+                                    }}
+                                    variant="outline"
+                                    className="h-10 gap-2 font-black text-[10px] uppercase tracking-wider rounded-xl"
+                                >
+                                    Preview <ExternalLink className="w-3.5 h-3.5" />
+                                </Button>
                             </div>
                         )}
                     </div>
@@ -313,19 +331,17 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                                     const isCompleted = idx < currentStepIdx;
                                     const isActive = idx === currentStepIdx;
                                     return (
-                                        <div 
-                                            key={step.id} 
+                                        <div
+                                            key={step.id}
                                             onClick={() => { if (isCompleted) handleStepClick(step.id); }}
-                                            className={`relative flex items-center justify-between group ${
-                                                isCompleted ? "cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-xl transition-all" : ""
-                                            }`}
+                                            className={`relative flex items-center justify-between group ${isCompleted ? "cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-xl transition-all" : ""
+                                                }`}
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className={`absolute left-[-29px] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                                    isCompleted ? "bg-[#006A2E] border-[#006A2E] text-white shadow-lg shadow-green-500/20" :
-                                                    isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
-                                                    "bg-slate-900 border-white/10 text-slate-500"
-                                                }`}>
+                                                <div className={`absolute left-[-29px] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isCompleted ? "bg-[#006A2E] border-[#006A2E] text-white shadow-lg shadow-green-500/20" :
+                                                        isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
+                                                            "bg-slate-900 border-white/10 text-slate-500"
+                                                    }`}>
                                                     {isCompleted ? <BadgeCheck className="w-3.5 h-3.5" /> : <span className="text-[10px] font-black">{idx + 1}</span>}
                                                 </div>
                                                 <div>
@@ -344,7 +360,7 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                         {!isSubmitted && userRole === "ENGINEER" && (
                             <div className="bg-[#151b28] rounded-[2rem] p-6 border border-white/5 space-y-4">
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Constituent Fulfillment Preference</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Fulfillment Preference</span>
                                     <div className="flex items-center gap-2 mt-1">
                                         <Badge className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-3 py-1 font-bold rounded-lg uppercase">
                                             {transaction.fulfillmentType || "PICK_UP"}
@@ -358,9 +374,9 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
                                     </p>
                                 </div>
 
-                                <Button 
-                                    onClick={handleSubmitPermit} 
-                                    disabled={actionLoading || !eCopyUrl || uploading} 
+                                <Button
+                                    onClick={handleSubmitPermit}
+                                    disabled={actionLoading || !eCopyUrl || uploading}
                                     className="w-full h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-xl shadow-green-900/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Check className="w-4 h-4 mr-2" /> Submit & Release Permit

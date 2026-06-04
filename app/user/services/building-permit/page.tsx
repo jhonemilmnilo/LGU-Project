@@ -177,25 +177,25 @@ function parseDescriptionOfWork(desc: string) {
   }
 
   if (desc.includes("NEW CONSTRUCTION")) result.newConstruction = true;
-  
+
   const addMatch = desc.match(/ADDITION:\s*([^;]+)/);
   if (addMatch) {
     result.addition = true;
     result.additionText = addMatch[1].trim();
   }
-  
+
   const repairMatch = desc.match(/REPAIR:\s*([^;]+)/);
   if (repairMatch) {
     result.repair = true;
     result.repairText = repairMatch[1].trim();
   }
-  
+
   const renoMatch = desc.match(/RENOVATION:\s*([^;]+)/);
   if (renoMatch) {
     result.renovation = true;
     result.renovationText = renoMatch[1].trim();
   }
-  
+
   const demoMatch = desc.match(/DEMOLITION:\s*([^;]+)/);
   if (demoMatch) {
     result.demolition = true;
@@ -211,7 +211,7 @@ function parseDescriptionOfWork(desc: string) {
         text2: parts[1]?.trim() || ""
       };
     };
-    
+
     if (othersMatches[0]) {
       result.others1 = true;
       const res = processOthers(othersMatches[0][1]);
@@ -252,14 +252,14 @@ function parseOccupancyUse(occupancyUse: string) {
   if (parts.length >= 2) {
     category = parts[0];
     let rest = parts.slice(1).join(": ");
-    
+
     const openParenIndex = rest.lastIndexOf(" (");
     const closeParenIndex = rest.lastIndexOf(")");
     if (openParenIndex !== -1 && closeParenIndex === rest.length - 1 && openParenIndex < closeParenIndex) {
       specify = rest.substring(openParenIndex + 2, closeParenIndex);
       rest = rest.substring(0, openParenIndex);
     }
-    
+
     subs = rest.split(", ").map(s => s.trim()).filter(Boolean);
   } else {
     // Check if it matches category exactly, otherwise fallback
@@ -299,7 +299,7 @@ function parseOccupancyUse(occupancyUse: string) {
       }
     }
   }
-  
+
   return { category, subs, specify };
 }
 
@@ -443,7 +443,7 @@ export default function BuildingPermitPage() {
   }, [hydrateDraft, hydrateDraftFiles]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || selectedApplication) return;
     persistDraft({
       formData: {
         descriptionOfWork: formData.descriptionOfWork,
@@ -504,7 +504,8 @@ export default function BuildingPermitPage() {
     signatureData,
     activeDocTab,
     loading,
-    persistDraft
+    persistDraft,
+    selectedApplication
   ]);
 
   useEffect(() => {
@@ -553,7 +554,7 @@ export default function BuildingPermitPage() {
     "2. Plumbing Permit",
     "3. Sanitary Permit",
     "4. Excavation & Ground Preparation Permit",
-    "5. Fencing Permit (if any)",
+    "5. Fencing Permit",
     "6. Scaffolding Permit",
     "7. Mechanical Permit"
   ];
@@ -570,9 +571,18 @@ export default function BuildingPermitPage() {
         }
         if (permitsRes.success && permitsRes.data.length > 0) {
           setExistingApplications(permitsRes.data);
-          const hasDraft = localStorage.getItem("building_permit_draft");
-          if (!hasDraft) {
+          const hasActive = permitsRes.data.some((app: any) =>
+            !["RELEASED", "REJECTED", "DELIVERED", "CANCELLED"].includes(app.status) && !app.isCancelled
+          );
+          if (hasActive) {
+            localStorage.removeItem("building_permit_draft");
+            await clearDraftFiles("building_permit_draft");
             setCurrentStep("EXISTING");
+          } else {
+            const hasDraft = localStorage.getItem("building_permit_draft");
+            if (!hasDraft) {
+              setCurrentStep("EXISTING");
+            }
           }
         }
       } catch (err) {
@@ -983,23 +993,23 @@ export default function BuildingPermitPage() {
       const timestamp = Date.now();
       const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const filePath = `building-permits/${userId}/${folder}/${timestamp}-${cleanFileName}`;
-      
+
       const { error } = await supabase.storage
         .from("system-assets")
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
-        
+
       if (error) {
         console.error(`Upload error for ${keyName}:`, error);
         throw error;
       }
-      
+
       const { data: { publicUrl } } = supabase.storage
         .from("system-assets")
         .getPublicUrl(filePath);
-        
+
       return publicUrl;
     } catch (err) {
       console.error(`Failed uploading ${keyName}:`, err);
@@ -1832,7 +1842,7 @@ export default function BuildingPermitPage() {
                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                           a. Scope of Work <span className="text-red-500 text-lg">*</span>
                         </label>
-                        
+
                         <div className={cn("rounded-xl p-4 border bg-white/40 dark:bg-black/20 space-y-4", (showValidationErrors && (
                           !formData.scopeNewConstruction &&
                           !formData.scopeAddition &&
@@ -1842,7 +1852,7 @@ export default function BuildingPermitPage() {
                           !formData.scopeOthers1 &&
                           !formData.descriptionOfWorkLegacyText
                         )) ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10")}>
-                          
+
                           {/* New Construction */}
                           <div className="flex items-center space-x-3 py-1">
                             <Checkbox
@@ -2493,7 +2503,7 @@ export default function BuildingPermitPage() {
             <div className="bg-slate-100/50 dark:bg-white/5 border-l-4 border-slate-800 dark:border-white p-4 rounded-r-xl flex items-center gap-3 mb-8">
               <AlertCircle className="w-5 h-5 text-slate-800 dark:text-white shrink-0" />
               <p className="text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300">
-                <b>File Upload Rules:</b> Max 5MB per file · Allowed: .pdf, .jpg, .jpeg, .png only · AI-powered document verification will check clarity and extract data
+                <b>File Upload Rules:</b> Max 5MB per file · Allowed: .pdf, .jpg, .jpeg, .png only
               </p>
             </div>
 
@@ -2539,9 +2549,13 @@ export default function BuildingPermitPage() {
                 const hasError = showValidationErrors && !isUploaded;
                 return (
                   <div key={key} className={cn("bg-white/40 dark:bg-white/5 backdrop-blur-md border rounded-2xl p-5 shadow-sm transition-all group", hasError ? "border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse" : "border-slate-200 dark:border-white/10 hover:border-primary/30")}>
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
-                        <span className="text-lg">📄</span> {docName} <span className="text-red-500 ml-1 text-lg">*</span>
+                    <div className="flex justify-between items-start gap-4 mb-4">
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm min-w-0 flex-1">
+                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                          <span className="text-lg">📄</span>
+                          <span className="break-words">{docName}</span>
+                          <span className="text-red-500 ml-0.5 text-lg">*</span>
+                        </span>
                       </h4>
                       {isUploaded ? (
                         <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-500 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full shrink-0">
@@ -3276,16 +3290,24 @@ export default function BuildingPermitPage() {
                         <span className="font-bold text-sm">Status: Paid (Receipt Submitted)</span>
                       </div>
                       {selectedApplication?.additionalData?.treasuryReceiptUrl && (
-                        <a
-                          href={selectedApplication.additionalData.treasuryReceiptUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => {
+                            setViewerUrl(selectedApplication.additionalData.treasuryReceiptUrl);
+                            setViewerTitle("Official Treasury Receipt");
+                            setViewerOpen(true);
+                          }}
                           className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
                         >
                           View Official Receipt
-                        </a>
+                        </button>
                       )}
                     </div>
+                    {selectedApplication?.additionalData?.treasuryRemarks && (
+                      <div className="p-5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 italic">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 not-italic block mb-1">Treasury Notes:</span>
+                        &ldquo;{selectedApplication.additionalData.treasuryRemarks}&rdquo;
+                      </div>
+                    )}
                     {selectedApplication?.additionalData?.clearanceRevisionReason && (!selectedApplication?.additionalData?.bfpClearanceUrl || !selectedApplication?.additionalData?.zoningClearanceUrl) && (
                       <div className="bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5 space-y-2 animate-in fade-in-50 duration-500">
                         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-500">

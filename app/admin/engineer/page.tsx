@@ -30,7 +30,7 @@ export default async function EngineerPage() {
                     </h1>
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                    Review and evaluate building permit applications submitted by constituents.
+                    Review and evaluate building permit applications submitted by Residents.
                 </p>
             </div>
 
