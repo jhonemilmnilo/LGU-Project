@@ -33,6 +33,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import LightboxView from "../../../treasury/[id]/components/LightboxView";
+import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -56,7 +59,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
     const [buildingFee, setBuildingFee] = useState<string>("");
     const [electricalFee, setElectricalFee] = useState<string>("");
     const [sanitaryFee, setSanitaryFee] = useState<string>("");
-    const [engineerMunicipalCharges, setEngineerMunicipalCharges] = useState<{name: string, amount: string}[]>([{ name: "", amount: "" }]);
+    const [engineerMunicipalCharges, setEngineerMunicipalCharges] = useState<{ name: string, amount: string }[]>([{ name: "", amount: "" }]);
 
     const [, setECopyFile] = useState<File | null>(null);
     const [eCopyUrl, setECopyUrl] = useState<string>("");
@@ -66,6 +69,9 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
     const [reviseModalOpen, setReviseModalOpen] = useState(false);
     const [declineModalOpen, setDeclineModalOpen] = useState(false);
     const [reasonText, setReasonText] = useState("");
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+    const [viewerTitle, setViewerTitle] = useState("");
 
     const feeAssessment = transaction?.additionalData?.feeAssessment || null;
     const isEndorsed = feeAssessment?.endorsed === true;
@@ -81,7 +87,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                 if (tx.eCopyUrl) {
                     setECopyUrl(tx.eCopyUrl);
                 }
-                
+
                 // Pre-populate if already assessed
                 const assessed = tx.additionalData?.feeAssessment;
                 if (assessed) {
@@ -301,6 +307,14 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
             className="min-h-screen bg-[#f8fafd] dark:bg-[#0c111d] text-[#0f172a] dark:text-[#f8fafc] pb-20 font-sans transition-colors duration-500"
             style={{ "--theme_color": themeColor, "--primary-theme": themeColor } as React.CSSProperties}
         >
+            <DocumentViewerModal
+                isOpen={viewerOpen}
+                onClose={() => { setViewerOpen(false); setViewerUrl(null); }}
+                file={null}
+                fileUrl={viewerUrl}
+                title={viewerTitle}
+                themeColor={themeColor}
+            />
             <header className="h-16 px-8 flex items-center justify-between border-b border-transparent dark:border-white/5">
                 <div className="flex items-center gap-4">
                     <Link href={backUrl}>
@@ -396,53 +410,53 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                             <div className="p-2 bg-primary/10 rounded-lg"><Coins className="text-primary w-4 h-4" /></div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Specify Official Endorsement Fees</span>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Building Permit Fee (₱) *</Label>
-                                <Input 
+                                <Input
                                     type="number"
                                     min="0"
-                                    placeholder="0.00" 
-                                    value={buildingFee} 
+                                    placeholder="0.00"
+                                    value={buildingFee}
                                     onChange={(e) => {
                                         if (Number(e.target.value) < 0) return;
                                         setBuildingFee(e.target.value);
-                                    }} 
+                                    }}
                                     disabled={isViewOnly}
-                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
+                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100"
                                 />
                             </div>
-                            
+
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Electrical Permit Fee (₱) *</Label>
-                                <Input 
+                                <Input
                                     type="number"
                                     min="0"
-                                    placeholder="0.00" 
-                                    value={electricalFee} 
+                                    placeholder="0.00"
+                                    value={electricalFee}
                                     onChange={(e) => {
                                         if (Number(e.target.value) < 0) return;
                                         setElectricalFee(e.target.value);
-                                    }} 
+                                    }}
                                     disabled={isViewOnly}
-                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
+                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100"
                                 />
                             </div>
 
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Sanitary Permit Fee (₱) *</Label>
-                                <Input 
+                                <Input
                                     type="number"
                                     min="0"
-                                    placeholder="0.00" 
-                                    value={sanitaryFee} 
+                                    placeholder="0.00"
+                                    value={sanitaryFee}
                                     onChange={(e) => {
                                         if (Number(e.target.value) < 0) return;
                                         setSanitaryFee(e.target.value);
-                                    }} 
+                                    }}
                                     disabled={isViewOnly}
-                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100" 
+                                    className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100"
                                 />
                             </div>
 
@@ -450,10 +464,10 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 <div className="flex items-center justify-between">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Other Applicable Municipal Charges</Label>
                                     {!isViewOnly && (
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
                                             onClick={() => setEngineerMunicipalCharges([...engineerMunicipalCharges, { name: "", amount: "" }])}
                                             className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-wider text-primary border-primary/20 hover:bg-primary/10"
                                         >
@@ -461,40 +475,40 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                         </Button>
                                     )}
                                 </div>
-                                
+
                                 {engineerMunicipalCharges.map((charge, index) => (
                                     <div key={index} className="flex items-center gap-4">
-                                        <Input 
-                                            type="text" 
-                                            placeholder="Fee Name (e.g. Zoning Fee)" 
-                                            value={charge.name} 
+                                        <Input
+                                            type="text"
+                                            placeholder="Fee Name (e.g. Zoning Fee)"
+                                            value={charge.name}
                                             onChange={(e) => {
                                                 const newCharges = [...engineerMunicipalCharges];
                                                 newCharges[index].name = e.target.value;
                                                 setEngineerMunicipalCharges(newCharges);
-                                            }} 
+                                            }}
                                             disabled={isViewOnly}
-                                            className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 flex-1" 
+                                            className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 flex-1"
                                         />
-                                        <Input 
+                                        <Input
                                             type="number"
                                             min="0"
-                                            placeholder="0.00" 
-                                            value={charge.amount} 
+                                            placeholder="0.00"
+                                            value={charge.amount}
                                             onChange={(e) => {
                                                 if (Number(e.target.value) < 0) return;
                                                 const newCharges = [...engineerMunicipalCharges];
                                                 newCharges[index].amount = e.target.value;
                                                 setEngineerMunicipalCharges(newCharges);
-                                            }} 
+                                            }}
                                             disabled={isViewOnly}
-                                            className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 w-[150px]" 
+                                            className="h-12 rounded-xl text-slate-700 font-bold dark:text-slate-100 w-[150px]"
                                         />
                                         {!isViewOnly && engineerMunicipalCharges.length > 1 && (
-                                            <Button 
-                                                type="button" 
-                                                variant="ghost" 
-                                                size="icon" 
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
                                                 onClick={() => {
                                                     const newCharges = [...engineerMunicipalCharges];
                                                     newCharges.splice(index, 1);
@@ -553,15 +567,20 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 </h2>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2">The resident has uploaded their BFP Fire Safety Clearance certificate. Please verify this document before approving the permit.</p>
                             </div>
-                            <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 group max-w-lg shadow-sm hover:shadow-md transition-all duration-300">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={transaction.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <a href={transaction.additionalData.bfpClearanceUrl} target="_blank" rel="noreferrer" className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                                        View Fullscreen
-                                    </a>
-                                </div>
-                            </div>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 group max-w-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={transaction.additionalData.bfpClearanceUrl} alt="BFP Clearance" className="object-cover w-full h-full" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                                                View Fullscreen
+                                            </span>
+                                        </div>
+                                    </div>
+                                </DialogTrigger>
+                                <LightboxView src={transaction.additionalData.bfpClearanceUrl} alt="BFP Clearance" label="BFP Fire Safety Clearance" />
+                            </Dialog>
                         </div>
                     )}
 
@@ -574,15 +593,20 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 </h2>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2">The resident has uploaded their Zoning/Locational Clearance certificate issued by the Zoning Officer / MPDC. Please verify this document before approving the permit.</p>
                             </div>
-                            <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 group max-w-lg shadow-sm hover:shadow-md transition-all duration-300">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={transaction.additionalData.zoningClearanceUrl} alt="Zoning Clearance" className="object-cover w-full h-full" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <a href={transaction.additionalData.zoningClearanceUrl} target="_blank" rel="noreferrer" className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                                        View Fullscreen
-                                    </a>
-                                </div>
-                            </div>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 group max-w-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={transaction.additionalData.zoningClearanceUrl} alt="Zoning Clearance" className="object-cover w-full h-full" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="px-5 py-2.5 bg-white text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                                                View Fullscreen
+                                            </span>
+                                        </div>
+                                    </div>
+                                </DialogTrigger>
+                                <LightboxView src={transaction.additionalData.zoningClearanceUrl} alt="Zoning Clearance" label="Zoning / Locational Clearance" />
+                            </Dialog>
                         </div>
                     )}
 
@@ -629,11 +653,17 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                             <span className="text-[11px] font-medium text-slate-400 block mt-0.5">Click preview to view the uploaded file.</span>
                                         </div>
                                     </div>
-                                    <a href={eCopyUrl} target="_blank" rel="noreferrer">
-                                        <Button variant="outline" className="h-10 gap-2 font-black text-[10px] uppercase tracking-wider rounded-xl">
-                                            Preview <ExternalLink className="w-3.5 h-3.5" />
-                                        </Button>
-                                    </a>
+                                    <Button
+                                        onClick={() => {
+                                            setViewerUrl(eCopyUrl);
+                                            setViewerTitle("Building Permit E-Copy");
+                                            setViewerOpen(true);
+                                        }}
+                                        variant="outline"
+                                        className="h-10 gap-2 font-black text-[10px] uppercase tracking-wider rounded-xl"
+                                    >
+                                        Preview <ExternalLink className="w-3.5 h-3.5" />
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -664,19 +694,17 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                     const isCompleted = idx < currentStepIdx;
                                     const isActive = idx === currentStepIdx;
                                     return (
-                                        <div 
-                                            key={step.id} 
+                                        <div
+                                            key={step.id}
                                             onClick={() => { if (isCompleted) handleStepClick(step.id); }}
-                                            className={`relative flex items-center justify-between group ${
-                                                isCompleted ? "cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-xl transition-all" : ""
-                                            }`}
+                                            className={`relative flex items-center justify-between group ${isCompleted ? "cursor-pointer hover:bg-white/5 p-2 -mx-2 rounded-xl transition-all" : ""
+                                                }`}
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className={`absolute left-[-29px] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                                    isCompleted ? "bg-[#006A2E] border-[#006A2E] text-white shadow-lg shadow-green-500/20" :
-                                                    isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
-                                                    "bg-slate-900 border-white/10 text-slate-500"
-                                                }`}>
+                                                <div className={`absolute left-[-29px] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isCompleted ? "bg-[#006A2E] border-[#006A2E] text-white shadow-lg shadow-green-500/20" :
+                                                        isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
+                                                            "bg-slate-900 border-white/10 text-slate-500"
+                                                    }`}>
                                                     {isCompleted ? <BadgeCheck className="w-3.5 h-3.5" /> : <span className="text-[10px] font-black">{idx + 1}</span>}
                                                 </div>
                                                 <div>
@@ -693,9 +721,9 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                     {/* Executive Actions */}
                     <div className="space-y-4">
                         {!isEndorsed && userRole === "ENGINEER" && (
-                            <Button 
-                                onClick={handleEndorse} 
-                                disabled={actionLoading || !buildingFee || !electricalFee || !sanitaryFee} 
+                            <Button
+                                onClick={handleEndorse}
+                                disabled={actionLoading || !buildingFee || !electricalFee || !sanitaryFee}
                                 className="w-full h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-xl shadow-green-900/20 active:scale-95"
                             >
                                 <Check className="w-4 h-4 mr-2" /> Endorse to Treasury
@@ -734,24 +762,24 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                         {!transaction.additionalData?.bfpClearanceUrl ? (
                                             <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider italic flex items-start gap-2">
                                                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 animate-pulse" />
-                                                <span>Awaiting BFP Fire Safety Clearance upload from constituent.</span>
+                                                <span>Awaiting BFP Fire Safety Clearance upload from Resident.</span>
                                             </div>
                                         ) : (
                                             <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 rounded-xl text-[9px] font-bold uppercase tracking-wider italic flex items-start gap-2">
                                                 <Check className="w-4 h-4 shrink-0 mt-0.5" />
-                                                <span>BFP Fire Safety Clearance Proof has been submitted by constituent!</span>
+                                                <span>BFP Fire Safety Clearance Proof has been submitted by Resident!</span>
                                             </div>
                                         )}
 
                                         {!transaction.additionalData?.zoningClearanceUrl ? (
                                             <div className="p-4 bg-red-500/5 border border-red-500/20 text-red-500 rounded-xl text-[9px] font-bold uppercase tracking-wider italic flex items-start gap-2">
                                                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 animate-pulse" />
-                                                <span>Awaiting Zoning/Locational Clearance upload from constituent.</span>
+                                                <span>Awaiting Zoning/Locational Clearance upload from Resident.</span>
                                             </div>
                                         ) : (
                                             <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 rounded-xl text-[9px] font-bold uppercase tracking-wider italic flex items-start gap-2">
                                                 <Check className="w-4 h-4 shrink-0 mt-0.5" />
-                                                <span>Zoning/Locational Clearance Proof has been submitted by constituent!</span>
+                                                <span>Zoning/Locational Clearance Proof has been submitted by Resident!</span>
                                             </div>
                                         )}
 
@@ -798,7 +826,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                 {["FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING"].includes(transaction.status) && (
                                     <div className="space-y-4">
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Constituent Fulfillment Preference</span>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Fulfillment Preference</span>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Badge className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-3 py-1 font-bold rounded-lg uppercase">
                                                     {transaction.fulfillmentType || "PICK_UP"}

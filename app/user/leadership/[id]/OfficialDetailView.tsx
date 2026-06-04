@@ -5,12 +5,12 @@ import { User, Shield, Facebook, Phone, Calendar, Home, Mail, Globe, Trophy, Gra
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -116,8 +116,8 @@ export function OfficialDetailView({ official }: { official: Official; themeColo
                             <div className="absolute inset-0 bg-primary/20 rounded-[2.5rem] md:rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-700" />
                             <div className="relative aspect-[4/5] rounded-2xl md:rounded-[3rem] border border-slate-200 dark:border-white/10 overflow-hidden shadow-2xl bg-white dark:bg-[#0a0c10]">
                                 {official.imageUrl ? (
-                                    <Image 
-                                        src={official.imageUrl} 
+                                    <Image
+                                        src={official.imageUrl}
                                         alt={official.name}
                                         fill
                                         className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -248,14 +248,14 @@ export function OfficialDetailView({ official }: { official: Official; themeColo
                                 <div>
                                     <h3 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase leading-none mb-4">Official Contact</h3>
                                     <p className="text-white/60 font-medium italic max-w-md text-xs md:text-sm">
-                                        Direct line for official business, constituent concerns, and municipal coordination.
+                                        Direct line for official business, Resident concerns, and municipal coordination.
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10">
                                     <div className="space-y-6">
                                         {official.contactNumber && (
-                                            <div 
+                                            <div
                                                 onClick={() => handleCopy(official.contactNumber!)}
                                                 className="flex items-center gap-4 group/item cursor-pointer w-fit"
                                             >

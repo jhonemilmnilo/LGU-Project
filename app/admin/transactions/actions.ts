@@ -2821,7 +2821,8 @@ export async function reviseBuildingPermitClearancesAction(id: string, reason: s
         }
 
         const transaction = await prisma.transaction.findUnique({
-            where: { id }
+            where: { id },
+            include: { type: true, user: true }
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
@@ -2848,8 +2849,22 @@ export async function reviseBuildingPermitClearancesAction(id: string, reason: s
             where: { id },
             data: {
                 additionalData: updatedAdditionalData
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send FOR_REVISION email
+        if (updatedTransaction.user?.email) {
+            const resident = (transaction as any).residentSnapshot || {};
+            await sendEmail({
+                type: "FOR_REVISION",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: `Please revise your submitted clearances. Reason: ${reason}`
+            });
+        }
 
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
@@ -3015,11 +3030,15 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
         const currentAdditionalData = (transaction.additionalData as any) || {};
         const feeAssessment = currentAdditionalData.feeAssessment || {};
 
+        const engineerCharges = feeAssessment.engineerMunicipalCharges || [];
+        const engineerTotal = engineerCharges.reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
+
         const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
             Number(feeAssessment.electricalPermitFee || 0) +
             Number(feeAssessment.sanitaryPermitFee || 0) +
-            Number(feeAssessment.municipalCharges || 0);
+            Number(feeAssessment.municipalCharges || 0) +
+            engineerTotal;
 
         const additionalFees = feeAssessment.additionalFees || [];
         const additionalTotal = additionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
@@ -3028,10 +3047,18 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
         const lineItems = [
             { label: "Building Permit Fee", amount: Number(feeAssessment.buildingPermitFee || 0) },
             { label: "Electrical Permit Fee", amount: Number(feeAssessment.electricalPermitFee || 0) },
-            { label: "Sanitary Permit Fee", amount: Number(feeAssessment.sanitaryPermitFee || 0) },
-            { label: "Other Applicable Municipal Charges", amount: Number(feeAssessment.municipalCharges || 0) },
-            ...additionalFees.map((f: any) => ({ label: f.label, amount: Number(f.amount || 0) }))
+            { label: "Sanitary Permit Fee", amount: Number(feeAssessment.sanitaryPermitFee || 0) }
         ];
+
+        if (engineerCharges.length > 0) {
+            engineerCharges.forEach((c: any) => {
+                lineItems.push({ label: c.name || "Other Applicable Municipal Charges", amount: Number(c.amount || 0) });
+            });
+        } else {
+            lineItems.push({ label: "Other Applicable Municipal Charges", amount: Number(feeAssessment.municipalCharges || 0) });
+        }
+
+        lineItems.push(...additionalFees.map((f: any) => ({ label: f.label, amount: Number(f.amount || 0) })));
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },
@@ -3177,7 +3204,8 @@ export async function releaseBuildingPermitAction(id: string) {
                 data: {
                     status: "RELEASED",
                     updatedAt: new Date()
-                }
+                },
+                include: { user: true, type: true }
             });
 
             // Save to BuildingPermit table
@@ -3198,6 +3226,19 @@ export async function releaseBuildingPermitAction(id: string) {
             return updatedTx;
         });
 
+        // Send RELEASED email
+        if (updatedTransaction.user?.email) {
+            const residentSnap = (transaction as any).residentSnapshot || {};
+            await sendEmail({
+                type: "RELEASED",
+                to: updatedTransaction.user.email,
+                name: residentSnap?.firstName ? `${residentSnap.firstName} ${residentSnap.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: "Your Building Permit has been officially released."
+            });
+        }
+
         revalidatePath("/admin/engineer");
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/building-permit");
@@ -3217,7 +3258,7 @@ export async function declinePaymentProofAction(id: string, reason: string) {
 
         const transaction = await prisma.transaction.findUnique({
             where: { id },
-            include: { type: true }
+            include: { type: true, user: true }
         });
 
         if (!transaction) return { success: false, error: "Transaction not found" };
@@ -3261,8 +3302,22 @@ export async function declinePaymentProofAction(id: string, reason: string) {
                 paymentReference: null, // Clear rejected payment reference so they can upload a new one
                 updatedAt: new Date(),
                 additionalData: updatedAdditionalData
-            }
+            },
+            include: { user: true, type: true }
         });
+
+        // Send FOR_REVISION email about payment decline
+        if (updatedTransaction.user?.email) {
+            const resident = (transaction as any).residentSnapshot || {};
+            await sendEmail({
+                type: "FOR_REVISION",
+                to: updatedTransaction.user.email,
+                name: resident?.firstName ? `${resident.firstName} ${resident.lastName}` : updatedTransaction.user.name || "Resident",
+                transactionId: id.slice(-8).toUpperCase(),
+                serviceName: updatedTransaction.type?.name || "Building Permit",
+                remarks: `Your payment proof was declined. Reason: ${reason}. Please submit a valid payment proof.`
+            });
+        }
 
         revalidatePath("/admin/treasury");
         revalidatePath("/user/services/building-permit");

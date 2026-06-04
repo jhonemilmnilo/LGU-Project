@@ -4,6 +4,24 @@ import { useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 
+function isDraftEmpty(obj: any): boolean {
+    if (!obj) return true;
+    if (typeof obj !== "object") return false;
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            // Ignore default route step name or common defaults if they are the only things present
+            if (key === "currentStep" && (obj[key] === "GUIDE" || obj[key] === "START")) continue;
+            const val = obj[key];
+            if (val === null || val === undefined) continue;
+            if (typeof val === "string" && val.trim() !== "") return false;
+            if (typeof val === "boolean" && val === true) return false;
+            if (Array.isArray(val) && val.length > 0) return false;
+            if (typeof val === "object" && !isDraftEmpty(val)) return false;
+        }
+    }
+    return true;
+}
+
 export function useDraft<T extends Record<string, any>>(draftKey: string) {
     const draftRestored = useRef(false);
     const filesRestored = useRef(false);
@@ -32,7 +50,9 @@ export function useDraft<T extends Record<string, any>>(draftKey: string) {
                     onRestored(parsed);
                 }
                 
-                toast.success("Draft application restored successfully!");
+                if (!isDraftEmpty(parsed)) {
+                    toast.success("Draft application restored successfully!");
+                }
             }
         } catch (error) {
             console.error(`Failed to parse draft from localStorage for key ${draftKey}`, error);
