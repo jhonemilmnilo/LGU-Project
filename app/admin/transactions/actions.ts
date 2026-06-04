@@ -3725,11 +3725,15 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
         const currentAdditionalData = (transaction.additionalData as any) || {};
         const feeAssessment = currentAdditionalData.feeAssessment || {};
 
+        const engineerCharges = feeAssessment.engineerMunicipalCharges || [];
+        const engineerTotal = engineerCharges.reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
+
         const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
             Number(feeAssessment.electricalPermitFee || 0) +
             Number(feeAssessment.sanitaryPermitFee || 0) +
-            Number(feeAssessment.municipalCharges || 0);
+            Number(feeAssessment.municipalCharges || 0) +
+            engineerTotal;
 
         const additionalFees = feeAssessment.additionalFees || [];
         const additionalTotal = additionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
@@ -3738,10 +3742,18 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
         const lineItems = [
             { label: "Building Permit Fee", amount: Number(feeAssessment.buildingPermitFee || 0) },
             { label: "Electrical Permit Fee", amount: Number(feeAssessment.electricalPermitFee || 0) },
-            { label: "Sanitary Permit Fee", amount: Number(feeAssessment.sanitaryPermitFee || 0) },
-            { label: "Other Applicable Municipal Charges", amount: Number(feeAssessment.municipalCharges || 0) },
-            ...additionalFees.map((f: any) => ({ label: f.label, amount: Number(f.amount || 0) }))
+            { label: "Sanitary Permit Fee", amount: Number(feeAssessment.sanitaryPermitFee || 0) }
         ];
+
+        if (engineerCharges.length > 0) {
+            engineerCharges.forEach((c: any) => {
+                lineItems.push({ label: c.name || "Other Applicable Municipal Charges", amount: Number(c.amount || 0) });
+            });
+        } else {
+            lineItems.push({ label: "Other Applicable Municipal Charges", amount: Number(feeAssessment.municipalCharges || 0) });
+        }
+
+        lineItems.push(...additionalFees.map((f: any) => ({ label: f.label, amount: Number(f.amount || 0) })));
 
         const updatedTransaction = await prisma.transaction.update({
             where: { id },

@@ -319,7 +319,7 @@ export default function BuildingPermitInspectionPage({ params }: PageProps) {
                     "2. Plumbing Permit",
                     "3. Sanitary Permit",
                     "4. Excavation & Ground Preparation Permit",
-                    "5. Fencing Permit (if any)",
+                    "5. Fencing Permit",
                     "6. Scaffolding Permit",
                     "7. Mechanical Permit"
                 ].map((label, idx) => ({ url: additional?.documents?.[`permit_${idx}`], label }))
@@ -518,8 +518,8 @@ export default function BuildingPermitInspectionPage({ params }: PageProps) {
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div className={`absolute left-[-29px] w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isCompleted ? "bg-[#006A2E] border-[#006A2E] text-white shadow-lg shadow-green-500/20" :
-                                                        isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
-                                                            "bg-slate-900 border-white/10 text-slate-500"
+                                                    isActive ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-110" :
+                                                        "bg-slate-900 border-white/10 text-slate-500"
                                                     }`}>
                                                     {isCompleted ? <BadgeCheck className="w-3.5 h-3.5" /> : <span className="text-[10px] font-black">{idx + 1}</span>}
                                                 </div>

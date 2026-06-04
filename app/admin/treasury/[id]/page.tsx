@@ -1248,6 +1248,28 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const handleConfirmPayment = async () => {
         setActionLoading(true);
         try {
+            // If already PAID, we just update the receipt/notes
+            if (transaction.status === "PAID") {
+                const formData = new FormData();
+                formData.append("id", transaction.id);
+                if (remarks) formData.append("remarks", remarks);
+                if (receiptFile) formData.append("receiptFile", receiptFile);
+                if (orSeriesNumber) formData.append("orSeriesNumber", orSeriesNumber);
+                if (orFile) formData.append("orFile", orFile);
+
+                const res = await confirmTransactionPaymentWithReceipt(formData);
+                if (res.success) {
+                    toast.success("Official Receipt Sent Successfully");
+                    setReceiptFile(null);
+                    setReceiptPreview(null);
+                    setRemarks("");
+                    fetchTransaction();
+                } else {
+                    toast.error(res.error || "Failed to send receipt");
+                }
+                return;
+            }
+
             // If already PAID and no O.R. document/number is provided, proceed directly to processing
             if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
                 const rel = await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");

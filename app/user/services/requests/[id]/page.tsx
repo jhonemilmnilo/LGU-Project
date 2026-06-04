@@ -778,7 +778,7 @@ export default function RequestHubPage() {
             const permitLabels = [
                 "1. Building Permit", "2. Electrical Permit", "3. Plumbing Permit",
                 "4. Sanitary Permit", "5. Excavation & Ground Preparation Permit",
-                "6. Fencing Permit (if any)", "7. Affidavit Form", "8. Scaffolding Permit",
+                "6. Fencing Permit", "7. Affidavit Form", "8. Scaffolding Permit",
                 "9. Mechanical Permit"
             ];
             permitLabels.forEach((label, i) => {

@@ -2,23 +2,23 @@
 
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { 
-    upsertAboutData, 
+import {
+    upsertAboutData,
 } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-    Card, 
-    CardContent, 
-    CardHeader, 
-    CardTitle, 
-    CardDescription 
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription
 } from "@/components/ui/card";
-import { 
-    History, 
-    UserCog, 
-    ImageIcon, 
+import {
+    History,
+    UserCog,
+    ImageIcon,
     Target,
 } from "lucide-react";
 
@@ -29,17 +29,17 @@ interface AboutClientProps {
     themeColor?: string;
 }
 
-export default function AboutClient({ 
-    aboutData, 
-    isBarangayAdmin, 
+export default function AboutClient({
+    aboutData,
+    isBarangayAdmin,
     managedBarangay,
     themeColor,
 }: AboutClientProps) {
     return (
-        <AboutManager 
-            aboutData={aboutData} 
-            isBarangayAdmin={isBarangayAdmin} 
-            barangayName={managedBarangay || undefined} 
+        <AboutManager
+            aboutData={aboutData}
+            isBarangayAdmin={isBarangayAdmin}
+            barangayName={managedBarangay || undefined}
             themeColor={themeColor}
         />
     );
@@ -87,20 +87,20 @@ function AutoGrowingTextarea({ value, onChange, className, ...props }: AutoGrowi
 }
 
 // Sub-components: AboutManager
-function AboutManager({ 
-    aboutData, 
-    isBarangayAdmin, 
+function AboutManager({
+    aboutData,
+    isBarangayAdmin,
     barangayName,
     themeColor = "#2563eb",
-}: { 
-    aboutData: any, 
-    isBarangayAdmin: boolean, 
+}: {
+    aboutData: any,
+    isBarangayAdmin: boolean,
     barangayName?: string,
     themeColor?: string,
 }) {
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<"narrative" | "pillars" | "leader">("narrative");
-    
+
     const [history, setHistory] = useState(aboutData?.history || "");
     const [mission, setMission] = useState(aboutData?.mission || "");
     const [vision, setVision] = useState(aboutData?.vision || "");
@@ -122,7 +122,7 @@ function AboutManager({
         setLeaderName((isBarangayAdmin ? aboutData?.captainName : aboutData?.mayorName) || "");
         setMessage((isBarangayAdmin ? aboutData?.captainMessage : aboutData?.mayorMessage) || "");
     }, [aboutData, isBarangayAdmin]);
-    
+
     const [leaderFile, setLeaderFile] = useState<File | null>(null);
     const [leaderPreview, setLeaderPreview] = useState<string | null>(
         (isBarangayAdmin ? aboutData?.captainImageUrl : aboutData?.mayorImageUrl) || null
@@ -137,7 +137,7 @@ function AboutManager({
             formData.append("vision", vision);
             formData.append("coreValues", coreValues);
             formData.append("geographyOrDemographics", geo);
-            
+
             if (isBarangayAdmin) {
                 formData.append("barangayName", barangayName || "");
                 formData.append("captainName", leaderName);
@@ -150,7 +150,7 @@ function AboutManager({
                 if (leaderFile) formData.append("mayor-image", leaderFile);
                 formData.append("mayorImageUrl", leaderPreview || "");
             }
-            
+
             const res = await upsertAboutData(formData);
             if (res.success) {
                 toast.success("Info updated successfully!");
@@ -182,7 +182,7 @@ function AboutManager({
                 </CardDescription>
             </CardHeader>
             <CardContent className="p-4 md:p-6 lg:p-8 px-4 md:px-6 lg:px-8 space-y-8">
-                
+
                 {/* Modern Premium Tabs Selector */}
                 <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 dark:bg-black/40 rounded-[1.5rem] border border-slate-200/50 dark:border-[#2a3040]/50 max-w-2xl">
                     {tabs.map((tab) => {
@@ -193,11 +193,10 @@ function AboutManager({
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex items-center gap-2 px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
-                                    isActive 
-                                        ? "bg-white dark:bg-[#1e2330] shadow-md scale-[1.02]" 
-                                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5"
-                                }`}
+                                className={`flex items-center gap-2 px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${isActive
+                                    ? "bg-white dark:bg-[#1e2330] shadow-md scale-[1.02]"
+                                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5"
+                                    }`}
                                 style={isActive ? { color: themeColor } : undefined}
                             >
                                 <Icon className="w-4 h-4" />
@@ -215,14 +214,14 @@ function AboutManager({
                                 <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Historical Narrative</Label>
                                 <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Heritage Story</span>
                             </div>
-                            <AutoGrowingTextarea 
-                                value={history} 
+                            <AutoGrowingTextarea
+                                value={history}
                                 onChange={(e) => setHistory(e.target.value)}
                                 className="w-full min-h-[300px] p-6 md:p-8 rounded-[1.5rem] border border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-black/20 text-base md:text-lg focus:ring-2 focus:ring-blue-500/20 transition-all outline-none leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 shadow-inner font-medium resize-none overflow-hidden"
                                 placeholder="Tell the story of our heritage..."
                             />
                         </div>
-                        
+
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
@@ -230,8 +229,8 @@ function AboutManager({
                                 </Label>
                                 <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Quick facts</span>
                             </div>
-                            <AutoGrowingTextarea 
-                                value={geo} 
+                            <AutoGrowingTextarea
+                                value={geo}
                                 onChange={(e) => setGeo(e.target.value)}
                                 className="w-full min-h-[200px] p-6 rounded-[1.5rem] border border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-black/20 text-base focus:ring-2 focus:ring-blue-500/20 transition-all outline-none leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 shadow-inner font-medium resize-none overflow-hidden"
                                 placeholder="Specify population data, geographic area boundaries..."
@@ -249,21 +248,21 @@ function AboutManager({
                                     <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Official Mission</Label>
                                     <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Mission</span>
                                 </div>
-                                <AutoGrowingTextarea 
-                                    value={mission} 
+                                <AutoGrowingTextarea
+                                    value={mission}
                                     onChange={(e) => setMission(e.target.value)}
                                     className="w-full min-h-[180px] p-6 rounded-[1.5rem] border border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-black/20 text-base focus:ring-2 focus:ring-blue-500/20 transition-all outline-none leading-relaxed text-slate-800 dark:text-slate-200 shadow-inner font-medium resize-none overflow-hidden"
                                     placeholder="State the core mission of our administration..."
                                 />
                             </div>
-                            
+
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Official Vision</Label>
                                     <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Vision</span>
                                 </div>
-                                <AutoGrowingTextarea 
-                                    value={vision} 
+                                <AutoGrowingTextarea
+                                    value={vision}
                                     onChange={(e) => setVision(e.target.value)}
                                     className="w-full min-h-[180px] p-6 rounded-[1.5rem] border border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-black/20 text-base focus:ring-2 focus:ring-blue-500/20 transition-all outline-none leading-relaxed text-slate-800 dark:text-slate-200 shadow-inner font-medium resize-none overflow-hidden"
                                     placeholder="Describe the long-term vision of our town/barangay..."
@@ -276,8 +275,8 @@ function AboutManager({
                                 <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Core Guiding Principles & Values</Label>
                                 <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Core Values</span>
                             </div>
-                            <AutoGrowingTextarea 
-                                value={coreValues} 
+                            <AutoGrowingTextarea
+                                value={coreValues}
                                 onChange={(e) => setCoreValues(e.target.value)}
                                 className="w-full min-h-[200px] p-6 rounded-[1.5rem] border border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-black/20 text-base focus:ring-2 focus:ring-blue-500/20 transition-all outline-none leading-relaxed text-slate-800 dark:text-slate-200 shadow-inner font-medium resize-none overflow-hidden"
                                 placeholder="e.g. Integrity, Service, Excellence..."
@@ -290,7 +289,7 @@ function AboutManager({
                 {activeTab === "leader" && (
                     <div className="space-y-8 transition-all duration-300 ease-out">
                         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
-                            
+
                             {/* Photo Upload Container */}
                             <div className="w-full lg:w-[320px] flex flex-col items-center gap-4 shrink-0 mx-auto">
                                 <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 self-start">Official Leadership Portrait</Label>
@@ -315,29 +314,29 @@ function AboutManager({
                                 </div>
                                 <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 text-center leading-tight">Recommended: Portrait Aspect Ratio (3:4) for clean integration</span>
                             </div>
-                            
+
                             {/* Leadership Info & Message */}
                             <div className="flex-1 w-full space-y-6">
                                 <div className="space-y-3">
                                     <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Full Official Name & Title</Label>
-                                    <Input 
-                                        value={leaderName || ""} 
-                                        onChange={(e) => setLeaderName(e.target.value)} 
+                                    <Input
+                                        value={leaderName || ""}
+                                        onChange={(e) => setLeaderName(e.target.value)}
                                         placeholder={isBarangayAdmin ? "e.g. Hon. Jane Doe" : "e.g. Hon. John Doe"}
-                                        className="h-16 rounded-[1.2rem] bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-[#2a3040] text-base font-bold text-slate-800 dark:text-white px-6 focus:ring-2 focus:ring-blue-500/20" 
+                                        className="h-16 rounded-[1.2rem] bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-[#2a3040] text-base font-bold text-slate-800 dark:text-white px-6 focus:ring-2 focus:ring-blue-500/20"
                                     />
                                 </div>
-                                
+
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <Label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Official Advocacy / Public Message</Label>
-                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Constituent message</span>
+                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-black/30 px-3 py-1 rounded-full uppercase tracking-wider">Resident message</span>
                                     </div>
-                                    <AutoGrowingTextarea 
-                                        value={message || ""} 
+                                    <AutoGrowingTextarea
+                                        value={message || ""}
                                         onChange={(e) => setMessage(e.target.value)}
                                         className="w-full min-h-[250px] p-6 rounded-[1.5rem] border border-slate-200 dark:border-[#2a3040] bg-slate-50 dark:bg-black/20 text-base focus:ring-2 focus:ring-blue-500/20 transition-all outline-none leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 shadow-inner font-medium resize-none overflow-hidden"
-                                        placeholder="A personal message to your constituents..."
+                                        placeholder="A personal message to your Residents..."
                                     />
                                 </div>
                             </div>
@@ -348,13 +347,13 @@ function AboutManager({
 
                 {/* Always Anchored Publishing Action */}
                 <div className="pt-8 border-t border-slate-100 dark:border-[#2a3040]">
-                    <Button 
-                        onClick={handleSave} 
+                    <Button
+                        onClick={handleSave}
                         disabled={isSaving}
                         className="w-full h-16 text-white rounded-[1.5rem] font-black uppercase tracking-widest active:scale-[0.98] transition-all hover:opacity-90 disabled:opacity-50 border-none"
-                        style={{ 
+                        style={{
                             backgroundColor: themeColor,
-                            boxShadow: `0 10px 25px -5px ${themeColor}40` 
+                            boxShadow: `0 10px 25px -5px ${themeColor}40`
                         }}
                     >
                         {isSaving ? "Updating Heritage..." : "Publish Content Updates"}
