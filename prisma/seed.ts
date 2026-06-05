@@ -280,6 +280,7 @@ async function main() {
       },
       slaDays: 3,
       processorRole: UserRole.TREASURY_STAFF,
+      lateFee: 300.00,
     }
   ];
 

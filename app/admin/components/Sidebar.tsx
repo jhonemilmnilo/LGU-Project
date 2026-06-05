@@ -181,6 +181,8 @@ export function Sidebar({
                 { href: "/admin/registrar?category=ALL", label: "All Requests" },
                 { href: "/admin/registrar?category=Birth Registration", label: "Birth Registration" },
                 { href: "/admin/registrar?category=Birth Certificate", label: "Birth Certificate" },
+                { href: "/admin/registrar?category=Death Registration", label: "Death Registration" },
+                { href: "/admin/registrar?category=Death Certificate", label: "Death Certificate" },
             ]
         },
         {

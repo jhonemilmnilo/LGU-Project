@@ -1245,26 +1245,26 @@ export default function BuildingPermitPage() {
                     !isCompleted && "cursor-not-allowed opacity-50"
                   )}
                 >
-                <div className={cn(
-                  "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
-                  isActive ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
-                    isCompleted ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
-                      "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-primary/30"
-                )}>
-                  <Icon className="w-4 h-4 md:w-7 md:h-7" />
+                  <div className={cn(
+                    "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
+                    isActive ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
+                      isCompleted ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30" :
+                        "bg-slate-100 dark:bg-white/5 text-slate-400 border-transparent group-hover:border-primary/30"
+                  )}>
+                    <Icon className="w-4 h-4 md:w-7 md:h-7" />
+                  </div>
+                  <span className={cn(
+                    "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
+                    isActive ? "text-primary opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity"
+                  )}>
+                    {step.label}
+                  </span>
                 </div>
-                <span className={cn(
-                  "text-[7px] md:text-[10px] uppercase tracking-widest text-center italic hidden sm:block",
-                  isActive ? "text-primary opacity-100 font-black" : "opacity-40 group-hover:opacity-100 transition-opacity"
-                )}>
-                  {step.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      );
-    })()}
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Main Content Area */}
       <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">
@@ -3113,7 +3113,7 @@ export default function BuildingPermitPage() {
                       ))}
                     </div>
                     <div className="pt-4 border-t border-dashed border-slate-200 dark:border-white/10 flex justify-between items-center">
-                      <span className="text-xs font-black uppercase text-slate-800 dark:text-white">Total Amount Due</span>
+                      <span className="text-xs font-black uppercase text-slate-800 dark:text-white">Total Amount</span>
                       <span className="text-lg font-black text-primary font-mono">
                         ₱{Number((selectedApplication.fiscalSnapshot as any).totalAmount || selectedApplication.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
@@ -3233,7 +3233,7 @@ export default function BuildingPermitPage() {
                       ))}
                     </div>
                     <div className="pt-4 border-t border-dashed border-slate-200 dark:border-white/10 flex justify-between items-center">
-                      <span className="text-xs font-black uppercase text-slate-800 dark:text-white">Total Amount Due</span>
+                      <span className="text-xs font-black uppercase text-slate-800 dark:text-white">Total Amount</span>
                       <span className="text-lg font-black text-primary font-mono">
                         ₱{Number((selectedApplication.fiscalSnapshot as any).totalAmount || selectedApplication.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>

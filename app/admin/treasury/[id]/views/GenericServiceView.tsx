@@ -170,7 +170,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                             {transaction.disputeProofUrl && (
                                 <div className="space-y-3">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Proof of Dispute/Return</span>
-                                    <div 
+                                    <div
                                         onClick={() => handleViewFile?.(transaction.disputeProofUrl, "Dispute Claim Evidence")}
                                         className="relative h-[200px] w-full rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-orange-500/50 transition-all select-none"
                                     >
@@ -188,7 +188,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                     {/* MAIN ASSESSMENT CARD */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-6 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
                         {/* IDENTIFIER / ACCORDION HEADER */}
-                        <div 
+                        <div
                             className="flex justify-between items-center cursor-pointer select-none"
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
@@ -221,7 +221,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                             <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
                                 {/* TOP METRICS GRID */}
                                 <div className="grid grid-cols-4 gap-4">
-                                    <div 
+                                    <div
                                         className="bg-[#f8fafd] dark:bg-white/5 p-4 rounded-2xl space-y-1 cursor-help"
                                         title={transaction.isStudent ? String(declaredValue) : `₱${Number(declaredValue).toLocaleString()}`}
                                     >
@@ -230,7 +230,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             {transaction.isStudent ? String(declaredValue) : `₱${Number(declaredValue).toLocaleString()}`}
                                         </p>
                                     </div>
-                                    <div 
+                                    <div
                                         className="bg-[#f8fafd] dark:bg-white/5 p-4 rounded-2xl space-y-1 cursor-help"
                                         title={transaction.paymentType?.replace(/_/g, " ") || ""}
                                     >
@@ -239,7 +239,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             {transaction.paymentType?.replace(/_/g, " ")}
                                         </p>
                                     </div>
-                                    <div 
+                                    <div
                                         className="bg-[#f8fafd] dark:bg-white/5 p-4 rounded-2xl space-y-1 cursor-help"
                                         title={transaction.fulfillmentType?.replace(/_/g, " ") || ""}
                                     >
@@ -248,11 +248,11 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             {transaction.fulfillmentType?.replace(/_/g, " ")}
                                         </p>
                                     </div>
-                                    <div 
+                                    <div
                                         className="bg-[#f8fafd] dark:bg-white/5 p-4 rounded-2xl space-y-1 cursor-help"
                                         title={`₱${calcResult.totalAmount.toLocaleString()}`}
                                     >
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-primary">Total Amount</span>
                                         <p className="text-xl font-black italic tracking-tighter text-primary truncate">
                                             ₱{calcResult.totalAmount.toLocaleString()}
                                         </p>
@@ -393,9 +393,9 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             </div>
                                         )}
 
-                                        {/* TOTAL AMOUNT DUE */}
+                                        {/* Total Amount */}
                                         <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
-                                            <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
+                                            <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount</span>
                                             <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
                                                 ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                             </span>
@@ -415,7 +415,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
 
                     {/* EVIDENCE VAULT */}
                     <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
-                        <div 
+                        <div
                             className="flex justify-between items-center cursor-pointer select-none"
                             onClick={() => setIsRequirementsOpen(!isRequirementsOpen)}
                         >
@@ -430,7 +430,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                         {isRequirementsOpen && (
                             <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                 {evidenceDocs.map((doc, idx) => (
-                                    <div 
+                                    <div
                                         key={idx}
                                         onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
                                         className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
@@ -468,7 +468,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                         )}
                                         {doc.url && isImageFile(doc.url) && (
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                <div 
+                                                <div
                                                     style={{ backgroundColor: themeColor }}
                                                     className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
                                                 >
@@ -558,7 +558,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                             <div className="grid grid-cols-2 gap-3">
                                 <Dialog open={disputeModalOpen && disputeAction === 'APPROVE'} onOpenChange={(open) => { setDisputeModalOpen(open); setDisputeAction('APPROVE'); setRemarks(''); }}>
                                     <DialogTrigger asChild>
-                                        <Button 
+                                        <Button
                                             style={{ backgroundColor: themeColor }}
                                             className="h-14 rounded-2xl text-white font-black italic uppercase tracking-widest text-[10px] shadow-lg transition-all active:scale-95 hover:opacity-90 w-full"
                                         >
@@ -583,9 +583,9 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                 />
                                             </div>
                                         </div>
-                                        <Button 
-                                            onClick={handleResolveDispute} 
-                                            disabled={isResolvingDispute || !remarks} 
+                                        <Button
+                                            onClick={handleResolveDispute}
+                                            disabled={isResolvingDispute || !remarks}
                                             style={{ backgroundColor: themeColor }}
                                             className="w-full h-14 text-white font-black italic uppercase tracking-widest text-[11px] rounded-2xl shadow-xl active:scale-95 transition-all hover:opacity-90"
                                         >
@@ -692,13 +692,13 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                         className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
                                                     >
                                                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img 
-                                                            src={transaction.paymentProofUrl || additional.paymentReferenceUrl || transaction.paymentReference} 
-                                                            alt="Payment Proof" 
+                                                        <img
+                                                            src={transaction.paymentProofUrl || additional.paymentReferenceUrl || transaction.paymentReference}
+                                                            alt="Payment Proof"
                                                             className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                         />
                                                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                            <div 
+                                                            <div
                                                                 style={{ backgroundColor: themeColor }}
                                                                 className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
                                                             >
@@ -715,7 +715,7 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                     return (
                                                         <div className="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
                                                             <div className="flex items-center justify-between gap-4">
-                                                                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">GCash Reference No.</span>
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">GCash Reference No.</span>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
@@ -763,10 +763,10 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             {(orPreview || (transaction.orUrl && transaction.orUrl !== "null" && transaction.orUrl !== "undefined" && transaction.orUrl !== "")) && (
                                                 <div className="mt-2">
                                                     {(() => {
-                                                        const isOrPdf = orFile 
+                                                        const isOrPdf = orFile
                                                             ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
                                                             : (transaction.orUrl?.toLowerCase()?.includes(".pdf") || false);
-                                                        
+
                                                         if (isOrPdf) {
                                                             return (
                                                                 <button
@@ -796,13 +796,13 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                                 className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
                                                             >
                                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img 
-                                                                    src={orPreview || transaction.orUrl} 
-                                                                    alt="OR Preview" 
+                                                                <img
+                                                                    src={orPreview || transaction.orUrl}
+                                                                    alt="OR Preview"
                                                                     className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                 />
                                                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                    <div 
+                                                                    <div
                                                                         style={{ backgroundColor: themeColor }}
                                                                         className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
                                                                     >
@@ -844,10 +844,10 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                         {(eCopyPreview || (transaction.eCopyUrl && transaction.eCopyUrl !== "null" && transaction.eCopyUrl !== "undefined" && transaction.eCopyUrl !== "")) && (
                                             <div className="mt-2">
                                                 {(() => {
-                                                    const isECopyPdf = eCopyFile 
+                                                    const isECopyPdf = eCopyFile
                                                         ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
                                                         : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
-                                                    
+
                                                     if (isECopyPdf) {
                                                         return (
                                                             <button
@@ -877,13 +877,13 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                                             className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
                                                         >
                                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img 
-                                                                src={eCopyPreview || transaction.eCopyUrl} 
-                                                                alt="E-Copy Preview" 
+                                                            <img
+                                                                src={eCopyPreview || transaction.eCopyUrl}
+                                                                alt="E-Copy Preview"
                                                                 className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                             />
                                                             <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                <div 
+                                                                <div
                                                                     style={{ backgroundColor: themeColor }}
                                                                     className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
                                                                 >
@@ -926,10 +926,10 @@ export default function GenericServiceView(props: TreasuryViewProps) {
                                             }
                                             className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
                                         >
-                                            {actionLoading 
-                                                ? "Submitting..." 
-                                                : transaction.status === "PAID" 
-                                                    ? "Confirm & Proceed to Processing" 
+                                            {actionLoading
+                                                ? "Submitting..."
+                                                : transaction.status === "PAID"
+                                                    ? "Confirm & Proceed to Processing"
                                                     : (transaction.fulfillmentType === "DELIVERY" ? "Approve & Dispatch to Courier" : "Approve & Ready for Claiming")
                                             }
                                         </Button>

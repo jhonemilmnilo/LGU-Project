@@ -213,7 +213,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         {/* MAIN ASSESSMENT CARD */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
                             {/* IDENTIFIER / ACCORDION HEADER */}
-                            <div 
+                            <div
                                 className="flex justify-between items-center cursor-pointer select-none"
                                 onClick={() => setIsAssessmentOpen(!isAssessmentOpen)}
                             >
@@ -258,7 +258,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             </p>
                                         </div>
                                         <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Amount</span>
                                             <p className="text-2xl font-black italic tracking-tighter text-primary">₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                                         </div>
                                     </div>
@@ -359,7 +359,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             )}
 
                                             <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
-                                                <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
+                                                <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount</span>
                                                 <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
                                                     ₱{calcResult.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </span>
@@ -430,10 +430,10 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                         <div className="flex flex-col justify-center gap-2">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Verified Birth Doc</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center">
-                                                <Button 
+                                                <Button
                                                     onClick={() => handleViewFile?.(additional.scannedDocUrl, "Scanned Birth Registration Document")}
-                                                    variant="outline" 
-                                                    size="sm" 
+                                                    variant="outline"
+                                                    size="sm"
                                                     className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
                                                 >
                                                     <FileText className="w-3.5 h-3.5" /> View Scanned Document
@@ -742,75 +742,75 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                     .filter(doc => {
                                         const label = (doc.label || '').toLowerCase();
                                         const url = (doc.url || '').toLowerCase();
-                                        return !label.includes('receipt') && 
-                                               !label.includes('o.r.') && 
-                                               !label.includes('or doc') && 
-                                               !url.includes('receipt') && 
-                                               !url.includes('or_doc') && 
-                                               doc.url !== transaction.orUrl;
+                                        return !label.includes('receipt') &&
+                                            !label.includes('o.r.') &&
+                                            !label.includes('or doc') &&
+                                            !url.includes('receipt') &&
+                                            !url.includes('or_doc') &&
+                                            doc.url !== transaction.orUrl;
                                     })
                                     .map((doc, i, arr) => {
                                         const isImg = doc.url && /\.(png|jpe?g|gif|webp|svg)$/i.test(doc.url);
                                         const validDocs = arr.filter(d => !!d.url);
                                         const validIndex = validDocs.findIndex(d => d.url === doc.url);
                                         return doc.url ? (
-                                        <div 
-                                            key={i}
-                                            onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, validDocs, validIndex)}
-                                            className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/20 border border-slate-800 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
-                                        >
-                                            {isImg ? (
-                                                <>
-                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
-                                                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
-                                                        {doc.label}
-                                                    </div>
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                        <div
-                                                            style={{ backgroundColor: themeColor }}
-                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
-                                                        >
-                                                            <span>View</span>
+                                            <div
+                                                key={i}
+                                                onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, validDocs, validIndex)}
+                                                className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/20 border border-slate-800 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
+                                            >
+                                                {isImg ? (
+                                                    <>
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-all" />
+                                                        <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate">
+                                                            {doc.label}
                                                         </div>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#1f2937]/10 to-[#111827]" />
-                                                    <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
-                                                        <div className="w-14 h-14 rounded-2xl bg-[#1f2937]/50 border border-slate-800 shadow-sm flex items-center justify-center text-primary">
-                                                            <FileText className="w-7 h-7" />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                            <div
+                                                                style={{ backgroundColor: themeColor }}
+                                                                className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                            >
+                                                                <span>View</span>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-center min-w-0">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-                                                                Document File
-                                                            </p>
-                                                            <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-white truncate max-w-[220px]">
-                                                                {doc.label}
-                                                            </p>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#1f2937]/10 to-[#111827]" />
+                                                        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 p-6">
+                                                            <div className="w-14 h-14 rounded-2xl bg-[#1f2937]/50 border border-slate-800 shadow-sm flex items-center justify-center text-primary">
+                                                                <FileText className="w-7 h-7" />
+                                                            </div>
+                                                            <div className="text-center min-w-0">
+                                                                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                                                                    Document File
+                                                                </p>
+                                                                <p className="mt-1 text-sm font-black italic uppercase tracking-tight text-white truncate max-w-[220px]">
+                                                                    {doc.label}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
-                                                        Open Document
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div key={i} className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/10 border border-dashed border-slate-800 overflow-hidden flex flex-col items-center justify-center text-slate-500 gap-1.5 p-4 select-none">
-                                            <Camera className="w-6 h-6 mx-auto" />
-                                            <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
-                                            <span className="text-[7px] italic text-slate-600 uppercase">Pending Attachment</span>
-                                        </div>
-                                    );
-                                })}
+                                                        <div className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/75 backdrop-blur-md px-3 py-2 text-center text-white font-black italic uppercase tracking-widest text-[9px] opacity-90 group-hover:opacity-100 transition-opacity">
+                                                            Open Document
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div key={i} className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/10 border border-dashed border-slate-800 overflow-hidden flex flex-col items-center justify-center text-slate-500 gap-1.5 p-4 select-none">
+                                                <Camera className="w-6 h-6 mx-auto" />
+                                                <span className="text-[8px] font-black uppercase text-center tracking-widest leading-none">{doc.label}</span>
+                                                <span className="text-[7px] italic text-slate-600 uppercase">Pending Attachment</span>
+                                            </div>
+                                        );
+                                    })}
                             </div>
 
                             {(() => {
                                 const typeCode = (transaction?.type?.code || "").toString().toUpperCase();
                                 const isBirthType = typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.toLowerCase().includes("birth"));
-                                 const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
+                                const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
                                 const hasCTCInEvidence = finalEvidenceDocs && finalEvidenceDocs.some(d => /community tax|cedula|ctc/i.test(d.label) || (d.url && (d.url === ctcCandidate)));
 
                                 if (isBirthType && !hasCTCInEvidence) {
@@ -943,16 +943,16 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
 
                         {/* Reference Number Card for copy */}
                         {(() => {
-                            const refNo = 
-                                additional?.paymentId || 
-                                additional?.reference_number || 
-                                additional?.gcashReferenceNo || 
+                            const refNo =
+                                additional?.paymentId ||
+                                additional?.reference_number ||
+                                additional?.gcashReferenceNo ||
                                 (transaction.paymentReference && !transaction.paymentReference.startsWith("http") && !transaction.paymentReference.startsWith("/") ? transaction.paymentReference : null) ||
-                                additional?.payment_id || 
+                                additional?.payment_id ||
                                 transaction.paymentId;
 
                             const isAllowedStatus = ["FOR_REINSPECTION", "FOR_PROCESSING", "FOR_CLAIM", "RELEASED", "DELIVERED", "IN_ROUTE", "FOR_PICKING"].includes(transaction.status);
-                            
+
                             if (!isAllowedStatus) return null;
 
                             const displayRefNo = refNo || "No payment reference ID stored";
@@ -1059,13 +1059,13 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                         className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
                                                     >
                                                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img 
-                                                            src={orDocUrl} 
-                                                            alt="OR Preview" 
+                                                        <img
+                                                            src={orDocUrl}
+                                                            alt="OR Preview"
                                                             className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                         />
                                                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                            <div 
+                                                            <div
                                                                 style={{ backgroundColor: themeColor }}
                                                                 className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
                                                             >
@@ -1260,26 +1260,26 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                     </div>
                                 )}
 
-                                 {transaction.status === "FOR_REINSPECTION" && (
-                                     <div className="space-y-4">
-                                         <div className="p-6 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
-                                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
-                                                 <Clock className="w-6 h-6 animate-pulse" />
-                                             </div>
-                                             <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Ready for Registrar Processing</h4>
-                                             <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Payment has been confirmed. Click below to begin processing this document and officially notify the resident.</p>
-                                         </div>
+                                {transaction.status === "FOR_REINSPECTION" && (
+                                    <div className="space-y-4">
+                                        <div className="p-6 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
+                                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                                                <Clock className="w-6 h-6 animate-pulse" />
+                                            </div>
+                                            <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Ready for Registrar Processing</h4>
+                                            <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Payment has been confirmed. Click below to begin processing this document and officially notify the resident.</p>
+                                        </div>
 
-                                         <Button
-                                             onClick={handleProcessRequest}
-                                             disabled={actionLoading}
-                                             className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
-                                         >
-                                             {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                             Process the request
-                                         </Button>
-                                     </div>
-                                 )}
+                                        <Button
+                                            onClick={handleProcessRequest}
+                                            disabled={actionLoading}
+                                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center"
+                                        >
+                                            {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                            Process the request
+                                        </Button>
+                                    </div>
+                                )}
 
                                 {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
                                     <div className="space-y-4">
@@ -1357,58 +1357,58 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     className="hidden"
                                                     id="or-document-upload-paid"
                                                 />
-                                                    {orFile || transaction.orUrl ? (
-                                                        <div className="flex items-center justify-between p-4 bg-white dark:bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl group shadow-sm">
-                                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 flex-shrink-0">
-                                                                    <Check className="w-4 h-4 stroke-[3]" />
-                                                                </div>
-                                                                <div className="overflow-hidden">
-                                                                    <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none truncate max-w-[180px]" title={orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}>
-                                                                        {orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}
-                                                                    </p>
-                                                                    <p className="text-[8px] text-slate-400 italic mt-1 uppercase">
-                                                                        {orFile ? "Ready for submission" : "Uploaded Official Receipt"}
-                                                                    </p>
-                                                                </div>
+                                                {orFile || transaction.orUrl ? (
+                                                    <div className="flex items-center justify-between p-4 bg-white dark:bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl group shadow-sm">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 flex-shrink-0">
+                                                                <Check className="w-4 h-4 stroke-[3]" />
                                                             </div>
-                                                            <div className="flex items-center gap-2 shrink-0">
-                                                                {(orPreview || transaction.orUrl) && (() => {
-                                                                    const isPdf = orFile 
-                                                                        ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf")) 
-                                                                        : (transaction.orUrl 
-                                                                            ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
-                                                                            : false);
-                                                                    return (
-                                                                        <Dialog>
-                                                                            <DialogTrigger asChild>
-                                                                                <Button type="button" variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none">
-                                                                                    <Eye className="w-3.5 h-3.5" /> Preview
-                                                                                </Button>
-                                                                            </DialogTrigger>
-                                                                            <LightboxView src={orPreview || transaction.orUrl} alt="Attached O.R." label="Attached Official Treasury Receipt" isPdf={isPdf} />
-                                                                        </Dialog>
-                                                                    );
-                                                                })()}
-                                                                <label
-                                                                    htmlFor="or-document-upload-paid"
-                                                                    className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
-                                                                >
-                                                                    <Upload className="w-3 h-3" /> Replace
-                                                                </label>
+                                                            <div className="overflow-hidden">
+                                                                <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none truncate max-w-[180px]" title={orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}>
+                                                                    {orFile ? orFile.name : (transaction.orUrl ? transaction.orUrl.split("/").pop()?.split("?")[0] || "Official-Receipt.pdf" : "Official-Receipt.pdf")}
+                                                                </p>
+                                                                <p className="text-[8px] text-slate-400 italic mt-1 uppercase">
+                                                                    {orFile ? "Ready for submission" : "Uploaded Official Receipt"}
+                                                                </p>
                                                             </div>
                                                         </div>
-                                                    ) : (
-                                                        <label
-                                                            htmlFor="or-document-upload-paid"
-                                                            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer border-slate-200 dark:border-white/10 hover:border-primary/30"
-                                                        >
-                                                            <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
-                                                            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
-                                                                Upload Scanned O.R. Document
-                                                            </span>
-                                                        </label>
-                                                    )}
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            {(orPreview || transaction.orUrl) && (() => {
+                                                                const isPdf = orFile
+                                                                    ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
+                                                                    : (transaction.orUrl
+                                                                        ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
+                                                                        : false);
+                                                                return (
+                                                                    <Dialog>
+                                                                        <DialogTrigger asChild>
+                                                                            <Button type="button" variant="outline" size="sm" className="h-8 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none">
+                                                                                <Eye className="w-3.5 h-3.5" /> Preview
+                                                                            </Button>
+                                                                        </DialogTrigger>
+                                                                        <LightboxView src={orPreview || transaction.orUrl} alt="Attached O.R." label="Attached Official Treasury Receipt" isPdf={isPdf} />
+                                                                    </Dialog>
+                                                                );
+                                                            })()}
+                                                            <label
+                                                                htmlFor="or-document-upload-paid"
+                                                                className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
+                                                            >
+                                                                <Upload className="w-3 h-3" /> Replace
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <label
+                                                        htmlFor="or-document-upload-paid"
+                                                        className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer border-slate-200 dark:border-white/10 hover:border-primary/30"
+                                                    >
+                                                        <Upload className="w-4.5 h-4.5 text-slate-400 group-hover:text-primary transition-colors mb-1" />
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-2">
+                                                            Upload Scanned O.R. Document
+                                                        </span>
+                                                    </label>
+                                                )}
                                             </div>
                                         </div>
 

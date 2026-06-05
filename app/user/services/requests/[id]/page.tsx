@@ -501,7 +501,7 @@ export default function RequestHubPage() {
     };
 
     const handleFinalize = async () => {
-        if ((localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile) {
+        if (!isFreeDeathRegPickUp && (localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && !paymentProofFile) {
             toast.error("Please upload proof of payment.");
             return;
         }
@@ -786,6 +786,11 @@ export default function RequestHubPage() {
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
     }, [request, localFulfillment, address.barangay, availableBarangays, isCivilRegistry]);
 
+    const isFreeDeathRegPickUp = (request?.typeId === "cmpgkxxke0019vpjkquvcxggu" || typeCode === "LCR_DEATH_REG") &&
+        ((additionalData.registrationType || "").toUpperCase() === "STANDARD" || !additionalData.registrationType) &&
+        localFulfillment === "PICK_UP" &&
+        (computation?.finalTotal ?? 0) === 0;
+
     // Flat list of docs that have a URL — drives both the grid and the lightbox
     const documentList = useMemo(() => {
         if (!request) return [] as { label: string; url: string }[];
@@ -977,7 +982,7 @@ export default function RequestHubPage() {
                                         <Calculator className="w-32 h-32 md:w-48 md:h-48" />
                                     </div>
                                     <div className="relative z-10 space-y-6 md:space-y-10">
-                                        <div 
+                                        <div
                                             className="flex justify-between items-center cursor-pointer select-none"
                                             onClick={() => setIsTreasuryOpen(!isTreasuryOpen)}
                                         >
@@ -1053,7 +1058,7 @@ export default function RequestHubPage() {
                                                 )}
                                                 <div className="pt-4 md:pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 md:gap-4">
                                                     <div className="space-y-0.5">
-                                                        <p className="text-[9px] md:text-[11px] font-black uppercase text-emerald-400 tracking-[0.3em] italic leading-none">Grand Total</p>
+                                                        <p className="text-[9px] md:text-[11px] font-black uppercase text-emerald-400 tracking-[0.3em] italic leading-none">Total Amount</p>
                                                         <p className="text-[7px] md:text-[9px] font-bold text-white/20 uppercase italic">Payable via Channel</p>
                                                     </div>
                                                     <span className="text-lg md:text-2xl font-black italic tracking-tighter text-white truncate min-w-0">₱{computation?.finalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -1163,52 +1168,75 @@ export default function RequestHubPage() {
                                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><CreditCard className="w-5 h-5" /></div>
                                             <h3 className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Payment</h3>
                                         </div>
-                                        {(localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
+                                        {isFreeDeathRegPickUp ? (
                                             <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
-                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                                                    {[
-                                                        { id: "gcash", label: "GCash Wallet", desc: "GCash E-Wallet", icon: Wallet },
-                                                        { id: "qrph", label: "QRPH Scan", desc: "Maya, BPI, GCash", icon: QrCode },
-                                                        { id: "dob", label: "Direct Banking", desc: "UnionBank / BPI", icon: Building2 }
-                                                    ].map(method => (
-                                                        <button
-                                                            key={method.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedPaymongoMethod(method.id as any)}
-                                                            className={cn(
-                                                                "flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all relative group text-center active:scale-95",
-                                                                selectedPaymongoMethod === method.id
-                                                                    ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-xl"
-                                                                    : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-primary/30"
-                                                            )}
-                                                        >
-                                                            <method.icon className={cn("w-6 h-6 md:w-8 md:h-8 transition-colors", selectedPaymongoMethod === method.id ? "text-primary dark:text-primary" : "text-slate-400 group-hover:text-primary")} />
-                                                            <div className="space-y-1">
-                                                                <span className="block text-[8px] md:text-[10px] font-black uppercase tracking-widest italic leading-none">{method.label}</span>
-                                                                <span className="block text-[6px] md:text-[7px] font-bold opacity-60 uppercase tracking-wider leading-none mt-1">{method.desc}</span>
-                                                            </div>
-                                                            {selectedPaymongoMethod === method.id && (
-                                                                <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-950">
-                                                                    <Check className="w-3 h-3 text-white" />
-                                                                </div>
-                                                            )}
-                                                        </button>
-                                                    ))}
+                                                <div className="p-6 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl">
+                                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">
+                                                        This timely registration request is free of charge under Office Pickup strategy. No payment required.
+                                                    </p>
                                                 </div>
-
                                                 <div className="mt-4">
-                                                    <PaymongoCheckoutButton
-                                                        amount={computation?.finalTotal ?? Number(request?.totalAmount) ?? 0}
-                                                        type={selectedPaymongoMethod}
-                                                        label={`Proceed to secure ${selectedPaymongoMethod.toUpperCase()} checkout (₱${((computation?.finalTotal ?? Number(request?.totalAmount) ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })})`}
-                                                        transactionId={request?.id || id}
-                                                        onBeforeCheckout={handleSaveLogisticsForPaymongo}
-                                                        className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] md:text-[10px] rounded-xl"
+                                                    <Button
+                                                        onClick={handleFinalize}
+                                                        disabled={isFinalizing}
+                                                        className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] md:text-[10px] rounded-xl flex items-center justify-center gap-2"
                                                         style={{ backgroundColor: themeColor }}
-                                                    />
+                                                    >
+                                                        {isFinalizing ? (
+                                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                        ) : null}
+                                                        SUBMIT AND FINALIZE REQUEST
+                                                    </Button>
                                                 </div>
-
                                             </div>
+                                        ) : (
+                                            (localPayment === "E_PAYMENT" || localPayment === "BANK_TRANSFER") && (
+                                                <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                                                        {[
+                                                            { id: "gcash", label: "GCash Wallet", desc: "GCash E-Wallet", icon: Wallet },
+                                                            { id: "qrph", label: "QRPH Scan", desc: "Maya, BPI, GCash", icon: QrCode },
+                                                            { id: "dob", label: "Direct Banking", desc: "UnionBank / BPI", icon: Building2 }
+                                                        ].map(method => (
+                                                            <button
+                                                                key={method.id}
+                                                                type="button"
+                                                                onClick={() => setSelectedPaymongoMethod(method.id as any)}
+                                                                className={cn(
+                                                                    "flex flex-col items-center justify-center gap-3 p-5 md:p-6 rounded-2xl border-2 transition-all relative group text-center active:scale-95",
+                                                                    selectedPaymongoMethod === method.id
+                                                                        ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-xl"
+                                                                        : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-primary/30"
+                                                                )}
+                                                            >
+                                                                <method.icon className={cn("w-6 h-6 md:w-8 md:h-8 transition-colors", selectedPaymongoMethod === method.id ? "text-primary dark:text-primary" : "text-slate-400 group-hover:text-primary")} />
+                                                                <div className="space-y-1">
+                                                                    <span className="block text-[8px] md:text-[10px] font-black uppercase tracking-widest italic leading-none">{method.label}</span>
+                                                                    <span className="block text-[6px] md:text-[7px] font-bold opacity-60 uppercase tracking-wider leading-none mt-1">{method.desc}</span>
+                                                                </div>
+                                                                {selectedPaymongoMethod === method.id && (
+                                                                    <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-950">
+                                                                        <Check className="w-3 h-3 text-white" />
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        <PaymongoCheckoutButton
+                                                            amount={computation?.finalTotal ?? Number(request?.totalAmount) ?? 0}
+                                                            type={selectedPaymongoMethod}
+                                                            label={`Proceed to secure ${selectedPaymongoMethod.toUpperCase()} checkout (₱${((computation?.finalTotal ?? Number(request?.totalAmount) ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })})`}
+                                                            transactionId={request?.id || id}
+                                                            onBeforeCheckout={handleSaveLogisticsForPaymongo}
+                                                            className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] md:text-[10px] rounded-xl"
+                                                            style={{ backgroundColor: themeColor }}
+                                                        />
+                                                    </div>
+
+                                                </div>
+                                            )
                                         )}
                                     </div>
                                 </div>
