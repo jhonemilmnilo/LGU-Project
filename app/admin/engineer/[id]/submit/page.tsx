@@ -48,7 +48,7 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
     const isSubmitted = ["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(transaction?.status || "");
-    const isViewOnly = isForcedView || isSubmitted;
+    const isViewOnly = isForcedView || isSubmitted || transaction?.status !== "FOR_PROCESSING";
 
     const fetchTransaction = useCallback(async () => {
         setLoading(true);
@@ -357,7 +357,16 @@ export default function BuildingPermitSubmitPage({ params }: PageProps) {
 
                     {/* Executive Actions */}
                     <div className="space-y-4">
-                        {!isSubmitted && userRole === "ENGINEER" && (
+                        {transaction?.status !== "FOR_PROCESSING" && !isSubmitted && (
+                            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-6 rounded-[2rem] space-y-2">
+                                <p className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">⚠️ Clearance Approval Pending</p>
+                                <p className="text-[11px] font-medium leading-relaxed">
+                                    You cannot upload the building permit E-copy or submit it yet. Please verify and approve the Residents submitted BFP and Zoning clearances first from the **Fee Assessment** tab.
+                                </p>
+                            </div>
+                        )}
+
+                        {transaction?.status === "FOR_PROCESSING" && userRole === "ENGINEER" && (
                             <div className="bg-[#151b28] rounded-[2rem] p-6 border border-white/5 space-y-4">
                                 <div className="flex flex-col gap-1">
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Resident Fulfillment Preference</span>

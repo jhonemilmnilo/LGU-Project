@@ -1320,8 +1320,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 return;
             }
 
-            // If already PAID and no O.R. document/number is provided, proceed directly to processing
-            if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
+            // If already PAID and no O.R. document/number/remarks/receipt is provided, proceed directly to processing
+            if (transaction.status === "PAID" && !orFile && !orSeriesNumber && !receiptFile && !remarks) {
                 const releaseFn = typeCode === "LCR_BIRTH"
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
