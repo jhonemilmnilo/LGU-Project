@@ -41,7 +41,7 @@ export async function releaseBirthRegistry(id: string, registryNumber: string, e
 
         const additionalData = (transaction.additionalData as any) || {};
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
-        
+
         const targetStatus = (transaction.status as any) === "PAID"
             ? "FOR_REINSPECTION"
             : isInitialRelease

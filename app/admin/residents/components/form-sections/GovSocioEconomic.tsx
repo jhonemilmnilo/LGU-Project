@@ -239,6 +239,20 @@ export function GovSocioEconomicSection({ data }: { data?: any }) {
           </Select>
         </div>
       </div>
+
+      {["Vocational/Short Course", "College Level", "College Graduate", "Post Graduate Studies"].includes(eduVal) && (
+        <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+          <label className="text-sm font-semibold">Degree / Course <span className="text-red-500">*</span></label>
+          <Input 
+            name="degreeProgram" 
+            defaultValue={data?.degreeProgram} 
+            placeholder="e.g. BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY" 
+            required 
+            style={{ borderColor: themeColor, backgroundColor: `${themeColor}0d` }}
+            className="h-10 font-bold focus-visible:ring-1 uppercase"
+          />
+        </div>
+      )}
     </div>
   );
 }

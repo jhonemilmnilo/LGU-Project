@@ -51,6 +51,7 @@ import {
 import BusinessPermitView from "@/app/admin/treasury/[id]/views/BusinessPermitView";
 import BuildingPermitView from "@/app/admin/treasury/[id]/views/BuildingPermitView";
 import BirthRegistrationView from "./views/BirthRegistrationView";
+import BirthCertificateView from "./views/BirthCertificateView";
 import GenericServiceView from "@/app/admin/treasury/[id]/views/GenericServiceView";
 import DocumentViewerModal from "@/app/admin/treasury/[id]/components/DocumentViewerModal";
 
@@ -266,10 +267,14 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerUrl, setViewerUrl] = useState<string | null>(null);
     const [viewerTitle, setViewerTitle] = useState("");
+    const [viewerDocs, setViewerDocs] = useState<{ url?: string | null; label: string }[]>([]);
+    const [viewerInitialIdx, setViewerInitialIdx] = useState<number>(0);
 
-    const handleViewFile = (url: string | null, title: string) => {
+    const handleViewFile = (url: string | null, title: string, docs?: { url?: string | null; label: string }[], initialIdx?: number) => {
         setViewerUrl(url);
         setViewerTitle(title);
+        setViewerDocs(docs || []);
+        setViewerInitialIdx(initialIdx || 0);
         setViewerOpen(true);
     };
 
@@ -407,9 +412,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     const fiscalSnapshot = tx.fiscalSnapshot as any;
                     const addData = tx.additionalData || {};
                     const isLate = (addData.registrationType || "").toUpperCase() === "LATE";
+                    const typeCode = (tx.type?.code || "").toUpperCase();
+                    const defaultLcrMisc = typeCode === "LCR_BIRTH" ? String(tx.type?.baseFee || tx.totalAmount || "115") : "0";
                     const initialMisc = fiscalSnapshot?.miscFee !== undefined
                         ? String(fiscalSnapshot.miscFee)
-                        : (addData.miscFee !== undefined ? String(addData.miscFee) : (isLate ? "300" : "0"));
+                        : (addData.miscFee !== undefined ? String(addData.miscFee) : (isLate ? "300" : defaultLcrMisc));
                     setMiscFee(initialMisc);
                 }
 
@@ -562,7 +569,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             toast.error("CTC Number Required");
             return;
         }
-        if (isLCR && !eCopyFile && !transaction.eCopyUrl) {
+        if (isLCR && typeCode !== "LCR_BIRTH" && !eCopyFile && !transaction.eCopyUrl) {
             toast.error("Official Digital E-Copy registry record is required before releasing.");
             return;
         }
@@ -575,6 +582,32 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 toast.error("Official Receipt (OR) copy is required for Business Permits before proceeding.");
                 setActionLoading(false);
                 return;
+            }
+
+            let verificationDocUrl = "";
+            if (isLCR && typeCode === "LCR_BIRTH" && transaction?.status === "FOR_PROCESSING") {
+                if (!registryBookVerification) {
+                    toast.error("Registry Book Verification Form Choice is required.");
+                    setActionLoading(false);
+                    return;
+                }
+                if (!birthRegDocFile && !transaction.additionalData?.scannedDocUrl) {
+                    toast.error("Please upload the scanned Verification document.");
+                    setActionLoading(false);
+                    return;
+                }
+                if (birthRegDocFile) {
+                    const formData = new FormData();
+                    formData.append("file", birthRegDocFile);
+                    const uploadRes = await uploadECopyAction(formData);
+                    if (uploadRes.success) {
+                        verificationDocUrl = uploadRes.data as string;
+                    } else {
+                        toast.error("Verification document upload failed.");
+                        setActionLoading(false);
+                        return;
+                    }
+                }
             }
 
             let eCopyUrl = "";
@@ -596,7 +629,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
 
             const res = typeCode === "LCR_BIRTH"
-                ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, registryBookVerification, verificationDocUrl)
                 : typeCode === "LCR_BIRTH_REG"
                     ? await releaseBirthRegistry(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
                     : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
@@ -619,7 +652,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode, birthRegDocFile, registryBookVerification]);
 
     // Handle QR Scan Landing: Auto-focus or Auto-release
     useEffect(() => {
@@ -687,15 +720,30 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
 
             let uploadedDocUrl = "";
-            if (isLCR && typeCode === "LCR_BIRTH") {
+            if (isLCR && typeCode === "LCR_BIRTH" && transaction.status !== "FOR_INSPECTION") {
                 if (!registryBookVerification) {
                     toast.error("Registry Book Verification Form Choice is required before approving.");
                     setActionLoading(false);
                     return;
                 }
+                if (!birthRegDocFile) {
+                    toast.error("Please upload the scanned E-Copy / Verification document choice before submitting.");
+                    setActionLoading(false);
+                    return;
+                }
+                const formData = new FormData();
+                formData.append("file", birthRegDocFile);
+                const uploadRes = await uploadECopyAction(formData);
+                if (uploadRes.success) {
+                    uploadedDocUrl = uploadRes.data as string;
+                } else {
+                    toast.error("Verification document upload failed.");
+                    setActionLoading(false);
+                    return;
+                }
             }
-            if (isLCR) {
-                if (typeCode === "LCR_BIRTH_REG" && birthRegDocFile) {
+            if (isLCR && typeCode === "LCR_BIRTH_REG") {
+                if (birthRegDocFile) {
                     const formData = new FormData();
                     formData.append("file", birthRegDocFile);
                     const uploadRes = await uploadECopyAction(formData);
@@ -771,7 +819,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             const res = await processRegistrarRequest(transaction.id);
             if (res.success) {
                 toast.success("Request processed successfully!");
-                fetchTransaction();
+                router.push(backUrl);
             } else {
                 toast.error(res.error || "Failed to process request");
             }
@@ -1082,7 +1130,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         : null;
 
     const calcResult = (() => {
-        if (fiscal && !(isBusinessPermit && transaction.status === "FOR_REQUESTING") && !(isBuildingPermit && transaction.status === "EVALUATED")) {
+        const isNotEvaluated = ["FOR_REQUESTING", "UNDER_REVIEW", "FOR_INSPECTION"].includes(transaction.status);
+        if (fiscal && !isNotEvaluated && !(isBusinessPermit && transaction.status === "FOR_REQUESTING") && !(isBuildingPermit && transaction.status === "EVALUATED")) {
             return {
                 basicTax: fiscal.basicTax,
                 additionalTax: fiscal.additionalTax,
@@ -1129,11 +1178,9 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
             const isBirthCert = typeCode === "LCR_BIRTH" || isLcrBirthCertifiedCopy;
             const isBirthReg = typeCode === "LCR_BIRTH_REG";
-            const baseFee = isBirthCert
-                ? 15
-                : ((isMarriageReg && !isLate) || isBirthReg)
-                    ? 0
-                    : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
+            const baseFee = (isBirthCert || isBirthReg || (isMarriageReg && !isLate))
+                ? 0
+                : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
             const typeDelivery = Number(transaction.type?.deliveryFee || 0);
             const deliveryFeeUsed = transaction.fulfillmentType === "DELIVERY"
                 ? (fiscal?.deliveryFee ?? deliveryFee ?? typeDelivery)
@@ -1164,7 +1211,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
         });
     })();
 
-    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
+    const isNotEvaluated = ["FOR_REQUESTING", "UNDER_REVIEW", "FOR_INSPECTION"].includes(transaction.status);
+    const displayTotal = Number((transaction.totalAmount && transaction.totalAmount > 0 && !isNotEvaluated && !(isBusinessPermit && transaction.status === "FOR_REQUESTING")) ? transaction.totalAmount : (calcResult.totalAmount ?? 0));
 
     const declaredValue = isBusinessPermit
         ? (additional.businessType === "NEW" ? Number(additional.capitalInvestment || 0) : Number(additional.grossSales || 0))
@@ -1588,6 +1636,23 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     fileUrl={viewerUrl}
                     title={viewerTitle}
                     themeColor={themeColor}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_BIRTH" || isLcrBirthCertifiedCopy) {
+        return (
+            <>
+                <BirthCertificateView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerInitialIdx}
                 />
             </>
         );

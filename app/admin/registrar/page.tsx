@@ -441,9 +441,11 @@ export default function RegistrarPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">
-                                                    {tx.fulfillmentType || "Office Pickup"}
-                                                </span>
+                                                {tx.fulfillmentType && (
+                                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase">
+                                                        {tx.fulfillmentType.replace(/_/g, " ")}
+                                                    </span>
+                                                )}
                                                 {tx.paymentType && (
                                                     <span className="text-[10px] text-slate-500 font-bold uppercase leading-none">
                                                         {tx.paymentType?.replace(/_/g, " ")}

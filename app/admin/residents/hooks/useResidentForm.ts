@@ -18,7 +18,7 @@ export function useResidentForm() {
             "firstName", "lastName", "middleName", "suffix",
             "placeOfBirth", "citizenship", "religion", "bloodType",
             "houseNumber", "street", "sitio", "purok",
-            "occupation", "employer",
+            "occupation", "employer", "degreeProgram",
             "motherFirstName", "motherMiddleName", "motherLastName",
             "fatherFirstName", "fatherMiddleName", "fatherLastName",
             "relationshipToHead",

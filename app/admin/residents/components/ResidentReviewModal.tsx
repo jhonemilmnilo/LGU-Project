@@ -280,6 +280,7 @@ export function ResidentReviewModal({ resident, isOpen, onClose }: ResidentRevie
                         <Field label="Employment Status" value={resident.employmentStatus} />
                         <Field label="Monthly Income" value={resident.monthlyIncome} />
                         <Field label="Educational Attainment" value={resident.educationalAttainment} />
+                        {resident.degreeProgram && <Field label="Degree / Course" value={resident.degreeProgram} />}
                         <Field label="TIN" value={resident.tin} />
                         <Field label="SSS" value={resident.sss} />
                         <Field label="GSIS" value={resident.gsis} />

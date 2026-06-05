@@ -308,6 +308,7 @@ model Resident {
   idBackUrl             String?
   livenessUrl           String?
   educationalAttainment String?
+  degreeProgram         String?
   employmentStatus      String?
   monthlyIncome         String?
   isSenior              Boolean           @default(false)
