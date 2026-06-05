@@ -794,7 +794,7 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                                 )}
                                                 <Button
                                                     onClick={handleApprove}
-                                                    disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl || !transaction.additionalData?.zoningClearanceUrl}
+                                                    disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl || !transaction.additionalData?.zoningClearanceUrl || !transaction.additionalData?.clearancesSubmitted}
                                                     className="w-full h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <BadgeCheck className="w-4 h-4 mr-2" /> Approve & Process Permit
@@ -803,17 +803,17 @@ export default function BuildingPermitFeesPage({ params }: PageProps) {
                                                 <div className="flex items-center gap-3">
                                                     <Button
                                                         onClick={() => { setReasonText(""); setReviseModalOpen(true); }}
-                                                        disabled={actionLoading}
+                                                        disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl || !transaction.additionalData?.zoningClearanceUrl || !transaction.additionalData?.clearancesSubmitted}
                                                         variant="outline"
-                                                        className="flex-1 h-12 rounded-xl border-amber-500/50 text-amber-500 hover:bg-amber-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
+                                                        className="flex-1 h-12 rounded-xl border-amber-500/50 text-amber-500 hover:bg-amber-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <RefreshCw className="w-3.5 h-3.5 mr-2" /> Revise Clearances
                                                     </Button>
                                                     <Button
                                                         onClick={() => { setReasonText(""); setDeclineModalOpen(true); }}
-                                                        disabled={actionLoading}
+                                                        disabled={actionLoading || !transaction.additionalData?.bfpClearanceUrl || !transaction.additionalData?.zoningClearanceUrl || !transaction.additionalData?.clearancesSubmitted}
                                                         variant="outline"
-                                                        className="flex-1 h-12 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all"
+                                                        className="flex-1 h-12 rounded-xl border-red-500/50 text-red-500 hover:bg-red-500/10 font-black italic uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <FileWarning className="w-3.5 h-3.5 mr-2" /> Decline Permit
                                                     </Button>

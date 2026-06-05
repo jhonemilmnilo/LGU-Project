@@ -536,10 +536,10 @@ export default function BuildingPermitEvaluationPage({ params }: PageProps) {
                                                         value={inspectionType}
                                                         onChange={(e) => setInspectionType(e.target.value)}
                                                     >
-                                                        <option value="Structural Inspection">Structural Inspection</option>
-                                                        <option value="Electrical Inspection">Electrical Inspection</option>
-                                                        <option value="Sanitary/Plumbing Inspection">Sanitary/Plumbing Inspection</option>
-                                                        <option value="Complete Site Inspection">Complete Site Inspection</option>
+                                                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white" value="Structural Inspection">Structural Inspection</option>
+                                                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white" value="Electrical Inspection">Electrical Inspection</option>
+                                                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white" value="Sanitary/Plumbing Inspection">Sanitary/Plumbing Inspection</option>
+                                                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white" value="Complete Site Inspection">Complete Site Inspection</option>
                                                     </select>
                                                 </div>
                                                 <div className="space-y-2">
