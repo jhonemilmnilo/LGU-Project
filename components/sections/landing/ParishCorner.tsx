@@ -25,12 +25,12 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
 
     const groupedSchedules = React.useMemo(() => {
         const result: { day: string, slots: any[], isPriority: boolean }[] = [];
-        
+
         // Group by Day and Priority
         schedules.forEach(s => {
             const isPriority = (s.prio || 0) > 0;
             const dayKey = s.date ? format(new Date(s.date), "MMMM dd, yyyy") : s.day;
-            
+
             const existing = result.find(g => g.day === dayKey && g.isPriority === isPriority);
             if (existing) {
                 existing.slots.push(s);
@@ -41,12 +41,12 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
 
         // internal sort slots by prio
         result.forEach(g => {
-            g.slots.sort((a,b) => (b.prio || 0) - (a.prio || 0));
+            g.slots.sort((a, b) => (b.prio || 0) - (a.prio || 0));
         });
 
         const dayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        
-        return result.sort((a,b) => {
+
+        return result.sort((a, b) => {
             // Global Priority First
             if (a.isPriority && !b.isPriority) return -1;
             if (!a.isPriority && b.isPriority) return 1;
@@ -160,7 +160,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 opacity-80">Week ending {format(new Date(latest.date), "MMMM dd, yyyy")}</p>
                                 <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
                                     <span className="text-5xl md:text-6xl font-black tracking-tighter italic">₱{latest.totalAmount.toLocaleString()}</span>
-                                    <span className="text-emerald-100 font-bold italic opacity-60 uppercase text-[9px] md:text-[10px] tracking-widest">Grand Total</span>
+                                    <span className="text-emerald-100 font-bold italic opacity-60 uppercase text-[9px] md:text-[10px] tracking-widest">Total Amount</span>
                                 </div>
                             </div>
 
@@ -209,7 +209,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                     <div className="pt-3 md:pt-4 flex items-center justify-between border-t border-white/10">
                         <div className="flex items-center gap-2 group cursor-pointer">
                             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                            <Heart className="w-4 h-4 text-white fill-white" />
+                                <Heart className="w-4 h-4 text-white fill-white" />
                             </div>
                             <p className="text-[10px] font-black uppercase tracking-widest italic">God loves a cheerful giver.</p>
                         </div>
@@ -240,7 +240,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                             </h2>
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-xl text-xs md:text-lg leading-relaxed">
-                            Welcome to the <span className="text-slate-900 dark:text-white font-black">{info.name}</span> stewardship and information hub. 
+                            Welcome to the <span className="text-slate-900 dark:text-white font-black">{info.name}</span> stewardship and information hub.
                             Stay connected with our community through mass schedules and financial reports.
                         </p>
                     </div>
@@ -248,12 +248,12 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
 
                 {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 relative z-10">
-                    
+
                     {/* LEFT SIDE: Mass Schedule */}
                     {isMobile ? (
                         <div>{leftContent}</div>
                     ) : (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
@@ -266,7 +266,7 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                     {isMobile ? (
                         <div>{rightContent}</div>
                     ) : (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
@@ -283,11 +283,11 @@ export function ParishCorner({ info, schedules, collections }: ParishCornerProps
                             Learn more about the Parish
                         </Link>
                     </Button>
-                    
+
                     {info.flyerUrl && (
-                        <a 
-                            href={info.flyerUrl} 
-                            download 
+                        <a
+                            href={info.flyerUrl}
+                            download
                             className="w-full md:w-[400px] flex items-center justify-center gap-2 md:gap-3 px-8 py-3.5 md:py-5 text-white rounded-[2rem] font-black uppercase italic tracking-widest text-[9px] md:text-[10px] transition-all shadow-xl group"
                             style={{ backgroundColor: info.themeColor || '#2563eb', boxShadow: `0 10px 15px -3px ${info.themeColor}4d` }}
                         >

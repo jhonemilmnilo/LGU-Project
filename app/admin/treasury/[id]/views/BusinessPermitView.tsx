@@ -182,7 +182,7 @@ export default function BusinessPermitView({
                     {!isReadOnlyAide && (
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12">
                             {/* IDENTIFIER / ACCORDION HEADER */}
-                            <div 
+                            <div
                                 className="flex justify-between items-center cursor-pointer select-none"
                                 onClick={() => setIsAssessmentOpen(!isAssessmentOpen)}
                             >
@@ -213,134 +213,134 @@ export default function BusinessPermitView({
                             {isAssessmentOpen && (
                                 <div className="space-y-12 animate-in fade-in slide-in-from-top-4 duration-300">
 
-                            {/* TOP METRICS GRID */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
-                                    <p className="text-lg font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
-                                </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Fulfillment Type</span>
-                                    <p className="text-lg font-black italic tracking-tighter dark:text-slate-200 uppercase truncate" title={transaction.fulfillmentType}>
-                                        {transaction.fulfillmentType?.replace(/_/g, " ") || "--"}
-                                    </p>
-                                </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
-                                    <p className={cn(
-                                        "font-black italic tracking-tighter dark:text-slate-200 leading-none",
-                                        (transaction.paymentType?.length || 0) > 12 ? "text-base" : "text-lg"
-                                    )}>
-                                        {transaction.paymentType?.replace(/_/g, " ") || "--"}
-                                    </p>
-                                </div>
-                                <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
-                                    <p className="text-lg font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
-                                </div>
-                            </div>
+                                    {/* TOP METRICS GRID */}
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{declaredLabel}</span>
+                                            <p className="text-lg font-black italic tracking-tighter dark:text-slate-200">₱{declaredValue.toLocaleString()}</p>
+                                        </div>
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Fulfillment Type</span>
+                                            <p className="text-lg font-black italic tracking-tighter dark:text-slate-200 uppercase truncate" title={transaction.fulfillmentType}>
+                                                {transaction.fulfillmentType?.replace(/_/g, " ") || "--"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Payment Mode</span>
+                                            <p className={cn(
+                                                "font-black italic tracking-tighter dark:text-slate-200 leading-none",
+                                                (transaction.paymentType?.length || 0) > 12 ? "text-base" : "text-lg"
+                                            )}>
+                                                {transaction.paymentType?.replace(/_/g, " ") || "--"}
+                                            </p>
+                                        </div>
+                                        <div className="bg-[#f8fafd] dark:bg-white/5 p-6 rounded-3xl space-y-2">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-primary">Total Amount</span>
+                                            <p className="text-lg font-black italic tracking-tighter text-primary">₱{calcResult.totalAmount.toLocaleString()}</p>
+                                        </div>
+                                    </div>
 
-                            {/* COMPUTATION BREAKDOWN */}
-                            <div className="space-y-6 pt-6">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 font-bold">
-                                    Fee Assessment Breakdown
-                                </h3>
-                                <div className="space-y-4">
-                                    {(transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
-                                        <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
-                                            {feeLineItems.map((item, idx) => (
-                                                <div key={idx} className="flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                                    <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
-                                                        {String(idx + 1).padStart(2, '0')}
-                                                    </span>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Fee Description"
-                                                        value={item.label}
-                                                        onChange={(e) => updateFeeLineItem(idx, 'label', e.target.value)}
-                                                        className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
-                                                    />
-                                                    <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
-                                                        <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
-                                                        <input
-                                                            type="number"
-                                                            placeholder="0.00"
-                                                            value={item.amount}
-                                                            onChange={(e) => updateFeeLineItem(idx, 'amount', e.target.value)}
-                                                            className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                        />
-                                                    </div>
-                                                    {feeLineItems.length > 1 ? (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => removeFeeLineItem(idx)}
-                                                            className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </Button>
+                                    {/* COMPUTATION BREAKDOWN */}
+                                    <div className="space-y-6 pt-6">
+                                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 font-bold">
+                                            Fee Assessment Breakdown
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {(transaction.status === "FOR_REQUESTING" && (userRole === "TREASURY_STAFF" || userRole === "ADMIN")) ? (
+                                                <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/5 rounded-2xl p-4 space-y-3">
+                                                    {feeLineItems.map((item, idx) => (
+                                                        <div key={idx} className="flex gap-3 items-center group bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 px-3 py-1.5 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                                            <span className="text-[9px] font-mono font-black text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 w-6 h-6 flex items-center justify-center rounded-lg select-none shrink-0">
+                                                                {String(idx + 1).padStart(2, '0')}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Fee Description"
+                                                                value={item.label}
+                                                                onChange={(e) => updateFeeLineItem(idx, 'label', e.target.value)}
+                                                                className="flex-1 h-9 bg-transparent text-sm font-bold text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0"
+                                                            />
+                                                            <div className="relative w-28 shrink-0 flex items-center border-l border-slate-100 dark:border-white/5 pl-3">
+                                                                <span className="text-xs font-black text-slate-400 mr-1 select-none">₱</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="0.00"
+                                                                    value={item.amount}
+                                                                    onChange={(e) => updateFeeLineItem(idx, 'amount', e.target.value)}
+                                                                    className="w-full bg-transparent text-sm font-black text-right text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none border-none p-0 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                />
+                                                            </div>
+                                                            {feeLineItems.length > 1 ? (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => removeFeeLineItem(idx)}
+                                                                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 md:opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            ) : (
+                                                                <div className="w-8 h-8 shrink-0" />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        onClick={addFeeLineItem}
+                                                        className="h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 font-black italic text-[10px] tracking-widest gap-2 text-slate-400 hover:text-primary hover:border-primary/50 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all w-full mt-1"
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5" /> ADD FEE LINE ITEM
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {calcResult.lineItems && calcResult.lineItems.length > 0 ? (
+                                                        calcResult.lineItems.map((item: any, idx: number) => (
+                                                            <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                                <span>{item.label}</span>
+                                                                <span className="dark:text-slate-200">₱{(Number(item.amount) || 0).toFixed(2)}</span>
+                                                            </div>
+                                                        ))
                                                     ) : (
-                                                        <div className="w-8 h-8 shrink-0" />
+                                                        <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                            <span>Base Mayors Permit Fee</span>
+                                                            <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                                        </div>
                                                     )}
                                                 </div>
-                                            ))}
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                onClick={addFeeLineItem}
-                                                className="h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-white/10 font-black italic text-[10px] tracking-widest gap-2 text-slate-400 hover:text-primary hover:border-primary/50 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all w-full mt-1"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" /> ADD FEE LINE ITEM
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {calcResult.lineItems && calcResult.lineItems.length > 0 ? (
-                                                calcResult.lineItems.map((item: any, idx: number) => (
-                                                    <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                        <span>{item.label}</span>
-                                                        <span className="dark:text-slate-200">₱{(Number(item.amount) || 0).toFixed(2)}</span>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                    <span>Base Mayors Permit Fee</span>
-                                                    <span className="dark:text-slate-200">₱{calcResult.basicTax.toFixed(2)}</span>
+                                            )}
+
+                                            {calcResult.penalty > 0 && (
+                                                <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
+                                                    <span>Penalty Charge</span>
+                                                    <span>₱{calcResult.penalty.toFixed(2)}</span>
                                                 </div>
                                             )}
-                                        </div>
-                                    )}
+                                            {transaction.fulfillmentType === "DELIVERY" && (
+                                                <div className="flex justify-between items-center pt-2 gap-4">
+                                                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-black text-primary">₱</span>
+                                                        <span className="text-xs font-black dark:text-white italic">
+                                                            {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                    {calcResult.penalty > 0 && (
-                                        <div className="flex justify-between items-center text-sm font-bold text-orange-500 italic">
-                                            <span>Penalty Charge</span>
-                                            <span>₱{calcResult.penalty.toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                    {transaction.fulfillmentType === "DELIVERY" && (
-                                        <div className="flex justify-between items-center pt-2 gap-4">
-                                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 italic">Delivery Fee</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs font-black text-primary">₱</span>
-                                                <span className="text-xs font-black dark:text-white italic">
-                                                    {deliveryFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
+                                                <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount</span>
+                                                <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
+                                                    ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </span>
                                             </div>
                                         </div>
-                                    )}
-
-                                    <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
-                                        <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
-                                        <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
-                                            ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </span>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
-                </div>
-            )}
 
                     {/* RESIDENT IDENTITY PROFILE ACCORDION */}
                     <ResidentIdentityProfile
@@ -352,7 +352,7 @@ export default function BusinessPermitView({
                     {/* BUSINESS RECORD CARD */}
                     <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-10">
                         {/* Business Profile Accordion Header */}
-                        <div 
+                        <div
                             className="flex justify-between items-center cursor-pointer select-none"
                             onClick={() => setIsBusinessRecordOpen(!isBusinessRecordOpen)}
                         >
@@ -372,82 +372,82 @@ export default function BusinessPermitView({
                         {isBusinessRecordOpen && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
 
-                            <div className="grid grid-cols-12 gap-x-6 gap-y-6">
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Official Business Name</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary uppercase truncate">
-                                        {additional?.businessName || "--"}
+                                <div className="grid grid-cols-12 gap-x-6 gap-y-6">
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Official Business Name</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-black text-sm text-primary uppercase truncate">
+                                            {additional?.businessName || "--"}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Trade Signage Name</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                        {additional?.tradeName || "Same as Business Name"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Trade Signage Name</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.tradeName || "Same as Business Name"}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Organization Type</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
-                                        {additional?.orgType ? additional.orgType.replace(/_/g, " ") : "--"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Organization Type</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
+                                            {additional?.orgType ? additional.orgType.replace(/_/g, " ") : "--"}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Building / Unit</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                        {additional?.building || "--"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Building / Unit</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.building || "--"}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Street Address</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                        {additional?.street || "--"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Street Address</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.street || "--"}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Business Barangay</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
-                                        {additional?.businessBarangay || additional?.barangay || resident?.barangay || "--"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Business Barangay</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 uppercase truncate">
+                                            {additional?.businessBarangay || additional?.barangay || resident?.barangay || "--"}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="col-span-12 md:col-span-6 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Line of Business</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                        {additional?.lineOfBusiness || "General"}
+                                    <div className="col-span-12 md:col-span-6 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Line of Business</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                            {additional?.lineOfBusiness || "General"}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-6 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
-                                        {additional?.businessType === "RENEWAL" ? "Existing Permit License" : "Registration / Permit No."}
-                                    </label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-primary truncate">
-                                        {transaction.businessPermit?.permitNumber || additional?.existingPermitNumber || additional?.permitNumber || additional?.dtiSecNumber || "--"}
+                                    <div className="col-span-12 md:col-span-6 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
+                                            {additional?.businessType === "RENEWAL" ? "Existing Permit License" : "Registration / Permit No."}
+                                        </label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-primary truncate">
+                                            {transaction.businessPermit?.permitNumber || additional?.existingPermitNumber || additional?.permitNumber || additional?.dtiSecNumber || "--"}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Employee Count</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {additional?.employeeCount ?? "0"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Employee Count</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            {additional?.employeeCount ?? "0"}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="col-span-12 md:col-span-4 space-y-2">
-                                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Store Area</label>
-                                    <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
-                                        {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
+                                    <div className="col-span-12 md:col-span-4 space-y-2">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Store Area</label>
+                                        <div className="h-12 flex items-center px-5 bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl font-bold text-sm text-slate-800 dark:text-slate-100">
+                                            {additional?.businessArea ? `${additional.businessArea} sqm` : "0 sqm"}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
                     </div>
 
                     {/* EVIDENCE VAULT */}
                     <div className="grid grid-cols-1 gap-8">
                         {/* Core Requirements */}
                         <div className="bg-white dark:bg-[#151b28] p-10 rounded-[2.5rem] border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6 md:col-span-2">
-                            <div 
+                            <div
                                 className="flex justify-between items-center cursor-pointer select-none"
                                 onClick={() => setIsRequirementsOpen(!isRequirementsOpen)}
                             >
@@ -462,7 +462,7 @@ export default function BusinessPermitView({
                             {isRequirementsOpen && (
                                 <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                     {evidenceDocs.map((doc, idx) => (
-                                        <div 
+                                        <div
                                             key={idx}
                                             onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
                                             className="relative aspect-[4/3] rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
@@ -648,13 +648,13 @@ export default function BusinessPermitView({
                                                         className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
                                                     >
                                                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img 
-                                                            src={transaction.paymentProofUrl || additional.paymentReferenceUrl || transaction.paymentReference} 
-                                                            alt="Payment Proof" 
+                                                        <img
+                                                            src={transaction.paymentProofUrl || additional.paymentReferenceUrl || transaction.paymentReference}
+                                                            alt="Payment Proof"
                                                             className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                         />
                                                         <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                            <div 
+                                                            <div
                                                                 style={{ backgroundColor: themeColor }}
                                                                 className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
                                                             >
@@ -718,10 +718,10 @@ export default function BusinessPermitView({
                                                 {(orPreview || (transaction.orUrl && transaction.orUrl !== "null" && transaction.orUrl !== "undefined" && transaction.orUrl !== "")) && (
                                                     <div className="mt-2">
                                                         {(() => {
-                                                            const isOrPdf = orFile 
+                                                            const isOrPdf = orFile
                                                                 ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
-                                                                 : (transaction.orUrl?.toLowerCase()?.includes(".pdf") || false);
-                                                            
+                                                                : (transaction.orUrl?.toLowerCase()?.includes(".pdf") || false);
+
                                                             if (isOrPdf) {
                                                                 return (
                                                                     <button
@@ -751,13 +751,13 @@ export default function BusinessPermitView({
                                                                     className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block"
                                                                 >
                                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                    <img 
-                                                                        src={orPreview || transaction.orUrl} 
-                                                                        alt="OR Preview" 
+                                                                    <img
+                                                                        src={orPreview || transaction.orUrl}
+                                                                        alt="OR Preview"
                                                                         className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                     />
                                                                     <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                        <div 
+                                                                        <div
                                                                             style={{ backgroundColor: themeColor }}
                                                                             className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
                                                                         >

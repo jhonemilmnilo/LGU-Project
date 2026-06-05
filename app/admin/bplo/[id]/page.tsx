@@ -713,7 +713,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                             {fulfillment === "—" ? <span className="w-6 h-1.5 bg-slate-400 rounded-sm inline-block" /> : fulfillment}
                                         </p>
                                     </div>
-                                    {/* Total Assessment */}
+                                    {/* Total Amount */}
                                     <div className="bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-100 dark:border-white/10 flex flex-col justify-between min-h-[100px]">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500/80">TOTAL ASSESSED</span>
                                         <p className="text-xl font-black italic tracking-tighter text-emerald-500 mt-2">
@@ -1192,300 +1192,300 @@ export default function BploDetailPage({ params }: PageProps) {
 
                     {/* EXECUTIVE ACTIONS */}
                     <div className="space-y-4 pt-4">
-                                {/* Inspection phase actions */}
-                                {(transaction.status === "FOR_INSPECTION" || transaction.status === "FOR_REINSPECTION") && (
-                                    <div className="space-y-4">
-                                        {transaction.status === "FOR_REINSPECTION" && (() => {
-                                            const orNo = additional?.orSeriesNumber || transaction.orSeriesNumber || additional?.orNumber || additional?.orNo;
-                                            const orDocUrl = additional?.orDocumentUrl || transaction.orUrl || additional?.orUrl;
+                        {/* Inspection phase actions */}
+                        {(transaction.status === "FOR_INSPECTION" || transaction.status === "FOR_REINSPECTION") && (
+                            <div className="space-y-4">
+                                {transaction.status === "FOR_REINSPECTION" && (() => {
+                                    const orNo = additional?.orSeriesNumber || transaction.orSeriesNumber || additional?.orNumber || additional?.orNo;
+                                    const orDocUrl = additional?.orDocumentUrl || transaction.orUrl || additional?.orUrl;
 
-                                            if (!orNo && !orDocUrl) return null;
+                                    if (!orNo && !orDocUrl) return null;
 
-                                            return (
-                                                <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
-                                                            <FileText className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Treasury Official Receipt</span>
-                                                            <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">O.R. Details</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {orNo && (
-                                                        <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">O.R. Series Number</span>
-                                                            <p className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200">
-                                                                {orNo}
-                                                            </p>
-                                                        </div>
-                                                    )}
-
-                                                    {orDocUrl && (
-                                                        <div className="space-y-2">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1 block leading-none">Scanned O.R. Copy</span>
-                                                            {(() => {
-                                                                const isPdf = orDocUrl.toLowerCase().endsWith(".pdf") || orDocUrl.includes("application/pdf") || orDocUrl.includes(".pdf?");
-                                                                if (isPdf) {
-                                                                    return (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt PDF")}
-                                                                            className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
-                                                                        >
-                                                                            <div className="flex items-center gap-3">
-                                                                                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                                                                    📕
-                                                                                </div>
-                                                                                <div>
-                                                                                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Receipt PDF</p>
-                                                                                    <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0">
-                                                                                Open PDF ➔
-                                                                            </div>
-                                                                        </button>
-                                                                    );
-                                                                }
-
-                                                                return (
-                                                                    <div
-                                                                        onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
-                                                                        className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
-                                                                    >
-                                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                        <img 
-                                                                            src={orDocUrl} 
-                                                                            alt="OR Preview" 
-                                                                            className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
-                                                                        />
-                                                                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                            <div 
-                                                                                style={{ backgroundColor: themeColor }}
-                                                                                className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
-                                                                            >
-                                                                                <span>View</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
-
-                                        <Button
-                                            onClick={handleEvaluate}
-                                            disabled={actionLoading}
-                                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
-                                        >
-                                            Process The Request
-                                        </Button>
-
-                                        {transaction.status !== "FOR_REINSPECTION" && (
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                                    className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
-                                                >
-                                                    Request Revision
-                                                </Button>
-                                                <Button
-                                                    onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                                    className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
-                                                >
-                                                    Decline
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
-                                    <div className="space-y-4">
-                                        <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
-                                            {/* Card header */}
+                                    return (
+                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-xl" style={{ backgroundColor: `${themeColor}15` }}>
-                                                    <FileText className="w-4 h-4" style={{ color: themeColor }} />
+                                                <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
+                                                    <FileText className="w-4 h-4" />
                                                 </div>
                                                 <div>
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Permit Issuance</span>
-                                                    <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Release Details</span>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Treasury Official Receipt</span>
+                                                    <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">O.R. Details</span>
                                                 </div>
                                             </div>
 
-                                            {isRenewal ? (
-                                                <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
-                                                    <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-2">
-                                                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                                        License Business Permit Number {isProcessing && <span className="text-rose-500 font-bold">*</span>}
-                                                    </Label>
-                                                    <Input
-                                                        value={permitNumberInput}
-                                                        onChange={(e) => setPermitNumberInput(e.target.value)}
-                                                        placeholder={isReadOnly ? "No Permit Number" : "Enter Permit Number..."}
-                                                        className="h-12 rounded-xl text-sm font-bold"
-                                                        readOnly={isReadOnly}
-                                                        disabled={isReadOnly}
-                                                    />
+                                            {orNo && (
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">O.R. Series Number</span>
+                                                    <p className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200">
+                                                        {orNo}
+                                                    </p>
                                                 </div>
                                             )}
 
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                                    Digital Permit Upload {isProcessing ? <span className="text-rose-500 font-bold">*</span> : "(Optional)"}
-                                                </Label>
-
-                                                {isReadOnly && !hasFile ? (
-                                                    <div className="border border-slate-100 dark:border-white/5 rounded-2xl p-4 bg-slate-50/50 dark:bg-white/[0.02] text-center text-xs text-slate-400 font-bold italic">
-                                                        No digital permit copy uploaded.
-                                                    </div>
-                                                ) : !hasFile ? (
-                                                    <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
-                                                        <label className="cursor-pointer block space-y-2">
-                                                            <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
-                                                            <Input
-                                                                type="file"
-                                                                accept="image/*,application/pdf"
-                                                                onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
-                                                                className="hidden"
-                                                            />
-                                                        </label>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex justify-end">
-                                                        {!isReadOnly && transaction.status !== "FOR_CLAIM" && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setECopyFile(null);
-                                                                    setTransaction((prev: any) => prev ? { ...prev, eCopyUrl: "" } : null);
-                                                                }}
-                                                                className="text-xs font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1 rounded-xl h-auto"
-                                                            >
-                                                                ✕ Clear / Change File
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* PREVIEW CONTAINER */}
-                                                {hasFile && (
-                                                    <div className="mt-4">
-                                                        {(() => {
-                                                            const isPdf = eCopyFile
-                                                                ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
-                                                                : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
-
-                                                            const targetUrl = eCopyPreview || transaction.eCopyUrl;
-
-                                                            if (isPdf) {
-                                                                return (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            handleViewFile(targetUrl, "Digital Permit PDF");
-                                                                        }}
-                                                                        className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
-                                                                    >
-                                                                        <div className="flex items-center gap-4">
-                                                                            <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
-                                                                                📕
-                                                                            </div>
-                                                                            <div className="space-y-1">
-                                                                                <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Digital Permit PDF</p>
-                                                                                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div
-                                                                            style={{ color: themeColor, borderColor: `${themeColor}40` }}
-                                                                            className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
-                                                                        >
-                                                                            Open PDF ➔
-                                                                        </div>
-                                                                    </button>
-                                                                );
-                                                            }
+                                            {orDocUrl && (
+                                                <div className="space-y-2">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1 block leading-none">Scanned O.R. Copy</span>
+                                                    {(() => {
+                                                        const isPdf = orDocUrl.toLowerCase().endsWith(".pdf") || orDocUrl.includes("application/pdf") || orDocUrl.includes(".pdf?");
+                                                        if (isPdf) {
                                                             return (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        handleViewFile(targetUrl, "Digital Permit Document");
-                                                                    }}
-                                                                    className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
+                                                                    onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt PDF")}
+                                                                    className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
                                                                 >
-                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                    <img
-                                                                        src={targetUrl}
-                                                                        alt="Digital Permit Preview"
-                                                                        className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
-                                                                    />
-                                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                        <div
-                                                                            style={{ backgroundColor: themeColor }}
-                                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
-                                                                        >
-                                                                            <span>View</span>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                                            📕
                                                                         </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Receipt PDF</p>
+                                                                            <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0">
+                                                                        Open PDF ➔
                                                                     </div>
                                                                 </button>
                                                             );
-                                                        })()}
-                                                    </div>
-                                                )}
-                                            </div>
+                                                        }
 
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                                    Sticker Number {isProcessing ? <span className="text-rose-500 font-bold">*</span> : "(Optional)"}
-                                                </Label>
-                                                <Input
-                                                    value={stickerNumber}
-                                                    onChange={(e) => setStickerNumber(e.target.value)}
-                                                    placeholder={isReadOnly ? "No Sticker Number" : "Enter Sticker Number..."}
-                                                    className="h-12 rounded-xl text-sm font-bold"
-                                                    readOnly={isReadOnly}
-                                                    disabled={isReadOnly}
-                                                />
-                                            </div>
+                                                        return (
+                                                            <div
+                                                                onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
+                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
+                                                            >
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={orDocUrl}
+                                                                    alt="OR Preview"
+                                                                    className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                                />
+                                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                    <div
+                                                                        style={{ backgroundColor: themeColor }}
+                                                                        className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                                    >
+                                                                        <span>View</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
                                         </div>
+                                    );
+                                })()}
 
-                                        {(transaction.status === "FOR_PROCESSING" || transaction.status === "FOR_PICKING") && transaction.fulfillmentType === "DELIVERY" && (
-                                            <Button
-                                                type="button"
-                                                onClick={handlePrintWaybill}
-                                                variant="outline"
-                                                className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
-                                            >
-                                                Generate & Print Waybill
-                                            </Button>
-                                        )}
+                                <Button
+                                    onClick={handleEvaluate}
+                                    disabled={actionLoading}
+                                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
+                                >
+                                    Process The Request
+                                </Button>
 
-                                        {!isReadOnly && (
-                                            <Button
-                                                onClick={handleRelease}
-                                                disabled={actionLoading || isButtonDisabled}
-                                                className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
-                                            >
-                                                {buttonText}
-                                            </Button>
-                                        )}
+                                {transaction.status !== "FOR_REINSPECTION" && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                            className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase"
+                                        >
+                                            Request Revision
+                                        </Button>
+                                        <Button
+                                            onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                            className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase"
+                                        >
+                                            Decline
+                                        </Button>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </main>
+                        )}
+
+                        {["PAID", "FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
+                            <div className="space-y-4">
+                                <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
+                                    {/* Card header */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-xl" style={{ backgroundColor: `${themeColor}15` }}>
+                                            <FileText className="w-4 h-4" style={{ color: themeColor }} />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Permit Issuance</span>
+                                            <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Release Details</span>
+                                        </div>
+                                    </div>
+
+                                    {isRenewal ? (
+                                        <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
+                                            <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                                License Business Permit Number {isProcessing && <span className="text-rose-500 font-bold">*</span>}
+                                            </Label>
+                                            <Input
+                                                value={permitNumberInput}
+                                                onChange={(e) => setPermitNumberInput(e.target.value)}
+                                                placeholder={isReadOnly ? "No Permit Number" : "Enter Permit Number..."}
+                                                className="h-12 rounded-xl text-sm font-bold"
+                                                readOnly={isReadOnly}
+                                                disabled={isReadOnly}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                            Digital Permit Upload {isProcessing ? <span className="text-rose-500 font-bold">*</span> : "(Optional)"}
+                                        </Label>
+
+                                        {isReadOnly && !hasFile ? (
+                                            <div className="border border-slate-100 dark:border-white/5 rounded-2xl p-4 bg-slate-50/50 dark:bg-white/[0.02] text-center text-xs text-slate-400 font-bold italic">
+                                                No digital permit copy uploaded.
+                                            </div>
+                                        ) : !hasFile ? (
+                                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center">
+                                                <label className="cursor-pointer block space-y-2">
+                                                    <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Select Digital PDF/Image</span>
+                                                    <Input
+                                                        type="file"
+                                                        accept="image/*,application/pdf"
+                                                        onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-end">
+                                                {!isReadOnly && transaction.status !== "FOR_CLAIM" && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setECopyFile(null);
+                                                            setTransaction((prev: any) => prev ? { ...prev, eCopyUrl: "" } : null);
+                                                        }}
+                                                        className="text-xs font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-3 py-1 rounded-xl h-auto"
+                                                    >
+                                                        ✕ Clear / Change File
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* PREVIEW CONTAINER */}
+                                        {hasFile && (
+                                            <div className="mt-4">
+                                                {(() => {
+                                                    const isPdf = eCopyFile
+                                                        ? (eCopyFile.type === "application/pdf" || eCopyFile.name.toLowerCase().endsWith(".pdf"))
+                                                        : (transaction.eCopyUrl?.toLowerCase()?.includes(".pdf") || false);
+
+                                                    const targetUrl = eCopyPreview || transaction.eCopyUrl;
+
+                                                    if (isPdf) {
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    handleViewFile(targetUrl, "Digital Permit PDF");
+                                                                }}
+                                                                className="w-full flex items-center justify-between p-5 bg-slate-900/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                            >
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                        📕
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Digital Permit PDF</p>
+                                                                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View Document in Modal</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    style={{ color: themeColor, borderColor: `${themeColor}40` }}
+                                                                    className="h-9 px-4 rounded-xl border text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0"
+                                                                >
+                                                                    Open PDF ➔
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleViewFile(targetUrl, "Digital Permit Document");
+                                                            }}
+                                                            className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-zoom-in"
+                                                        >
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img
+                                                                src={targetUrl}
+                                                                alt="Digital Permit Preview"
+                                                                className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                <div
+                                                                    style={{ backgroundColor: themeColor }}
+                                                                    className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px]"
+                                                                >
+                                                                    <span>View</span>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                            Sticker Number {isProcessing ? <span className="text-rose-500 font-bold">*</span> : "(Optional)"}
+                                        </Label>
+                                        <Input
+                                            value={stickerNumber}
+                                            onChange={(e) => setStickerNumber(e.target.value)}
+                                            placeholder={isReadOnly ? "No Sticker Number" : "Enter Sticker Number..."}
+                                            className="h-12 rounded-xl text-sm font-bold"
+                                            readOnly={isReadOnly}
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                </div>
+
+                                {(transaction.status === "FOR_PROCESSING" || transaction.status === "FOR_PICKING") && transaction.fulfillmentType === "DELIVERY" && (
+                                    <Button
+                                        type="button"
+                                        onClick={handlePrintWaybill}
+                                        variant="outline"
+                                        className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                    >
+                                        Generate & Print Waybill
+                                    </Button>
+                                )}
+
+                                {!isReadOnly && (
+                                    <Button
+                                        onClick={handleRelease}
+                                        disabled={actionLoading || isButtonDisabled}
+                                        className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider"
+                                    >
+                                        {buttonText}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </main>
 
             {/* Dispute Resolution Modal */}
             <Dialog open={disputeModalOpen} onOpenChange={setDisputeModalOpen}>

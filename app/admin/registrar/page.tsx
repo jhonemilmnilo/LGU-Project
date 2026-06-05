@@ -184,6 +184,10 @@ export default function RegistrarPage() {
                     matchesCategory = tx.type?.code === "LCR_BIRTH_REG";
                 } else if (categoryParam === "Birth Certificate") {
                     matchesCategory = tx.type?.code === "LCR_BIRTH";
+                } else if (categoryParam === "Death Registration") {
+                    matchesCategory = tx.type?.code === "LCR_DEATH_REG";
+                } else if (categoryParam === "Death Certificate") {
+                    matchesCategory = tx.type?.code === "LCR_DEATH";
                 }
             }
 

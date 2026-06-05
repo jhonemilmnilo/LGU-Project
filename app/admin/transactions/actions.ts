@@ -413,7 +413,8 @@ export async function ensureCivilRegistryTransactionTypes() {
                     fields: ["fullName", "dateOfBirth", "dateOfDeath", "placeOfDeath", "causeOfDeath", "gender", "civilStatus", "fathersName", "mothersName"]
                 },
                 requiresBusinessName: false,
-                supportsECopy: true
+                supportsECopy: true,
+                lateFee: 300.00
             }
         ];
 
@@ -1286,10 +1287,11 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
             const isBirthCert = typeCode === "LCR_BIRTH";
             const isBirthReg = typeCode === "LCR_BIRTH_REG";
+            const isDeathReg = typeCode === "LCR_DEATH_REG";
 
             const baseFee = isBirthCert
                 ? 0
-                : ((isMarriageReg && !isLate) || isBirthReg)
+                : ((isMarriageReg && !isLate) || isBirthReg || isDeathReg)
                     ? 0
                     : Number(transaction.type?.baseFee || 0);
             const feeDelivery = Number(transaction.type?.deliveryFee || 0);
@@ -1322,7 +1324,14 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
         // Re-inspection keeps the existing later-phase flow and returns to processing.
         let newStatus = (isUserAdminAide(user) && isBusinessPermit) ? "FOR_REQUESTING" : "EVALUATED" as any;
         if (isLCR && transaction.status === "FOR_INSPECTION") {
-            newStatus = "FOR_REQUESTING";
+            const typeCode = (transaction.type?.code || "").toUpperCase();
+            const regType = (additionalData?.registrationType || "").toUpperCase();
+            const hasAdditionalFees = sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0;
+            if (typeCode === "LCR_DEATH_REG" && (regType === "STANDARD" || !regType) && !hasAdditionalFees) {
+                newStatus = "EVALUATED";
+            } else {
+                newStatus = "FOR_REQUESTING";
+            }
         }
         if (isBusinessPermit && transaction.status === "FOR_REINSPECTION") {
             newStatus = "FOR_PROCESSING";
@@ -1460,6 +1469,20 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         let newStatus = (fulfillmentType === "PICK_UP" || paymentType === "CASH_ON_DELIVERY") ? "FOR_PROCESSING" : "UNPAID";
         if (paymentType === "E_PAYMENT" || paymentType === "BANK_TRANSFER") {
             newStatus = "UNPAID";
+        }
+        if (finalAmount === 0) {
+            newStatus = "FOR_PROCESSING";
+        }
+
+        // Dedicated rule for free timely Death Registration with Office Pickup transitioning to FOR_REINSPECTION
+        const typeCode = (transaction.type?.code || "").toUpperCase();
+        const additional = (transaction.additionalData as any) || {};
+        const regType = (additional.registrationType || "").toUpperCase();
+        if ((typeCode === "LCR_DEATH_REG" || transaction.typeId === "cmpgkxxke0019vpjkquvcxggu") && 
+            (regType === "STANDARD" || regType === "") && 
+            fulfillmentType === "PICK_UP" && 
+            finalAmount === 0) {
+            newStatus = "FOR_REINSPECTION";
         }
 
         const updatedTransaction = await prisma.transaction.update({
