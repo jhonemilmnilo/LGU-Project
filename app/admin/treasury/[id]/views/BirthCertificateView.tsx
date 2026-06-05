@@ -545,34 +545,16 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                             </div>
                         )}
 
-                        {/* TREASURY ACTION PANEL */}
-                        {isTreasuryContext && transaction.status === "EVALUATED" && (
-                            <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-2xl space-y-6">
-                                <div className="space-y-1">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#10b981] italic">Confirm Payment</h4>
-                                    <p className="text-xs font-bold text-slate-500 italic">Verify and record payment for this transaction.</p>
+                        {/* AWAITING CITIZEN PAYMENT NOTICE */}
+                        {transaction.status === "EVALUATED" && (
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
+                                    <Clock className="w-6 h-6 animate-pulse" />
                                 </div>
-
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block leading-none">O.R. Series Number</span>
-                                        <input
-                                            type="text"
-                                            value={orSeriesNumber}
-                                            onChange={(e) => setOrSeriesNumber?.(e.target.value)}
-                                            placeholder="Enter O.R. Number"
-                                            className="w-full bg-[#1f2937]/50 border border-slate-855 rounded-xl h-11 px-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary uppercase tracking-wide"
-                                        />
-                                    </div>
-
-                                    <Button
-                                        onClick={handleConfirmPayment}
-                                        disabled={actionLoading}
-                                        className={`w-full rounded-xl h-12 text-xs font-black uppercase tracking-widest italic text-white ${themeColor}`}
-                                    >
-                                        {actionLoading ? "Confirming Payment..." : "CONFIRM WALK-IN PAYMENT"}
-                                    </Button>
-                                </div>
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Citizen Payment</h4>
+                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
+                                    The assessment fee has been computed. We are currently waiting for the citizen to complete the payment online or upload their proof of payment.
+                                </p>
                             </div>
                         )}
 
@@ -937,6 +919,16 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                         </div>
                                     )}
 
+                                    {transaction.fulfillmentType === "DELIVERY" && (
+                                        <Button
+                                            onClick={handlePrintWaybill}
+                                            variant="outline"
+                                            className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                        >
+                                            Generate & Print Waybill
+                                        </Button>
+                                    )}
+
                                     <Button
                                         onClick={handleRelease}
                                         disabled={actionLoading || !registryBookVerification || !birthRegDocFile || !eCopyFile}
@@ -945,6 +937,31 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                         {actionLoading ? "Releasing Request..." : "UPLOAD AND RELEASE CERTIFICATE"}
                                     </Button>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* TREASURY RELEASE FOR PICKING ACTION */}
+                        {transaction.status === "FOR_PICKING" && (
+                            <div className="space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                    <div className="text-center space-y-3">
+                                        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
+                                            <FileText className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.25em] text-slate-800 dark:text-slate-200 font-bold">Awaiting Rider Pickup</h4>
+                                        <p className="text-xs text-slate-400 italic max-w-sm mx-auto">
+                                            The document is ready for delivery. Generate the waybill below for the delivery rider.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handlePrintWaybill}
+                                    variant="outline"
+                                    className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                >
+                                    Generate & Print Waybill
+                                </Button>
                             </div>
                         )}
                     </div>

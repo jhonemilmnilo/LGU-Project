@@ -569,7 +569,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             toast.error("CTC Number Required");
             return;
         }
-        if (isLCR && !eCopyFile && !transaction.eCopyUrl) {
+        if (isLCR && typeCode !== "LCR_BIRTH" && !eCopyFile && !transaction.eCopyUrl) {
             toast.error("Official Digital E-Copy registry record is required before releasing.");
             return;
         }
@@ -585,7 +585,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
 
             let verificationDocUrl = "";
-            if (isLCR && typeCode === "LCR_BIRTH") {
+            if (isLCR && typeCode === "LCR_BIRTH" && transaction?.status === "FOR_PROCESSING") {
                 if (!registryBookVerification) {
                     toast.error("Registry Book Verification Form Choice is required.");
                     setActionLoading(false);
@@ -819,7 +819,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             const res = await processRegistrarRequest(transaction.id);
             if (res.success) {
                 toast.success("Request processed successfully!");
-                fetchTransaction();
+                router.push(backUrl);
             } else {
                 toast.error(res.error || "Failed to process request");
             }

@@ -15,14 +15,15 @@ import {
     Hash,
     Plus,
     Trash2,
-    RotateCw
+    RotateCw,
+    Copy,
+    Coins
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import LightboxView from "@/app/admin/treasury/[id]/components/LightboxView";
+
 import ResidentIdentityProfile from "@/app/admin/treasury/[id]/components/ResidentIdentityProfile";
 import TransactionInfoCard from "@/app/admin/treasury/[id]/components/TransactionInfoCard";
 import RejectionRevisionControls from "@/app/admin/treasury/[id]/components/RejectionRevisionControls";
@@ -523,6 +524,162 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                             </div>
                         )}
 
+                        {/* REGISTRAR FOR_REINSPECTION CONTROLLER */}
+                        {transaction.status === "FOR_REINSPECTION" && (
+                            <div className="space-y-6">
+                                {/* Payment Reference Card */}
+                                {(() => {
+                                    const refNo = 
+                                        additional?.paymentId || 
+                                        additional?.reference_number || 
+                                        additional?.gcashReferenceNo || 
+                                        (transaction.paymentReference && !transaction.paymentReference.startsWith("http") && !transaction.paymentReference.startsWith("/") ? transaction.paymentReference : null) ||
+                                        additional?.payment_id || 
+                                        transaction.paymentId;
+
+                                    if (!refNo) return null;
+
+                                    return (
+                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                                    <Hash className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Payment Reference</span>
+                                                    <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Reference ID</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2 group/ref relative overflow-hidden transition-all hover:border-primary/20 shadow-sm">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                                                        Reference ID (Read-only)
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(refNo);
+                                                            toast.success("Reference number copied!");
+                                                        }}
+                                                        className="text-slate-400 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm font-black italic tracking-widest font-mono text-slate-800 dark:text-slate-200 select-all">
+                                                    {refNo}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* O.R. Details Card */}
+                                {(() => {
+                                    const orNo = additional?.orSeriesNumber || transaction.orSeriesNumber || additional?.orNumber || additional?.orNo;
+                                    const orDocUrl = additional?.orDocumentUrl || transaction.orUrl || additional?.orUrl;
+
+                                    if (!orNo && !orDocUrl) return null;
+
+                                    return (
+                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
+                                                    <FileText className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 block italic leading-none">Treasury Official Receipt</span>
+                                                    <span className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">O.R. Details</span>
+                                                </div>
+                                            </div>
+
+                                            {orNo && (
+                                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">O.R. Series Number</span>
+                                                    <p className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200">
+                                                        {orNo}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {orDocUrl && (
+                                                <div className="space-y-2">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1 block leading-none">Scanned O.R. Copy</span>
+                                                    {(() => {
+                                                        const isPdf = orDocUrl.toLowerCase().endsWith(".pdf") || orDocUrl.includes("application/pdf") || orDocUrl.includes(".pdf?");
+                                                        if (isPdf) {
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt PDF")}
+                                                                    className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                                            📕
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Receipt PDF</p>
+                                                                            <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0">
+                                                                        Open PDF ➔
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <div
+                                                                onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
+                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
+                                                            >
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img 
+                                                                    src={orDocUrl} 
+                                                                    alt="OR Preview" 
+                                                                    className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                                                                    <button
+                                                                        type="button"
+                                                                        style={{ backgroundColor: themeColor }}
+                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
+                                                                    >
+                                                                        <span>VIEW</span>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Action Card */}
+                                <div className="p-6 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
+                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                                        <Clock className="w-6 h-6 animate-pulse" />
+                                    </div>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Ready for Registrar Processing</h4>
+                                    <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Payment has been confirmed. Click below to begin processing this document and officially notify the resident.</p>
+                                </div>
+
+                                <Button
+                                    onClick={handleProcessRequest}
+                                    disabled={actionLoading}
+                                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all"
+                                >
+                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                    Process the request
+                                </Button>
+                            </div>
+                        )}
+
                         {/* TREASURY SPECIFIC READY FOR PAYMENT STEP CONTROLLER */}
                         {isTreasuryContext && transaction.status === "FOR_REQUESTING" && (
                             <div className="space-y-6">
@@ -537,215 +694,408 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                             </div>
                         )}
 
-                        {/* TREASURY ACTION PANEL */}
-                        {isTreasuryContext && transaction.status === "EVALUATED" && (
-                            <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-2xl space-y-6">
-                                <div className="space-y-1">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#10b981] italic">Confirm Payment</h4>
-                                    <p className="text-xs font-bold text-slate-500 italic">Verify and record payment for this transaction.</p>
+                        {/* AWAITING CITIZEN PAYMENT NOTICE */}
+                        {transaction.status === "EVALUATED" && (
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
+                                    <Clock className="w-6 h-6 animate-pulse" />
                                 </div>
-
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block leading-none">O.R. Series Number</span>
-                                        <input
-                                            type="text"
-                                            value={orSeriesNumber}
-                                            onChange={(e) => setOrSeriesNumber?.(e.target.value)}
-                                            placeholder="Enter O.R. Number"
-                                            className="w-full bg-[#1f2937]/50 border border-slate-855 rounded-xl h-11 px-3 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary uppercase tracking-wide"
-                                        />
-                                    </div>
-
-                                    <Button
-                                        onClick={handleConfirmPayment}
-                                        disabled={actionLoading}
-                                        className={`w-full rounded-xl h-12 text-xs font-black uppercase tracking-widest italic text-white ${themeColor}`}
-                                    >
-                                        {actionLoading ? "Confirming Payment..." : "CONFIRM WALK-IN PAYMENT"}
-                                    </Button>
-                                </div>
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Citizen Payment</h4>
+                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
+                                    The assessment fee has been computed. We are currently waiting for the citizen to complete the payment online or upload their proof of payment.
+                                </p>
                             </div>
                         )}
 
                         {/* REGISTRAR UPLOAD E-COPY AND OR RELEASE ACTION */}
                         {transaction.status === "FOR_PROCESSING" && (
-                            <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-2xl space-y-6">
-                                <div className="space-y-1">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#10b981] italic">Upload & Release Document</h4>
-                                    <p className="text-xs font-bold text-slate-500 italic">Verify registry book, attach records, and release e-copy.</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
-                                                Registry Book Status <span className="text-rose-500 font-extrabold">*Required</span>
-                                            </label>
-                                            {registryBookVerification && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setRegistryBookVerification?.("");
-                                                        setBirthRegDocFile?.(null);
-                                                        setBirthRegDocPreview?.(null);
-                                                    }}
-                                                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline italic focus:outline-none"
-                                                >
-                                                    Change Choice
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-2.5">
-                                            {[
-                                                { id: "FORM_1A", title: "Form 1A", desc: "Record Found & Verified" },
-                                                { id: "FORM_1B", title: "Form 1B", desc: "Record Not Available" },
-                                                { id: "FORM_1C", title: "Form 1C", desc: "Record Destroyed" }
-                                            ]
-                                            .filter(opt => !registryBookVerification || registryBookVerification === opt.id)
-                                            .map((opt) => {
-                                                const isSelected = registryBookVerification === opt.id;
-                                                return (
-                                                    <button
-                                                        key={opt.id}
-                                                        type="button"
-                                                        onClick={() => setRegistryBookVerification?.(opt.id)}
-                                                        className={cn(
-                                                            "flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 active:scale-98 select-none w-full",
-                                                            isSelected ? `${themeColor} bg-[#1f2937]/10 border-primary shadow-md font-bold text-white` : "border-slate-800 text-slate-400 bg-[#1f2937]/30 hover:bg-[#1f2937]/50"
-                                                        )}
-                                                    >
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-black uppercase tracking-wider">{opt.title}</span>
-                                                            <span className="text-[10px] italic opacity-85 mt-0.5">{opt.desc}</span>
-                                                        </div>
-                                                        <div className={cn(
-                                                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                                            isSelected ? "border-current bg-current/15" : "border-slate-700"
-                                                        )}>
-                                                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                            <div className="space-y-6">
+                                <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-2xl space-y-6">
+                                    <div className="space-y-1">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#10b981] italic">Upload & Release Document</h4>
+                                        <p className="text-xs font-bold text-slate-500 italic">Verify registry book, attach records, and release e-copy.</p>
                                     </div>
 
-                                    {/* E-Copy/Verification PDF/Image Upload Block (Required once status is selected) */}
-                                    {registryBookVerification && (
-                                        <div className="space-y-3 pt-4 border-t border-slate-800/50">
-                                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
-                                                Attach Verification Scanned Document (PDF/Image) <span className="text-rose-500 font-extrabold">*Required</span>
-                                            </label>
-                                            <input
-                                                type="file"
-                                                accept=".pdf,image/*"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0] || null;
-                                                    setBirthRegDocFile?.(file);
-                                                    if (file) {
-                                                        const url = URL.createObjectURL(file);
-                                                        setBirthRegDocPreview?.(url);
-                                                    } else {
-                                                        setBirthRegDocPreview?.(null);
-                                                    }
-                                                }}
-                                                className="hidden"
-                                                id="verification-doc-upload"
-                                            />
-                                            <label
-                                                htmlFor="verification-doc-upload"
-                                                className={cn(
-                                                    "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-36 bg-[#1f2937]/20 overflow-hidden relative group cursor-pointer",
-                                                    birthRegDocFile
-                                                        ? "border-primary/30 bg-primary/5 shadow-inner"
-                                                        : "border-slate-800 hover:border-primary/30"
+                                    <div className="space-y-4">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
+                                                    Registry Book Status <span className="text-rose-500 font-extrabold">*Required</span>
+                                                </label>
+                                                {registryBookVerification && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setRegistryBookVerification?.("");
+                                                            setBirthRegDocFile?.(null);
+                                                            setBirthRegDocPreview?.(null);
+                                                        }}
+                                                        className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline italic focus:outline-none"
+                                                    >
+                                                        Change Choice
+                                                    </button>
                                                 )}
-                                            >
-                                                {birthRegDocFile ? (
-                                                    <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center select-none">
-                                                        {birthRegDocFile.type.startsWith("image/") ? (
-                                                            <div className="relative w-full h-full group select-none">
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img
-                                                                    src={birthRegDocPreview || ""}
-                                                                    alt="Verification Preview"
-                                                                    className="w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
-                                                                />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            e.preventDefault();
-                                                                            handleViewFile?.(birthRegDocPreview || null, "Verification Document File");
-                                                                        }}
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
-                                                                    >
-                                                                        <span>VIEW</span>
-                                                                    </button>
-                                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-2.5">
+                                                {[
+                                                    { id: "FORM_1A", title: "Form 1A", desc: "Record Found & Verified" },
+                                                    { id: "FORM_1B", title: "Form 1B", desc: "Record Not Available" },
+                                                    { id: "FORM_1C", title: "Form 1C", desc: "Record Destroyed" }
+                                                ]
+                                                .filter(opt => !registryBookVerification || registryBookVerification === opt.id)
+                                                .map((opt) => {
+                                                    const isSelected = registryBookVerification === opt.id;
+                                                    return (
+                                                        <button
+                                                            key={opt.id}
+                                                            type="button"
+                                                            onClick={() => setRegistryBookVerification?.(opt.id)}
+                                                            className={cn(
+                                                                "flex items-center justify-between p-4 rounded-2xl border text-left transition-all duration-300 active:scale-98 select-none w-full",
+                                                                isSelected ? `${themeColor} bg-[#1f2937]/10 border-primary shadow-md font-bold text-white` : "border-slate-800 text-slate-400 bg-[#1f2937]/30 hover:bg-[#1f2937]/50"
+                                                            )}
+                                                        >
+                                                            <div className="flex flex-col">
+                                                                <span className="text-xs font-black uppercase tracking-wider">{opt.title}</span>
+                                                                <span className="text-[10px] italic opacity-85 mt-0.5">{opt.desc}</span>
                                                             </div>
-                                                        ) : (
-                                                            <div className="relative w-full h-full flex flex-col items-center justify-center gap-2 group">
-                                                                <FileText className="w-8 h-8 text-primary" style={{ color: themeColor }} />
-                                                                <span className="text-[9px] font-black uppercase italic tracking-widest text-white max-w-[200px] truncate">{birthRegDocFile.name}</span>
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            e.preventDefault();
-                                                                            handleViewFile?.(birthRegDocPreview || null, "Verification Document File");
-                                                                        }}
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
-                                                                    >
-                                                                        <span>VIEW</span>
-                                                                    </button>
-                                                                </div>
+                                                            <div className={cn(
+                                                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                isSelected ? "border-current bg-current/15" : "border-slate-700"
+                                                            )}>
+                                                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-current" />}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center gap-2">
-                                                        <Upload className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
-                                                        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-4">
-                                                            Upload Scanned Verification Document
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </label>
-                                        </div>
-                                    )}
-
-                                    {/* Official E-Copy Registry Record (PDF/Image) */}
-                                    {registryBookVerification && birthRegDocFile && (
-                                        <div className="space-y-3 pt-4 border-t border-slate-800/50">
-                                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block leading-none">Official E-Copy Registry Record (PDF/Image)</span>
-                                            <div className="relative border border-dashed border-slate-800 rounded-xl p-4 text-center cursor-pointer hover:bg-white/[0.02]">
-                                                <input
-                                                    type="file"
-                                                    onChange={(e) => setECopyFile(e.target.files?.[0] || null)}
-                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    accept="image/*,.pdf"
-                                                />
-                                                <Upload className="w-5 h-5 mx-auto text-slate-500 mb-2" />
-                                                <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
-                                                    {eCopyFile ? eCopyFile.name : "Select Official Release E-Copy File"}
-                                                </span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
-                                    )}
 
+                                        {/* E-Copy/Verification PDF/Image Upload Block (Required once status is selected) */}
+                                        {registryBookVerification && (
+                                            <div className="space-y-3 pt-4 border-t border-slate-800/50">
+                                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
+                                                    Attach Scanned {
+                                                        registryBookVerification === "FORM_1A" ? "Form 1A" :
+                                                        registryBookVerification === "FORM_1B" ? "Form 1B" :
+                                                        registryBookVerification === "FORM_1C" ? "Form 1C" : "Verification Document"
+                                                    } (PDF/Image) <span className="text-rose-500 font-extrabold">*Required</span>
+                                                </label>
+                                                <input
+                                                    type="file"
+                                                    accept=".pdf,image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0] || null;
+                                                        setBirthRegDocFile?.(file);
+                                                        if (file) {
+                                                            const url = URL.createObjectURL(file);
+                                                            setBirthRegDocPreview?.(url);
+                                                        } else {
+                                                            setBirthRegDocPreview?.(null);
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                    id="verification-doc-upload"
+                                                />
+                                                <label
+                                                    htmlFor="verification-doc-upload"
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-36 bg-[#1f2937]/20 overflow-hidden relative group cursor-pointer",
+                                                        birthRegDocFile
+                                                            ? "border-primary/30 bg-primary/5 shadow-inner"
+                                                            : "border-slate-800 hover:border-primary/30"
+                                                    )}
+                                                >
+                                                    {birthRegDocFile ? (
+                                                        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center select-none">
+                                                            {birthRegDocFile.type.startsWith("image/") ? (
+                                                                <div className="relative w-full h-full group select-none">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img
+                                                                        src={birthRegDocPreview || ""}
+                                                                        alt="Verification Preview"
+                                                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                e.preventDefault();
+                                                                                handleViewFile?.(birthRegDocPreview || null, "Verification Document File");
+                                                                            }}
+                                                                            style={{ backgroundColor: themeColor }}
+                                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
+                                                                        >
+                                                                            <span>VIEW</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="relative w-full h-full flex flex-col items-center justify-center gap-2 group">
+                                                                    <FileText className="w-8 h-8 text-primary" style={{ color: themeColor }} />
+                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest text-white max-w-[200px] truncate">{birthRegDocFile.name}</span>
+                                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                e.preventDefault();
+                                                                                handleViewFile?.(birthRegDocPreview || null, "Verification Document File");
+                                                                            }}
+                                                                            style={{ backgroundColor: themeColor }}
+                                                                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
+                                                                        >
+                                                                            <span>VIEW</span>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center gap-2">
+                                                            <Upload className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
+                                                            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-4">
+                                                                Upload Scanned {
+                                                                    registryBookVerification === "FORM_1A" ? "Form 1A" :
+                                                                    registryBookVerification === "FORM_1B" ? "Form 1B" :
+                                                                    registryBookVerification === "FORM_1C" ? "Form 1C" : "Verification Document"
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {transaction.fulfillmentType === "DELIVERY" && (
                                     <Button
-                                        onClick={handleRelease}
-                                        disabled={actionLoading || !registryBookVerification || !birthRegDocFile || !eCopyFile}
-                                        className={`w-full rounded-xl h-12 text-xs font-black uppercase tracking-widest italic text-white ${themeColor}`}
+                                        onClick={handlePrintWaybill}
+                                        variant="outline"
+                                        className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
                                     >
-                                        {actionLoading ? "Releasing Request..." : "UPLOAD AND RELEASE CERTIFICATE"}
+                                        Generate & Print Waybill
                                     </Button>
+                                )}
+
+                                <Button
+                                    onClick={handleRelease}
+                                    disabled={actionLoading || !registryBookVerification || !birthRegDocFile}
+                                    className={`w-full rounded-xl h-12 text-xs font-black uppercase tracking-widest italic text-white ${themeColor}`}
+                                >
+                                    {actionLoading
+                                        ? "Releasing Request..."
+                                        : transaction.fulfillmentType === "DELIVERY"
+                                            ? "Ready For Picking"
+                                            : "Ready For Claim"}
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* REGISTRAR RELEASE FOR PICKING ACTION */}
+                        {transaction.status === "FOR_PICKING" && (
+                            <div className="space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                    <div className="text-center space-y-3">
+                                        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
+                                            <FileText className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.25em] text-slate-800 dark:text-slate-200 font-bold">Awaiting Rider Pickup</h4>
+                                        <p className="text-xs text-slate-400 italic max-w-sm mx-auto">
+                                            The document is ready for delivery. Generate the waybill below for the delivery rider.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handlePrintWaybill}
+                                    variant="outline"
+                                    className="w-full h-14 rounded-2xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                >
+                                    Generate & Print Waybill
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* REGISTRAR RELEASE FOR CLAIM ACTION */}
+                        {transaction.status === "FOR_CLAIM" && (
+                            <div className="space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                    <div className="text-center space-y-3">
+                                        <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mx-auto">
+                                            <Check className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.25em] text-slate-800 dark:text-slate-200 font-bold">Document Ready for Claiming</h4>
+                                        <p className="text-xs text-slate-400 italic max-w-sm mx-auto">
+                                            The document has been verified and processed. Please click below to officially release the document and notify the resident.
+                                        </p>
+                                    </div>
+
+                                    {/* Issued Document Details */}
+                                    <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 space-y-4 text-left">
+                                        <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 dark:border-white/5">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Issued Form</span>
+                                            <span className="text-xs font-black uppercase text-primary font-black" style={{ color: themeColor }}>
+                                                {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
+                                                 additional.registryBookVerification === "FORM_1B" ? "Form 1B (Not Available)" :
+                                                 additional.registryBookVerification === "FORM_1C" ? "Form 1C (Destroyed)" : "N/A"}
+                                            </span>
+                                        </div>
+
+                                        {additional.scannedDocUrl && (
+                                            <div className="space-y-2">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Scanned Registry Record</span>
+                                                {(() => {
+                                                    const docUrl = additional.scannedDocUrl;
+                                                    const isPdf = docUrl.toLowerCase().endsWith(".pdf") || docUrl.includes("application/pdf") || docUrl.includes(".pdf?");
+                                                    if (isPdf) {
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleViewFile?.(docUrl, "Issued Registry Record PDF")}
+                                                                className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                                        📕
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Registry Record PDF</p>
+                                                                        <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0" style={{ color: themeColor, borderColor: `${themeColor}33` }}>
+                                                                    Open PDF ➔
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            onClick={() => handleViewFile?.(docUrl, "Issued Registry Record")}
+                                                            className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
+                                                        >
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img 
+                                                                src={docUrl} 
+                                                                alt="Registry Record Preview" 
+                                                                className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                                                                <button
+                                                                    type="button"
+                                                                    style={{ backgroundColor: themeColor }}
+                                                                    className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
+                                                                >
+                                                                    <span>VIEW</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handleRelease}
+                                    disabled={actionLoading}
+                                    className={`w-full h-14 rounded-2xl text-xs font-black uppercase tracking-wider italic text-white ${themeColor} shadow-lg active:scale-95 transition-all`}
+                                >
+                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                    Release the Document
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* REGISTRAR RELEASED / DELIVERED DETAILS VIEW */}
+                        {(transaction.status === "RELEASED" || transaction.status === "DELIVERED") && (
+                            <div className="space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-6">
+                                    <div className="text-center space-y-3">
+                                        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
+                                            <Check className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.25em] text-slate-800 dark:text-slate-200 font-bold">
+                                            {transaction.status === "DELIVERED" ? "Document Delivered" : "Document Released"}
+                                        </h4>
+                                        <p className="text-xs text-slate-400 italic max-w-sm mx-auto">
+                                            {transaction.status === "DELIVERED" 
+                                                ? "This request has been successfully delivered to the resident." 
+                                                : "This request has been completed and the official document has been released."}
+                                        </p>
+                                    </div>
+
+                                    {/* Issued Document Details */}
+                                    <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 space-y-4 text-left">
+                                        <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 dark:border-white/5">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Issued Form</span>
+                                            <span className="text-xs font-black uppercase text-primary font-black" style={{ color: themeColor }}>
+                                                {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
+                                                 additional.registryBookVerification === "FORM_1B" ? "Form 1B (Not Available)" :
+                                                 additional.registryBookVerification === "FORM_1C" ? "Form 1C (Destroyed)" : "N/A"}
+                                            </span>
+                                        </div>
+
+                                        {additional.scannedDocUrl && (
+                                            <div className="space-y-2">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">Scanned Registry Record</span>
+                                                {(() => {
+                                                    const docUrl = additional.scannedDocUrl;
+                                                    const isPdf = docUrl.toLowerCase().endsWith(".pdf") || docUrl.includes("application/pdf") || docUrl.includes(".pdf?");
+                                                    if (isPdf) {
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleViewFile?.(docUrl, "Issued Registry Record PDF")}
+                                                                className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
+                                                                        📕
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Registry Record PDF</p>
+                                                                        <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0" style={{ color: themeColor, borderColor: `${themeColor}33` }}>
+                                                                    Open PDF ➔
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            onClick={() => handleViewFile?.(docUrl, "Issued Registry Record")}
+                                                            className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
+                                                        >
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img 
+                                                                src={docUrl} 
+                                                                alt="Registry Record Preview" 
+                                                                className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                                                                <button
+                                                                    type="button"
+                                                                    style={{ backgroundColor: themeColor }}
+                                                                    className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
+                                                                >
+                                                                    <span>VIEW</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
