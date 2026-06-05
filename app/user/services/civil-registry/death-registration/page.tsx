@@ -69,6 +69,7 @@ const PreviewImage = ({ file, fallbackUrl, alt, className }: { file: File | null
         };
     }, [file, fallbackUrl]);
 
+    if (!src) return null;
     return <img src={src} alt={alt} className={className} />;
 };
 

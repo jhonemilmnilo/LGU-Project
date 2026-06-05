@@ -79,6 +79,7 @@ const checkIsPdf = (url: string | null) => {
 import BusinessPermitView from "./views/BusinessPermitView";
 import BuildingPermitView from "./views/BuildingPermitView";
 import BirthRegistrationView from "./views/BirthRegistrationView";
+import BirthCertificateView from "./views/BirthCertificateView";
 import GenericServiceView from "./views/GenericServiceView";
 
 interface PageProps {
@@ -1347,7 +1348,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
             const res = await confirmTransactionPaymentWithReceipt(formData);
             if (res.success) {
-                toast.success("Payment Confirmed");
                 setReceiptFile(null);
                 setReceiptPreview(null);
                 // Immediately proceed to processing after confirmation
@@ -1357,10 +1357,21 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                         ? releaseBirthRegistry
                         : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                if (isLCR) {
+                    if (rel.success) {
+                        toast.success("Payment Received & Sent to Civil Registry for Re-Inspection");
+                        router.push("/admin/treasury?category=Civil%20Registry");
+                    } else {
+                        toast.error(rel.error || "Failed to proceed to re-inspection");
+                    }
+                    return;
+                }
+
+                toast.success("Payment Confirmed");
                 if (rel.success) {
-                    toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
+                    toast.success(isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
                 } else {
-                    toast.error(rel.error || (isLCR || isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
+                    toast.error(rel.error || (isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
                 fetchTransaction();
             } else toast.error(res.error || "Failed");
@@ -1722,6 +1733,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return (
             <>
                 <BuildingPermitView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_BIRTH" || isLcrBirthCertifiedCopy) {
+        return (
+            <>
+                <BirthCertificateView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

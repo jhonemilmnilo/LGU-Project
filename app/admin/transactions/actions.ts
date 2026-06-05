@@ -488,11 +488,36 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
         console.log("[submitCivilRegistryTransaction] additionalData:", additionalData);
         console.log("[submitCivilRegistryTransaction] files:", files);
 
+        // Handle default miscFee for Birth Certificate requests (LCR_BIRTH)
+        let initialMiscFee = additionalData.miscFee;
+        let initialTotalAmount = additionalData.totalAmount;
+        let initialFiscalSnapshot: any = null;
+
+        if (registryType === "BIRTH") {
+            const transType = await prisma.transactionType.findUnique({
+                where: { id: typeId }
+            });
+            if (initialMiscFee === undefined || initialMiscFee === null) {
+                initialMiscFee = transType ? Number(transType.baseFee) : 115;
+            }
+            // No basicTax. Total is just the miscFee.
+            initialTotalAmount = Number(initialMiscFee);
+            initialFiscalSnapshot = {
+                basicTax: 0,
+                additionalTax: 0,
+                penaltyCharge: 0,
+                deliveryFee: 0,
+                miscFee: Number(initialMiscFee),
+                totalAmount: initialTotalAmount
+            };
+        }
+
         const updatedAdditionalData = {
             ...additionalData,
             ...files,
             registryType,
-            submittedAt: getPHTimeISOString()
+            submittedAt: getPHTimeISOString(),
+            ...(initialMiscFee !== undefined ? { miscFee: initialMiscFee } : {})
         };
         console.log("[submitCivilRegistryTransaction] updatedAdditionalData:", updatedAdditionalData);
 
@@ -506,8 +531,9 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
                     paymentType: null,
                     residentSnapshot,
                     additionalData: updatedAdditionalData,
-                    totalAmount: additionalData.miscFee ?? additionalData.totalAmount ?? 0,
+                    totalAmount: initialTotalAmount !== undefined ? initialTotalAmount : (additionalData.miscFee ?? additionalData.totalAmount ?? 0),
                     businessName: null,
+                    ...(initialFiscalSnapshot ? { fiscalSnapshot: initialFiscalSnapshot } : {})
                 }
             });
 
@@ -1262,7 +1288,7 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const isBirthReg = typeCode === "LCR_BIRTH_REG";
 
             const baseFee = isBirthCert
-                ? 15
+                ? 0
                 : ((isMarriageReg && !isLate) || isBirthReg)
                     ? 0
                     : Number(transaction.type?.baseFee || 0);

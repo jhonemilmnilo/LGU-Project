@@ -13,7 +13,7 @@ async function getSession() {
     return await getServerSession(authOptions);
 }
 
-export async function releaseBirthCertificate(id: string, registryNumber: string, eCopyUrl?: string, orUrl?: string) {
+export async function releaseBirthCertificate(id: string, registryNumber: string, eCopyUrl?: string, orUrl?: string, registryBookVerification?: string, verificationDocUrl?: string) {
     try {
         id = sanitizeString(id);
         registryNumber = sanitizeString(registryNumber);
@@ -40,6 +40,12 @@ export async function releaseBirthCertificate(id: string, registryNumber: string
         }
 
         const additionalData = (transaction.additionalData as any) || {};
+        if (registryBookVerification) {
+            additionalData.registryBookVerification = registryBookVerification;
+        }
+        if (verificationDocUrl) {
+            additionalData.scannedDocUrl = verificationDocUrl;
+        }
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
         
         const targetStatus = (transaction.status as any) === "PAID"
