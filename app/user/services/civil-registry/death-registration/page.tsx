@@ -166,6 +166,7 @@ export default function DeathRegistrationPage() {
     const [submitting, setSubmitting] = useState(false);
     const [resident, setResident] = useState<any>(null);
     const [typeId, setTypeId] = useState<string>("");
+    const [lateFee, setLateFee] = useState<number>(0);
     const [showErrors, setShowErrors] = useState(false);
 
     const [viewerOpen, setViewerOpen] = useState(false);
@@ -300,6 +301,7 @@ export default function DeathRegistrationPage() {
                     const deathRegType = typesResult.data.find((t: any) => t.code === "LCR_DEATH_REG");
                     if (deathRegType) {
                         setTypeId(deathRegType.id);
+                        setLateFee(deathRegType.lateFee || 0);
                     }
                 }
             } catch (error) {
@@ -504,7 +506,7 @@ export default function DeathRegistrationPage() {
 
             data.append("residentSnapshot", JSON.stringify(residentSnapshot));
 
-            const miscFee = formData.registrationType === "LATE" ? 300 : 0;
+            const miscFee = formData.registrationType === "LATE" ? lateFee : 0;
             const additionalData = {
                 ...formData,
                 subjectName: formData.fullName,
@@ -1163,7 +1165,7 @@ export default function DeathRegistrationPage() {
                                                     {formData.registrationType === "STANDARD" ? (
                                                         <span className="text-lg font-black text-emerald-600 tracking-tight">FREE</span>
                                                     ) : (
-                                                        <span className="text-lg font-black text-amber-600 tracking-tight">₱300.00</span>
+                                                        <span className="text-lg font-black text-amber-600 tracking-tight">₱{lateFee.toFixed(2)}</span>
                                                     )}
                                                 </div>
                                             </div>

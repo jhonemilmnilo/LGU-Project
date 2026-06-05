@@ -211,7 +211,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                         {/* MAIN ASSESSMENT CARD */}
                         <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-12 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-12 animate-in fade-in duration-300">
                             {/* IDENTIFIER / ACCORDION HEADER */}
-                            <div 
+                            <div
                                 className="flex justify-between items-center cursor-pointer select-none"
                                 onClick={() => setIsAssessmentOpen(!isAssessmentOpen)}
                             >
@@ -256,7 +256,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             </p>
                                         </div>
                                         <div className="bg-[#f8fafd] dark:bg-white/5 p-8 rounded-3xl space-y-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Assessment</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Total Amount</span>
                                             <p className="text-2xl font-black italic tracking-tighter text-primary">₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                                         </div>
                                     </div>
@@ -367,7 +367,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             )}
 
                                             <div className="border-t border-dotted border-slate-300 dark:border-white/10 pt-4 mt-4 flex justify-between items-center">
-                                                <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount Due</span>
+                                                <span className="text-base font-black uppercase italic tracking-widest text-slate-900 dark:text-white leading-none">Total Amount</span>
                                                 <span className="text-3xl font-black italic tracking-tighter text-primary leading-none">
                                                     ₱{displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </span>
@@ -438,10 +438,10 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                         <div className="flex flex-col justify-center gap-2">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Verified Birth Doc</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center">
-                                                <Button 
+                                                <Button
                                                     onClick={() => handleViewFile?.(additional.scannedDocUrl, "Scanned Birth Registration Document")}
-                                                    variant="outline" 
-                                                    size="sm" 
+                                                    variant="outline"
+                                                    size="sm"
                                                     className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
                                                 >
                                                     <FileText className="w-3.5 h-3.5" /> View Scanned Document
@@ -751,7 +751,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                     const validDocs = finalEvidenceDocs.filter(d => !!d.url);
                                     const validIndex = validDocs.findIndex(d => d.url === doc.url);
                                     return doc.url ? (
-                                        <div 
+                                        <div
                                             key={i}
                                             onClick={() => doc.url && handleViewFile?.(doc.url, doc.label, validDocs, validIndex)}
                                             className="relative aspect-[4/3] rounded-2xl bg-[#1f2937]/20 border border-slate-800 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
@@ -807,7 +807,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                             {(() => {
                                 const typeCode = (transaction?.type?.code || "").toString().toUpperCase();
                                 const isBirthType = typeCode === "LCR_BIRTH_REG" || typeCode === "LCR_BIRTH" || (transaction?.type?.name && transaction.type.name.toLowerCase().includes("birth"));
-                                 const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
+                                const ctcCandidate = additional.communityTaxCertificate || additional.ctcUrl || additional.community_tax_certificate || additional.communityTax;
                                 const hasCTCInEvidence = finalEvidenceDocs && finalEvidenceDocs.some(d => /community tax|cedula|ctc/i.test(d.label) || (d.url && (d.url === ctcCandidate)));
 
                                 if (isBirthType && !hasCTCInEvidence) {
@@ -940,16 +940,16 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
 
                         {/* Reference Number Card for copy */}
                         {(() => {
-                            const refNo = 
-                                additional?.paymentId || 
-                                additional?.reference_number || 
-                                additional?.gcashReferenceNo || 
+                            const refNo =
+                                additional?.paymentId ||
+                                additional?.reference_number ||
+                                additional?.gcashReferenceNo ||
                                 (transaction.paymentReference && !transaction.paymentReference.startsWith("http") && !transaction.paymentReference.startsWith("/") ? transaction.paymentReference : null) ||
-                                additional?.payment_id || 
+                                additional?.payment_id ||
                                 transaction.paymentId;
 
                             const isPaidOrPending = ["PAID", "FOR_PROCESSING", "FOR_CLAIM", "RELEASED", "DELIVERED", "IN_ROUTE", "FOR_PICKING"].includes(transaction.status);
-                            
+
                             if (!refNo && !isPaidOrPending) return null;
 
                             const displayRefNo = refNo || "No payment reference ID stored";
@@ -1186,16 +1186,16 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     }}
                                                     className="hidden"
                                                     id="or-document-upload-paid"
-                                                 />
-                                                 {orFile || transaction.orUrl ? (
+                                                />
+                                                {orFile || transaction.orUrl ? (
                                                     <div className="space-y-3">
                                                         {(() => {
-                                                            const isPdf = orFile 
-                                                                ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf")) 
-                                                                : (transaction.orUrl 
+                                                            const isPdf = orFile
+                                                                ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
+                                                                : (transaction.orUrl
                                                                     ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
                                                                     : false);
-                                                            
+
                                                             if (isPdf) {
                                                                 return (
                                                                     <button
@@ -1225,13 +1225,13 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                                     className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
                                                                 >
                                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                    <img 
-                                                                        src={orPreview || transaction.orUrl} 
-                                                                        alt="OR Preview" 
+                                                                    <img
+                                                                        src={orPreview || transaction.orUrl}
+                                                                        alt="OR Preview"
                                                                         className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                     />
                                                                     <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                        <div 
+                                                                        <div
                                                                             style={{ backgroundColor: themeColor }}
                                                                             className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
                                                                         >
@@ -1263,7 +1263,7 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                 )}
                                             </div>
                                         </div>
- 
+
                                         <Button
                                             onClick={handleConfirmPayment}
                                             disabled={actionLoading || !orSeriesNumber || (!orFile && !transaction.orUrl)}

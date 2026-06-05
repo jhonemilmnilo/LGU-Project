@@ -39,6 +39,7 @@ import {
 } from "@/app/admin/transactions/cedula-actions";
 import { releaseBirthRegistry } from "@/app/admin/transactions/birth-regis-actions";
 import { releaseBirthCertificate } from "@/app/admin/transactions/birth-cert-actions";
+import { releaseDeathRegistry, releaseDeathCertificate, evaluateDeathRegistrationTransaction } from "@/app/admin/transactions/death-regis-actions";
 import { calculateCedula } from "@/lib/cedula";
 import { calculateBusinessPermit } from "@/lib/business-permit";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ import BusinessPermitView from "@/app/admin/treasury/[id]/views/BusinessPermitVi
 import BuildingPermitView from "@/app/admin/treasury/[id]/views/BuildingPermitView";
 import BirthRegistrationView from "./views/BirthRegistrationView";
 import BirthCertificateView from "./views/BirthCertificateView";
+import DeathRegistrationView from "./views/DeathRegistrationView";
 import GenericServiceView from "@/app/admin/treasury/[id]/views/GenericServiceView";
 import DocumentViewerModal from "@/app/admin/treasury/[id]/components/DocumentViewerModal";
 
@@ -632,7 +634,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl, registryBookVerification, verificationDocUrl)
                 : typeCode === "LCR_BIRTH_REG"
                     ? await releaseBirthRegistry(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
-                    : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
+                    : typeCode === "LCR_DEATH"
+                        ? await releaseDeathCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                        : typeCode === "LCR_DEATH_REG"
+                            ? await releaseDeathRegistry(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                            : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -757,7 +763,9 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 }
             }
 
-            const res = await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, Number(miscFee));
+            const res = typeCode === "LCR_DEATH_REG"
+                ? await evaluateDeathRegistrationTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, Number(miscFee))
+                : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, Number(miscFee));
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -774,7 +782,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
                         ? releaseBirthRegistry
-                        : releaseCedula;
+                        : typeCode === "LCR_DEATH"
+                            ? releaseDeathCertificate
+                            : typeCode === "LCR_DEATH_REG"
+                                ? releaseDeathRegistry
+                                : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success("Proceeding to Processing");
@@ -801,7 +813,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
                         ? releaseBirthRegistry
-                        : releaseCedula;
+                        : typeCode === "LCR_DEATH"
+                            ? releaseDeathCertificate
+                            : typeCode === "LCR_DEATH_REG"
+                                ? releaseDeathRegistry
+                                : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success("Proceeding to Processing");
@@ -1178,7 +1194,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
             const isBirthCert = typeCode === "LCR_BIRTH" || isLcrBirthCertifiedCopy;
             const isBirthReg = typeCode === "LCR_BIRTH_REG";
-            const baseFee = (isBirthCert || isBirthReg || (isMarriageReg && !isLate))
+            const isDeathReg = typeCode === "LCR_DEATH_REG";
+            const baseFee = (isBirthCert || isBirthReg || isDeathReg || (isMarriageReg && !isLate))
                 ? 0
                 : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0);
             const typeDelivery = Number(transaction.type?.deliveryFee || 0);
@@ -1657,6 +1674,23 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             </>
         );
     }
+    if (typeCode === "LCR_DEATH_REG") {
+        return (
+            <>
+                <DeathRegistrationView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerInitialIdx}
+                />
+            </>
+        );
+    }
     if (isLCR) {
         return (
             <>
@@ -1668,6 +1702,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     fileUrl={viewerUrl}
                     title={viewerTitle}
                     themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerInitialIdx}
                 />
             </>
         );
@@ -1682,6 +1718,8 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                 fileUrl={viewerUrl}
                 title={viewerTitle}
                 themeColor={themeColor}
+                documents={viewerDocs}
+                initialIndex={viewerInitialIdx}
             />
         </>
     );

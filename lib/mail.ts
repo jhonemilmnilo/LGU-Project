@@ -283,7 +283,7 @@ export async function sendEmail({ type, to, name, remarks, transactionId, amount
                 <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 16px; padding: 24px; margin: 32px 0;">
                     <p style="color: #0369a1; font-size: 11px; font-weight: 800; text-transform: uppercase; margin: 0 0 12px 0; letter-spacing: 0.05em;">Payment Information</p>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #0c4a6e; font-size: 14px; font-weight: 600;">Total Amount Due:</span>
+                        <span style="color: #0c4a6e; font-size: 14px; font-weight: 600;">Total Amount:</span>
                         <span style="color: #0369a1; font-size: 24px; font-weight: 900;">₱${amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</span>
                     </div>
                     <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 12px; margin-top: 16px;">

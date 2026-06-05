@@ -590,6 +590,7 @@ model TransactionType {
   processorRole UserRole @default(TREASURY_STAFF)
   isActive      Boolean  @default(true)
   studentFee    Float?   @default(0)
+  lateFee       Float?   @default(0)
 
   transactions  Transaction[]
   createdAt     DateTime @default(now())

@@ -53,6 +53,7 @@ import {
 } from "@/app/admin/transactions/cedula-actions";
 import { releaseBirthRegistry } from "@/app/admin/transactions/birth-regis-actions";
 import { releaseBirthCertificate } from "@/app/admin/transactions/birth-cert-actions";
+import { releaseDeathRegistry, releaseDeathCertificate } from "@/app/admin/transactions/death-regis-actions";
 import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -80,6 +81,7 @@ import BusinessPermitView from "./views/BusinessPermitView";
 import BuildingPermitView from "./views/BuildingPermitView";
 import BirthRegistrationView from "./views/BirthRegistrationView";
 import BirthCertificateView from "./views/BirthCertificateView";
+import DeathRegistrationView from "./views/DeathRegistrationView";
 import GenericServiceView from "./views/GenericServiceView";
 
 interface PageProps {
@@ -1337,7 +1339,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
                         ? releaseBirthRegistry
-                        : releaseCedula;
+                        : typeCode === "LCR_DEATH"
+                            ? releaseDeathCertificate
+                            : typeCode === "LCR_DEATH_REG"
+                                ? releaseDeathRegistry
+                                : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
@@ -1369,7 +1375,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
                         ? releaseBirthRegistry
-                        : releaseCedula;
+                        : typeCode === "LCR_DEATH"
+                            ? releaseDeathCertificate
+                            : typeCode === "LCR_DEATH_REG"
+                                ? releaseDeathRegistry
+                                : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (isLCR) {
                     if (rel.success) {
@@ -1766,6 +1776,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return (
             <>
                 <BirthCertificateView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_DEATH_REG") {
+        return (
+            <>
+                <DeathRegistrationView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}
