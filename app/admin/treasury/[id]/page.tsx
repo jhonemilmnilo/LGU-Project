@@ -1327,8 +1327,8 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 return;
             }
 
-            // If already PAID and no O.R. document/number is provided, proceed directly to processing
-            if (transaction.status === "PAID" && !orFile && !orSeriesNumber) {
+            // If already PAID and no O.R. document/number/remarks/receipt is provided, proceed directly to processing
+            if (transaction.status === "PAID" && !orFile && !orSeriesNumber && !receiptFile && !remarks) {
                 const releaseFn = typeCode === "LCR_BIRTH"
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
@@ -1337,7 +1337,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
-                    fetchTransaction();
+                    router.push(backUrl);
                 } else {
                     toast.error(rel.error || (isLCR || isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
@@ -1379,7 +1379,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 } else {
                     toast.error(rel.error || (isBusinessPermit ? "Failed to proceed to re-inspection" : "Failed to proceed to processing"));
                 }
-                fetchTransaction();
+                router.push(backUrl);
             } else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };

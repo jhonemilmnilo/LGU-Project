@@ -686,77 +686,80 @@ export default function BuildingPermitView(props: TreasuryViewProps) {
                                              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
                                                  <h4 className="text-[10px] font-black uppercase tracking-widest text-primary italic">Send Official Receipt</h4>
                                                  
-                                                 {receiptPreview ? (
-                                                     <div className="relative rounded-2xl border-2 border-dashed border-emerald-500/50 bg-emerald-500/5 p-2 overflow-hidden group">
-                                                         <div className="aspect-[16/9] w-full relative rounded-xl overflow-hidden bg-white/50">
-                                                             <Image src={receiptPreview} alt="Receipt Preview" fill className="object-contain" />
+                                                 {additional.treasuryReceiptUrl ? (
+                                                     <div className="space-y-4">
+                                                         <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl space-y-2">
+                                                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-450 block">Sent Receipt Link</span>
+                                                             <Dialog>
+                                                                 <DialogTrigger asChild>
+                                                                     <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden border border-slate-250 dark:border-white/10 cursor-pointer group bg-slate-100 dark:bg-white/5">
+                                                                         <Image src={additional.treasuryReceiptUrl} alt="Sent Receipt" fill className="object-contain" />
+                                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                             <ZoomIn className="w-6 h-6 text-white" />
+                                                                         </div>
+                                                                     </div>
+                                                                 </DialogTrigger>
+                                                                 <LightboxView src={additional.treasuryReceiptUrl} alt="Sent Receipt" label="Sent Official Treasury Receipt" />
+                                                             </Dialog>
                                                          </div>
-                                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                                             <Button
-                                                                 variant="ghost"
-                                                                 size="icon"
-                                                                 onClick={() => {
-                                                                    setReceiptFile(null);
-                                                                    setReceiptPreview(null);
-                                                                 }}
-                                                                 className="w-12 h-12 rounded-full bg-red-500 text-white hover:bg-red-600 hover:scale-110 transition-all"
-                                                             >
-                                                                 <Trash2 className="w-5 h-5" />
-                                                             </Button>
-                                                         </div>
+                                                         {additional.treasuryRemarks && (
+                                                             <div className="p-4 bg-[#f8fafd] dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 text-xs font-bold text-slate-600 dark:text-slate-400 italic">
+                                                                 <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 not-italic block mb-1">Sent Notes:</span>
+                                                                 &ldquo;{additional.treasuryRemarks}&rdquo;
+                                                             </div>
+                                                         )}
                                                      </div>
                                                  ) : (
-                                                     <label className="flex flex-col items-center justify-center h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 hover:border-emerald-500/50 transition-all cursor-pointer group">
-                                                         <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform mb-2">
-                                                             <Upload className="w-5 h-5" />
-                                                         </div>
-                                                         <span className="text-[10px] font-black italic uppercase tracking-widest text-slate-500 dark:text-slate-400">Click to upload receipt photo</span>
-                                                         <span className="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">JPG, PNG, PDF</span>
-                                                         <input type="file" accept="image/*,.pdf" onChange={handleReceiptFileSelect} className="hidden" />
-                                                     </label>
-                                                 )}
-
-                                                 {additional.treasuryReceiptUrl && !receiptPreview && (
-                                                     <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl space-y-2">
-                                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-450 block">Sent Receipt Link</span>
-                                                         <Dialog>
-                                                             <DialogTrigger asChild>
-                                                                 <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden border border-slate-250 dark:border-white/10 cursor-pointer group bg-slate-100 dark:bg-white/5">
-                                                                     <Image src={additional.treasuryReceiptUrl} alt="Sent Receipt" fill className="object-contain" />
-                                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                         <ZoomIn className="w-6 h-6 text-white" />
-                                                                     </div>
+                                                     <>
+                                                         {receiptPreview ? (
+                                                             <div className="relative rounded-2xl border-2 border-dashed border-emerald-500/50 bg-emerald-500/5 p-2 overflow-hidden group">
+                                                                 <div className="aspect-[16/9] w-full relative rounded-xl overflow-hidden bg-white/50">
+                                                                     <Image src={receiptPreview} alt="Receipt Preview" fill className="object-contain" />
                                                                  </div>
-                                                             </DialogTrigger>
-                                                             <LightboxView src={additional.treasuryReceiptUrl} alt="Sent Receipt" label="Sent Official Treasury Receipt" />
-                                                         </Dialog>
-                                                     </div>
+                                                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                                     <Button
+                                                                         variant="ghost"
+                                                                         size="icon"
+                                                                         onClick={() => {
+                                                                            setReceiptFile(null);
+                                                                            setReceiptPreview(null);
+                                                                         }}
+                                                                         className="w-12 h-12 rounded-full bg-red-500 text-white hover:bg-red-600 hover:scale-110 transition-all"
+                                                                     >
+                                                                         <Trash2 className="w-5 h-5" />
+                                                                     </Button>
+                                                                 </div>
+                                                             </div>
+                                                         ) : (
+                                                             <label className="flex flex-col items-center justify-center h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 hover:border-emerald-500/50 transition-all cursor-pointer group">
+                                                                 <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform mb-2">
+                                                                     <Upload className="w-5 h-5" />
+                                                                 </div>
+                                                                 <span className="text-[10px] font-black italic uppercase tracking-widest text-slate-500 dark:text-slate-400">Click to upload receipt photo</span>
+                                                                 <span className="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">JPG, PNG, PDF</span>
+                                                                 <input type="file" accept="image/*,.pdf" onChange={handleReceiptFileSelect} className="hidden" />
+                                                             </label>
+                                                         )}
+
+                                                         <div className="space-y-2">
+                                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Remarks / Notes</Label>
+                                                             <Textarea
+                                                                 placeholder="Write a message/notes to the resident..."
+                                                                 value={remarks}
+                                                                 onChange={(e) => setRemarks(e.target.value)}
+                                                                 className="min-h-[80px] rounded-xl text-xs border-slate-200 dark:border-white/10 font-bold italic"
+                                                             />
+                                                         </div>
+
+                                                         <Button
+                                                             onClick={handleConfirmPayment}
+                                                             disabled={actionLoading || (!receiptFile && !remarks)}
+                                                             className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] rounded-xl shadow-lg active:scale-95 transition-all"
+                                                         >
+                                                             {actionLoading ? "Sending..." : "Send Official Receipt"}
+                                                         </Button>
+                                                     </>
                                                  )}
-
-                                                 {additional.treasuryRemarks && (
-                                                     <div className="p-4 bg-[#f8fafd] dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 text-xs font-bold text-slate-600 dark:text-slate-400 italic">
-                                                         <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 not-italic block mb-1">Sent Notes:</span>
-                                                         &ldquo;{additional.treasuryRemarks}&rdquo;
-                                                     </div>
-                                                 )}
-
-                                                 <div className="space-y-2">
-                                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Remarks / Notes</Label>
-                                                     <Textarea
-                                                         placeholder="Write a message/notes to the resident..."
-                                                         value={remarks}
-                                                         onChange={(e) => setRemarks(e.target.value)}
-                                                         className="min-h-[80px] rounded-xl text-xs border-slate-200 dark:border-white/10 font-bold italic"
-                                                     />
-                                                 </div>
-
-                                                 <Button
-                                                     onClick={handleConfirmPayment}
-                                                     disabled={actionLoading || (!receiptFile && !remarks)}
-                                                     className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-black italic uppercase tracking-widest text-[10px] rounded-xl shadow-lg active:scale-95 transition-all"
-                                                 >
-                                                     {actionLoading ? "Sending..." : "Send Official Receipt"}
-                                                 </Button>
                                              </div>
                                          )}
                                      </div>

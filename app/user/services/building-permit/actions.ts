@@ -325,6 +325,7 @@ export async function submitClearancesForReviewAction(transactionId: string) {
     await prisma.transaction.update({
       where: { id: transactionId },
       data: {
+        status: "FOR_PROCESSING",
         additionalData: {
           ...currentAdditionalData,
           clearancesSubmitted: true

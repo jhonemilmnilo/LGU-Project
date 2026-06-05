@@ -388,6 +388,13 @@ export default function RequestHubPage() {
         initialize();
     }, [id, router]);
 
+    const statusRef = React.useRef(request?.status);
+    const isCancelledRef = React.useRef(request?.isCancelled);
+    useEffect(() => {
+        statusRef.current = request?.status;
+        isCancelledRef.current = request?.isCancelled;
+    }, [request]);
+
     // Realtime Supabase Subscription for request status/detail updates
     useEffect(() => {
         if (!supabase || !id) return;
@@ -409,7 +416,19 @@ export default function RequestHubPage() {
                     try {
                         const res = await getTransactionById(id);
                         if (res.success && res.data) {
-                            setRequest(res.data);
+                            const newStatus = res.data.status;
+                            const oldStatus = statusRef.current;
+                            const newCancelled = res.data.isCancelled;
+                            const oldCancelled = isCancelledRef.current;
+
+                            if (oldStatus && (newStatus !== oldStatus || newCancelled !== oldCancelled)) {
+                                toast.info("Application status updated! Redirecting to requests...");
+                                setTimeout(() => {
+                                    router.push("/user/services/requests");
+                                }, 1000);
+                            } else {
+                                setRequest(res.data);
+                            }
                         }
                     } catch (err) {
                         console.error("Failed to reload request in realtime:", err);
@@ -422,7 +441,7 @@ export default function RequestHubPage() {
             console.log(`Unsubscribing from Supabase Realtime for transaction ${id}...`);
             supabase.removeChannel(channel);
         };
-    }, [id]);
+    }, [id, router]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {

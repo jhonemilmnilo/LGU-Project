@@ -1214,26 +1214,37 @@ export default function BuildingPermitPage() {
       </div>
 
       {/* Progress Stepper */}
-      {currentStep !== "EXISTING" && (
-        <div className="grid grid-cols-6 gap-1.5 md:gap-4 relative px-1 md:px-2">
-          {STEPS.map((step, idx) => {
-            const isActive = currentStep === step.id;
-            const isCompleted = idx <= maxStepIdx;
-            const Icon = step.icon;
-            return (
-              <div
-                key={idx}
-                onClick={() => {
-                  if (isCompleted) {
-                    setCurrentStep(step.id);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                }}
-                className={cn(
-                  "flex flex-col items-center gap-2 md:gap-3 relative z-10 font-black cursor-pointer group",
-                  !isCompleted && "cursor-not-allowed opacity-50"
-                )}
-              >
+      {currentStep !== "EXISTING" && (() => {
+        let allowedMaxIdx = 5;
+        if (selectedApplication) {
+          if (["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(selectedApplication.status)) {
+            allowedMaxIdx = 5;
+          } else if (["UNPAID", "PAID", "TREASURY_REVISION", "FOR_PROCESSING"].includes(selectedApplication.status)) {
+            allowedMaxIdx = 4;
+          } else {
+            allowedMaxIdx = 3;
+          }
+        }
+        return (
+          <div className="grid grid-cols-6 gap-1.5 md:gap-4 relative px-1 md:px-2">
+            {STEPS.map((step, idx) => {
+              const isActive = currentStep === step.id;
+              const isCompleted = idx <= Math.min(maxStepIdx, allowedMaxIdx);
+              const Icon = step.icon;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    if (isCompleted) {
+                      setCurrentStep(step.id);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                  }}
+                  className={cn(
+                    "flex flex-col items-center gap-2 md:gap-3 relative z-10 font-black cursor-pointer group",
+                    !isCompleted && "cursor-not-allowed opacity-50"
+                  )}
+                >
                 <div className={cn(
                   "w-11 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border-2",
                   isActive ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] scale-105 md:scale-110" :
@@ -1252,7 +1263,8 @@ export default function BuildingPermitPage() {
             );
           })}
         </div>
-      )}
+      );
+    })()}
 
       {/* Main Content Area */}
       <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">
@@ -1285,13 +1297,16 @@ export default function BuildingPermitPage() {
                     }));
                     setIsRevision(false);
                     let newMaxIdx = 3;
+                    let initialStep = "EVALUATION";
                     if (["FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(app.status)) {
                       newMaxIdx = 5;
-                    } else if (["EVALUATED", "UNPAID", "PAID", "TREASURY_REVISION"].includes(app.status)) {
+                      initialStep = "SUBMIT";
+                    } else if (["UNPAID", "PAID", "TREASURY_REVISION", "FOR_PROCESSING"].includes(app.status)) {
                       newMaxIdx = 4;
+                      initialStep = "TREASURY";
                     }
                     setMaxStepIdx(newMaxIdx);
-                    setCurrentStep("EVALUATION");
+                    setCurrentStep(initialStep);
                   }}
                   className="bg-white/40 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-6 flex items-center justify-between cursor-pointer hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10 transition-all group"
                 >
@@ -3282,7 +3297,7 @@ export default function BuildingPermitPage() {
                       Receipt uploaded successfully. Treasury is verifying your payment.
                     </div>
                   </div>
-                ) : (
+                ) : ["PAID", "FOR_PROCESSING", "FOR_CLAIM", "FOR_PICKING", "RELEASED", "DELIVERED"].includes(selectedApplication?.status || "") ? (
                   <div className="space-y-6">
                     <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 border border-emerald-100 dark:border-emerald-500/10">
                       <div className="flex items-center gap-3 text-emerald-700 dark:text-emerald-500">
@@ -3482,7 +3497,7 @@ export default function BuildingPermitPage() {
                         </div>
                       )}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
