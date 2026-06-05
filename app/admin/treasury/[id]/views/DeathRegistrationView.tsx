@@ -580,6 +580,31 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                 </Button>
                             </div>
                         )}
+                        {isTreasuryContext && transaction.status === "FOR_REQUESTING" && (
+                            <div className="space-y-6">
+                                <Button
+                                    onClick={handleEvaluate}
+                                    disabled={actionLoading}
+                                    className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all shadow-green-500/10"
+                                >
+                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                    PROCEED TO PAYMENT
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* AWAITING CITIZEN PAYMENT NOTICE */}
+                        {transaction.status === "EVALUATED" && (
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
+                                    <Clock className="w-6 h-6 animate-pulse" />
+                                </div>
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Citizen Payment</h4>
+                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
+                                    The assessment fee has been computed. We are currently waiting for the citizen to complete the payment online or upload their proof of payment.
+                                </p>
+                            </div>
+                        )}
 
                         {/* TREASURY PAID / VERIFICATION CONTROLLER */}
                         {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (rawUserRole === "TREASURY_STAFF" || rawUserRole === "ADMIN") && (
@@ -656,27 +681,66 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                             id="or-document-upload-paid"
                                         />
                                         {orFile || transaction.orUrl ? (
-                                            <div className="flex items-center justify-between p-4 bg-white dark:bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl group shadow-sm">
-                                                <div className="flex items-center gap-3 overflow-hidden">
-                                                    <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-500 flex-shrink-0">
-                                                        <Check className="w-4 h-4 stroke-[3]" />
-                                                    </div>
-                                                    <div className="overflow-hidden">
-                                                        <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none truncate max-w-[150px]">
-                                                            {orFile ? orFile.name : "Official-Receipt.pdf"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Treasury Receipt")}
-                                                        className="h-8 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 select-none"
+                                            <div className="space-y-3">
+                                                {(() => {
+                                                    const isPdf = orFile
+                                                        ? (orFile.type === "application/pdf" || orFile.name.toLowerCase().endsWith(".pdf"))
+                                                        : (transaction.orUrl
+                                                            ? (transaction.orUrl.toLowerCase().endsWith(".pdf") || transaction.orUrl.includes("application/pdf") || transaction.orUrl.includes(".pdf?"))
+                                                            : false);
+
+                                                    if (isPdf) {
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Receipt PDF")}
+                                                                className="w-full flex items-center justify-between p-5 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left animate-in fade-in duration-300 group"
+                                                            >
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-xl shrink-0 group-hover:scale-110 transition-transform">
+                                                                        📕
+                                                                    </div>
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Official Receipt PDF</p>
+                                                                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic leading-none">Click to View PDF in Modal</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="h-9 px-4 rounded-xl border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[9px] group-hover:bg-primary/10 flex items-center gap-1.5 transition-all shrink-0">
+                                                                    Open PDF ➔
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            onClick={() => handleViewFile?.(orPreview || transaction.orUrl, "Official Treasury Receipt")}
+                                                            className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
+                                                        >
+                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                            <img
+                                                                src={orPreview || transaction.orUrl}
+                                                                alt="OR Preview"
+                                                                className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                <div
+                                                                    style={{ backgroundColor: themeColor }}
+                                                                    className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                                >
+                                                                    <span>View</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                                <div className="flex justify-end">
+                                                    <label
+                                                        htmlFor="or-document-upload-paid"
+                                                        className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
                                                     >
-                                                        <Eye className="w-3.5 h-3.5" /> Preview
-                                                    </Button>
+                                                        <Upload className="w-3 h-3" /> Replace O.R. File
+                                                    </label>
                                                 </div>
                                             </div>
                                         ) : (
