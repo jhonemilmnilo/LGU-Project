@@ -201,7 +201,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                 </div>
                                             )}
 
-                                            {/* RENDER STATIC ADDITIONAL FEES IF NOT FOR_INSPECTION */}
+                                            {/* RENDER STATIC ADDITIONAL FEES */}
                                             {transaction.status !== "FOR_INSPECTION" && feeLineItems && feeLineItems.length > 0 && (
                                                 feeLineItems.map((item: any, idx: number) => (
                                                     <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
@@ -503,7 +503,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all shadow-green-500/10"
                                 >
                                     {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                    Approve & Send Assessment
+                                    Proceed to Payment
                                 </Button>
 
                                 <div className="flex gap-2">
@@ -520,6 +520,20 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                         Reject
                                     </Button>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* TREASURY SPECIFIC READY FOR PAYMENT STEP CONTROLLER */}
+                        {isTreasuryContext && transaction.status === "FOR_REQUESTING" && (
+                            <div className="space-y-6">
+                                <Button
+                                    onClick={handleEvaluate}
+                                    disabled={actionLoading}
+                                    className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all shadow-green-500/10"
+                                >
+                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                    Ready for Payment
+                                </Button>
                             </div>
                         )}
 

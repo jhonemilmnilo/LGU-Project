@@ -279,6 +279,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const [birthRegDocFile, setBirthRegDocFile] = useState<File | null>(null);
     const [birthRegDocPreview, setBirthRegDocPreview] = useState<string | null>(null);
     const [orSeriesNumber, setOrSeriesNumber] = useState<string>("");
+    const [miscFee, setMiscFee] = useState<string>("0");
 
     useEffect(() => {
         if (!birthRegDocFile) {
@@ -467,6 +468,18 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success && res.data) {
                 const tx = res.data;
                 setTransaction(tx);
+                if (tx) {
+                    const fiscalSnapshot = tx.fiscalSnapshot as any;
+                    const addData = tx.additionalData || {};
+                    const isLate = (addData.registrationType || "").toUpperCase() === "LATE";
+                    const typeCode = (tx.type?.code || "").toUpperCase();
+                    const defaultLcrMisc = typeCode === "LCR_BIRTH" ? String(tx.type?.baseFee || tx.totalAmount || "115") : "0";
+                    const initialMisc = fiscalSnapshot?.miscFee !== undefined
+                        ? String(fiscalSnapshot.miscFee)
+                        : (addData.miscFee !== undefined ? String(addData.miscFee) : (isLate ? "300" : defaultLcrMisc));
+                    setMiscFee(initialMisc);
+                }
+
                 if (tx.additionalData?.orSeriesNumber) {
                     setOrSeriesNumber(tx.additionalData.orSeriesNumber);
                 }
@@ -858,7 +871,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isLCR) {
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
-            
+
             // Pag FOR_REQUESTING, gamitin ang standard type baseFee (huwag yung transaction.totalAmount para maiwasan ang loop/double mapping)
             const baseFee = (transaction.status === "FOR_REQUESTING")
                 ? Number(transaction.type?.baseFee || 0)
@@ -1276,13 +1289,6 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
 
             const uploadedDocUrl = "";
-            if (isLCR && typeCode === "LCR_BIRTH") {
-                if (!registryBookVerification) {
-                    toast.error("Registry Book Verification Form Choice is required before approving.");
-                    setActionLoading(false);
-                    return;
-                }
-            }
 
 
             // For LCR, resolve miscFee from additionalData to pass explicitly to the server
@@ -1709,7 +1715,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         birthRegDocPreview,
         setBirthRegDocPreview,
         orSeriesNumber,
-        setOrSeriesNumber
+        setOrSeriesNumber,
+        miscFee,
+        setMiscFee
     };
 
     if (isBusinessPermit) {

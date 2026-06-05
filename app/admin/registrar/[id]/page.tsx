@@ -412,9 +412,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     const fiscalSnapshot = tx.fiscalSnapshot as any;
                     const addData = tx.additionalData || {};
                     const isLate = (addData.registrationType || "").toUpperCase() === "LATE";
+                    const typeCode = (tx.type?.code || "").toUpperCase();
+                    const defaultLcrMisc = typeCode === "LCR_BIRTH" ? String(tx.type?.baseFee || tx.totalAmount || "115") : "0";
                     const initialMisc = fiscalSnapshot?.miscFee !== undefined
                         ? String(fiscalSnapshot.miscFee)
-                        : (addData.miscFee !== undefined ? String(addData.miscFee) : (isLate ? "300" : "0"));
+                        : (addData.miscFee !== undefined ? String(addData.miscFee) : (isLate ? "300" : defaultLcrMisc));
                     setMiscFee(initialMisc);
                 }
 
