@@ -741,6 +741,7 @@ export default function RequestHubPage() {
     const isCedula = typeCode.startsWith("CEDULA");
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
     const isLcrBirth = typeCode === "LCR_BIRTH";
+    const isPsaEndorsement = typeCode === "LCR_PSA_ENDORSEMENT";
     const isRenewal = request?.type?.code === "BUSINESS_PERMIT_RENEW" || additionalData.businessType === "RENEWAL" || additionalData.businessType === "RENEW" || additionalData.businessType?.toLowerCase()?.includes("renew");
     const remainingRevisions = request ? Math.max(0, 3 - (request.revisionCount || 0)) : 3;
     const isPermitNewReleasedOrDelivered = isBusinessPermit &&
@@ -2016,7 +2017,89 @@ export default function RequestHubPage() {
                                             })()
                                         )}
 
-                                        {!isLcrBirth && (request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
+                                        {isPsaEndorsement && (request.status === "RELEASED" || request.status === "DELIVERED") && (
+                                            <div
+                                                className="p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:scale-[1.01] w-full text-left bg-white dark:bg-slate-900/40"
+                                                style={{
+                                                    borderColor: `${themeColor}20`,
+                                                    boxShadow: `0 20px 25px -5px ${themeColor}10`
+                                                }}
+                                            >
+                                                <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
+                                                    <ShieldCheck className="w-24 h-24" style={{ color: themeColor }} />
+                                                </div>
+                                                <div className="relative z-10 space-y-6">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
+                                                                style={{ backgroundColor: themeColor }}
+                                                            >
+                                                                <FileText className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[8px] font-black uppercase tracking-widest italic opacity-70 leading-none" style={{ color: themeColor }}>
+                                                                    PSA Endorsement Protocol
+                                                                </p>
+                                                                <p className="text-xs md:text-sm font-black italic tracking-tight uppercase leading-none mt-1.5 text-slate-900 dark:text-white">
+                                                                    Endorsement Transmitted to PSA
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <Badge 
+                                                            className="text-[8px] font-black uppercase tracking-widest italic px-3 py-1 rounded-full text-white border-transparent"
+                                                            style={{ backgroundColor: themeColor }}
+                                                        >
+                                                            TRANSMITTED
+                                                        </Badge>
+                                                    </div>
+
+                                                    <div className="p-5 bg-[#f8fafd] dark:bg-[#121620]/60 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm space-y-4">
+                                                        <p className="text-xs md:text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed italic">
+                                                            The Municipal Civil Registrar has officially endorsed and transmitted your Form 1A to the Philippine Statistics Authority (PSA).
+                                                        </p>
+                                                        <div className="space-y-2 border-t border-slate-200/20 dark:border-white/5 pt-4">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest italic leading-none" style={{ color: themeColor }}>📝 Next Steps for the Applicant:</span>
+                                                            <ul className="list-disc pl-5 text-xs text-slate-600 dark:text-slate-400 space-y-2 font-medium italic">
+                                                                <li>Download or view your Endorsement Copy below to serve as your personal receiving proof.</li>
+                                                                <li>Please wait 3 to 4 weeks to allow the PSA to successfully encode your forwarded records into their national database.</li>
+                                                                <li>After the waiting period, you may directly request your PSA-Authenticated Birth Certificate (SECPA) at any PSA Serbilis Center or online.</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+
+                                                    {request.eCopyUrl && (
+                                                        <div className="grid grid-cols-2 gap-3 pt-2">
+                                                            <Button
+                                                                onClick={handleECopyDownload}
+                                                                className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                                                                style={{
+                                                                    backgroundColor: themeColor,
+                                                                    boxShadow: `0 10px 20px -5px ${themeColor}30`
+                                                                }}
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                                Download Endorsement Copy
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => {
+                                                                    if (request.eCopyUrl) {
+                                                                        handleViewFile(request.eCopyUrl, "Official Endorsement Copy");
+                                                                    }
+                                                                }}
+                                                                variant="outline"
+                                                                className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                                Preview Copy
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!isLcrBirth && !isPsaEndorsement && (request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
                                             <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>
                                                 <div className="relative z-10 space-y-6">

@@ -994,24 +994,28 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                 <h3 className="text-md font-black italic uppercase tracking-wider text-slate-800 dark:text-slate-200">Status Tracker</h3>
                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic mt-1">Status phase progress</p>
                             </div>
-                            <div className="relative border-l border-slate-100 dark:border-white/5 ml-3 space-y-6">
+                            <div className="relative pl-6 space-y-6">
+                                <div className="absolute top-2 bottom-2 left-2.5 w-0.5 bg-slate-100 dark:bg-white/5" />
                                 {steps.map((step, idx) => {
-                                    const isCompleted = idx < currentStepIdx;
-                                    const isCurrent = idx === currentStepIdx;
+                                    const isCompleted = currentStepIdx > idx;
+                                    const isCurrent = currentStepIdx === idx;
                                     return (
-                                        <div key={step.id} className="relative pl-6">
+                                        <div key={idx} className="flex gap-4 relative items-center">
                                             <div className={cn(
-                                                "absolute -left-[9px] top-1 w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all duration-300",
-                                                isCompleted ? "bg-primary border-primary text-white" :
-                                                    isCurrent ? "bg-white dark:bg-slate-900 border-primary text-primary shadow-lg shadow-primary/20 scale-110" :
-                                                        "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-300"
+                                                "w-6.5 h-6.5 rounded-full flex items-center justify-center relative z-10 shrink-0 text-[10px] font-bold border-2 transition-all",
+                                                isCompleted ? "bg-[#10b981] border-[#10b981] text-white shadow-lg shadow-emerald-500/10" :
+                                                    isCurrent ? "bg-primary border-primary text-white shadow-lg shadow-primary/10" :
+                                                        "bg-white dark:bg-[#151b28] border-slate-200 dark:border-slate-800 text-slate-400"
                                             )}>
-                                                {isCompleted ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <span className="text-[8px] font-black">{idx + 1}</span>}
+                                                {isCompleted ? <Check className="w-3 h-3" /> : idx + 1}
                                             </div>
-                                            <div>
-                                                <p className={cn("text-xs font-black uppercase leading-none", isCurrent ? "text-primary italic" : isCompleted ? "text-slate-500 dark:text-slate-400" : "text-slate-300 dark:text-slate-600")}>
+                                            <div className="flex flex-col">
+                                                <span className={cn(
+                                                    "text-[10px] font-black uppercase tracking-widest leading-none",
+                                                    isCurrent ? "text-primary font-black" : "text-slate-500"
+                                                )}>
                                                     {step.label}
-                                                </p>
+                                                </span>
                                             </div>
                                         </div>
                                     );

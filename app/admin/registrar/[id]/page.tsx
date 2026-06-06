@@ -55,6 +55,7 @@ import BirthRegistrationView from "./views/BirthRegistrationView";
 import BirthCertificateView from "./views/BirthCertificateView";
 import DeathRegistrationView from "./views/DeathRegistrationView";
 import GenericServiceView from "@/app/admin/treasury/[id]/views/GenericServiceView";
+import BirthPsaEndorsementView from "./views/BirthPsaEndorsement";
 import DocumentViewerModal from "@/app/admin/treasury/[id]/components/DocumentViewerModal";
 
 interface PageProps {
@@ -1084,7 +1085,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     if (!transaction) return <div className="p-20 text-center dark:text-white">Protocol Error: Transaction Inaccessible</div>;
 
     const isRegistrar = rawUserRole === "REGISTRAR" || userDepartment?.toUpperCase() === "REGISTRAR";
-    if (isLcrBirthCertifiedCopy && isRegistrar && ["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+    if ((isLcrBirthCertifiedCopy || typeCode === "LCR_PSA_ENDORSEMENT") && isRegistrar && ["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
         return (
             <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8 space-y-6">
                 <div className="p-6 rounded-[2.5rem] bg-white dark:bg-[#151b28] border border-amber-500/20 shadow-2xl relative">
@@ -1263,6 +1264,14 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
             return stepsList;
         }
+        if (typeCode === "LCR_PSA_ENDORSEMENT") {
+            return [
+                { id: "VERIFY_BILL", label: "Registrar: Verify & Bill" },
+                { id: "USER_PAYMENT", label: "User: Payment" },
+                { id: "TREASURY_OR", label: "Treasury: Verify & OR" },
+                { id: "REGISTRAR_RELEASE", label: "Registrar: Release" }
+            ];
+        }
         const stepsList = [
             { id: isLCR ? "FOR_INSPECTION" : "FOR_REQUESTING", label: "EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
@@ -1290,7 +1299,9 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     let steps = [...baseSteps];
     const status = transaction.status as string;
 
-    if (status === "REJECTED") {
+    if (typeCode === "LCR_PSA_ENDORSEMENT") {
+        // Maintain the standard 4 steps
+    } else if (status === "REJECTED") {
         steps = [
             { id: isLCR ? "FOR_INSPECTION" : "FOR_REQUESTING", label: "EVALUATION" },
             { id: "REJECTED", label: "REJECTED" }
@@ -1320,6 +1331,18 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     });
 
     const getEffectiveStatus = (s: string) => {
+        if (typeCode === "LCR_PSA_ENDORSEMENT") {
+            if (["FOR_INSPECTION", "FOR_REQUESTING", "UNDER_REVIEW", "FOR_REVISION", "REJECTED"].includes(s)) {
+                return "VERIFY_BILL";
+            }
+            if (["EVALUATED", "UNPAID"].includes(s)) {
+                return "USER_PAYMENT";
+            }
+            if (["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(s)) {
+                return "TREASURY_OR";
+            }
+            return "REGISTRAR_RELEASE";
+        }
         if (isLcrBirthCertifiedCopy && (s === "PAID" || s === "PENDING_PAYMENT_VERIFICATION")) {
             return "VERIFY_OR";
         }
@@ -1653,6 +1676,23 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                     fileUrl={viewerUrl}
                     title={viewerTitle}
                     themeColor={themeColor}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_PSA_ENDORSEMENT") {
+        return (
+            <>
+                <BirthPsaEndorsementView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerInitialIdx}
                 />
             </>
         );
