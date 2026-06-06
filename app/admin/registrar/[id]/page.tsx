@@ -231,8 +231,17 @@ export default function RegistrarDetailPage({ params }: PageProps) {
     const isBPLOAdmin = rawUserRole === "ADMIN" && userDepartment?.toUpperCase() === "BPLO";
     const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
     const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
-    const backUrl = "/admin/registrar";
     const [transaction, setTransaction] = useState<any>(null);
+    const typeCodeForBack = (transaction?.type?.code || "").toUpperCase();
+    const backUrl = typeCodeForBack === "LCR_BIRTH_REG"
+        ? "/admin/registrar?category=Birth%20Registration"
+        : typeCodeForBack === "LCR_BIRTH"
+            ? "/admin/registrar?category=Birth%20Certificate"
+            : typeCodeForBack === "LCR_DEATH_REG"
+                ? "/admin/registrar?category=Death%20Registration"
+                : typeCodeForBack === "LCR_DEATH"
+                    ? "/admin/registrar?category=Death%20Certificate"
+                    : "/admin/registrar";
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [remarks, setRemarks] = useState("");
@@ -658,7 +667,7 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
-    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode, birthRegDocFile, registryBookVerification]);
+    }, [transaction, ctcNumber, eCopyFile, orFile, router, isBusinessPermit, isLCR, isLcrBirthCertifiedCopy, typeCode, birthRegDocFile, registryBookVerification, backUrl]);
 
     // Handle QR Scan Landing: Auto-focus or Auto-release
     useEffect(() => {
@@ -1500,6 +1509,11 @@ export default function RegistrarDetailPage({ params }: PageProps) {
                         key !== 'paymentReference' &&
                         key !== 'eCopyUrl' &&
                         key !== 'orUrl' &&
+                        key !== 'scannedDocUrl' &&
+                        key !== 'orSeriesNumber' &&
+                        key !== 'orNumber' &&
+                        key !== 'orNo' &&
+                        key !== 'orDocumentUrl' &&
                         key !== 'idFrontUrl' &&
                         key !== 'idBackUrl' &&
                         key !== 'validIdFront' &&
