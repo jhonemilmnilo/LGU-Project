@@ -1331,6 +1331,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
             // If already PAID and no O.R. document/number/remarks/receipt is provided, proceed directly to processing
             if (transaction.status === "PAID" && !orFile && !orSeriesNumber && !receiptFile && !remarks) {
+                if (isBuildingPermit) {
+                    router.push(backUrl);
+                    return;
+                }
                 const releaseFn = typeCode === "LCR_BIRTH"
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
@@ -1362,6 +1366,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) {
                 setReceiptFile(null);
                 setReceiptPreview(null);
+                if (isBuildingPermit) {
+                    router.push(backUrl);
+                    return;
+                }
                 // Immediately proceed to processing after confirmation
                 const releaseFn = typeCode === "LCR_BIRTH"
                     ? releaseBirthCertificate
