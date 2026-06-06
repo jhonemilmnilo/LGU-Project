@@ -46,7 +46,8 @@ import {
     ensureCivilRegistryTransactionTypes,
     submitCivilRegistryTransaction,
     getTransactionTypes,
-    getSystemSettingAction
+    getSystemSettingAction,
+    getLatestForm1AForCurrentUser
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -247,7 +248,72 @@ export default function BirthPsaEndorsementPage() {
     };
 
     const handleSelectChange = (name: string, value: string) => {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => {
+            const next = { ...prev, [name]: value };
+            if (name === "relationship") {
+                if (value === "SELF" && resident) {
+                    const sName = [resident.firstName, resident.middleName, resident.lastName].filter(Boolean).join(" ") + (resident.suffix ? " " + resident.suffix : "");
+                    const sDob = resident.dateOfBirth ? new Date(resident.dateOfBirth).toISOString().split('T')[0] : "";
+                    const mName = [resident.motherFirstName, resident.motherMiddleName, resident.motherLastName].filter(Boolean).join(" ");
+                    
+                    next.subjectFullName = sName.toUpperCase();
+                    next.subjectDateOfBirth = sDob;
+                    next.mothersMaidenName = mName.toUpperCase();
+                } else {
+                    next.subjectFullName = "";
+                    next.subjectDateOfBirth = "";
+                    next.mothersMaidenName = "";
+                }
+            }
+            return next;
+        });
+
+        if (name === "relationship" && value !== "SELF") {
+            setFiles(prev => ({ ...prev, form1a: null }));
+            saveDraftFile(STORAGE_KEY, "form1a", null).catch(err => {
+                console.error("Failed to delete draft Form 1A file from IndexedDB:", err);
+            });
+        }
+
+        if (name === "relationship" && value === "SELF") {
+            const promise = (async () => {
+                const res = await getLatestForm1AForCurrentUser();
+                if (res.success && res.data) {
+                    const { docUrl, subjectName, dateOfBirth, mothersMaidenName } = res.data;
+                    
+                    setFormData(prev => ({
+                        ...prev,
+                        subjectFullName: subjectName ? subjectName.toUpperCase() : prev.subjectFullName,
+                        subjectDateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString().split('T')[0] : prev.subjectDateOfBirth,
+                        mothersMaidenName: mothersMaidenName ? mothersMaidenName.toUpperCase() : prev.mothersMaidenName
+                    }));
+
+                    if (docUrl) {
+                        try {
+                            const response = await fetch(docUrl);
+                            const blob = await response.blob();
+                            const filename = docUrl.split('/').pop() || "form_1a.pdf";
+                            const file = new File([blob], filename, { type: blob.type });
+                            
+                            setFiles(prev => ({
+                                ...prev,
+                                form1a: file
+                            }));
+                            
+                            await saveDraftFile(STORAGE_KEY, "form1a", file);
+                            toast.success("Latest Form 1A found and automatically attached from your transactions!");
+                        } catch (err) {
+                            console.error("Failed to download Form 1A file:", err);
+                        }
+                    }
+                }
+            })();
+            toast.promise(promise, {
+                loading: "Checking for your latest issued Form 1A in transactions...",
+                success: "Form 1A status checked.",
+                error: "Failed to check or fetch Form 1A document."
+            });
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
