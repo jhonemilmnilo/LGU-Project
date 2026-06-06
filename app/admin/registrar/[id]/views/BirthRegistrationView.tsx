@@ -1083,18 +1083,21 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
 
                         {/* Interactive Decision / Actions box */}
                         {["FOR_REQUESTING", "EVALUATED", "PAID", "UNPAID"].includes(transaction.status) ? (
-                            <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
-                                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 mx-auto">
+                            <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3 animate-in fade-in duration-300">
+                                <div className={cn(
+                                    "w-12 h-12 rounded-full flex items-center justify-center mx-auto",
+                                    transaction.status === "FOR_REQUESTING" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-600"
+                                )}>
                                     <Clock className="w-6 h-6 animate-pulse" />
                                 </div>
                                 <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">
-                                    {transaction.status === "FOR_REQUESTING" && "Checking by Treasury"}
+                                    {transaction.status === "FOR_REQUESTING" && "Awaiting Payment & Verification"}
                                     {transaction.status === "EVALUATED" && "Assessment Sent"}
                                     {transaction.status === "UNPAID" && "Awaiting Payment"}
                                     {transaction.status === "PAID" && "Payment Confirmed"}
                                 </h4>
                                 <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
-                                    {transaction.status === "FOR_REQUESTING" && "This request is currently under checking/verification by the Treasury department."}
+                                    {transaction.status === "FOR_REQUESTING" && "This request is currently waiting for the citizen to settle the payment and for the Treasury Department to verify the transaction. No action is required from the Registrar at this time."}
                                     {transaction.status === "EVALUATED" && "Assessment has been submitted. Waiting for the citizen to complete GCash payment or walk-in transaction."}
                                     {transaction.status === "UNPAID" && "This request is currently awaiting payment from the citizen."}
                                     {transaction.status === "PAID" && "Payment has been confirmed. The request is proceeding to the next processing phase."}
@@ -1107,11 +1110,11 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                     <div className="space-y-4">
                                         {isBirthReg && transaction.status === "FOR_REQUESTING" ? (
                                             <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
-                                                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 mx-auto">
+                                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
                                                     <Clock className="w-6 h-6 animate-pulse" />
                                                 </div>
-                                                <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Checking by Treasury</h4>
-                                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">This transaction is currently under checking/verification by the Treasury department.</p>
+                                                <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Awaiting Payment & Verification</h4>
+                                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">This request is currently waiting for the citizen to settle the payment and for the Treasury Department to verify the transaction. No action is required from the Registrar at this time.</p>
                                             </div>
                                         ) : transaction.status === "EVALUATED" ? (
                                             <div className="p-8 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
