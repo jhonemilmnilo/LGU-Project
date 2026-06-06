@@ -269,14 +269,33 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                             Fee Assessment Breakdown
                                         </h3>
                                         <div className="space-y-4">
-                                            <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                <span>Miscellaneous Fee</span>
-                                                <span className="dark:text-slate-200 font-black">
-                                                    {parseFloat(miscFee || "0") > 0
-                                                        ? `₱${(parseFloat(miscFee || "0")).toFixed(2)}`
-                                                        : "FREE"}
-                                                </span>
-                                            </div>
+                                            {transaction.type?.code === "LCR_BIRTH_REG" ? (
+                                                <>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        <span>Registration Fee</span>
+                                                        <span className="dark:text-slate-200 font-black">
+                                                            {(() => {
+                                                                const mVal = parseFloat(miscFee || "0");
+                                                                const baseVal = mVal >= 215 ? mVal - 215 : mVal;
+                                                                return baseVal > 0 ? `₱${baseVal.toFixed(2)}` : "FREE";
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                        <span>E-Copy & Hardcopy Fee</span>
+                                                        <span className="dark:text-slate-200 font-black">₱215.00</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                    <span>Miscellaneous Fee</span>
+                                                    <span className="dark:text-slate-200 font-black">
+                                                        {parseFloat(miscFee || "0") > 0
+                                                            ? `₱${(parseFloat(miscFee || "0")).toFixed(2)}`
+                                                            : "FREE"}
+                                                    </span>
+                                                </div>
+                                            )}
 
                                             {transaction.fulfillmentType === "DELIVERY" && (
                                                 <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
@@ -416,8 +435,13 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                 </div>
                             )}
 
-                            {(additional.orSeriesNumber || additional.scannedDocUrl) && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-300">
+                            {(additional.orSeriesNumber || additional.scannedDocUrl || transaction.eCopyUrl) && (
+                                <div className={cn(
+                                    "grid grid-cols-1 gap-4 animate-in fade-in duration-300",
+                                    [additional.orSeriesNumber, additional.scannedDocUrl, transaction.eCopyUrl].filter(Boolean).length >= 3
+                                        ? "md:grid-cols-3"
+                                        : "md:grid-cols-2"
+                                )}>
                                     {additional.orSeriesNumber && (
                                         <div className="flex flex-col justify-center gap-2">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">O.R. Series Number</span>
@@ -437,6 +461,21 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
                                                 >
                                                     <FileText className="w-3.5 h-3.5" /> View Scanned Document
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {transaction.eCopyUrl && (
+                                        <div className="flex flex-col justify-center gap-2">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Released Document (E-Copy)</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center">
+                                                <Button
+                                                    onClick={() => handleViewFile?.(transaction.eCopyUrl, "Released Digital E-Copy Document")}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5" /> View Released Document
                                                 </Button>
                                             </div>
                                         </div>
@@ -579,6 +618,46 @@ export default function BirthRegistrationView(props: TreasuryViewProps) {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                             {!isDeath && !isMarriage && (
+                                                 <>
+                                                     {/* Place of Birth */}
+                                                     <div className="space-y-1.5 pt-2">
+                                                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Birth</span>
+                                                         <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                             {additional.placeOfEvent || "—"}
+                                                         </div>
+                                                     </div>
+
+                                                     {/* Registration Type & Late Duration / Parents Marital Status */}
+                                                     <div className="grid grid-cols-2 gap-4">
+                                                         <div className="space-y-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registration Type</span>
+                                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                                 {additional.registrationType || "STANDARD"}
+                                                             </div>
+                                                         </div>
+                                                         <div className="space-y-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Parents Marital Status</span>
+                                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                                 {additional.parentsMarried === true ? "MARRIED" : additional.parentsMarried === false ? "NOT MARRIED" : "—"}
+                                                             </div>
+                                                         </div>
+                                                     </div>
+
+                                                     {additional.registrationType === "LATE" && additional.lateDuration && (
+                                                         <div className="space-y-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Late Registration Period</span>
+                                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                                 {additional.lateDuration === "1-10" ? "1 Month - 10 Years" :
+                                                                  additional.lateDuration === "10-20" ? "10 - 20 Years" :
+                                                                  additional.lateDuration === "20+" ? "20 Years and Above" :
+                                                                  additional.lateDuration}
+                                                             </div>
+                                                         </div>
+                                                     )}
+                                                 </>
+                                             )}
 
                                             {/* Extra Fields specifically for Marriage */}
                                             {isMarriage && (
