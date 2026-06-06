@@ -2712,6 +2712,7 @@ export async function markForReinspection(id: string, reason: string, details?: 
                 rejectionRemarks,
                 additionalData: newAdditionalData,
                 processedBy: user.id,
+                revisionCount: 0,
                 updatedAt: new Date()
             },
             include: { type: true, user: true }
@@ -4054,3 +4055,56 @@ export async function processRegistrarRequest(id: string) {
         return { success: false, error: "Failed to process request" };
     }
 }
+
+/**
+ * Get the latest completed birth transaction for the current user that has an issued Form 1A document.
+ */
+export async function getLatestForm1AForCurrentUser() {
+    try {
+        const session = await getSession();
+        if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                userId: session.user.id,
+                type: {
+                    code: {
+                        in: ["LCR_BIRTH", "LCR_BIRTH_REG"]
+                    }
+                }
+            },
+            include: {
+                type: true
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        for (const tx of transactions) {
+            const addData = (tx.additionalData as any) || {};
+            if (addData.registryBookVerification === "FORM_1A") {
+                const docUrl = addData.scannedDocUrl || addData.verificationDocUrl || tx.eCopyUrl;
+                if (docUrl) {
+                    const snap = (tx.residentSnapshot as any) || {};
+                    return {
+                        success: true,
+                        data: {
+                            transactionId: tx.id,
+                            docUrl: docUrl,
+                            subjectName: addData.subjectName || addData.fullName || (snap.firstName ? `${snap.firstName} ${snap.lastName}` : null),
+                            dateOfBirth: addData.dateOfBirth || addData.dateOfEvent || snap.dateOfBirth || null,
+                            mothersMaidenName: addData.mothersMaidenName || addData.motherName || addData.mother || null
+                        }
+                    };
+                }
+            }
+        }
+
+        return { success: false, error: "No issued Form 1A found for the user" };
+    } catch (error) {
+        console.error("getLatestForm1AForCurrentUser error:", error);
+        return { success: false, error: "Failed to fetch latest Form 1A" };
+    }
+}
+

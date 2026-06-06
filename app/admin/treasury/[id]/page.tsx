@@ -87,6 +87,8 @@ import DeathRegistrationView from "./views/DeathRegistrationView";
 import DeathCertificateView from "./views/DeathCertificateView";
 import MarriageLicenseView from "./views/MarriageLicenseView";
 import GenericServiceView from "./views/GenericServiceView";
+import BirthPsaEndorsementView from "./views/BirthPsaEndorsement";
+import MarraigeCertificateView from "./views/MarraigeCertificateView";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -826,6 +828,31 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         );
     }
 
+    if (typeCode === "LCR_PSA_ENDORSEMENT" && !["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+        return (
+            <div className="min-h-screen bg-white dark:bg-[#0c111d] flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-amber-500/20 blur-[80px] rounded-full animate-pulse" />
+                    <div className="p-8 rounded-[3rem] bg-white dark:bg-slate-900 shadow-2xl relative z-10 border border-amber-500/20">
+                        <span className="text-8xl">🔒</span>
+                    </div>
+                </div>
+                <div className="space-y-3">
+                    <h1 className="text-4xl font-black italic tracking-tighter text-slate-900 dark:text-white uppercase leading-none">Access Restricted</h1>
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em] text-amber-500 italic">Registrar Action / User Payment Required</p>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
+                    This request is currently under Registrar verification, document release, or waiting for User payment. The Treasury department cannot access this request until it is paid and ready for payment verification.
+                </p>
+                <Link href="/admin/treasury">
+                    <Button variant="outline" className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-xs tracking-wider transition-all active:scale-95">
+                        Back to Treasury Dashboard
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
+
     const additional = transaction.additionalData || {};
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const income = Number(additional.income || 0);
@@ -979,6 +1006,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             return stepsList;
         }
+        if (typeCode === "LCR_PSA_ENDORSEMENT") {
+            return [
+                { id: "VERIFY_BILL", label: "Registrar: Verify & Bill" },
+                { id: "USER_PAYMENT", label: "User: Payment" },
+                { id: "TREASURY_OR", label: "Treasury: Verify & OR" },
+                { id: "REGISTRAR_RELEASE", label: "Registrar: Release" }
+            ];
+        }
         const stepsList = [
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
@@ -1007,7 +1042,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     let steps = [...baseSteps];
     const status = transaction.status as string;
 
-    if (status === "REJECTED") {
+    if (typeCode === "LCR_PSA_ENDORSEMENT") {
+        // Maintain standard 4 steps
+    } else if (status === "REJECTED") {
         steps = [
             { id: "FOR_REQUESTING", label: "EVALUATION" },
             { id: "REJECTED", label: "REJECTED" }
@@ -1038,6 +1075,18 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     });
 
     const getEffectiveStatus = (s: string) => {
+        if (typeCode === "LCR_PSA_ENDORSEMENT") {
+            if (["FOR_INSPECTION", "FOR_REQUESTING", "UNDER_REVIEW", "FOR_REVISION", "REJECTED"].includes(s)) {
+                return "VERIFY_BILL";
+            }
+            if (["EVALUATED", "UNPAID"].includes(s)) {
+                return "USER_PAYMENT";
+            }
+            if (["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(s)) {
+                return "TREASURY_OR";
+            }
+            return "REGISTRAR_RELEASE";
+        }
         if (isLcrBirthCertifiedCopy && (s === "PAID" || s === "PENDING_PAYMENT_VERIFICATION")) {
             return "VERIFY_OR";
         }
@@ -1345,6 +1394,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
 
             // If already PAID and no O.R. document/number/remarks/receipt is provided, proceed directly to processing
             if (transaction.status === "PAID" && !orFile && !orSeriesNumber && !receiptFile && !remarks) {
+                if (isBuildingPermit) {
+                    router.push(backUrl);
+                    return;
+                }
                 const releaseFn = typeCode === "LCR_BIRTH"
                     ? releaseBirthCertificate
                     : typeCode === "LCR_BIRTH_REG"
@@ -1378,6 +1431,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) {
                 setReceiptFile(null);
                 setReceiptPreview(null);
+                if (isBuildingPermit) {
+                    router.push(backUrl);
+                    return;
+                }
                 // Immediately proceed to processing after confirmation
                 const releaseFn = typeCode === "LCR_BIRTH"
                     ? releaseBirthCertificate
@@ -1769,6 +1826,40 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return (
             <>
                 <BuildingPermitView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_PSA_ENDORSEMENT") {
+        return (
+            <>
+                <BirthPsaEndorsementView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_MARRIAGE") {
+        return (
+            <>
+                <MarraigeCertificateView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

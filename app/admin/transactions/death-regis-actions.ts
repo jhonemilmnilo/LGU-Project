@@ -202,7 +202,7 @@ export async function evaluateDeathRegistrationTransaction(
 
         const miscFee = sanitizedMiscFeeOverride !== undefined
             ? sanitizedMiscFeeOverride
-            : (additionalData.miscFee !== undefined ? Number(additionalData.miscFee) : (isLate ? (transaction.type.lateFee || 0) : 0));
+            : (additionalData.miscFee !== undefined ? Number(additionalData.miscFee) : (isLate ? ((transaction.type as any).lateFee || 0) : 0));
 
         const itemsSum = sanitizedBpFeeLineItems ? sanitizedBpFeeLineItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) : 0;
         const total = baseFee + deliveryFeeUsed + miscFee + itemsSum;
