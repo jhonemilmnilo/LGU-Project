@@ -55,6 +55,7 @@ import { releaseBirthRegistry } from "@/app/admin/transactions/birth-regis-actio
 import { releaseBirthCertificate } from "@/app/admin/transactions/birth-cert-actions";
 import { releaseDeathRegistry } from "@/app/admin/transactions/death-regis-actions";
 import { releaseDeathCertificate, evaluateDeathCertificateTransaction } from "@/app/admin/transactions/death-cert-actions";
+import { releaseMarriageLicense, evaluateMarriageLicenseTransaction } from "@/app/admin/transactions/marriage-license-actions";
 import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -84,6 +85,7 @@ import BirthRegistrationView from "./views/BirthRegistrationView";
 import BirthCertificateView from "./views/BirthCertificateView";
 import DeathRegistrationView from "./views/DeathRegistrationView";
 import DeathCertificateView from "./views/DeathCertificateView";
+import MarriageLicenseView from "./views/MarriageLicenseView";
 import GenericServiceView from "./views/GenericServiceView";
 
 interface PageProps {
@@ -718,7 +720,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                     ? await releaseBirthCertificate(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
                     : typeCode === "LCR_BIRTH_REG"
                         ? await releaseBirthRegistry(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
-                        : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
+                        : typeCode === "LCR_MARRIAGE_LICENSE"
+                            ? await releaseMarriageLicense(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl)
+                            : await releaseCedula(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "", eCopyUrl, orUrl);
             if (res.success) {
                 const status = res.data?.status;
                 const message = status === "FOR_PICKING"
@@ -878,11 +882,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isLCR) {
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
+            const isMarriageLicense = typeCode === "LCR_MARRIAGE_LICENSE";
 
             // Pag FOR_REQUESTING, gamitin ang standard type baseFee (huwag yung transaction.totalAmount para maiwasan ang loop/double mapping)
             const baseFee = (transaction.status === "FOR_REQUESTING")
                 ? Number(transaction.type?.baseFee || 0)
-                : ((isMarriageReg && !isLate)
+                : (((isMarriageReg && !isLate) || isMarriageLicense)
                     ? 0
                     : Number(transaction.type?.baseFee || additional.totalAmount || transaction.totalAmount || 0));
 
@@ -895,7 +900,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 ? (additional.miscFee !== undefined ? Number(additional.miscFee) : (isLate ? 300 : 0))
                 : (isLate
                     ? (additional.miscFee !== undefined ? Number(additional.miscFee) : 300)
-                    : 0);
+                    : (isMarriageLicense ? (additional.miscFee !== undefined ? Number(additional.miscFee) : Number(transaction.type?.baseFee || 0)) : 0));
 
             const itemsSum = feeLineItems.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
             const total = (transaction.totalAmount && Number(transaction.totalAmount) > 0 && transaction.status !== "FOR_REQUESTING")
@@ -1305,7 +1310,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 ? await evaluateStudentCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber)
                 : typeCode === "LCR_DEATH"
                     ? await evaluateDeathCertificateTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
-                    : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee);
+                    : typeCode === "LCR_MARRIAGE_LICENSE"
+                        ? await evaluateMarriageLicenseTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
+                        : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee);
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -1346,7 +1353,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             ? releaseDeathCertificate
                             : typeCode === "LCR_DEATH_REG"
                                 ? releaseDeathRegistry
-                                : releaseCedula;
+                                : typeCode === "LCR_MARRIAGE_LICENSE"
+                                    ? releaseMarriageLicense
+                                    : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
@@ -1378,7 +1387,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             ? releaseDeathCertificate
                             : typeCode === "LCR_DEATH_REG"
                                 ? releaseDeathRegistry
-                                : releaseCedula;
+                                : typeCode === "LCR_MARRIAGE_LICENSE"
+                                    ? releaseMarriageLicense
+                                    : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (isLCR) {
                     if (rel.success) {
@@ -1809,6 +1820,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return (
             <>
                 <DeathRegistrationView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_MARRIAGE_LICENSE") {
+        return (
+            <>
+                <MarriageLicenseView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}
