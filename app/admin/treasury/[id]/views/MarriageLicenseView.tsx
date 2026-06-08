@@ -10,6 +10,7 @@ import {
     Upload,
     Clock,
     Eye,
+    ExternalLink,
     ChevronDown,
     ChevronUp,
     Hash,
@@ -539,6 +540,19 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
                             </div>
                         )}
 
+                        {/* AWAITING CITIZEN PAYMENT NOTICE */}
+                        {transaction.status === "EVALUATED" && (
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
+                                    <Clock className="w-6 h-6 animate-pulse" />
+                                </div>
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Citizen Payment</h4>
+                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
+                                    The assessment fee has been computed. We are currently waiting for the citizen to complete the payment online or upload their proof of payment.
+                                </p>
+                            </div>
+                        )}
+
                         {/* TREASURY PAID / VERIFICATION CONTROLLER */}
                         {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (
                             <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-6">
@@ -579,6 +593,31 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
                                         </div>
                                     );
                                 })()}
+
+                                {/* GCash Receipt Image Card */}
+                                {transaction.paymentReference && transaction.paymentReference.trim() !== "" && transaction.paymentReference.startsWith("http") && (
+                                    <div className="space-y-3">
+                                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 ml-1">Receipt Image</label>
+                                        <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl">
+                                            <div
+                                                onClick={() => handleViewFile?.(transaction.paymentReference, "GCash Payment Receipt")}
+                                                className="relative aspect-[16/9] w-full rounded-xl bg-slate-950 overflow-hidden border border-slate-200 dark:border-white/10 group hover:border-primary/50 transition-all cursor-pointer select-none"
+                                            >
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={transaction.paymentReference}
+                                                    alt="GCash Receipt"
+                                                    className="w-full h-full object-contain group-hover:scale-105 transition-all"
+                                                />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                                    <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full flex items-center gap-1.5">
+                                                        <ExternalLink className="w-3 h-3" /> Zoom Receipt
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-4 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
                                     <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-1">
@@ -702,7 +741,7 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
                                         className={`flex-1 h-14 ${themeColor} text-white rounded-2xl font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all shadow-primary/10`}
                                     >
                                         {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                        Payment Received
+                                        Upload O.R. & Mark as Paid
                                     </Button>
                                     {transaction.status === "PENDING_PAYMENT_VERIFICATION" && (
                                         <Button
