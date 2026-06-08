@@ -732,7 +732,7 @@ export default function RequestHubPage() {
         }
     };
 
-    const additionalData = request?.additionalData || {};
+    const additionalData = useMemo(() => request?.additionalData || {}, [request?.additionalData]);
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";

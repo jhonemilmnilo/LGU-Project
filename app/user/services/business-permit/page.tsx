@@ -18,7 +18,8 @@ import {
     HelpCircle,
     X,
     ChevronDown,
-    Eye
+    Eye,
+    AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -250,6 +251,7 @@ export default function BusinessPermitWizardPage() {
     const [isSuspended, setIsSuspended] = useState(false); // 3-Strike Penalty Flag
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [calcResult, setCalcResult] = useState<any | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);

@@ -56,6 +56,7 @@ import { releaseBirthCertificate } from "@/app/admin/transactions/birth-cert-act
 import { releaseDeathRegistry } from "@/app/admin/transactions/death-regis-actions";
 import { releaseDeathCertificate, evaluateDeathCertificateTransaction } from "@/app/admin/transactions/death-cert-actions";
 import { releaseMarriageLicense, evaluateMarriageLicenseTransaction } from "@/app/admin/transactions/marriage-license-actions";
+import { releaseMarriageRegistry, evaluateMarriageRegistrationTransaction } from "@/app/admin/transactions/marriage-regis-actions";
 import { evaluateStudentCedulaTransaction } from "@/app/admin/transactions/student-actions";
 import { cn } from "@/lib/utils";
 import { calculateCedula } from "@/lib/cedula";
@@ -86,6 +87,7 @@ import BirthCertificateView from "./views/BirthCertificateView";
 import DeathRegistrationView from "./views/DeathRegistrationView";
 import DeathCertificateView from "./views/DeathCertificateView";
 import MarriageLicenseView from "./views/MarriageLicenseView";
+import MarriageRegistrationView from "./views/MarriageRegistrationView";
 import GenericServiceView from "./views/GenericServiceView";
 import BirthPsaEndorsementView from "./views/BirthPsaEndorsement";
 import MarraigeCertificateView from "./views/MarraigeCertificateView";
@@ -1375,9 +1377,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 ? await evaluateStudentCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber)
                 : typeCode === "LCR_DEATH"
                     ? await evaluateDeathCertificateTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
-                    : typeCode === "LCR_MARRIAGE_LICENSE"
-                        ? await evaluateMarriageLicenseTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
-                        : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee);
+                    : typeCode === "LCR_MARRIAGE_REG"
+                        ? await evaluateMarriageRegistrationTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
+                        : typeCode === "LCR_MARRIAGE_LICENSE"
+                            ? await evaluateMarriageLicenseTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
+                            : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee);
             if (res.success) {
                 toast.success("Evaluated Successfully");
                 router.push(backUrl);
@@ -1422,9 +1426,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             ? releaseDeathCertificate
                             : typeCode === "LCR_DEATH_REG"
                                 ? releaseDeathRegistry
-                                : typeCode === "LCR_MARRIAGE_LICENSE"
-                                    ? releaseMarriageLicense
-                                    : releaseCedula;
+                                : typeCode === "LCR_MARRIAGE_REG"
+                                    ? releaseMarriageRegistry
+                                    : typeCode === "LCR_MARRIAGE_LICENSE"
+                                        ? releaseMarriageLicense
+                                        : releaseCedula;
                 const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
                 if (rel.success) {
                     toast.success(isLCR || isBusinessPermit ? "Proceeding to Re-Inspection" : "Proceeding to Processing");
@@ -1944,6 +1950,23 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         return (
             <>
                 <MarriageLicenseView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_MARRIAGE_REG") {
+        return (
+            <>
+                <MarriageRegistrationView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

@@ -98,6 +98,7 @@ export default function CedulaApplicationPage() {
     const [submitting, setSubmitting] = useState(false);
     const [baseDraft, setBaseDraft] = useState<string | null>(null);
     const [calcResult, setCalcResult] = useState<CedulaResult | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [initialResident, setInitialResident] = useState<any>(null);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);

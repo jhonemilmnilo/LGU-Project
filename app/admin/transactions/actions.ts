@@ -489,17 +489,25 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
         console.log("[submitCivilRegistryTransaction] additionalData:", additionalData);
         console.log("[submitCivilRegistryTransaction] files:", files);
 
-        // Handle default miscFee for Birth/Death/Marriage Certificate requests (LCR_BIRTH, LCR_DEATH, LCR_MARRIAGE)
+        // Handle default miscFee for Birth/Death/Marriage requests (both certificates and registrations/licenses)
         let initialMiscFee = additionalData.miscFee;
         let initialTotalAmount = additionalData.totalAmount;
         let initialFiscalSnapshot: any = null;
 
-        if (registryType === "BIRTH" || registryType === "DEATH" || registryType === "MARRIAGE") {
+        const isLCRType = [
+            "BIRTH", "DEATH", "MARRIAGE", 
+            "BIRTH_REG", "DEATH_REG", "MARRIAGE_REG", 
+            "MARRIAGE_LICENSE", "PSA_ENDORSEMENT"
+        ].includes(registryType);
+
+        if (isLCRType) {
             const transType = await prisma.transactionType.findUnique({
                 where: { id: typeId }
             });
-            if (initialMiscFee === undefined || initialMiscFee === null) {
-                initialMiscFee = transType ? Number(transType.baseFee) : 150;
+            if (initialMiscFee === undefined || initialMiscFee === null || Number(initialMiscFee) === 0) {
+                initialMiscFee = (additionalData.totalAmount && Number(additionalData.totalAmount) > 0)
+                    ? Number(additionalData.totalAmount)
+                    : (transType ? Number(transType.baseFee) : 0);
             }
             // No basicTax. Total is just the miscFee.
             initialTotalAmount = Number(initialMiscFee);
