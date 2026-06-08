@@ -489,17 +489,25 @@ export async function submitCivilRegistryTransaction(formData: FormData) {
         console.log("[submitCivilRegistryTransaction] additionalData:", additionalData);
         console.log("[submitCivilRegistryTransaction] files:", files);
 
-        // Handle default miscFee for Birth Certificate requests (LCR_BIRTH)
+        // Handle default miscFee for Birth/Death/Marriage requests (both certificates and registrations/licenses)
         let initialMiscFee = additionalData.miscFee;
         let initialTotalAmount = additionalData.totalAmount;
         let initialFiscalSnapshot: any = null;
 
-        if (registryType === "BIRTH") {
+        const isLCRType = [
+            "BIRTH", "DEATH", "MARRIAGE", 
+            "BIRTH_REG", "DEATH_REG", "MARRIAGE_REG", 
+            "MARRIAGE_LICENSE", "PSA_ENDORSEMENT"
+        ].includes(registryType);
+
+        if (isLCRType) {
             const transType = await prisma.transactionType.findUnique({
                 where: { id: typeId }
             });
-            if (initialMiscFee === undefined || initialMiscFee === null) {
-                initialMiscFee = transType ? Number(transType.baseFee) : 115;
+            if (initialMiscFee === undefined || initialMiscFee === null || Number(initialMiscFee) === 0) {
+                initialMiscFee = (additionalData.totalAmount && Number(additionalData.totalAmount) > 0)
+                    ? Number(additionalData.totalAmount)
+                    : (transType ? Number(transType.baseFee) : 0);
             }
             // No basicTax. Total is just the miscFee.
             initialTotalAmount = Number(initialMiscFee);
@@ -1285,11 +1293,11 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const additional = transaction.additionalData as any || {};
             const isLate = (additional.registrationType || "").toUpperCase() === "LATE";
             const isMarriageReg = typeCode === "LCR_MARRIAGE_REG";
-            const isBirthCert = typeCode === "LCR_BIRTH";
+            const isCertifiedCopy = ["LCR_BIRTH", "LCR_DEATH", "LCR_MARRIAGE"].includes(typeCode);
             const isBirthReg = typeCode === "LCR_BIRTH_REG";
             const isDeathReg = typeCode === "LCR_DEATH_REG";
 
-            const baseFee = isBirthCert
+            const baseFee = isCertifiedCopy
                 ? 0
                 : ((isMarriageReg && !isLate) || isBirthReg || isDeathReg)
                     ? 0
@@ -1327,7 +1335,10 @@ export async function evaluateCedulaTransaction(id: string, deliveryFeeOverride?
             const typeCode = (transaction.type?.code || "").toUpperCase();
             const regType = (additionalData?.registrationType || "").toUpperCase();
             const hasAdditionalFees = sanitizedBpFeeLineItems && sanitizedBpFeeLineItems.length > 0;
-            if (typeCode === "LCR_DEATH_REG" && (regType === "STANDARD" || !regType) && !hasAdditionalFees) {
+            const isCertifiedCopy = ["LCR_BIRTH", "LCR_MARRIAGE"].includes(typeCode);
+            if (isCertifiedCopy) {
+                newStatus = "EVALUATED";
+            } else if (typeCode === "LCR_DEATH_REG" && (regType === "STANDARD" || !regType) && !hasAdditionalFees) {
                 newStatus = "EVALUATED";
             } else {
                 newStatus = "FOR_REQUESTING";
@@ -2026,6 +2037,17 @@ export async function resubmitTransaction(id: string, formData: FormData) {
         }
 
         const additionalData = tx.additionalData as any || {};
+
+        // Parse and merge additionalData JSON if provided
+        const additionalDataStr = formData.get("additionalData") as string;
+        if (additionalDataStr) {
+            try {
+                const parsed = JSON.parse(additionalDataStr);
+                Object.assign(additionalData, sanitizeObject(parsed));
+            } catch (e) {
+                console.error("Failed to parse additionalData during resubmit:", e);
+            }
+        }
         const isBusinessPermit = tx.typeId?.includes("BUSINESS_PERMIT") || tx.type?.code?.startsWith("BUSINESS_PERMIT");
         const isCedula = tx.typeId?.includes("CEDULA") || tx.type?.code?.startsWith("CEDULA");
 

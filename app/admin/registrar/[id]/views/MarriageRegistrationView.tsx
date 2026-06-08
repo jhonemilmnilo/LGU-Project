@@ -32,7 +32,7 @@ import TransactionInfoCard from "@/app/admin/treasury/[id]/components/Transactio
 import RejectionRevisionControls from "@/app/admin/treasury/[id]/components/RejectionRevisionControls";
 import { cn } from "@/lib/utils";
 
-export default function DeathRegistrationView(props: TreasuryViewProps) {
+export default function MarriageRegistrationView(props: TreasuryViewProps) {
     const {
         transaction,
         rawUserRole,
@@ -100,7 +100,9 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
     const isTreasuryContext = backUrl?.includes("/admin/treasury") || rawUserRole === "TREASURY_STAFF";
     const regType = (additional.registrationType || "").toUpperCase();
 
-    const subjectName = transaction.deathRegistration?.subjectName || additional.fullName || additional.subjectName || "N/A";
+    const contractingCouples = additional.app1FullName && additional.app2FullName 
+        ? `${additional.app1FullName} & ${additional.app2FullName}`
+        : transaction.marriageRegistration?.businessName || additional.subjectName || "N/A";
 
     return (
         <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-300">
@@ -136,7 +138,7 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                     <div className="lg:col-span-8 space-y-8">
                         {/* TRANSACTION CATEGORY CARD */}
                         <TransactionInfoCard
-                            transactionName="Death Registration Request "
+                            transactionName="Marriage Registration Request "
                             categoryLabel="Local Civil Registry"
                             themeColor={themeColor}
                         />
@@ -151,11 +153,11 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
-                                            Deceased Name
+                                            Contracting Couple
                                         </span>
                                     </div>
-                                    <h1 className="text-3xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
-                                        {subjectName}
+                                    <h1 className="text-2xl font-black italic uppercase tracking-tighter text-[#1e293b] dark:text-white leading-none">
+                                        {contractingCouples}
                                     </h1>
                                 </div>
                                 <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
@@ -206,16 +208,9 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                                 </span>
                                             </div>
 
-                                            {transaction.fulfillmentType === "DELIVERY" && (
-                                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
-                                                    <span>Delivery Fee</span>
-                                                    <span className="dark:text-slate-200 font-black">₱{deliveryFee.toFixed(2)}</span>
-                                                </div>
-                                            )}
-
                                             {/* RENDER STATIC ADDITIONAL FEES */}
                                             {feeLineItems && feeLineItems.length > 0 && feeLineItems.map((item: any, idx: number) => {
-                                                if (!item.readonly && ["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status)) {
+                                                if (!item.readonly && transaction.status === "FOR_INSPECTION") {
                                                     return null;
                                                 }
                                                 const feeAmt = parseFloat(item.amount) || 0;
@@ -230,8 +225,15 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                                 );
                                             })}
 
+                                            {transaction.fulfillmentType === "DELIVERY" && (
+                                                <div className="flex justify-between items-center text-sm font-bold text-slate-600 dark:text-slate-400 italic">
+                                                    <span>Delivery Fee</span>
+                                                    <span className="dark:text-slate-200 font-black">₱{deliveryFee.toFixed(2)}</span>
+                                                </div>
+                                            )}
+
                                             {/* ADDITIONAL FEES EDITOR */}
-                                            {["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status) && (
+                                            {transaction.status === "FOR_INSPECTION" && (
                                                 <div className="pt-2 space-y-2 border-t border-slate-100 dark:border-white/5 pt-4">
                                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                                                         Additional Fees
@@ -324,7 +326,7 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
-                                    Death Registry Record Data
+                                    Marriage Registry Record Data
                                 </h3>
                             </div>
 
@@ -343,7 +345,7 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Verified Registry Document</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center">
                                                 <Button
-                                                    onClick={() => handleViewFile?.(additional.scannedDocUrl, "Scanned Death Registration Document")}
+                                                    onClick={() => handleViewFile?.(additional.scannedDocUrl, "Scanned Marriage Registration Document")}
                                                     variant="outline"
                                                     size="sm"
                                                     className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
@@ -359,97 +361,110 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-6">
                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
-                                        Deceased / Event Info
+                                        Husband (Applicant 1) Details
                                     </h4>
                                     <div className="space-y-6">
                                         <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Deceased Full Name</span>
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Full Name</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                {subjectName}
+                                                {additional.app1FullName || "—"}
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Death</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Birth</span>
                                                 <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {safeFormatDate(additional.dateOfDeath || additional.dateOfEvent)}
+                                                    {safeFormatDate(additional.app1BirthDate)}
                                                 </div>
                                             </div>
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registry No.</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Citizenship</span>
                                                 <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {transaction.deathRegistration?.registryNumber || "PENDING"}
+                                                    {additional.app1Citizenship || "FILIPINO"}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Cause of Death</span>
-                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {additional.causeOfDeath || "—"}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Death</span>
-                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {additional.placeOfEvent || additional.placeOfDeath || "—"}
-                                                </div>
+                                        <div className="space-y-1.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Birth</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                {additional.app1BirthPlace || "—"}
                                             </div>
                                         </div>
-
-                                        {(transaction.deathRegistration?.issuedBy || additional.issuedBy) && (
-                                            <div className="space-y-1.5 pt-4 border-t border-slate-800/50">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Issued By</span>
-                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {transaction.deathRegistration?.issuedBy || additional.issuedBy}
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Parental & Demographic Details</h4>
+                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
+                                        Wife (Applicant 2) Details
+                                    </h4>
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Father&apos;s Full Name</span>
-                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {additional.fathersName || "—"}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Mother&apos;s Full Name</span>
-                                                <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {additional.mothersName || "—"}
-                                                </div>
+                                        <div className="space-y-1.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Full Name</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                {additional.app2FullName || "—"}
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Gender</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Birth</span>
                                                 <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {additional.gender || "—"}
+                                                    {safeFormatDate(additional.app2BirthDate)}
                                                 </div>
                                             </div>
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Civil Status</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Citizenship</span>
                                                 <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {additional.civilStatus || "—"}
+                                                    {additional.app2Citizenship || "FILIPINO"}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Deceased Date of Birth</span>
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Birth</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                {safeFormatDate(additional.dateOfBirth)}
+                                                {additional.app2BirthPlace || "—"}
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Marriage Details Section */}
+                            <div className="pt-8 border-t border-slate-850 space-y-6">
+                                <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">Marriage Ceremony Details</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-1.5">
+                                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Marriage</span>
+                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                            {safeFormatDate(additional.dateOfMarriage)}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5 md:col-span-2">
+                                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Marriage</span>
+                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                            {additional.placeOfMarriage || "—"}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                                    <div className="space-y-1.5">
+                                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registry Book No. / Certificate No.</span>
+                                        <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                            {transaction.marriageRegistration?.ctcNumber || "PENDING"}
+                                        </div>
+                                    </div>
+                                    {(transaction.marriageRegistration?.issuedBy || additional.issuedBy) && (
+                                        <div className="space-y-1.5">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Issued By</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
+                                                {transaction.marriageRegistration?.issuedBy || additional.issuedBy}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -530,7 +545,7 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
-                        {/* PAYMENT REFERENCE AND O.R. DETAILS (Shown below Status Tracker for FOR_REINSPECTION status) */}
+                        {/* PAYMENT REFERENCE AND O.R. DETAILS */}
                         {transaction.status === "FOR_REINSPECTION" && (
                             <div className="space-y-4">
                                 {/* Payment Reference Card */}
@@ -602,112 +617,27 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
 
                                             {orNo && (
                                                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">O.R. Series Number</span>
-                                                    <p className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-500 block leading-none">Receipt Serial Number</span>
+                                                    <span className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200 font-mono block">
                                                         {orNo}
-                                                    </p>
+                                                    </span>
                                                 </div>
                                             )}
 
                                             {orDocUrl && (
-                                                <div className="space-y-2">
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1 block leading-none">Scanned O.R. Copy</span>
-                                                    {(() => {
-                                                        const isPdf = orDocUrl.toLowerCase().endsWith(".pdf") || orDocUrl.includes("application/pdf") || orDocUrl.includes(".pdf?");
-                                                        if (isPdf) {
-                                                            return (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt PDF")}
-                                                                    className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
-                                                                >
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                                                            📕
-                                                                        </div>
-                                                                        <div>
-                                                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Receipt PDF</p>
-                                                                            <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0">
-                                                                        Open PDF ➔
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        }
-
-                                                        return (
-                                                            <div
-                                                                onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
-                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
-                                                            >
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img
-                                                                    src={orDocUrl}
-                                                                    alt="Official Receipt"
-                                                                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500"
-                                                                />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
-                                                                    <div
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg"
-                                                                    >
-                                                                        <span>VIEW</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
+                                                <Button
+                                                    onClick={() => handleViewFile?.(orDocUrl, "Official Receipt Copy")}
+                                                    variant="outline"
+                                                    className="w-full h-11 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 border-slate-200 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
+                                                >
+                                                    <FileText className="w-4 h-4" /> VIEW OFFICIAL RECEIPT FILE
+                                                </Button>
                                             )}
                                         </div>
                                     );
                                 })()}
                             </div>
                         )}
-
-                        {/* SPECIFIC REGISTRAR OPERATION STEP CONTROLLER */}
-                        {transaction.status === "FOR_INSPECTION" && (
-                            <div className="space-y-6">
-                                <Button
-                                    onClick={handleEvaluate}
-                                    disabled={actionLoading}
-                                    className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all shadow-green-500/10"
-                                >
-                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                    Approve & Send Assessment
-                                </Button>
-
-                                <div className="flex gap-2">
-                                    <Button
-                                        onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
-                                        className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
-                                    >
-                                        Revision
-                                    </Button>
-                                    <Button
-                                        onClick={() => { setIsRejecting(true); setRemarks(""); }}
-                                        className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
-                                    >
-                                        Decline
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {transaction.status === "FOR_REQUESTING" && (
-                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center animate-in fade-in duration-300">
-                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
-                                    <Clock className="w-6 h-6 animate-pulse" />
-                                </div>
-                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Payment & Verification</h4>
-                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
-                                    This request is currently waiting for the citizen to settle the payment and for the Treasury Department to verify the transaction. No action is required from the Registrar at this time.
-                                </p>
-                            </div>
-                        )}
-
                         {/* REGISTRAR FOR_REINSPECTION CONTROLLER */}
                         {transaction.status === "FOR_REINSPECTION" && (
                             <div className="space-y-6">
@@ -730,73 +660,131 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                             </div>
                         )}
 
-                        {/* TREASURY PAID / VERIFICATION CONTROLLER */}
-                        {(transaction.status === "PAID" || transaction.status === "PENDING_PAYMENT_VERIFICATION") && (
-                            <div className="space-y-4">
-                                {/* GCash Reference Card */}
-                                {(() => {
-                                    const refNo = additional?.gcashReferenceNo || transaction.paymentReference || additional?.paymentReference;
-                                    if (!refNo) return null;
+                        {/* REGISTRAR AND TREASURY ACTION PANEL */}
 
-                                    return (
-                                        <div className="space-y-3">
-                                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Payment Proof Reference</label>
-                                            <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between shadow-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <Coins className="text-primary w-4 h-4" />
-                                                    <span className="text-xs font-black text-slate-600 dark:text-slate-300">
-                                                        Reference No: {refNo}
-                                                    </span>
-                                                </div>
-                                                {refNo !== "N/A" && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(refNo);
-                                                            toast.success("Reference number copied to clipboard!");
-                                                        }}
-                                                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all focus:outline-none"
-                                                        title="Copy Reference Number"
-                                                    >
-                                                        <Copy className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
+                        {/* LCR REGISTRAR EVALUATION (FOR_INSPECTION) */}
+                        {transaction.status === "FOR_INSPECTION" && (
+                            <div className="space-y-6">
+                                <Button
+                                    onClick={handleEvaluate}
+                                    disabled={actionLoading}
+                                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all"
+                                >
+                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
+                                    {isTreasuryContext ? "Approve & Request Payment" : "Approve & Send Assessment"}
+                                </Button>
 
-                                {/* GCash Receipt Image Card */}
-                                {transaction.paymentReference && transaction.paymentReference.trim() !== "" && transaction.paymentReference.startsWith("http") && (
-                                    <div className="space-y-3">
-                                        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">Receipt Image</label>
-                                        <div className="p-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl">
-                                            <div
-                                                onClick={() => handleViewFile?.(transaction.paymentReference, "Payment Proof Document")}
-                                                className="relative aspect-[4/3] rounded-xl bg-slate-100 dark:bg-black/20 border border-slate-200 dark:border-white/5 overflow-hidden group cursor-pointer hover:border-primary/50 transition-all select-none"
+                                {!isTreasuryContext && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => { setIsRequestingRevision(true); setRemarks(""); }}
+                                            className="flex-1 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
+                                        >
+                                            Request Revision
+                                        </Button>
+                                        <Button
+                                            onClick={() => { setIsRejecting(true); setRemarks(""); }}
+                                            className="flex-1 h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all"
+                                        >
+                                            Decline
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* REGISTRAR AWAITING PAYMENT (FOR_REQUESTING) */}
+                        {transaction.status === "FOR_REQUESTING" && (
+                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center animate-in fade-in duration-300">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
+                                    <Clock className="w-6 h-6 animate-pulse" />
+                                </div>
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Payment & Verification</h4>
+                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
+                                    This request is currently waiting for the citizen to settle the payment and for the Treasury Department to verify the transaction. No action is required from the Registrar at this time.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* TREASURY PAYMENT PHASE (PAID / PENDING_PAYMENT_VERIFICATION / EVALUATED / UNPAID) */}
+                        {isTreasuryContext && ["EVALUATED", "UNPAID", "PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction.status) && (
+                            <div className="space-y-6 bg-white dark:bg-[#151b28] rounded-[2rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl">
+                                <div className="space-y-1 pb-4 border-b border-slate-100 dark:border-white/5">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-green-500 italic">Treasury Collection</h4>
+                                    <p className="text-[10px] font-bold text-slate-400 italic">Verify proof of payment, record receipt serial, and confirm payment.</p>
+                                </div>
+
+                                {transaction.paymentReference && (
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-2 mt-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-500">Resident GCash Reference</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(transaction.paymentReference || "");
+                                                    toast.success("Reference number copied!");
+                                                }}
+                                                className="text-slate-450 hover:text-primary transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5"
                                             >
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
-                                                    src={transaction.paymentReference}
-                                                    alt="GCash Receipt"
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-all"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                    <span className="text-[9px] font-black text-white tracking-widest uppercase italic bg-primary px-3 py-1 rounded-full flex items-center gap-1.5">
-                                                        <ExternalLink className="w-3 h-3" /> Zoom Receipt
-                                                    </span>
-                                                </div>
-                                            </div>
+                                                <Copy className="w-4 h-4" />
+                                            </button>
                                         </div>
+                                        <p className="text-xs font-black tracking-widest font-mono text-slate-800 dark:text-slate-200">
+                                            {transaction.paymentReference}
+                                        </p>
                                     </div>
                                 )}
 
-                                {/* Treasury OR Form - Only visible on Treasury context */}
-                                {isTreasuryContext && (
+                                {transaction.status === "PENDING_PAYMENT_VERIFICATION" && (
                                     <>
-                                        <div className="space-y-4 p-5 rounded-3xl bg-[#f8fafd] dark:bg-white/5 border border-slate-100 dark:border-white/5">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block mb-1">
-                                                Upload Official Treasury Receipt
+                                        {additional.gcashReceiptUrl && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-450 block italic"> GCash Receipt Image</label>
+                                                <div
+                                                    onClick={() => handleViewFile?.(additional.gcashReceiptUrl, "Resident GCash Receipt Proof")}
+                                                    className="relative aspect-[9/16] w-full max-w-[200px] mx-auto rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
+                                                >
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        src={additional.gcashReceiptUrl}
+                                                        alt="GCash Receipt Proof"
+                                                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                                    />
+                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                        <div style={{ backgroundColor: themeColor }} className="backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/25 text-white font-black italic uppercase tracking-widest text-[8px]">
+                                                            View
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 block italic leading-none">Reason (Required if declining)</label>
+                                            <Textarea
+                                                value={remarks}
+                                                onChange={(e) => setRemarks(e.target.value)}
+                                                placeholder="Write reason for declining payment proof..."
+                                                className="min-h-16 rounded-xl border-slate-150 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01] text-xs font-bold text-slate-800 dark:text-slate-100 p-3"
+                                            />
+                                        </div>
+
+                                        <Button
+                                            onClick={handleDeclinePaymentProof}
+                                            disabled={actionLoading || !remarks}
+                                            variant="outline"
+                                            className="w-full h-11 rounded-xl border-2 font-black italic uppercase text-[9px] tracking-widest text-rose-600 border-rose-600/20 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95"
+                                        >
+                                            Decline Payment Proof
+                                        </Button>
+                                    </>
+                                )}
+
+                                {["PAID", "PENDING_PAYMENT_VERIFICATION", "EVALUATED", "UNPAID"].includes(transaction.status) && (
+                                    <>
+                                        <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block">
+                                                Record Receipt details
                                             </span>
 
                                             <div className="space-y-2">
@@ -818,26 +806,9 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                                 </label>
                                                 <input
                                                     type="file"
-                                                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                                    accept=".pdf,image/*"
                                                     onChange={(e) => {
                                                         const file = e.target.files?.[0] || null;
-                                                        if (file && file.size > 5 * 1024 * 1024) {
-                                                            toast.error("File size exceeds 5MB limit.");
-                                                            if (e.target.parentElement) {
-                                                                const parent = e.target.parentElement;
-                                                                let errEl = parent.querySelector('.file-error-msg');
-                                                                if (!errEl) {
-                                                                    errEl = document.createElement('div');
-                                                                    errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-                                                                    parent.appendChild(errEl);
-                                                                }
-                                                                errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-                                                                setTimeout(() => errEl && errEl.remove(), 4000);
-                                                            }
-                                                            e.target.value = "";
-                                                            setOrFile?.(null);
-                                                            return;
-                                                        }
                                                         setOrFile?.(file);
                                                         if (file) {
                                                             const url = URL.createObjectURL(file);
@@ -892,7 +863,7 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                                                         alt="OR Preview"
                                                                         className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                     />
-                                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
+                                                                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-350 backdrop-blur-[2px]">
                                                                         <div
                                                                             style={{ backgroundColor: themeColor }}
                                                                             className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
@@ -908,7 +879,7 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                                                 htmlFor="or-document-upload-paid"
                                                                 className="h-8 px-3 rounded-lg border border-transparent bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 shadow-sm select-none"
                                                             >
-                                                                <Upload className="w-3 h-3" /> Replace O.R. File
+                                                                 Replace O.R. File
                                                             </label>
                                                         </div>
                                                     </div>
@@ -968,26 +939,9 @@ export default function DeathRegistrationView(props: TreasuryViewProps) {
                                         </label>
                                         <input
                                             type="file"
-                                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                            accept=".pdf,image/*"
                                             onChange={(e) => {
                                                 const file = e.target.files?.[0] || null;
-                                                if (file && file.size > 5 * 1024 * 1024) {
-                                                    toast.error("File size exceeds 5MB limit.");
-                                                    if (e.target.parentElement) {
-                                                        const parent = e.target.parentElement;
-                                                        let errEl = parent.querySelector('.file-error-msg');
-                                                        if (!errEl) {
-                                                            errEl = document.createElement('div');
-                                                            errEl.className = 'file-error-msg text-[9px] font-black uppercase text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-center animate-pulse mt-2 z-50';
-                                                            parent.appendChild(errEl);
-                                                        }
-                                                        errEl.textContent = 'LIMIT UPLOAD ERROR: MAX 5MB ALLOWED';
-                                                        setTimeout(() => errEl && errEl.remove(), 4000);
-                                                    }
-                                                    e.target.value = "";
-                                                    setECopyFile(null);
-                                                    return;
-                                                }
                                                 setECopyFile(file);
                                                 if (file) {
                                                     const url = URL.createObjectURL(file);
