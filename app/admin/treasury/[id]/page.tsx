@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, use, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -263,11 +263,25 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const userRole = isBPLOAdmin ? "ADMIN_AIDE" : rawUserRole;
     // Treasury Staff can only upload OR; Permit No., Sticker No., and Waybill are BPLO Admin only
     const isTreasuryStaff = rawUserRole === "TREASURY_STAFF";
+    const searchParams = useSearchParams();
+    const categoryQuery = searchParams.get("category");
     const [transaction, setTransaction] = useState<any>(null);
     const typeCodeForBack = (transaction?.type?.code || "").toUpperCase();
     const isLcrTx = typeCodeForBack.startsWith("LCR_") || typeCodeForBack.startsWith("CIVIL_REGISTRY") || (transaction?.type?.name && (transaction.type.name.includes("Certificate") || transaction.type.name.includes("Registration")));
-    const backUrl = isLcrTx
-        ? "/admin/treasury?category=Civil%20Registry"
+    
+    const fallbackCategory = isLcrTx
+        ? "Civil Registry"
+        : (typeCodeForBack.includes("CEDULA")
+            ? "CEDULA"
+            : (typeCodeForBack.startsWith("BUSINESS_PERMIT")
+                ? "Business Permit"
+                : (typeCodeForBack.startsWith("BUILDING_PERMIT")
+                    ? "Building Permit"
+                    : null)));
+
+    const activeCategory = categoryQuery || fallbackCategory;
+    const backUrl = activeCategory && activeCategory !== "ALL"
+        ? `/admin/treasury?category=${encodeURIComponent(activeCategory)}`
         : "/admin/treasury";
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
