@@ -453,7 +453,7 @@ export default function BusinessPermitView({
                             >
                                 <div className="flex items-center gap-2">
                                     <BadgeCheck className="w-5 h-5 text-primary" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">All Requirments</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">All Requirements</span>
                                 </div>
                                 <div className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-white transition-all focus:outline-none shrink-0">
                                     {isRequirementsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
