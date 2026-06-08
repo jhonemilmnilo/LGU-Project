@@ -1378,7 +1378,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 : typeCode === "LCR_DEATH"
                     ? await evaluateDeathCertificateTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
                     : typeCode === "LCR_MARRIAGE_REG"
-                        ? await evaluateMarriageRegistrationTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
+                        ? await evaluateMarriageRegistrationTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee, true)
                         : typeCode === "LCR_MARRIAGE_LICENSE"
                             ? await evaluateMarriageLicenseTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee)
                             : await evaluateCedulaTransaction(transaction.id, deliveryFee, remarks, itemsToSend, registryBookVerification, uploadedDocUrl, orSeriesNumber, lcrMiscFee);
@@ -1466,10 +1466,17 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                             ? releaseDeathCertificate
                             : typeCode === "LCR_DEATH_REG"
                                 ? releaseDeathRegistry
-                                : typeCode === "LCR_MARRIAGE_LICENSE"
-                                    ? releaseMarriageLicense
-                                    : releaseCedula;
-                const rel = await releaseFn(transaction.id, ctcNumber || transaction?.cedula?.ctcNumber || "");
+                                : typeCode === "LCR_MARRIAGE_REG"
+                                    ? releaseMarriageRegistry
+                                    : typeCode === "LCR_MARRIAGE_LICENSE"
+                                        ? releaseMarriageLicense
+                                        : releaseCedula;
+                const rel = await releaseFn(
+                    transaction.id, 
+                    ctcNumber || transaction?.cedula?.ctcNumber || "",
+                    undefined,
+                    (res.data?.additionalData as any)?.orDocumentUrl
+                );
                 if (isLCR) {
                     if (rel.success) {
                         toast.success("Payment Received & Sent to Civil Registry for Re-Inspection");

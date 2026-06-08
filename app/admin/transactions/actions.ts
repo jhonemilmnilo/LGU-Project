@@ -1479,7 +1479,7 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         // - DELIVERY with CASH_ON_DELIVERY also goes to FOR_PROCESSING
         let newStatus = (fulfillmentType === "PICK_UP" || paymentType === "CASH_ON_DELIVERY") ? "FOR_PROCESSING" : "UNPAID";
         if (paymentType === "E_PAYMENT" || paymentType === "BANK_TRANSFER") {
-            newStatus = "UNPAID";
+            newStatus = "PAID";
         }
         if (finalAmount === 0) {
             newStatus = "FOR_PROCESSING";
@@ -1489,9 +1489,13 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         const typeCode = (transaction.type?.code || "").toUpperCase();
         const additional = (transaction.additionalData as any) || {};
         const regType = (additional.registrationType || "").toUpperCase();
-        if ((typeCode === "LCR_DEATH_REG" || transaction.typeId === "cmpgkxxke0019vpjkquvcxggu") && 
+        if ((
+            typeCode === "LCR_DEATH_REG" || 
+            transaction.typeId === "cmpgkxxke0019vpjkquvcxggu" ||
+            typeCode === "LCR_MARRIAGE_REG" ||
+            typeCode === "LCR_BIRTH_REG"
+        ) && 
             (regType === "STANDARD" || regType === "") && 
-            fulfillmentType === "PICK_UP" && 
             finalAmount === 0) {
             newStatus = "FOR_REINSPECTION";
         }
