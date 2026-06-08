@@ -81,9 +81,11 @@ import BusinessPermitView from "./views/BusinessPermitView";
 import BuildingPermitView from "./views/BuildingPermitView";
 import BirthRegistrationView from "./views/BirthRegistrationView";
 import BirthCertificateView from "./views/BirthCertificateView";
+import DeathCertificateView from "./views/DeathCertificateView";
 import DeathRegistrationView from "./views/DeathRegistrationView";
 import GenericServiceView from "./views/GenericServiceView";
 import BirthPsaEndorsementView from "./views/BirthPsaEndorsement";
+import DeathPsaEndorsementView from "./views/DeathPsaEndorsement";
 import MarraigeCertificateView from "./views/MarraigeCertificateView";
 
 interface PageProps {
@@ -451,7 +453,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const isLCR = (transaction?.type?.code?.startsWith("LCR_") ?? false) || (transaction?.type?.code?.startsWith("CIVIL_REGISTRY") ?? false);
     const isCedula = transaction?.type?.code?.includes("CEDULA") ?? false;
     const typeCode = (transaction?.type?.code || "").toUpperCase();
-    const isLcrCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_DEATH" || typeCode === "LCR_MARRIAGE" || typeCode === "LCR_PSA_ENDORSEMENT" || (transaction?.type?.name && (transaction.type.name.includes("Birth Certificate") || transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Marriage Certificate"))) || false;
+    const isLcrCertifiedCopy = typeCode === "LCR_BIRTH" || typeCode === "LCR_DEATH" || typeCode === "LCR_MARRIAGE" || typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT" || (transaction?.type?.name && (transaction.type.name.includes("Birth Certificate") || transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Marriage Certificate"))) || false;
     const isLcrBirthCertifiedCopy = isLcrCertifiedCopy;
     const _isBirth = typeCode.includes("BIRTH");
     const isDeath = typeCode.includes("DEATH");
@@ -819,7 +821,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         );
     }
 
-    if (typeCode === "LCR_PSA_ENDORSEMENT" && !["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
+    if ((typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") && !["PAID", "PENDING_PAYMENT_VERIFICATION"].includes(transaction?.status)) {
         return (
             <div className="min-h-screen bg-white dark:bg-[#0c111d] flex flex-col items-center justify-center p-8 text-center space-y-8 animate-in fade-in duration-700">
                 <div className="relative">
@@ -996,7 +998,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             }
             return stepsList;
         }
-        if (typeCode === "LCR_PSA_ENDORSEMENT") {
+        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
             return [
                 { id: "VERIFY_BILL", label: "Registrar: Verify & Bill" },
                 { id: "USER_PAYMENT", label: "User: Payment" },
@@ -1032,7 +1034,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     let steps = [...baseSteps];
     const status = transaction.status as string;
 
-    if (typeCode === "LCR_PSA_ENDORSEMENT") {
+    if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
         // Maintain standard 4 steps
     } else if (status === "REJECTED") {
         steps = [
@@ -1065,7 +1067,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     });
 
     const getEffectiveStatus = (s: string) => {
-        if (typeCode === "LCR_PSA_ENDORSEMENT") {
+        if (typeCode === "LCR_PSA_ENDORSEMENT" || typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
             if (["FOR_INSPECTION", "FOR_REQUESTING", "UNDER_REVIEW", "FOR_REVISION", "REJECTED"].includes(s)) {
                 return "VERIFY_BILL";
             }
@@ -1838,10 +1840,44 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             </>
         );
     }
+    if (typeCode === "LCR_DEATH_PSA_ENDORSEMENT") {
+        return (
+            <>
+                <DeathPsaEndorsementView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
     if (typeCode === "LCR_MARRIAGE") {
         return (
             <>
                 <MarraigeCertificateView {...viewProps} />
+                <DocumentViewerModal
+                    isOpen={viewerOpen}
+                    onClose={() => setViewerOpen(false)}
+                    file={null}
+                    fileUrl={viewerUrl}
+                    title={viewerTitle}
+                    themeColor={themeColor}
+                    documents={viewerDocs}
+                    initialIndex={viewerIndex}
+                />
+            </>
+        );
+    }
+    if (typeCode === "LCR_DEATH" || (transaction?.type?.name && (transaction.type.name.includes("Death Certificate") || transaction.type.name.includes("Certified Copy of Death")))) {
+        return (
+            <>
+                <DeathCertificateView {...viewProps} />
                 <DocumentViewerModal
                     isOpen={viewerOpen}
                     onClose={() => setViewerOpen(false)}

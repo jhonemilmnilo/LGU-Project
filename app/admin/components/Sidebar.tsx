@@ -184,6 +184,7 @@ export function Sidebar({
                 { href: "/admin/registrar?category=Birth PSA Endorsement", label: "PSA Endorsement" },
                 { href: "/admin/registrar?category=Death Registration", label: "Death Registration" },
                 { href: "/admin/registrar?category=Death Certificate", label: "Death Certificate" },
+                { href: "/admin/registrar?category=Marriage Certificate", label: "Marriage Certificate" },
             ]
         },
         {

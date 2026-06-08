@@ -129,12 +129,13 @@ export async function releaseDeathRegistry(id: string, registryNumber: string, e
     }
 }
 
-export async function releaseDeathCertificate(id: string, registryNumber: string, eCopyUrl?: string, orUrl?: string) {
+export async function releaseDeathCertificate(id: string, registryNumber: string, eCopyUrl?: string, orUrl?: string, registryBookVerification?: string, verificationDocUrl?: string) {
     try {
         id = sanitizeString(id);
         registryNumber = sanitizeString(registryNumber);
         eCopyUrl = eCopyUrl ? sanitizeUrl(eCopyUrl) : undefined;
         orUrl = orUrl ? sanitizeUrl(orUrl) : undefined;
+        verificationDocUrl = verificationDocUrl ? sanitizeUrl(verificationDocUrl) : undefined;
 
         const session = await getSession();
         const user = session?.user as any;
@@ -156,6 +157,12 @@ export async function releaseDeathCertificate(id: string, registryNumber: string
         }
 
         const additionalData = (transaction.additionalData as any) || {};
+        if (registryBookVerification) {
+            additionalData.registryBookVerification = registryBookVerification;
+        }
+        if (verificationDocUrl) {
+            additionalData.scannedDocUrl = verificationDocUrl;
+        }
         const isInitialRelease = (transaction.status as any) === "FOR_PROCESSING" || (transaction.status as any) === "PAID" || (transaction.status as any) === "FOR_REINSPECTION";
 
         const targetStatus = (transaction.status as any) === "PAID"
@@ -206,7 +213,7 @@ export async function releaseDeathCertificate(id: string, registryNumber: string
                             fatherName: src.fatherName || src.father || null,
                             motherName: src.motherName || src.mother || null,
                             issuedBy: user.name || "System Administrator",
-                            documentUrl: eCopyUrl || transaction.eCopyUrl || null,
+                            documentUrl: eCopyUrl || verificationDocUrl || transaction.eCopyUrl || null,
                             verificationId: `VER-DCR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
                         }
                     });
@@ -221,7 +228,7 @@ export async function releaseDeathCertificate(id: string, registryNumber: string
             data: {
                 status: targetStatus as any,
                 additionalData: additionalData as any,
-                ...(eCopyUrl ? { eCopyUrl } : {}),
+                ...(eCopyUrl || verificationDocUrl ? { eCopyUrl: eCopyUrl || verificationDocUrl } : {}),
                 ...(orUrl ? { orUrl } : {})
             }
         });

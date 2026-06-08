@@ -75,7 +75,7 @@ export async function getBarangaysList() {
                 name: "asc"
             }
         });
-        return { success: true, data: barangays.map(b => b.name) };
+        return { success: true, data: barangays.map((b: { id: string; name: string }) => b.name) };
     } catch (error) {
         console.error("Get barangays list error:", error);
         return { success: false, error: "Failed to fetch barangays list" };
@@ -1478,9 +1478,9 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         const typeCode = (transaction.type?.code || "").toUpperCase();
         const additional = (transaction.additionalData as any) || {};
         const regType = (additional.registrationType || "").toUpperCase();
-        if ((typeCode === "LCR_DEATH_REG" || transaction.typeId === "cmpgkxxke0019vpjkquvcxggu") && 
-            (regType === "STANDARD" || regType === "") && 
-            fulfillmentType === "PICK_UP" && 
+        if ((typeCode === "LCR_DEATH_REG" || transaction.typeId === "cmpgkxxke0019vpjkquvcxggu") &&
+            (regType === "STANDARD" || regType === "") &&
+            fulfillmentType === "PICK_UP" &&
             finalAmount === 0) {
             newStatus = "FOR_REINSPECTION";
         }
@@ -2787,11 +2787,11 @@ export async function endorseBuildingPermitFees(
         // Send EVALUATED email
         if (updatedTransaction.user?.email) {
             const resident = updatedTransaction.residentSnapshot as any;
-            const totalFees = Number(fees.buildingPermitFee || 0) + 
-                              Number(fees.electricalPermitFee || 0) + 
-                              Number(fees.sanitaryPermitFee || 0) + 
-                              (fees.engineerMunicipalCharges || []).reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
-                              
+            const totalFees = Number(fees.buildingPermitFee || 0) +
+                Number(fees.electricalPermitFee || 0) +
+                Number(fees.sanitaryPermitFee || 0) +
+                (fees.engineerMunicipalCharges || []).reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
+
             await sendEmail({
                 type: "EVALUATED",
                 to: updatedTransaction.user.email,
@@ -3248,7 +3248,7 @@ export async function releaseBuildingPermitAction(id: string) {
         const resident = transaction.user?.residentProfile || (transaction as any).residentSnapshot || {};
         const applicantName = `${resident.firstName || ""} ${resident.lastName || ""}`.trim() || "Unknown Applicant";
 
-        const updatedTransaction = await prisma.$transaction(async (tx) => {
+        const updatedTransaction = await prisma.$transaction(async (tx: Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
             const updatedTx = await tx.transaction.update({
                 where: { id },
                 data: {
@@ -3907,8 +3907,8 @@ export async function requestPsaEndorsement(formData: FormData) {
         if (!transaction) return { success: false, error: "Transaction not found" };
 
         const typeCode = (transaction.type?.code || "").toUpperCase();
-        if (typeCode !== "LCR_BIRTH") {
-            return { success: false, error: "PSA Endorsement is only available for Birth Certificate requests" };
+        if (typeCode !== "LCR_BIRTH" && typeCode !== "LCR_DEATH") {
+            return { success: false, error: "PSA Endorsement is only available for Birth or Death Certificate requests" };
         }
 
         if (!["RELEASED", "DELIVERED"].includes(transaction.status as string)) {
@@ -3921,32 +3921,59 @@ export async function requestPsaEndorsement(formData: FormData) {
             return { success: false, error: "PSA Endorsement has already been requested for this transaction" };
         }
 
-        // 1. Ensure the LCR_PSA_ENDORSEMENT transaction type exists in the database
+        const isDeath = typeCode === "LCR_DEATH";
+        const targetCode = isDeath ? "LCR_DEATH_PSA_ENDORSEMENT" : "LCR_PSA_ENDORSEMENT";
+
+        // 1. Ensure the transaction type exists in the database
         let psaType = await prisma.transactionType.findUnique({
-            where: { code: "LCR_PSA_ENDORSEMENT" }
+            where: { code: targetCode }
         });
         if (!psaType) {
-            psaType = await prisma.transactionType.create({
-                data: {
-                    code: "LCR_PSA_ENDORSEMENT",
-                    name: "PSA Endorsement",
-                    description: "Request PSA Endorsement for Birth Certificate.",
-                    level: 1,
-                    category: "Civil Registry",
-                    baseFee: 200.00,
-                    deliveryFee: 0.00,
-                    isFixed: true,
-                    requiredDocs: ["PSA Negative Certification"],
-                    formSchema: {
-                        type: "CIVIL_REGISTRY",
-                        registryType: "PSA_ENDORSEMENT",
-                        fields: ["originalTransactionId", "psaNegCertUrl"]
-                    },
-                    requiresBusinessName: false,
-                    supportsECopy: true,
-                    processorRole: "TREASURY_STAFF"
-                }
-            });
+            if (isDeath) {
+                psaType = await prisma.transactionType.create({
+                    data: {
+                        code: "LCR_DEATH_PSA_ENDORSEMENT",
+                        name: "Death PSA Endorsement",
+                        description: "Request PSA Endorsement for Death Certificate.",
+                        level: 1,
+                        category: "Civil Registry",
+                        baseFee: 200.00,
+                        deliveryFee: 0.00,
+                        isFixed: true,
+                        requiredDocs: ["PSA Negative Certification"],
+                        formSchema: {
+                            type: "CIVIL_REGISTRY",
+                            registryType: "DEATH_PSA_ENDORSEMENT",
+                            fields: ["originalTransactionId", "psaNegCertUrl"]
+                        },
+                        requiresBusinessName: false,
+                        supportsECopy: true,
+                        processorRole: "TREASURY_STAFF"
+                    }
+                });
+            } else {
+                psaType = await prisma.transactionType.create({
+                    data: {
+                        code: "LCR_PSA_ENDORSEMENT",
+                        name: "PSA Endorsement",
+                        description: "Request PSA Endorsement for Birth Certificate.",
+                        level: 1,
+                        category: "Civil Registry",
+                        baseFee: 200.00,
+                        deliveryFee: 0.00,
+                        isFixed: true,
+                        requiredDocs: ["PSA Negative Certification"],
+                        formSchema: {
+                            type: "CIVIL_REGISTRY",
+                            registryType: "PSA_ENDORSEMENT",
+                            fields: ["originalTransactionId", "psaNegCertUrl"]
+                        },
+                        requiresBusinessName: false,
+                        supportsECopy: true,
+                        processorRole: "TREASURY_STAFF"
+                    }
+                });
+            }
         }
 
         // 2. Upload PSA Negative Certification file
@@ -3958,7 +3985,7 @@ export async function requestPsaEndorsement(formData: FormData) {
         // 3. Create a brand new transaction and update the original transaction
         const originalAddData = (transaction.additionalData as any) || {};
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => {
             const newTx = await tx.transaction.create({
                 data: {
                     userId: session.user.id,

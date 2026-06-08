@@ -29,7 +29,7 @@ import TransactionInfoCard from "@/app/admin/treasury/[id]/components/Transactio
 import RejectionRevisionControls from "@/app/admin/treasury/[id]/components/RejectionRevisionControls";
 import { cn } from "@/lib/utils";
 
-export default function BirthCertificateView(props: TreasuryViewProps) {
+export default function DeathCertificateView(props: TreasuryViewProps) {
     const {
         transaction,
         rawUserRole,
@@ -84,10 +84,10 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
         setMiscFee,
         handleProcessRequest,
         handlePrintWaybill,
-        birthRegDocFile,
-        setBirthRegDocFile,
-        birthRegDocPreview,
-        setBirthRegDocPreview
+        birthRegDocFile: deathRegDocFile,
+        setBirthRegDocFile: setDeathRegDocFile,
+        birthRegDocPreview: deathRegDocPreview,
+        setBirthRegDocPreview: setDeathRegDocPreview
     } = props;
 
     const [isAssessmentOpen, setIsAssessmentOpen] = React.useState(true);
@@ -95,7 +95,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
     const additional = transaction.additionalData || {};
     const isTreasuryContext = backUrl?.includes("/admin/treasury") || rawUserRole === "TREASURY_STAFF";
 
-    const subjectName = transaction.birthCertificateRequest?.subjectName || additional.fullName || additional.subjectName || "N/A";
+    const subjectName = transaction.deathCertificateRequest?.subjectName || additional.fullName || additional.subjectName || additional.subjectFullName || "N/A";
 
     return (
         <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] transition-colors duration-300">
@@ -131,7 +131,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                     <div className="lg:col-span-8 space-y-8">
                         {/* TRANSACTION CATEGORY CARD */}
                         <TransactionInfoCard
-                            transactionName="Birth Certificate Request"
+                            transactionName="Death Certificate Request"
                             categoryLabel="Certified True Copy"
                             themeColor={themeColor}
                         />
@@ -305,7 +305,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 italic">
-                                    Birth Certificate Search Information
+                                    Death Certificate Search Information
                                 </h3>
                             </div>
 
@@ -314,20 +314,20 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     <div className="space-y-1.5 flex-1">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Registry Book Verification Status</span>
                                         <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                            {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
-                                                additional.registryBookVerification === "FORM_1B" ? "Form 1B (Record Not Available)" :
-                                                    additional.registryBookVerification === "FORM_1C" ? "Form 1C (Record Destroyed)" :
+                                            {additional.registryBookVerification === "FORM_2A" ? "Form 2A (Record Found)" :
+                                                additional.registryBookVerification === "FORM_2B" ? "Form 2B (Record Not Available)" :
+                                                    additional.registryBookVerification === "FORM_2C" ? "Form 2C (Record Destroyed)" :
                                                         additional.registryBookVerification}
                                         </div>
                                     </div>
                                     <Badge className={cn(
                                         "px-4.5 py-2 rounded-full font-black uppercase text-[10px] tracking-wider italic text-white shadow-md border-none shrink-0 self-end mb-0.5",
-                                        additional.registryBookVerification === "FORM_1A" ? "bg-emerald-500 hover:bg-emerald-500 shadow-emerald-500/10" :
-                                            additional.registryBookVerification === "FORM_1B" ? "bg-amber-500 hover:bg-amber-500 shadow-amber-500/10" :
+                                        additional.registryBookVerification === "FORM_2A" ? "bg-emerald-500 hover:bg-emerald-500 shadow-emerald-500/10" :
+                                            additional.registryBookVerification === "FORM_2B" ? "bg-amber-500 hover:bg-amber-500 shadow-amber-500/10" :
                                                 "bg-rose-500 hover:bg-rose-500 shadow-rose-500/10"
                                     )}>
-                                        {additional.registryBookVerification === "FORM_1A" ? "Record Found" :
-                                            additional.registryBookVerification === "FORM_1B" ? "Not Available" :
+                                        {additional.registryBookVerification === "FORM_2A" ? "Record Found" :
+                                            additional.registryBookVerification === "FORM_2B" ? "Not Available" :
                                                 "Destroyed"}
                                     </Badge>
                                 </div>
@@ -343,13 +343,28 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                             </div>
                                         </div>
                                     )}
+                                    {additional.scannedDocUrl && (
+                                        <div className="flex flex-col justify-center gap-2">
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Verified Registry Document</span>
+                                            <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center">
+                                                <Button
+                                                    onClick={() => handleViewFile?.(additional.scannedDocUrl, "Scanned Death Certificate Verification Document")}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-[10px] font-black uppercase tracking-wider flex items-center gap-2 bg-[#1f2937]/50 border-slate-800 text-white hover:bg-[#1f2937] h-8"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5" /> View Scanned Document
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-6">
                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
-                                        Subject Details
+                                        Deceased details
                                     </h4>
                                     <div className="space-y-6">
                                         <div className="space-y-1.5">
@@ -361,23 +376,23 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Birth</span>
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Date of Death</span>
                                                 <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {safeFormatDate(additional.dateOfEvent)}
+                                                    {safeFormatDate(additional.dateOfDeath || additional.dateOfEvent)}
                                                 </div>
                                             </div>
                                             <div className="space-y-1.5">
                                                 <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Registry No.</span>
                                                 <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                    {transaction.birthCertificateRequest?.registryNumber || "PENDING"}
+                                                    {transaction.deathCertificateRequest?.registryNumber || "PENDING"}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Birth</span>
+                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Place of Death</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                {additional.placeOfEvent || "—"}
+                                                {additional.placeOfDeath || additional.placeOfEvent || "—"}
                                             </div>
                                         </div>
                                     </div>
@@ -385,20 +400,20 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
 
                                 <div className="space-y-6">
                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic">
-                                        Parental Details
+                                        Family details
                                     </h4>
                                     <div className="space-y-6">
                                         <div className="space-y-1.5">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">{"Father's Full Name"}</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                {additional.fatherName || "—"}
+                                                {additional.fathersName || additional.fatherName || "—"}
                                             </div>
                                         </div>
 
                                         <div className="space-y-1.5">
                                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">{"Mother's Full Name"}</span>
                                             <div className="bg-[#1f2937]/50 border border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-white text-sm uppercase leading-none">
-                                                {additional.motherName || "—"}
+                                                {additional.mothersMaidenName || additional.motherName || "—"}
                                             </div>
                                         </div>
                                     </div>
@@ -496,7 +511,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                         />
 
                         {/* SPECIFIC REGISTRAR OPERATION STEP CONTROLLER */}
-                        {transaction.status === "FOR_INSPECTION" && (
+                        {["FOR_INSPECTION", "FOR_REQUESTING"].includes(transaction.status) && (
                             <div className="space-y-6">
                                 <Button
                                     onClick={handleEvaluate}
@@ -524,8 +539,22 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                             </div>
                         )}
 
-                        {/* REGISTRAR FOR_REINSPECTION CONTROLLER */}
-                        {transaction.status === "FOR_REINSPECTION" && (
+                        {transaction.status === "EVALUATED" && (
+                            <div className="space-y-6">
+                                <div className="p-8 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 shadow-lg space-y-4 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center text-amber-600 dark:text-amber-500 mx-auto">
+                                        <Clock className="w-8 h-8" />
+                                    </div>
+                                    <h4 className="text-sm font-black uppercase tracking-[0.25em] text-amber-800 dark:text-amber-200">Waiting for Payment</h4>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400/80 italic max-w-sm mx-auto">
+                                        The request has been evaluated. Waiting for the user to proceed with the payment.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* REGISTRAR FOR_PROCESSING & FOR_REINSPECTION CONTROLLER */}
+                        {(transaction.status === "FOR_PROCESSING" || transaction.status === "FOR_REINSPECTION") && (
                             <div className="space-y-6">
                                 {/* Payment Reference Card */}
                                 {(() => {
@@ -612,20 +641,17 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                             return (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt PDF")}
+                                                                    onClick={() => handleViewFile?.(orDocUrl, "Treasury Official Receipt (O.R.) PDF")}
                                                                     className="w-full flex items-center justify-between p-4 bg-[#151b28]/60 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
                                                                 >
                                                                     <div className="flex items-center gap-3">
                                                                         <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                                                            📕
+                                                                            📄
                                                                         </div>
                                                                         <div>
-                                                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Receipt PDF</p>
+                                                                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 leading-none">Official Receipt PDF</p>
                                                                             <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest italic mt-0.5 leading-none">Click to view</p>
                                                                         </div>
-                                                                    </div>
-                                                                    <div className="h-8 px-3 rounded-lg border border-primary/20 text-primary font-black italic uppercase tracking-widest text-[8px] group-hover:bg-primary/10 flex items-center gap-1 transition-all shrink-0">
-                                                                        Open PDF ➔
                                                                     </div>
                                                                 </button>
                                                             );
@@ -633,13 +659,13 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
 
                                                         return (
                                                             <div
-                                                                onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
+                                                                onClick={() => handleViewFile?.(orDocUrl, "Official Receipt Image")}
                                                                 className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
                                                             >
                                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                 <img
                                                                     src={orDocUrl}
-                                                                    alt="OR Preview"
+                                                                    alt="Official Receipt"
                                                                     className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                 />
                                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
@@ -648,7 +674,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                                         style={{ backgroundColor: themeColor }}
                                                                         className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
                                                                     >
-                                                                        <span>VIEW</span>
+                                                                        <span>VIEW O.R.</span>
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -660,56 +686,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                     );
                                 })()}
 
-                                {/* Action Card */}
-                                <div className="p-6 text-center rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 space-y-3">
-                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto">
-                                        <Clock className="w-6 h-6 animate-pulse" />
-                                    </div>
-                                    <h4 className="text-xs font-black uppercase tracking-[0.25em] text-slate-700 dark:text-slate-200">Ready for Registrar Processing</h4>
-                                    <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">Payment has been confirmed. Click below to begin processing this document and officially notify the resident.</p>
-                                </div>
-
-                                <Button
-                                    onClick={handleProcessRequest}
-                                    disabled={actionLoading}
-                                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all"
-                                >
-                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                    Process the request
-                                </Button>
-                            </div>
-                        )}
-
-                        {/* TREASURY SPECIFIC READY FOR PAYMENT STEP CONTROLLER */}
-                        {isTreasuryContext && transaction.status === "FOR_REQUESTING" && (
-                            <div className="space-y-6">
-                                <Button
-                                    onClick={handleEvaluate}
-                                    disabled={actionLoading}
-                                    className="w-full h-14 bg-green-500 hover:bg-green-600 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all shadow-green-500/10"
-                                >
-                                    {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                                    Ready for Payment
-                                </Button>
-                            </div>
-                        )}
-
-                        {/* AWAITING CITIZEN PAYMENT NOTICE */}
-                        {transaction.status === "EVALUATED" && (
-                            <div className="p-8 rounded-[2rem] bg-white dark:bg-[#151b28] border border-slate-100 dark:border-white/5 shadow-2xl space-y-4 text-center">
-                                <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto">
-                                    <Clock className="w-6 h-6 animate-pulse" />
-                                </div>
-                                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-200 font-bold">Awaiting Citizen Payment</h4>
-                                <p className="text-[10px] text-slate-400 italic max-w-xs mx-auto">
-                                    The assessment fee has been computed. We are currently waiting for the citizen to complete the payment online or upload their proof of payment.
-                                </p>
-                            </div>
-                        )}
-
-                        {/* REGISTRAR UPLOAD E-COPY AND OR RELEASE ACTION */}
-                        {transaction.status === "FOR_PROCESSING" && (
-                            <div className="space-y-6">
+                                {/* REGISTRAR UPLOAD E-COPY AND OR RELEASE ACTION */}
                                 <div className="bg-[#111827] border border-slate-800 rounded-[2rem] p-8 shadow-2xl space-y-6">
                                     <div className="space-y-1">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#10b981] italic">Upload & Release Document</h4>
@@ -727,8 +704,8 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                         type="button"
                                                         onClick={() => {
                                                             setRegistryBookVerification?.("");
-                                                            setBirthRegDocFile?.(null);
-                                                            setBirthRegDocPreview?.(null);
+                                                            setDeathRegDocFile?.(null);
+                                                            setDeathRegDocPreview?.(null);
                                                         }}
                                                         className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline italic focus:outline-none"
                                                     >
@@ -738,9 +715,9 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                             </div>
                                             <div className="grid grid-cols-1 gap-2.5">
                                                 {[
-                                                    { id: "FORM_1A", title: "Form 1A", desc: "Record Found & Verified" },
-                                                    { id: "FORM_1B", title: "Form 1B", desc: "Record Not Available" },
-                                                    { id: "FORM_1C", title: "Form 1C", desc: "Record Destroyed" }
+                                                    { id: "FORM_2A", title: "Form 2A", desc: "Record Found & Verified" },
+                                                    { id: "FORM_2B", title: "Form 2B", desc: "Record Not Available" },
+                                                    { id: "FORM_2C", title: "Form 2C", desc: "Record Destroyed" }
                                                 ]
                                                     .filter(opt => !registryBookVerification || registryBookVerification === opt.id)
                                                     .map((opt) => {
@@ -776,9 +753,9 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                             <div className="space-y-3 pt-4 border-t border-slate-800/50">
                                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
                                                     Attach Scanned {
-                                                        registryBookVerification === "FORM_1A" ? "Form 1A" :
-                                                            registryBookVerification === "FORM_1B" ? "Form 1B" :
-                                                                registryBookVerification === "FORM_1C" ? "Form 1C" : "Verification Document"
+                                                        registryBookVerification === "FORM_2A" ? "Form 2A" :
+                                                            registryBookVerification === "FORM_2B" ? "Form 2B" :
+                                                                registryBookVerification === "FORM_2C" ? "Form 2C" : "Verification Document"
                                                     } (PDF/Image) <span className="text-rose-500 font-extrabold">*Required</span>
                                                 </label>
                                                 <input
@@ -800,16 +777,15 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                                 setTimeout(() => errEl && errEl.remove(), 4000);
                                                             }
                                                             e.target.value = "";
-                                                            setBirthRegDocFile?.(null);
-                                                            setBirthRegDocPreview?.(null);
+                                                            setDeathRegDocFile?.(null);
                                                             return;
                                                         }
-                                                        setBirthRegDocFile?.(file);
+                                                        setDeathRegDocFile?.(file);
                                                         if (file) {
                                                             const url = URL.createObjectURL(file);
-                                                            setBirthRegDocPreview?.(url);
+                                                            setDeathRegDocPreview?.(url);
                                                         } else {
-                                                            setBirthRegDocPreview?.(null);
+                                                            setDeathRegDocPreview?.(null);
                                                         }
                                                     }}
                                                     className="hidden"
@@ -819,18 +795,18 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                     htmlFor="verification-doc-upload"
                                                     className={cn(
                                                         "flex flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed transition-all h-36 bg-[#1f2937]/20 overflow-hidden relative group cursor-pointer",
-                                                        birthRegDocFile
+                                                        deathRegDocFile
                                                             ? "border-primary/30 bg-primary/5 shadow-inner"
                                                             : "border-slate-800 hover:border-primary/30"
                                                     )}
                                                 >
-                                                    {birthRegDocFile ? (
+                                                    {deathRegDocFile ? (
                                                         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center select-none">
-                                                            {birthRegDocFile.type.startsWith("image/") ? (
+                                                            {deathRegDocFile.type.startsWith("image/") ? (
                                                                 <div className="relative w-full h-full group select-none">
                                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                     <img
-                                                                        src={birthRegDocPreview || ""}
+                                                                        src={deathRegDocPreview || ""}
                                                                         alt="Verification Preview"
                                                                         className="w-full h-full object-cover opacity-60 group-hover:opacity-85 transition-opacity"
                                                                     />
@@ -840,7 +816,7 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
                                                                                 e.preventDefault();
-                                                                                handleViewFile?.(birthRegDocPreview || null, "Verification Document File");
+                                                                                handleViewFile?.(deathRegDocPreview || null, "Verification Document File");
                                                                             }}
                                                                             style={{ backgroundColor: themeColor }}
                                                                             className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
@@ -852,14 +828,14 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                             ) : (
                                                                 <div className="relative w-full h-full flex flex-col items-center justify-center gap-2 group">
                                                                     <FileText className="w-8 h-8 text-primary" style={{ color: themeColor }} />
-                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest text-white max-w-[200px] truncate">{birthRegDocFile.name}</span>
+                                                                    <span className="text-[9px] font-black uppercase italic tracking-widest text-white max-w-[200px] truncate">{deathRegDocFile.name}</span>
                                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
                                                                         <button
                                                                             type="button"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
                                                                                 e.preventDefault();
-                                                                                handleViewFile?.(birthRegDocPreview || null, "Verification Document File");
+                                                                                handleViewFile?.(deathRegDocPreview || null, "Verification Document File");
                                                                             }}
                                                                             style={{ backgroundColor: themeColor }}
                                                                             className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
@@ -875,9 +851,9 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                                             <Upload className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
                                                             <span className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500 text-center px-4">
                                                                 Upload Scanned {
-                                                                    registryBookVerification === "FORM_1A" ? "Form 1A" :
-                                                                        registryBookVerification === "FORM_1B" ? "Form 1B" :
-                                                                            registryBookVerification === "FORM_1C" ? "Form 1C" : "Verification Document"
+                                                                    registryBookVerification === "FORM_2A" ? "Form 2A" :
+                                                                        registryBookVerification === "FORM_2B" ? "Form 2B" :
+                                                                            registryBookVerification === "FORM_2C" ? "Form 2C" : "Verification Document"
                                                                 }
                                                             </span>
                                                         </div>
@@ -886,29 +862,29 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                             </div>
                                         )}
                                     </div>
-                                </div>
 
-                                {transaction.fulfillmentType === "DELIVERY" && (
+                                    {transaction.fulfillmentType === "DELIVERY" && (
+                                        <Button
+                                            onClick={handlePrintWaybill}
+                                            variant="outline"
+                                            className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                        >
+                                            Generate & Print Waybill
+                                        </Button>
+                                    )}
+
                                     <Button
-                                        onClick={handlePrintWaybill}
-                                        variant="outline"
-                                        className="w-full h-12 rounded-xl border-2 border-primary/20 text-primary font-black italic uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                                        onClick={handleRelease}
+                                        disabled={actionLoading || !registryBookVerification || !deathRegDocFile}
+                                        className={`w-full rounded-xl h-12 text-xs font-black uppercase tracking-widest italic text-white ${themeColor}`}
                                     >
-                                        Generate & Print Waybill
+                                        {actionLoading
+                                            ? "Releasing Request..."
+                                            : transaction.fulfillmentType === "DELIVERY"
+                                                ? "Ready For Picking"
+                                                : "Ready For Claim"}
                                     </Button>
-                                )}
-
-                                <Button
-                                    onClick={handleRelease}
-                                    disabled={actionLoading || !registryBookVerification || !birthRegDocFile}
-                                    className={`w-full rounded-xl h-12 text-xs font-black uppercase tracking-widest italic text-white ${themeColor}`}
-                                >
-                                    {actionLoading
-                                        ? "Releasing Request..."
-                                        : transaction.fulfillmentType === "DELIVERY"
-                                            ? "Ready For Picking"
-                                            : "Ready For Claim"}
-                                </Button>
+                                </div>
                             </div>
                         )}
 
@@ -956,9 +932,9 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                         <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 dark:border-white/5">
                                             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Issued Form</span>
                                             <span className="text-xs font-black uppercase text-primary font-black" style={{ color: themeColor }}>
-                                                {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
-                                                    additional.registryBookVerification === "FORM_1B" ? "Form 1B (Not Available)" :
-                                                        additional.registryBookVerification === "FORM_1C" ? "Form 1C (Destroyed)" : "N/A"}
+                                                {additional.registryBookVerification === "FORM_2A" ? "Form 2A (Record Found)" :
+                                                    additional.registryBookVerification === "FORM_2B" ? "Form 2B (Not Available)" :
+                                                        additional.registryBookVerification === "FORM_2C" ? "Form 2C (Destroyed)" : "N/A"}
                                             </span>
                                         </div>
 
@@ -1053,9 +1029,9 @@ export default function BirthCertificateView(props: TreasuryViewProps) {
                                         <div className="flex justify-between items-center pb-3 border-b border-slate-200/50 dark:border-white/5">
                                             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Issued Form</span>
                                             <span className="text-xs font-black uppercase text-primary font-black" style={{ color: themeColor }}>
-                                                {additional.registryBookVerification === "FORM_1A" ? "Form 1A (Record Found)" :
-                                                    additional.registryBookVerification === "FORM_1B" ? "Form 1B (Not Available)" :
-                                                        additional.registryBookVerification === "FORM_1C" ? "Form 1C (Destroyed)" : "N/A"}
+                                                {additional.registryBookVerification === "FORM_2A" ? "Form 2A (Record Found)" :
+                                                    additional.registryBookVerification === "FORM_2B" ? "Form 2B (Not Available)" :
+                                                        additional.registryBookVerification === "FORM_2C" ? "Form 2C (Destroyed)" : "N/A"}
                                             </span>
                                         </div>
 
