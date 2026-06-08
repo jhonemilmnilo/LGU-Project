@@ -1000,11 +1000,11 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         if (isBusinessPermit) {
             const stepsList = [
                 { id: "FOR_INSPECTION", label: "INSPECTION" },
-                { id: "FOR_REQUESTING", label: "EVALUATION" },
+                { id: "FOR_REQUESTING", label: "FOR EVALUATION" },
                 { id: "EVALUATED", label: "ASSESSMENT" },
                 { id: "PAID", label: "PAID" },
-                { id: "FOR_PROCESSING", label: "PROCESSING" },
-                { id: "FOR_REINSPECTION", label: "PROCESS" },
+                { id: "FOR_PROCESSING", label: "FOR PROCESSING" },
+                { id: "FOR_REINSPECTION", label: "FOR PROCESSING" },
             ];
             if (transaction.fulfillmentType === "DELIVERY") {
                 stepsList.push(
@@ -1029,14 +1029,14 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             ];
         }
         const stepsList = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "FOR_REQUESTING", label: "FOR EVALUATION" },
             { id: "EVALUATED", label: "ASSESSMENT" },
             { id: "PAID", label: "PAID" },
         ];
         if (isLcrBirthCertifiedCopy) {
             stepsList.push({ id: "VERIFY_OR", label: "VERIFY & ISSUE O.R." });
         }
-        stepsList.push({ id: "FOR_PROCESSING", label: "PROCESSING" });
+        stepsList.push({ id: "FOR_PROCESSING", label: "FOR PROCESSING" });
         if (transaction.fulfillmentType === "DELIVERY") {
             stepsList.push(
                 { id: "FOR_PICKING", label: "FOR PICKING" },
@@ -1060,12 +1060,12 @@ export default function TreasuryDetailPage({ params }: PageProps) {
         // Maintain standard 4 steps
     } else if (status === "REJECTED") {
         steps = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "FOR_REQUESTING", label: "FOR EVALUATION" },
             { id: "REJECTED", label: "REJECTED" }
         ];
     } else if (status === "FOR_REVISION") {
         steps = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
+            { id: "FOR_REQUESTING", label: "FOR EVALUATION" },
             { id: "FOR_REVISION", label: "REVISION REQ." }
         ];
     } else if (status === "FOR_REINSPECTION" && !isBusinessPermit) {
@@ -1074,7 +1074,9 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             { id: "FOR_REINSPECTION", label: "RE-INSPECTION" }
         ];
     } else if (status.includes("RETURN") || status.includes("REFUND") || status === "DISPUTE_REJECTED") {
-        const disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");
+        let disputeLabel = status === "DISPUTE_REJECTED" ? "RETURN REJECTED" : status.replace(/_/g, " ");
+        if (status === "RETURN_REQUESTED") disputeLabel = "REQUEST FOR RETURN";
+        if (status === "REFUND_REQUESTED") disputeLabel = "REQUEST FOR REFUND";
         steps.push({ id: status, label: disputeLabel });
     }
 

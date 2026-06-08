@@ -2029,6 +2029,17 @@ export async function resubmitTransaction(id: string, formData: FormData) {
         }
 
         const additionalData = tx.additionalData as any || {};
+
+        // Parse and merge additionalData JSON if provided
+        const additionalDataStr = formData.get("additionalData") as string;
+        if (additionalDataStr) {
+            try {
+                const parsed = JSON.parse(additionalDataStr);
+                Object.assign(additionalData, sanitizeObject(parsed));
+            } catch (e) {
+                console.error("Failed to parse additionalData during resubmit:", e);
+            }
+        }
         const isBusinessPermit = tx.typeId?.includes("BUSINESS_PERMIT") || tx.type?.code?.startsWith("BUSINESS_PERMIT");
         const isCedula = tx.typeId?.includes("CEDULA") || tx.type?.code?.startsWith("CEDULA");
 

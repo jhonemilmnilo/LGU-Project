@@ -474,6 +474,12 @@ export default function CedulaApplicationPage() {
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: "idFile" | "proofFile") => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            const maxBytes = 5 * 1024 * 1024; // 5MB limit
+            if (file.size > maxBytes) {
+                toast.error(`The file "${file.name}" is too large! Maximum limit is 5MB`);
+                e.target.value = ""; // Reset the input element
+                return;
+            }
             setFormData(prev => ({ ...prev, [field]: file }));
             await persistDraftFile(field, file);
         }
@@ -676,21 +682,7 @@ export default function CedulaApplicationPage() {
                 })}
             </div>
 
-            {/* Revision Remarks Alert Banner — sticky, rides with user inside the form */}
-            {revisionTx && (
-                <div className="sticky top-[64px] z-30 bg-[#8c0a0a] dark:bg-[#5c0606] border border-[#a81616] p-6 rounded-[2rem] shadow-xl shadow-red-950/20 text-white animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center">
-                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 dark:bg-black/30 text-amber-300 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest font-sans shrink-0 w-fit shadow-inner">
-                                ⚠️ Attention: Revision Needed
-                            </span>
-                        </div>
-                        <div className="text-xs text-white font-bold bg-white/10 dark:bg-black/20 border border-white/15 p-4 rounded-xl italic font-sans leading-relaxed shadow-inner">
-                            &quot;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&quot;
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* Step Content */}
             <div className="mt-4 md:mt-8 md:bg-white md:dark:bg-[#11131a] md:rounded-[2.5rem] md:border md:border-slate-200 md:dark:border-white/10 p-0 md:p-12 md:shadow-2xl relative md:overflow-hidden group/container min-h-[400px] md:min-h-[500px] flex flex-col">
@@ -813,6 +805,18 @@ export default function CedulaApplicationPage() {
                                          <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">Verify your personal records. Only the contact number should be provided/updated.</p>
                                      </div>
 
+                                     {revisionTx && (
+                                         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
+                                             <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+                                             <div className="text-left space-y-1">
+                                                 <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+                                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                                     &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+                                                 </p>
+                                             </div>
+                                         </div>
+                                     )}
+
                                      <div className="space-y-4 md:space-y-6">
                                          {/* Row 1: Names */}
                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -846,7 +850,6 @@ export default function CedulaApplicationPage() {
                                                      value={formData.residentData?.suffix || ""}
                                                      readOnly={true}
                                                      className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                     placeholder="Jr."
                                                  />
                                              </div>
                                          </div>
@@ -907,7 +910,6 @@ export default function CedulaApplicationPage() {
                                                          value={formData.residentData?.occupation || ""}
                                                          readOnly={true}
                                                          className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                         placeholder="e.g. Employee"
                                                      />
                                                  </div>
                                              </div>
@@ -947,6 +949,18 @@ export default function CedulaApplicationPage() {
                                                 : "Declare your annual financial status for the tax computation."}
                                         </p>
                                     </div>
+
+                                     {revisionTx && (
+                                         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
+                                             <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+                                             <div className="text-left space-y-1">
+                                                 <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+                                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                                     &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+                                                 </p>
+                                             </div>
+                                         </div>
+                                     )}
 
                                     <div className={cn("grid grid-cols-1 gap-6 md:gap-10", !formData.isStudent && "md:grid-cols-2")}>
                                         <div className="space-y-6 md:space-y-8">
@@ -1190,6 +1204,18 @@ export default function CedulaApplicationPage() {
                                         <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter leading-tight">Review <span className="text-primary italic">& Finalize</span></h2>
                                         <p className="text-slate-500 font-medium italic text-xs md:text-lg leading-relaxed">Review your declaration before submitting for evaluation.</p>
                                     </div>
+
+                                     {revisionTx && (
+                                         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
+                                             <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+                                             <div className="text-left space-y-1">
+                                                 <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+                                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                                     &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+                                                 </p>
+                                             </div>
+                                         </div>
+                                     )}
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                                         <div className="space-y-4 md:space-y-6" ref={idSectionRef}>
