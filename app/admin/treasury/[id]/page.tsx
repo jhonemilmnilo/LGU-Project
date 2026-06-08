@@ -86,7 +86,6 @@ import BirthRegistrationView from "./views/BirthRegistrationView";
 import BirthCertificateView from "./views/BirthCertificateView";
 import DeathCertificateView from "./views/DeathCertificateView";
 import DeathRegistrationView from "./views/DeathRegistrationView";
-import DeathCertificateView from "./views/DeathCertificateView";
 import MarriageLicenseView from "./views/MarriageLicenseView";
 import MarriageRegistrationView from "./views/MarriageRegistrationView";
 import GenericServiceView from "./views/GenericServiceView";
