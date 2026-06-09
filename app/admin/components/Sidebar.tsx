@@ -200,7 +200,7 @@ export function Sidebar({
             isOpen: isTreasuryOpen,
             onToggle: () => {
                 setIsTreasuryOpen(true);
-                router.push("/admin/treasury");
+                router.push("/admin/treasury?category=CEDULA");
             },
             subItems: [
                 { href: "/admin/treasury?category=CEDULA", label: "CEDULA" },

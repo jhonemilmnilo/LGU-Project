@@ -2716,3 +2716,32 @@ export async function createReportAdmin(userId: string, category: string, descri
     }
 }
 
+/**
+ * Unlock and activate a deactivated user account, resetting their rejection count and setting their email as verified.
+ */
+export async function activateUser(userId: string) {
+    try {
+        const session = await getServerSession(authOptions);
+        const user = session?.user as any;
+        if (!user || (user.role !== "ADMIN" && user.role !== "TREASURY_STAFF")) {
+            return { success: false, error: "Unauthorized" };
+        }
+
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                rejectionCount: 0,
+                isEmailVerified: true,
+                rejectionResetAt: new Date(),
+            } as any
+        });
+
+        revalidatePath("/admin/users");
+        return { success: true, user: updated };
+    } catch (error: any) {
+        console.error("Failed to activate user:", error);
+        return { success: false, error: error.message || "Failed to activate user account" };
+    }
+}
+
+

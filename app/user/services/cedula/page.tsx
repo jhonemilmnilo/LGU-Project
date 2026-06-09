@@ -37,6 +37,7 @@ import {
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
+import { compressImage } from "@/lib/image-compression";
 /**
  * multi-step form for Cedula Application.
  */
@@ -481,8 +482,21 @@ export default function CedulaApplicationPage() {
                 e.target.value = ""; // Reset the input element
                 return;
             }
-            setFormData(prev => ({ ...prev, [field]: file }));
-            await persistDraftFile(field, file);
+            
+            let fileToProcess = file;
+            if (file.type.startsWith("image/")) {
+                try {
+                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+                    fileToProcess = await compressImage(file);
+                    toast.success("Image optimized successfully!", { id: "image-compress-toast" });
+                } catch (err) {
+                    console.error("Compression error:", err);
+                    toast.dismiss("image-compress-toast");
+                }
+            }
+
+            setFormData(prev => ({ ...prev, [field]: fileToProcess }));
+            await persistDraftFile(field, fileToProcess);
         }
     };
 

@@ -61,6 +61,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
+import { compressImage } from "@/lib/image-compression";
 
 const STORAGE_KEY = "lcr_birth_registration_draft";
 
@@ -560,7 +561,7 @@ export default function BirthRegistrationPage() {
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         const file = e.target.files?.[0] || null;
         if (file) {
             if (file && file.size > 5 * 1024 * 1024) {
@@ -580,18 +581,46 @@ export default function BirthRegistrationPage() {
                 return;
             }
 
-            // Save raw file to IndexedDB
-            saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+            let fileToProcess = file;
+            if (file.type.startsWith("image/")) {
+                try {
+                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+                    fileToProcess = await compressImage(file);
+                    toast.success("Image optimized successfully!", { id: "image-compress-toast" });
+                } catch (err) {
+                    console.error("Compression error:", err);
+                    toast.dismiss("image-compress-toast");
+                }
+            }
+
+            // Save raw/compressed file to IndexedDB
+            saveDraftFile(STORAGE_KEY, key, fileToProcess).catch(err => {
                 console.error("Failed to save draft file to IndexedDB:", err);
             });
 
-            const reader = new FileReader();
-            reader.onload = () => {
-                const dataUrl = reader.result as string | null;
+            if (fileToProcess.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result as string | null;
+                    setForm(prev => ({
+                        ...prev,
+                        files: { ...prev.files, [key]: fileToProcess },
+                        previews: { ...prev.previews, [key]: dataUrl }
+                    }));
+                    // Clear documents error when user uploads files
+                    setErrors(prev => {
+                        if (!prev.documents) return prev;
+                        const copy = { ...prev };
+                        delete copy.documents;
+                        return copy;
+                    });
+                };
+                reader.readAsDataURL(fileToProcess);
+            } else {
                 setForm(prev => ({
                     ...prev,
-                    files: { ...prev.files, [key]: file },
-                    previews: { ...prev.previews, [key]: dataUrl }
+                    files: { ...prev.files, [key]: fileToProcess },
+                    previews: { ...prev.previews, [key]: null }
                 }));
                 // Clear documents error when user uploads files
                 setErrors(prev => {
@@ -600,8 +629,7 @@ export default function BirthRegistrationPage() {
                     delete copy.documents;
                     return copy;
                 });
-            };
-            reader.readAsDataURL(file);
+            }
         }
     };
 

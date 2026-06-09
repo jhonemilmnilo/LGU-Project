@@ -59,6 +59,7 @@ import {
 } from "@/app/admin/transactions/actions";
 import { searchResidents } from "@/app/admin/actions";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/image-compression";
 import { useRouter } from "next/navigation";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 
@@ -458,7 +459,7 @@ export default function DeathCertificateRequestPage() {
         return () => clearTimeout(timer);
     }, [form, currentStep, draftLoaded, loading]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.size > 5 * 1024 * 1024) {
@@ -477,9 +478,22 @@ export default function DeathCertificateRequestPage() {
                 e.target.value = "";
                 return;
             }
+            
+            let fileToProcess = file;
+            if (file.type.startsWith("image/")) {
+                try {
+                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+                    fileToProcess = await compressImage(file);
+                    toast.success("Image optimized successfully!", { id: "image-compress-toast" });
+                } catch (err) {
+                    console.error("Compression error:", err);
+                    toast.dismiss("image-compress-toast");
+                }
+            }
+
             setForm(prev => ({
                 ...prev,
-                files: { ...prev.files, [key]: file }
+                files: { ...prev.files, [key]: fileToProcess }
             }));
         }
     };

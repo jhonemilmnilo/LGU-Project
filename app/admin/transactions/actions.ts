@@ -1837,7 +1837,8 @@ export async function rejectTransaction(id: string, remarks: string) {
             const rejectedTransactions = await prisma.transaction.findMany({
                 where: {
                     userId: tx.userId,
-                    status: "REJECTED"
+                    status: "REJECTED",
+                    createdAt: (tx.user as any).rejectionResetAt ? { gt: (tx.user as any).rejectionResetAt } : undefined
                 },
                 include: {
                     type: true
@@ -1947,7 +1948,8 @@ export async function sendForRevision(id: string, remarks: string) {
                 const rejectedTransactions = await prisma.transaction.findMany({
                     where: {
                         userId: tx.userId,
-                        status: "REJECTED"
+                        status: "REJECTED",
+                        createdAt: (tx.user as any).rejectionResetAt ? { gt: (tx.user as any).rejectionResetAt } : undefined
                     },
                     include: {
                         type: true
