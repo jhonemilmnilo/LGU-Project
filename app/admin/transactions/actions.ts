@@ -2779,8 +2779,6 @@ export async function endorseBuildingPermitFees(
     id: string,
     fees: {
         buildingPermitFee: number;
-        electricalPermitFee: number;
-        sanitaryPermitFee: number;
         engineerMunicipalCharges: { name: string, amount: number }[];
     }
 ) {
@@ -2804,8 +2802,6 @@ export async function endorseBuildingPermitFees(
             ...currentAdditionalData,
             feeAssessment: {
                 buildingPermitFee: Number(fees.buildingPermitFee || 0),
-                electricalPermitFee: Number(fees.electricalPermitFee || 0),
-                sanitaryPermitFee: Number(fees.sanitaryPermitFee || 0),
                 engineerMunicipalCharges: fees.engineerMunicipalCharges || [],
                 endorsed: true,
                 endorsedAt: new Date(),
@@ -2825,8 +2821,6 @@ export async function endorseBuildingPermitFees(
         if (updatedTransaction.user?.email) {
             const resident = updatedTransaction.residentSnapshot as any;
             const totalFees = Number(fees.buildingPermitFee || 0) +
-                Number(fees.electricalPermitFee || 0) +
-                Number(fees.sanitaryPermitFee || 0) +
                 (fees.engineerMunicipalCharges || []).reduce((sum, charge) => sum + Number(charge.amount || 0), 0);
 
             await sendEmail({
@@ -3019,8 +3013,6 @@ export async function addAdditionalBuildingPermitFee(
 
         const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
-            Number(feeAssessment.electricalPermitFee || 0) +
-            Number(feeAssessment.sanitaryPermitFee || 0) +
             Number(feeAssessment.municipalCharges || 0);
 
         const additionalTotal = updatedAdditionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
@@ -3077,8 +3069,6 @@ export async function removeAdditionalBuildingPermitFee(
 
         const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
-            Number(feeAssessment.electricalPermitFee || 0) +
-            Number(feeAssessment.sanitaryPermitFee || 0) +
             Number(feeAssessment.municipalCharges || 0);
 
         const additionalTotal = currentAdditionalFees.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
@@ -3122,8 +3112,6 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
 
         const baseTotal =
             Number(feeAssessment.buildingPermitFee || 0) +
-            Number(feeAssessment.electricalPermitFee || 0) +
-            Number(feeAssessment.sanitaryPermitFee || 0) +
             Number(feeAssessment.municipalCharges || 0) +
             engineerTotal;
 
@@ -3132,9 +3120,7 @@ export async function approveAndSendBuildingPermitBilling(id: string) {
         const finalTotal = baseTotal + additionalTotal;
 
         const lineItems = [
-            { label: "Building Permit Fee", amount: Number(feeAssessment.buildingPermitFee || 0) },
-            { label: "Electrical Permit Fee", amount: Number(feeAssessment.electricalPermitFee || 0) },
-            { label: "Sanitary Permit Fee", amount: Number(feeAssessment.sanitaryPermitFee || 0) }
+            { label: "Building Permit Fee", amount: Number(feeAssessment.buildingPermitFee || 0) }
         ];
 
         if (engineerCharges.length > 0) {
