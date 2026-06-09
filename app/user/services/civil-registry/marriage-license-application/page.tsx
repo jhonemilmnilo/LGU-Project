@@ -23,6 +23,7 @@ import { submitMarriageLicenseTransaction } from "@/app/admin/transactions/marri
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { supabase } from "@/lib/supabase";
+import { compressImage } from "@/lib/image-compression";
 
 const checkIsPdf = (file: any, url: string | null) => {
 	if (file && file instanceof File) {
@@ -50,43 +51,7 @@ const REQUIRED_DOCS = [
 
 const STORAGE_KEY = "lcr_marriage_license_draft";
 
-const PREVIEW_MAX_BYTES = 500 * 1024; // 500KB per preview target after compression
 
-function estimateDataUrlSize(dataUrl: string) {
-	const parts = dataUrl.split(',');
-	if (parts.length < 2) return 0;
-	const base64 = parts[1];
-	const padding = (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
-	return Math.ceil(base64.length * 3 / 4) - padding;
-}
-
-function compressImageDataUrl(dataUrl: string, maxWidth = 1200, quality = 0.75): Promise<string> {
-	return new Promise((resolve) => {
-		const img = new Image();
-		img.onload = () => {
-			const canvas = document.createElement('canvas');
-			let { width, height } = img;
-			if (width > maxWidth) {
-				height = Math.round(height * (maxWidth / width));
-				width = maxWidth;
-			}
-			canvas.width = width;
-			canvas.height = height;
-			const ctx = canvas.getContext('2d');
-			if (!ctx) return resolve(dataUrl);
-			ctx.drawImage(img, 0, 0, width, height);
-			try {
-				const compressed = canvas.toDataURL('image/jpeg', quality);
-				resolve(compressed);
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			} catch (_e) {
-				resolve(dataUrl);
-			}
-		};
-		img.onerror = () => resolve(dataUrl);
-		img.src = dataUrl;
-	});
-}
 
 // Payment constants
 const MISC_FEE = 862; // misc fee for marriage license application
@@ -404,7 +369,7 @@ export default function MarriageLicenseApplicationPage() {
 
     
 
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
 		const file = e.target.files?.[0] || null;
 		if (file) {
 			if (file && file.size > 5 * 1024 * 1024) {
@@ -423,45 +388,43 @@ export default function MarriageLicenseApplicationPage() {
 				if (e && e.target) e.target.value = "";
 				return;
 			}
-			// Save raw file to IndexedDB
-			saveDraftFile(STORAGE_KEY, key, file).catch(err => {
+
+			let fileToProcess = file;
+			if (file.type.startsWith("image/")) {
+				try {
+					toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+					fileToProcess = await compressImage(file);
+					toast.success("Image optimized successfully!", { id: "image-compress-toast" });
+				} catch (err) {
+					console.error("Compression error:", err);
+					toast.dismiss("image-compress-toast");
+				}
+			}
+
+			// Save raw/compressed file to IndexedDB
+			saveDraftFile(STORAGE_KEY, key, fileToProcess).catch(err => {
 				console.error("Failed to save draft file to IndexedDB:", err);
 			});
 
 			// Read image files as data URL so previews persist across reloads
-			if (file.type.startsWith("image/")) {
+			if (fileToProcess.type.startsWith("image/")) {
 				const reader = new FileReader();
 				reader.onload = () => {
 					const dataUrl = reader.result as string | null;
 					if (!dataUrl) return;
 					// set File reference
-					setForm((prev: any) => ({ ...prev, files: { ...prev.files, [key]: file } }));
-					const size = estimateDataUrlSize(dataUrl);
-					if (size > PREVIEW_MAX_BYTES) {
-						// try compressing
-						compressImageDataUrl(dataUrl).then((compressed) => {
-							const newSize = estimateDataUrlSize(compressed);
-							if (newSize <= PREVIEW_MAX_BYTES) {
-								setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: compressed } }));
-							} else {
-								setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: null } }));
-								toast.warning("Image preview too large to persist; preview not saved.");
-							}
-							setMissingFiles((m) => ({ ...m, [key]: false }));
-						}).catch(() => {
-							setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: null } }));
-							setMissingFiles((m) => ({ ...m, [key]: false }));
-						});
-					} else {
-						setForm((prev: any) => ({ ...prev, previews: { ...prev.previews, [key]: dataUrl } }));
-						setMissingFiles((m) => ({ ...m, [key]: false }));
-					}
+					setForm((prev: any) => ({ 
+						...prev, 
+						files: { ...prev.files, [key]: fileToProcess },
+						previews: { ...prev.previews, [key]: dataUrl }
+					}));
+					setMissingFiles((m) => ({ ...m, [key]: false }));
 				};
-				reader.readAsDataURL(file);
+				reader.readAsDataURL(fileToProcess);
 			} else {
 				setForm((prev: any) => ({
 					...prev,
-					files: { ...prev.files, [key]: file },
+					files: { ...prev.files, [key]: fileToProcess },
 					previews: { ...prev.previews, [key]: null }
 				}));
 				setMissingFiles((m) => ({ ...m, [key]: false }));

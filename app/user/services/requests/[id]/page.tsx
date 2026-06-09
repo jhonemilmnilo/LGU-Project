@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/image-compression";
 import { calculateCedula } from "@/lib/cedula";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -622,11 +623,22 @@ export default function RequestHubPage() {
         }
     };
 
-    const handleDisputeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleDisputeFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setDisputeFile(file);
-            setDisputePreview(URL.createObjectURL(file));
+            let fileToProcess = file;
+            if (file.type.startsWith("image/")) {
+                try {
+                    toast.loading("Compressing and optimizing dispute evidence...", { id: "image-compress-toast" });
+                    fileToProcess = await compressImage(file);
+                    toast.success("Evidence optimized successfully!", { id: "image-compress-toast" });
+                } catch (err) {
+                    console.error("Compression error:", err);
+                    toast.dismiss("image-compress-toast");
+                }
+            }
+            setDisputeFile(fileToProcess);
+            setDisputePreview(URL.createObjectURL(fileToProcess));
         }
     };
 
@@ -662,8 +674,23 @@ export default function RequestHubPage() {
         }
     };
 
-    const handleRevisionFile = (key: string, file: File | null) => {
-        setRevisionFiles(prev => ({ ...prev, [key]: file }));
+    const handleRevisionFile = async (key: string, file: File | null) => {
+        if (file) {
+            let fileToProcess = file;
+            if (file.type.startsWith("image/")) {
+                try {
+                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+                    fileToProcess = await compressImage(file);
+                    toast.success("Document optimized successfully!", { id: "image-compress-toast" });
+                } catch (err) {
+                    console.error("Compression error:", err);
+                    toast.dismiss("image-compress-toast");
+                }
+            }
+            setRevisionFiles(prev => ({ ...prev, [key]: fileToProcess }));
+        } else {
+            setRevisionFiles(prev => ({ ...prev, [key]: null }));
+        }
     };
 
     const handleResubmit = async () => {
@@ -1970,11 +1997,22 @@ export default function RequestHubPage() {
                                                                                                                 <input
                                                                                                                     type="file"
                                                                                                                     accept=".pdf,image/*"
-                                                                                                                    onChange={(e) => {
+                                                                                                                    onChange={async (e) => {
                                                                                                                         const file = e.target.files?.[0];
                                                                                                                         if (file) {
-                                                                                                                            setPsaNegFile(file);
-                                                                                                                            setPsaNegPreview(URL.createObjectURL(file));
+                                                                                                                            let fileToProcess = file;
+                                                                                                                            if (file.type.startsWith("image/")) {
+                                                                                                                                try {
+                                                                                                                                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+                                                                                                                                    fileToProcess = await compressImage(file);
+                                                                                                                                    toast.success("Document optimized successfully!", { id: "image-compress-toast" });
+                                                                                                                                } catch (err) {
+                                                                                                                                    console.error("Compression error:", err);
+                                                                                                                                    toast.dismiss("image-compress-toast");
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                            setPsaNegFile(fileToProcess);
+                                                                                                                            setPsaNegPreview(URL.createObjectURL(fileToProcess));
                                                                                                                         }
                                                                                                                     }}
                                                                                                                     className="absolute inset-0 opacity-0 cursor-pointer"
@@ -1989,11 +2027,22 @@ export default function RequestHubPage() {
                                                                                                         <input
                                                                                                             type="file"
                                                                                                             accept=".pdf,image/*"
-                                                                                                            onChange={(e) => {
+                                                                                                            onChange={async (e) => {
                                                                                                                 const file = e.target.files?.[0];
                                                                                                                 if (file) {
-                                                                                                                    setPsaNegFile(file);
-                                                                                                                    setPsaNegPreview(URL.createObjectURL(file));
+                                                                                                                    let fileToProcess = file;
+                                                                                                                    if (file.type.startsWith("image/")) {
+                                                                                                                        try {
+                                                                                                                            toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
+                                                                                                                            fileToProcess = await compressImage(file);
+                                                                                                                            toast.success("Document optimized successfully!", { id: "image-compress-toast" });
+                                                                                                                        } catch (err) {
+                                                                                                                            console.error("Compression error:", err);
+                                                                                                                            toast.dismiss("image-compress-toast");
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                    setPsaNegFile(fileToProcess);
+                                                                                                                    setPsaNegPreview(URL.createObjectURL(fileToProcess));
                                                                                                                 }
                                                                                                             }}
                                                                                                             className="absolute inset-0 opacity-0 cursor-pointer"
@@ -2285,7 +2334,7 @@ export default function RequestHubPage() {
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-4">
                                 <a
-                                    href={documentList[lightboxIndex].url}
+                                    href={documentList[lightboxIndex].url || null as any}
                                     download
                                     onClick={e => e.stopPropagation()}
                                     className="h-9 px-4 bg-white/10 hover:bg-primary/80 backdrop-blur-md rounded-xl text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-2 transition-all border border-white/10"
@@ -2294,7 +2343,7 @@ export default function RequestHubPage() {
                                     <span className="hidden sm:inline">Download</span>
                                 </a>
                                 <a
-                                    href={documentList[lightboxIndex].url}
+                                    href={documentList[lightboxIndex].url || null as any}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={e => e.stopPropagation()}
