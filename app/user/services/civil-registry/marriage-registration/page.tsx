@@ -200,6 +200,7 @@ export default function MarriageRegistrationPage() {
         email: "",
         contactNumber: "",
         relationship: "",
+        informantAddress: "",
         files: {} as Record<string, File | null>,
         previews: {} as Record<string, string | null>,
     });
@@ -284,6 +285,17 @@ export default function MarriageRegistrationPage() {
 
                 if (activeResident) {
                     const r = activeResident;
+                    const parts = [
+                        r.houseNumber && `#${r.houseNumber}`,
+                        r.street && `${r.street} St.`,
+                        r.purok && `Purok ${r.purok}`,
+                        r.sitio && `Sitio ${r.sitio}`,
+                        r.barangay && `Brgy. ${r.barangay}`,
+                        r.municipality || "Mapandan",
+                        r.province || "Pangasinan"
+                    ].filter(Boolean);
+                    const constructedAddr = parts.join(", ").toUpperCase();
+
                     setForm(prev => ({
                         ...prev,
                         email: r.email || prev.email || "",
@@ -291,7 +303,8 @@ export default function MarriageRegistrationPage() {
                         app1FullName: `${r.firstName} ${r.middleName ? r.middleName[0] + '. ' : ''}${r.lastName}`.toUpperCase(),
                         app1BirthDate: r.dateOfBirth ? new Date(r.dateOfBirth).toISOString().split('T')[0] : "",
                         app1BirthPlace: (r.placeOfBirth || r.municipality || "").toUpperCase(),
-                        app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase()
+                        app1Citizenship: (r.citizenship || "FILIPINO").toUpperCase(),
+                        informantAddress: constructedAddr
                     }));
                 }
 
@@ -378,6 +391,7 @@ export default function MarriageRegistrationPage() {
     };
 
     const handleSubmit = async () => {
+        if (submitting) return;
         // Require privacy terms acceptance before allowing submit
         if (!policyAccepted) {
             toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
@@ -410,6 +424,7 @@ export default function MarriageRegistrationPage() {
                 email: form.email,
                 contactNumber: form.contactNumber,
                 relationship: form.relationship,
+                informantAddress: form.informantAddress,
                 subjectName: `${form.app1FullName} & ${form.app2FullName}`,
                 totalAmount: form.registrationType === "LATE" ? lateFee : baseFee
             };
@@ -769,6 +784,14 @@ export default function MarriageRegistrationPage() {
                                                     disabled
                                                     className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
                                                     value={form.app1Citizenship}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5 col-span-1 md:col-span-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Informant Address</Label>
+                                                <Input
+                                                    disabled
+                                                    className="bg-slate-100 dark:bg-white/5 border-none font-bold uppercase cursor-not-allowed opacity-75"
+                                                    value={form.informantAddress || ""}
                                                 />
                                             </div>
                                         </div>
@@ -1182,6 +1205,10 @@ export default function MarriageRegistrationPage() {
                                                     <div className="flex justify-between items-center text-xs">
                                                         <span className="font-bold text-slate-400 italic">Party 1:</span>
                                                         <span className="font-black uppercase italic">{form.app1FullName}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className="font-bold text-slate-400 italic">Party 1 Address:</span>
+                                                        <span className="font-black uppercase italic">{form.informantAddress || "N/A"}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-xs">
                                                         <span className="font-bold text-slate-400 italic">Party 2:</span>
