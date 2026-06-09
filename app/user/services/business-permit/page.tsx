@@ -907,15 +907,10 @@ export default function BusinessPermitWizardPage() {
             let fileToProcess = file;
             if (file.type.startsWith("image/")) {
                 try {
-                    const originalSizeKb = (file.size / 1024).toFixed(1);
-                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                    
                     fileToProcess = await compressImage(file);
                     
                     const compressedSizeKb = (fileToProcess.size / 1024).toFixed(1);
-                    console.log(`[ImageCompression] Original: ${originalSizeKb} KB, Compressed: ${compressedSizeKb} KB`);
-                    
-                    toast.success(`Image optimized successfully (${compressedSizeKb} KB)`, { id: "image-compress-toast" });
+                    console.log(`[ImageCompression] Original: ${(file.size / 1024).toFixed(1)} KB, Compressed: ${compressedSizeKb} KB`);
                 } catch (err) {
                     console.error("Compression error:", err);
                     toast.dismiss("image-compress-toast");
@@ -1139,35 +1134,6 @@ export default function BusinessPermitWizardPage() {
 
     return (
         <>
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                :root, * {
-                    --primary-theme: ${themeColor} !important;
-                }
-                .text-primary, [class*="text-primary"]:not(input):not(select):not(textarea) {
-                    color: ${themeColor} !important;
-                }
-                .bg-primary, [class*="bg-primary"] {
-                    background-color: ${themeColor} !important;
-                }
-                .border-primary, [class*="border-primary"] {
-                    border-color: ${themeColor} !important;
-                }
-                .bg-primary\\/10, [class*="bg-primary/10"] {
-                    background-color: ${themeColor}1a !important;
-                }
-                .bg-primary\\/5, [class*="bg-primary/5"] {
-                    background-color: ${themeColor}0d !important;
-                }
-                .shadow-primary\\/20, [class*="shadow-primary/20"] {
-                    --tw-shadow-color: ${themeColor}33 !important;
-                }
-                .hover\\:bg-primary\\/90:hover, [class*="hover:bg-primary/90"]:hover {
-                    background-color: ${themeColor} !important;
-                    filter: brightness(0.9);
-                }
-                `
-            }} />
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-12 pb-32">
             {/* Header / Breadcrumb */}
             <div className="space-y-4 md:space-y-10">
