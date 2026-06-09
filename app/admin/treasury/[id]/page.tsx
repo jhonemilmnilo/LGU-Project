@@ -1212,6 +1212,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 } else {
                     docs.push({ url: additional.municipalForm103, label: "Municipal Form No. 103" });
                 }
+                const idFront = additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl;
+                const idBack = additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl;
+                if (idFront) docs.push({ url: idFront, label: "Informant's Valid ID (Front)" });
+                if (idBack) docs.push({ url: idBack, label: "Informant's Valid ID (Back)" });
             }
 
             // --- Marriage Certificate Request (Certified Copy) ---

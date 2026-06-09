@@ -133,6 +133,7 @@ export default function BirthPsaEndorsementPage() {
         informantCivilStatus: "",
         informantCitizenship: "",
         informantOccupation: "",
+        informantAddress: "",
         // Subject fields
         subjectFullName: "",
         subjectDateOfBirth: "",
@@ -212,6 +213,18 @@ export default function BirthPsaEndorsementPage() {
                 if (resResult.success && resResult.data) {
                     const r = resResult.data;
                     setResident(r);
+                    
+                    const parts = [
+                        r.houseNumber && `#${r.houseNumber}`,
+                        r.street && `${r.street} St.`,
+                        r.purok && `Purok ${r.purok}`,
+                        r.sitio && `Sitio ${r.sitio}`,
+                        r.barangay && `Brgy. ${r.barangay}`,
+                        r.municipality || "Mapandan",
+                        r.province || "Pangasinan"
+                    ].filter(Boolean);
+                    const constructedAddr = parts.join(", ").toUpperCase();
+
                     setFormData(prev => ({
                         ...prev,
                         email: prev.email || r.user?.email || "",
@@ -225,6 +238,7 @@ export default function BirthPsaEndorsementPage() {
                         informantCivilStatus: r.civilStatus || "",
                         informantCitizenship: r.citizenship || "FILIPINO",
                         informantOccupation: r.occupation || "",
+                        informantAddress: constructedAddr
                     }));
                 }
 
@@ -485,6 +499,7 @@ export default function BirthPsaEndorsementPage() {
     };
 
     const handleSubmit = async () => {
+        if (submitting) return;
         if (!policyAccepted) {
             setShowErrors(true);
             toast.error("Please review and accept the Privacy Policy & Terms before submitting. Click Review to open the agreement.");
@@ -812,6 +827,15 @@ export default function BirthPsaEndorsementPage() {
                                             </div>
                                         </div>
 
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Informant Address</Label>
+                                            <Input
+                                                readOnly
+                                                className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 transition-all font-bold italic text-slate-600 uppercase"
+                                                value={formData.informantAddress}
+                                            />
+                                        </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Occupation</Label>
@@ -1011,6 +1035,10 @@ export default function BirthPsaEndorsementPage() {
                                             <div className="space-y-1">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Contact</span>
                                                 <p className="font-black text-slate-900 dark:text-white italic">{formData.contactNumber}</p>
+                                            </div>
+                                            <div className="space-y-1 col-span-2">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Informant Address</span>
+                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{formData.informantAddress}</p>
                                             </div>
                                             <div className="col-span-2 border-t border-slate-200 dark:border-white/5 pt-4 space-y-1">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 italic">Subject Name (To Endorse)</span>

@@ -134,6 +134,7 @@ export default function DeathPsaEndorsementPage() {
         informantCivilStatus: "",
         informantCitizenship: "",
         informantOccupation: "",
+        informantAddress: "",
         // Subject (Deceased) fields
         subjectFullName: "",
         subjectDateOfDeath: "",
@@ -203,6 +204,18 @@ export default function DeathPsaEndorsementPage() {
                 if (resResult.success && resResult.data) {
                     const r = resResult.data;
                     setResident(r);
+
+                    const parts = [
+                        r.houseNumber && `#${r.houseNumber}`,
+                        r.street && `${r.street} St.`,
+                        r.purok && `Purok ${r.purok}`,
+                        r.sitio && `Sitio ${r.sitio}`,
+                        r.barangay && `Brgy. ${r.barangay}`,
+                        r.municipality || "Mapandan",
+                        r.province || "Pangasinan"
+                    ].filter(Boolean);
+                    const constructedAddr = parts.join(", ").toUpperCase();
+
                     setFormData(prev => ({
                         ...prev,
                         email: prev.email || r.user?.email || "",
@@ -216,6 +229,7 @@ export default function DeathPsaEndorsementPage() {
                         informantCivilStatus: r.civilStatus || "",
                         informantCitizenship: r.citizenship || "FILIPINO",
                         informantOccupation: r.occupation || "",
+                        informantAddress: constructedAddr
                     }));
                 }
 
@@ -223,6 +237,39 @@ export default function DeathPsaEndorsementPage() {
                     const psaType = typesResult.data.find((t: any) => t.code === "LCR_DEATH_PSA_ENDORSEMENT");
                     if (psaType) {
                         setTypeId(psaType.id);
+                    }
+                }
+
+                // Check for latest Form 2A and auto-attach if no draft exists
+                const latestRes = await getLatestForm2AForCurrentUser();
+                if (latestRes.success && latestRes.data) {
+                    const draftFiles = await getDraftFiles(STORAGE_KEY);
+                    if (!draftFiles?.form2a) {
+                        const { docUrl, subjectName, dateOfDeath, mothersMaidenName, fathersName, placeOfDeath, causeOfDeath } = latestRes.data;
+                        setFormData(prev => ({
+                            ...prev,
+                            subjectFullName: prev.subjectFullName || (subjectName ? subjectName.toUpperCase() : ""),
+                            subjectDateOfDeath: prev.subjectDateOfDeath || (dateOfDeath ? new Date(dateOfDeath).toISOString().split('T')[0] : ""),
+                            mothersMaidenName: prev.mothersMaidenName || (mothersMaidenName ? mothersMaidenName.toUpperCase() : ""),
+                            fathersName: prev.fathersName || (fathersName ? fathersName.toUpperCase() : ""),
+                            placeOfDeath: prev.placeOfDeath || (placeOfDeath ? placeOfDeath.toUpperCase() : ""),
+                            causeOfDeath: prev.causeOfDeath || (causeOfDeath ? causeOfDeath.toUpperCase() : "")
+                        }));
+
+                        if (docUrl) {
+                            try {
+                                const response = await fetch(docUrl);
+                                const blob = await response.blob();
+                                const filename = docUrl.split('/').pop() || "form_2a.pdf";
+                                const file = new File([blob], filename, { type: blob.type });
+
+                                setFiles(prev => ({ ...prev, form2a: file }));
+                                await saveDraftFile(STORAGE_KEY, "form2a", file);
+                                toast.success("Latest Form 2A found and automatically attached from your transactions!");
+                            } catch (err) {
+                                console.error("Failed to download Form 2A file:", err);
+                            }
+                        }
                     }
                 }
             } catch (error) {
@@ -450,6 +497,7 @@ export default function DeathPsaEndorsementPage() {
     };
 
     const handleSubmit = async () => {
+        if (submitting) return;
         if (!policyAccepted) {
             setShowErrors(true);
             toast.error("Please review and accept the Privacy Policy & Terms before submitting.");
@@ -767,6 +815,15 @@ export default function DeathPsaEndorsementPage() {
                                             </div>
                                         </div>
 
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Informant Address</Label>
+                                            <Input
+                                                readOnly
+                                                className="rounded-xl border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/50 h-12 transition-all font-bold italic text-slate-600 uppercase"
+                                                value={formData.informantAddress}
+                                            />
+                                        </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Occupation</Label>
@@ -986,6 +1043,10 @@ export default function DeathPsaEndorsementPage() {
                                             <div className="space-y-1">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Contact</span>
                                                 <p className="font-black text-slate-900 dark:text-white italic">{formData.contactNumber}</p>
+                                            </div>
+                                            <div className="space-y-1 col-span-2">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Informant Address</span>
+                                                <p className="font-black text-slate-900 dark:text-white italic uppercase">{formData.informantAddress || "N/A"}</p>
                                             </div>
                                             <div className="col-span-2 border-t border-slate-200 dark:border-white/5 pt-4 space-y-1">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500 italic">Deceased Name (To Endorse)</span>
