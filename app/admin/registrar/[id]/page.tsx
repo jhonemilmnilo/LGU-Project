@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, use, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -508,6 +509,32 @@ export default function RegistrarDetailPage({ params }: PageProps) {
             setLoading(false);
         }
     }, [id]);
+
+    useEffect(() => {
+        if (!supabase || !id) return;
+
+        console.log(`Subscribing to Supabase Realtime for transaction ${id}...`);
+        const channel = supabase
+            .channel(`realtime-registrar-transaction-${id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "Transaction",
+                    filter: `id=eq.${id}`,
+                },
+                () => {
+                    fetchTransaction();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log(`Unsubscribing from Supabase Realtime for transaction ${id}...`);
+            supabase.removeChannel(channel);
+        };
+    }, [id, fetchTransaction]);
 
     useEffect(() => {
         if (!session) return;

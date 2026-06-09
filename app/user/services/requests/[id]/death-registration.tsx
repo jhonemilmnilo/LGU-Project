@@ -193,6 +193,10 @@ export function DeathRegistrationVerificationCard({ request, additionalData, the
     const [psaNegPreview, setPsaNegPreview] = useState<string | null>(null);
     const [isSubmittingPsaEndorsement, setIsSubmittingPsaEndorsement] = useState(false);
 
+    if (formType === "FORM_2A") {
+        return null;
+    }
+
     const docUrl = additionalData.scannedDocUrl ||
         additionalData.verificationDocUrl ||
         additionalData.form2a ||
@@ -434,7 +438,7 @@ export function DeathRegistrationVerificationCard({ request, additionalData, the
                                         alt="Registry Record Preview"
                                         className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                     />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
                                         <button
                                             type="button"
                                             style={{ backgroundColor: themeColor }}
