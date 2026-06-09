@@ -1447,7 +1447,18 @@ export async function finalizeTransactionFulfillment(formData: FormData) {
         }
 
         const fiscal = (typeof transaction.fiscalSnapshot === "string" ? JSON.parse(transaction.fiscalSnapshot) : transaction.fiscalSnapshot) as any || {};
-        const baseAmount = Number(fiscal.basicTax || 0) + Number(fiscal.additionalTax || 0) + Number(fiscal.penaltyCharge || fiscal.penalty || 0);
+        
+        // Sum any line items inside fiscalSnapshot (excluding Business/Building permits as their lineItems are already in basicTax)
+        const isBusinessOrBuilding = transaction.type.code.startsWith("BUSINESS_PERMIT") || transaction.type.code.startsWith("BUILDING_PERMIT");
+        const lineItemsSum = (!isBusinessOrBuilding && Array.isArray(fiscal.lineItems))
+            ? fiscal.lineItems.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0)
+            : 0;
+
+        const baseAmount = Number(fiscal.basicTax || 0) + 
+                           Number(fiscal.additionalTax || 0) + 
+                           Number(fiscal.penaltyCharge || fiscal.penalty || 0) +
+                           (!isBusinessOrBuilding ? Number(fiscal.miscFee || 0) : 0) +
+                           lineItemsSum;
 
         // Subtract any previously saved delivery fee to get a clean base amount
         const existingDeliveryFee = Number(fiscal.deliveryFee || 0);
@@ -1918,7 +1929,7 @@ export async function sendForRevision(id: string, remarks: string) {
 
         const nextRevisionCount = (tx.revisionCount || 0) + 1;
 
-        if (nextRevisionCount >= 3) {
+        if (nextRevisionCount > 3) {
             // 🚨 AUTOMATIC DECLINE / REJECTION!
             const autoRemarks = `${remarks} (System: Automatically declined due to reaching the maximum limit of 3 revision requests.)`;
             const transaction = await prisma.transaction.update({
@@ -3869,8 +3880,18 @@ export async function saveLogisticsDetails(
         }
 
         const fiscal = (typeof transaction.fiscalSnapshot === "string" ? JSON.parse(transaction.fiscalSnapshot) : transaction.fiscalSnapshot) as any || {};
-        // Do not add lineItems sum again because they are already accumulated inside basicTax!
-        const baseAmount = Number(fiscal.basicTax || 0) + Number(fiscal.additionalTax || 0) + Number(fiscal.penaltyCharge || 0);
+        
+        // Sum any line items inside fiscalSnapshot (excluding Business/Building permits as their lineItems are already in basicTax)
+        const isBusinessOrBuilding = transaction.type.code.startsWith("BUSINESS_PERMIT") || transaction.type.code.startsWith("BUILDING_PERMIT");
+        const lineItemsSum = (!isBusinessOrBuilding && Array.isArray(fiscal.lineItems))
+            ? fiscal.lineItems.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0)
+            : 0;
+
+        const baseAmount = Number(fiscal.basicTax || 0) + 
+                           Number(fiscal.additionalTax || 0) + 
+                           Number(fiscal.penaltyCharge || 0) +
+                           (!isBusinessOrBuilding ? Number(fiscal.miscFee || 0) : 0) +
+                           lineItemsSum;
 
         // Subtract any previously saved delivery fee to prevent accumulation on re-clicks
         const existingDeliveryFee = Number(fiscal.deliveryFee || 0);
