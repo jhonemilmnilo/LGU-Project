@@ -285,7 +285,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     const activeCategory = categoryQuery || fallbackCategory;
     const backUrl = activeCategory && activeCategory !== "ALL"
         ? `/admin/treasury?category=${encodeURIComponent(activeCategory)}`
-        : "/admin/treasury";
+        : "/admin/treasury?category=CEDULA";
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [remarks, setRemarks] = useState("");
@@ -860,7 +860,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 <p className="text-slate-500 dark:text-slate-400 font-medium italic max-w-md">
                     This request is currently under Registrar verification, document release, or waiting for User payment. The Treasury department cannot access this request until it is paid and ready for payment verification.
                 </p>
-                <Link href="/admin/treasury">
+                <Link href={backUrl}>
                     <Button variant="outline" className="h-12 px-6 rounded-xl border-2 font-black italic uppercase text-xs tracking-wider transition-all active:scale-95">
                         Back to Treasury Dashboard
                     </Button>

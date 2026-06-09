@@ -972,8 +972,8 @@ export default function RequestHubPage() {
                 { label: "Previous Business Permit", url: addData.previousPermitUrl },
             ]
             : [
-                { label: "Identity Matrix", url: addData.validIdUrl },
-                { label: "Financial Evidence", url: addData.proofOfIncomeUrl },
+                { label: "Valid ID", url: addData.validIdUrl },
+                { label: request?.isStudent ? "Student Proof (Enrollment/COR)" : "Financial Evidence", url: addData.proofOfIncomeUrl },
             ];
         return docs.filter(d => !!d.url) as { label: string; url: string }[];
     }, [request, isBusinessPermit, isBuildingPermit]);

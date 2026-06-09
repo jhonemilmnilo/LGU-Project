@@ -39,7 +39,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { calculateBusinessPermit } from "@/lib/business-permit";
 import { useDraft } from "@/hooks/useDraft";
-import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits, getUserTransactions, getSystemSettingAction } from "@/app/admin/transactions/actions";
+import { getCurrentUserResident, getTransactionTypes, submitBusinessPermitTransaction, getBarangaysList, getTransactionById, getAllSuccessfulBusinessPermits, getUserTransactions } from "@/app/admin/transactions/actions";
 import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import SecureIdleTimer from "@/components/shared/SecureIdleTimer";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
@@ -250,7 +250,6 @@ function FilePreview({ file, onClick }: { file: File; onClick?: () => void }) {
 }
 export default function BusinessPermitWizardPage() {
     const router = useRouter();
-    const [themeColor, setThemeColor] = useState("#2563eb");
     const { hydrateDraft, hydrateDraftFiles, persistDraft, persistDraftFile, clearDraft } = useDraft<FormState>("emapandan_bp_draft");
     const contactInputRef = useRef<HTMLInputElement>(null);
 
@@ -341,12 +340,6 @@ export default function BusinessPermitWizardPage() {
     useEffect(() => {
         async function init() {
             try {
-                // Fetch dynamic theme settings
-                const themeRes = await getSystemSettingAction("theme_color", "#2563eb");
-                if (themeRes.success && themeRes.data) {
-                    setThemeColor(themeRes.data);
-                }
-
                 // Check user rejection count (rejection count strikes penalty check)
                 const residentRes = await getCurrentUserResident();
                 const resident = residentRes.data;
