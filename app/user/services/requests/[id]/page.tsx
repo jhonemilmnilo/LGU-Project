@@ -15,7 +15,6 @@ import {
     CheckCircle2,
     Home,
     Loader2,
-    Camera,
     Upload,
     Check,
     Copy,
@@ -45,7 +44,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +89,7 @@ const isPaymongoPaymentId = (value: unknown) => {
 };
 
 // Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatPHDate(date: string | Date): string {
     return new Intl.DateTimeFormat("en-PH", {
         timeZone: "Asia/Manila",
@@ -99,6 +98,7 @@ function formatPHDate(date: string | Date): string {
         year: "numeric",
     }).format(new Date(date));
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatPHDateTime(date: string | Date): string {
     return new Intl.DateTimeFormat("en-PH", {
         timeZone: "Asia/Manila",
@@ -162,7 +162,6 @@ export default function RequestHubPage() {
 
     // Dispute States
     const [disputeOpen, setDisputeOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [disputeType, setDisputeType] = useState<"RETURN" | "REFUND">("RETURN");
     const [disputeReason, setDisputeReason] = useState("");
     const [disputeFile, setDisputeFile] = useState<File | null>(null);
@@ -700,12 +699,15 @@ export default function RequestHubPage() {
 
     const additionalData = useMemo(() => request?.additionalData || {}, [request?.additionalData]);
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
+    const residentIdFront = residentData.idFrontUrl;
+    const residentIdBack = residentData.idBackUrl;
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";
     const isActionable = (request?.status === "EVALUATED" && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && (typeCode.startsWith("BUSINESS_PERMIT") || typeCode.startsWith("CEDULA") || typeCode.startsWith("BUILDING_PERMIT")));
     const isBusinessPermit = typeCode.startsWith("BUSINESS_PERMIT");
     const isBuildingPermit = typeCode.startsWith("BUILDING_PERMIT");
     const isCedula = typeCode.startsWith("CEDULA");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const estimatedCedulaAmount = useMemo(() => {
         if (!isCedula || !request) return 0;
         if (request.isStudent) {
@@ -890,8 +892,8 @@ export default function RequestHubPage() {
             if (addData.marriageLicense) lcrDocs.push({ label: "Certified Copy of Marriage License", url: addData.marriageLicense });
 
             // Shared LCR IDs
-            const idFront = addData.validIdFront || addData.validIdFrontUrl || addData.idFrontUrl || residentData.idFrontUrl || request?.user?.residentProfile?.idFrontUrl;
-            const idBack = addData.validIdBack || addData.validIdBackUrl || addData.idBackUrl || residentData.idBackUrl || request?.user?.residentProfile?.idBackUrl;
+            const idFront = addData.validIdFront || addData.validIdFrontUrl || addData.idFrontUrl || residentIdFront || request?.user?.residentProfile?.idFrontUrl;
+            const idBack = addData.validIdBack || addData.validIdBackUrl || addData.idBackUrl || residentIdBack || request?.user?.residentProfile?.idBackUrl;
             if (idFront) {
                 lcrDocs.push({ label: "Valid ID (Front)", url: idFront });
             }
@@ -921,7 +923,7 @@ export default function RequestHubPage() {
                 { label: request?.isStudent ? "Student Proof (Enrollment/COR)" : "Financial Evidence", url: addData.proofOfIncomeUrl },
             ];
         return docs.filter(d => !!d.url) as { label: string; url: string }[];
-    }, [request, isBusinessPermit, isBuildingPermit, isCivilRegistry]);
+    }, [request, isBusinessPermit, isBuildingPermit, isCivilRegistry, residentIdFront, residentIdBack]);
 
     // Keyboard navigation for lightbox
     useEffect(() => {
@@ -1835,298 +1837,8 @@ export default function RequestHubPage() {
                                                 themeColor={themeColor}
                                                 handleViewFile={handleViewFile}
                                             />
-                                        {(isLcrBirth || isLcrDeath) && (request.status === "RELEASED" || request.status === "DELIVERED") && (
-                                            (() => {
-                                                const formType = additionalData.registryBookVerification || (isLcrDeath ? "FORM_2A" : "FORM_1A");
-                                                const config = getVerificationConfig(formType);
-                                                return (
-                                                    <div
-                                                        className="p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:scale-[1.01] w-full text-left bg-white dark:bg-slate-900/40"
-                                                        style={{
-                                                            borderColor: `${themeColor}20`,
-                                                            boxShadow: `0 20px 25px -5px ${themeColor}10`
-                                                        }}
-                                                    >
-                                                        <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                                                            <ShieldCheck className="w-24 h-24" style={{ color: themeColor }} />
-                                                        </div>
-                                                        <div className="relative z-10 space-y-6">
-                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                                <div className="flex items-center gap-4">
-                                                                    <div
-                                                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                    >
-                                                                        <FileText className="w-5 h-5 text-white" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-[8px] font-black uppercase tracking-widest italic opacity-70 leading-none" style={{ color: themeColor }}>
-                                                                            Registry Book Verification
-                                                                        </p>
-                                                                        <p className="text-xs md:text-sm font-black italic tracking-tight uppercase leading-none mt-1.5 text-slate-900 dark:text-white">
-                                                                            {config.title}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                                <Badge
-                                                                    className="text-[8px] font-black uppercase tracking-widest italic px-3 py-1 rounded-full text-white border-transparent"
-                                                                    style={{ backgroundColor: themeColor }}
-                                                                >
-                                                                    {formType.replace(/_/g, " ")}
-                                                                </Badge>
-                                                            </div>
-
-                                                            <div className="p-5 bg-white/50 dark:bg-[#121620]/60 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm">
-                                                                <p className="text-xs md:text-sm font-bold italic text-slate-700 dark:text-slate-200 leading-relaxed">
-                                                                    &ldquo;{config.description}&rdquo;
-                                                                </p>
-                                                            </div>
-
-                                                            {(formType === "FORM_1B" || formType === "FORM_2B") && (
-                                                                <div
-                                                                    className="p-5 rounded-2xl border shadow-inner space-y-4 animate-in slide-in-from-top-2 duration-300 bg-white dark:bg-white/[0.02]"
-                                                                    style={{ borderColor: `${themeColor}20` }}
-                                                                >
-                                                                    <div className="flex items-start gap-3">
-                                                                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: themeColor }} />
-                                                                        <div className="space-y-1">
-                                                                            <h4 className="text-[10px] font-black uppercase tracking-widest leading-none" style={{ color: themeColor }}>MCR negative verification notice</h4>
-                                                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-normal italic">
-                                                                                MCR issued {formType} (Negative Result). Please proceed with Registration to create a record.
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <Button
-                                                                        asChild
-                                                                        className="w-full h-11 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg transition-all duration-200 active:scale-95 flex items-center justify-center border-none hover:opacity-90"
-                                                                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
-                                                                    >
-                                                                        <Link href={isLcrDeath ? "/user/services/civil-registry/death-registration" : "/user/services/civil-registry/birth-registration"}>
-                                                                            Proceed to Registration
-                                                                        </Link>
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-
-                                                            {(formType === "FORM_1A" || formType === "FORM_2A") && (
-                                                                <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner space-y-4">
-                                                                    <div className="flex flex-col gap-2">
-                                                                        <div className="space-y-1">
-                                                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-none">Need to forward to Manila?</h4>
-                                                                            <p className="text-[10px] text-slate-400 italic">Initiate {isLcrDeath ? "Death" : "Birth"} PSA endorsement to forward the certificate to PSA Main office.</p>
-                                                                        </div>
-                                                                        {additionalData.psaEndorsementRequested ? (
-                                                                            <div
-                                                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest italic mt-1 p-3 rounded-xl border"
-                                                                                style={{ color: themeColor, backgroundColor: `${themeColor}10`, borderColor: `${themeColor}20` }}
-                                                                            >
-                                                                                <Check className="w-4 h-4 shrink-0" />
-                                                                                <span>{isLcrDeath ? "Death" : "Birth"} PSA Endorsement Requested (₱200)</span>
-                                                                            </div>
-                                                                        ) : isLcrDeath ? (
-                                                                            <Button
-                                                                                asChild
-                                                                                className="w-full h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all border-none"
-                                                                                style={{
-                                                                                    backgroundColor: themeColor,
-                                                                                    boxShadow: `0 10px 20px -5px ${themeColor}30`
-                                                                                }}
-                                                                            >
-                                                                                <Link href="/user/services/civil-registry/death-psa-endorsement">
-                                                                                    Request Death PSA Endorsement (₱200)
-                                                                                </Link>
-                                                                            </Button>
-                                                                        ) : (
-                                                                            <Dialog open={psaEndorsementOpen} onOpenChange={setPsaEndorsementOpen}>
-                                                                                <DialogTrigger asChild>
-                                                                                    <Button
-                                                                                        className="w-full h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                                        style={{
-                                                                                            backgroundColor: themeColor,
-                                                                                            boxShadow: `0 10px 20px -5px ${themeColor}30`
-                                                                                        }}
-                                                                                    >
-                                                                                        Request Birth PSA Endorsement (₱200)
-                                                                                    </Button>
-                                                                                </DialogTrigger>
-                                                                                <DialogContent className="max-w-[360px] w-full bg-white dark:bg-slate-950 border-none rounded-[1.5rem] shadow-2xl p-6 z-[150]">
-                                                                                    <DialogHeader className="space-y-1">
-                                                                                        <DialogTitle className="text-md font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                                                            Birth PSA <span style={{ color: themeColor }}>Endorsement</span>
-                                                                                        </DialogTitle>
-                                                                                        <DialogDescription className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">
-                                                                                            Official Manila Dispatch Protocol
-                                                                                        </DialogDescription>
-                                                                                    </DialogHeader>
-                                                                                    <div className="space-y-4 py-3">
-                                                                                        <p className="text-xs font-medium text-slate-500 leading-relaxed italic">
-                                                                                            Please upload your PSA Negative Certification document to initiate the endorsement process. This service carries a government fee of ₱200.
-                                                                                        </p>
-                                                                                        <div className="space-y-1.5">
-                                                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">PSA Negative Cert (PDF/Image)</Label>
-                                                                                            <div className="w-full aspect-[21/8] bg-slate-50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">
-                                                                                                {psaNegPreview ? (
-                                                                                                    <>
-                                                                                                        <div className="absolute inset-0 flex items-center justify-center font-bold text-xs uppercase text-slate-800 dark:text-white">
-                                                                                                            File Selected
-                                                                                                        </div>
-                                                                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                                                            <Button variant="secondary" size="sm" className="h-7 px-3 font-black italic uppercase text-[8px] tracking-widest rounded-lg relative overflow-hidden">
-                                                                                                                Change
-                                                                                                                <input
-                                                                                                                    type="file"
-                                                                                                                    accept=".pdf,image/*"
-                                                                                                                    onChange={async (e) => {
-                                                                                                                        const file = e.target.files?.[0];
-                                                                                                                        if (file) {
-                                                                                                                            let fileToProcess = file;
-                                                                                                                            if (file.type.startsWith("image/")) {
-                                                                                                                                try {
-                                                                                                                                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                                                                                                                                    fileToProcess = await compressImage(file);
-                                                                                                                                    toast.success("Document optimized successfully!", { id: "image-compress-toast" });
-                                                                                                                                } catch (err) {
-                                                                                                                                    console.error("Compression error:", err);
-                                                                                                                                    toast.dismiss("image-compress-toast");
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            setPsaNegFile(fileToProcess);
-                                                                                                                            setPsaNegPreview(URL.createObjectURL(fileToProcess));
-                                                                                                                        }
-                                                                                                                    }}
-                                                                                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                                                                                />
-                                                                                                            </Button>
-                                                                                                        </div>
-                                                                                                    </>
-                                                                                                ) : (
-                                                                                                    <div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
-                                                                                                        <Upload className="w-4 h-4 text-slate-350 mb-0.5" />
-                                                                                                        <p className="text-[8px] font-black uppercase text-slate-400 italic">Upload Document</p>
-                                                                                                        <input
-                                                                                                            type="file"
-                                                                                                            accept=".pdf,image/*"
-                                                                                                            onChange={async (e) => {
-                                                                                                                const file = e.target.files?.[0];
-                                                                                                                if (file) {
-                                                                                                                    let fileToProcess = file;
-                                                                                                                    if (file.type.startsWith("image/")) {
-                                                                                                                        try {
-                                                                                                                            toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                                                                                                                            fileToProcess = await compressImage(file);
-                                                                                                                            toast.success("Document optimized successfully!", { id: "image-compress-toast" });
-                                                                                                                        } catch (err) {
-                                                                                                                            console.error("Compression error:", err);
-                                                                                                                            toast.dismiss("image-compress-toast");
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    setPsaNegFile(fileToProcess);
-                                                                                                                    setPsaNegPreview(URL.createObjectURL(fileToProcess));
-                                                                                                                }
-                                                                                                            }}
-                                                                                                            className="absolute inset-0 opacity-0 cursor-pointer"
-                                                                                                        />
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <DialogFooter className="pt-2">
-                                                                                        <Button
-                                                                                            onClick={handlePsaEndorsementSubmit}
-                                                                                            disabled={isSubmittingPsaEndorsement || !psaNegFile}
-                                                                                            className="w-full h-11 text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2 hover:opacity-90 border-none"
-                                                                                            style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
-                                                                                        >
-                                                                                            {isSubmittingPsaEndorsement ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                                                                            Submit Request
-                                                                                        </Button>
-                                                                                    </DialogFooter>
-                                                                                </DialogContent>
-                                                                            </Dialog>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {additionalData.scannedDocUrl && (
-                                                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                                                    <Button
-                                                                        onClick={async () => {
-                                                                            if (!additionalData.scannedDocUrl) return;
-                                                                            try {
-                                                                                const response = await fetch(additionalData.scannedDocUrl);
-                                                                                const blob = await response.blob();
-                                                                                const url = window.URL.createObjectURL(blob);
-                                                                                const link = document.createElement("a");
-                                                                                link.href = url;
-                                                                                const ext = blob.type.includes("pdf") ? "pdf" : "png";
-                                                                                link.download = `Scanned_Verification_${id.slice(-6).toUpperCase()}.${ext}`;
-                                                                                document.body.appendChild(link);
-                                                                                link.click();
-                                                                                document.body.removeChild(link);
-                                                                                window.URL.revokeObjectURL(url);
-                                                                                toast.success("Document downloaded!");
-                                                                            } catch {
-                                                                                toast.error("Download failed. Try opening in a new tab.");
-                                                                            }
-                                                                        }}
-                                                                        className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                        style={{
-                                                                            backgroundColor: themeColor,
-                                                                            boxShadow: `0 10px 20px -5px ${themeColor}30`
-                                                                        }}
-                                                                    >
-                                                                        <Download className="w-4 h-4" />
-                                                                        Verification Form
-                                                                    </Button>
-                                                                    <Button
-                                                                        onClick={() => {
-                                                                            if (additionalData.scannedDocUrl) {
-                                                                                handleViewFile(additionalData.scannedDocUrl, "Verification Document");
-                                                                            }
-                                                                        }}
-                                                                        variant="outline"
-                                                                        className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
-                                                                    >
-                                                                        <Eye className="w-4 h-4" />
-                                                                        Preview Form
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-
-                                                            {request.eCopyUrl && (
-                                                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                                                    <Button
-                                                                        onClick={handleECopyDownload}
-                                                                        className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                        style={{
-                                                                            backgroundColor: config.themeColor,
-                                                                            boxShadow: `0 10px 20px -5px ${config.themeColor}30`
-                                                                        }}
-                                                                    >
-                                                                        <Download className="w-4 h-4" />
-                                                                        Download
-                                                                    </Button>
-                                                                    <Button
-                                                                        onClick={() => {
-                                                                            if (request.eCopyUrl) {
-                                                                                handleViewFile(request.eCopyUrl, isCedula ? "E-Copy of CEDULA" : "Official Document");
-                                                                            }
-                                                                        }}
-                                                                        variant="outline"
-                                                                        className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
-                                                                    >
-                                                                        <Eye className="w-4 h-4" />
-                                                                        Preview
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()
                                         )}
+
 
                                         {isPsaEndorsement && (request.status === "RELEASED" || request.status === "DELIVERED") && (
                                             <div
@@ -2327,140 +2039,120 @@ export default function RequestHubPage() {
 
             {/* Lightbox component - Elegant backdrop overlay */}
             <AnimatePresence>
-                {lightboxOpen && (
+                {lightboxOpen && documentList[lightboxIndex] && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-slate-950/95 flex flex-col items-center justify-center p-4 md:p-10 select-none backdrop-blur-sm"
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-[100] bg-black/96 flex flex-col select-none"
+                        onClick={() => setLightboxOpen(false)}
                     >
-                        <button
-                            onClick={() => setLightboxOpen(false)}
-                            className="absolute top-4 right-4 md:top-8 md:right-8 w-12 h-12 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all font-black"
-                        >
-                            ✕
-                        </button>
-                        <div className="relative w-full max-w-4xl aspect-[4/3] max-h-[75vh]">
-                            <Image
-                                src={documentList[lightboxIndex].url}
-                                alt={documentList[lightboxIndex].label}
-                                fill
-                                className="object-contain"
-                                unoptimized
-                            />
-                        </div>
-                        <div className="absolute bottom-4 left-4 right-4 flex flex-col items-center gap-2">
-                            <Badge className="bg-primary hover:bg-primary text-white border-none font-black italic tracking-widest uppercase text-[9px] md:text-[10px] px-4 py-1.5 rounded-full shadow-lg shadow-primary/20">
-                                {documentList[lightboxIndex].label}
-                            </Badge>
-                            {documentList.length > 1 && (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setLightboxIndex(i => Math.max(i - 1, 0)); }}
-                                        disabled={lightboxIndex === 0}
-                                        className="h-8 px-4 rounded-xl border border-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all font-black text-xs bg-white/5 hover:bg-white/10"
-                                    >
-                                        ◀
-                                    </button>
-                                    transition={{ duration: 0.2 }}
-                                    className="fixed inset-0 z-[100] bg-black/96 flex flex-col select-none"
+                        {/* Top bar */}
+                        <div className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-white/10 shrink-0" onClick={e => e.stopPropagation()}>
+                            <div className="space-y-0.5 min-w-0">
+                                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 italic">
+                                    {lightboxIndex + 1} / {documentList.length}
+                                </p>
+                                <p className="text-sm md:text-base font-black uppercase tracking-tighter text-white italic truncate">
+                                    {documentList[lightboxIndex].label}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-4">
+                                <a
+                                    href={documentList[lightboxIndex].url || null as any}
+                                    download
+                                    onClick={e => e.stopPropagation()}
+                                    className="h-9 px-4 bg-white/10 hover:bg-primary/80 backdrop-blur-md rounded-xl text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-2 transition-all border border-white/10"
+                                >
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Download</span>
+                                </a>
+                                <a
+                                    href={documentList[lightboxIndex].url || null as any}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={e => e.stopPropagation()}
+                                    className="h-9 w-9 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white flex items-center justify-center transition-all border border-white/10"
+                                    title="Open in new tab"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                                <button
                                     onClick={() => setLightboxOpen(false)}
-                    >
-                                    {/* Top bar */}
-                                    <div className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-white/10 shrink-0" onClick={e => e.stopPropagation()}>
-                                        <div className="space-y-0.5 min-w-0">
-                                            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 italic">
-                                                {lightboxIndex + 1} / {documentList.length}
-                                            </p>
-                                            <p className="text-sm md:text-base font-black uppercase tracking-tighter text-white italic truncate">
-                                                {documentList[lightboxIndex].label}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0 ml-4">
-                                            <a
-                                                href={documentList[lightboxIndex].url || null as any}
-                                                download
-                                                onClick={e => e.stopPropagation()}
-                                                className="h-9 px-4 bg-white/10 hover:bg-primary/80 backdrop-blur-md rounded-xl text-white text-[9px] font-black uppercase tracking-widest italic flex items-center gap-2 transition-all border border-white/10"
-                                            >
-                                                <Download className="w-3.5 h-3.5" />
-                                                <span className="hidden sm:inline">Download</span>
-                                            </a>
-                                            <a
-                                                href={documentList[lightboxIndex].url || null as any}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={e => e.stopPropagation()}
-                                                className="h-9 w-9 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white flex items-center justify-center transition-all border border-white/10"
-                                                title="Open in new tab"
-                                            >
-                                                <ExternalLink className="w-3.5 h-3.5" />
-                                            </a>
-                                            <button
-                                                onClick={() => setLightboxOpen(false)}
-                                                className="h-9 w-9 bg-white/10 hover:bg-red-500/80 backdrop-blur-md rounded-xl text-white flex items-center justify-center transition-all border border-white/10"
-                                                title="Close (Esc)"
-                                            >
-                                                <XCircle className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
+                                    className="h-9 w-9 bg-white/10 hover:bg-red-500/80 backdrop-blur-md rounded-xl text-white flex items-center justify-center transition-all border border-white/10"
+                                    title="Close (Esc)"
+                                >
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
 
-                                    {/* Main image area */}
-                                    <div className="flex-1 flex items-center justify-center relative overflow-hidden px-16 md:px-24" onClick={e => e.stopPropagation()}>
-                                        {/* Prev arrow */}
-                                        {lightboxIndex > 0 && (
-                                            <button
-                                                onClick={() => setLightboxIndex(i => i - 1)}
-                                                className="absolute left-3 md:left-6 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all backdrop-blur-md border border-white/10 active:scale-95"
-                                            >
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-                                            </button>
+                        {/* Main image area */}
+                        <div className="flex-1 flex items-center justify-center relative overflow-hidden px-16 md:px-24" onClick={e => e.stopPropagation()}>
+                            {/* Prev arrow */}
+                            {lightboxIndex > 0 && (
+                                <button
+                                    onClick={() => setLightboxIndex(i => i - 1)}
+                                    className="absolute left-3 md:left-6 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all backdrop-blur-md border border-white/10 active:scale-95"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+                            )}
+
+                            {/* Image */}
+                            <motion.div
+                                key={lightboxIndex}
+                                initial={{ opacity: 0, scale: 0.96 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.96 }}
+                                transition={{ duration: 0.2 }}
+                                className="relative flex items-center justify-center w-full max-h-[70vh]"
+                            >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={documentList[lightboxIndex].url}
+                                    alt={documentList[lightboxIndex].label}
+                                    className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
+                                    draggable={false}
+                                />
+                            </motion.div>
+
+                            {/* Next arrow */}
+                            {lightboxIndex < documentList.length - 1 && (
+                                <button
+                                    onClick={() => setLightboxIndex(i => i + 1)}
+                                    className="absolute right-3 md:right-6 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all backdrop-blur-md border border-white/10 active:scale-95"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Thumbnail strip (only when multiple docs) */}
+                        {documentList.length > 1 && (
+                            <div className="shrink-0 px-4 py-4 border-t border-white/10 flex items-center justify-center gap-2 overflow-x-auto" onClick={e => e.stopPropagation()}>
+                                {documentList.map((doc, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setLightboxIndex(i)}
+                                        className={cn(
+                                            "w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 relative flex items-center justify-center bg-slate-100 dark:bg-slate-900",
+                                            i === lightboxIndex
+                                                ? "border-primary scale-110 shadow-lg shadow-primary/30"
+                                                : "border-white/20 opacity-50 hover:opacity-80 hover:border-white/50"
                                         )}
-
-                                        {/* Image */}
-                                        <motion.div
-                                            key={lightboxIndex}
-                                            initial={{ opacity: 0, scale: 0.96 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.96 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="relative flex items-center justify-center w-full max-h-[70vh]"
-                                        >
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img
-                                                src={documentList[lightboxIndex].url}
-                                                alt={documentList[lightboxIndex].label}
-                                                className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
-                                                draggable={false}
-                                            />
-                                        </motion.div>
-
-                                        {/* Next arrow */}
-                                        {lightboxIndex < documentList.length - 1 && (
-                                            <button
-                                                onClick={() => setLightboxIndex(i => i + 1)}
-                                                className="absolute right-3 md:right-6 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all backdrop-blur-md border border-white/10 active:scale-95"
-                                            >
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-                                            </button>
+                                    >
+                                        {checkIsPdf(doc.url) ? (
+                                            <FileText className="w-6 h-6 text-red-500" />
+                                        ) : (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img src={doc.url} alt={doc.label} className="w-full h-full object-cover" />
                                         )}
-                                    </div>
-
-                                    {/* Thumbnail strip (only when multiple docs) */}
-                                    {documentList.length > 1 && (
-                                        <div className="shrink-0 px-4 py-4 border-t border-white/10 flex items-center justify-center gap-2 overflow-x-auto" onClick={e => e.stopPropagation()}>
-                                            {documentList.map((doc, i) => (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setLightboxIndex(i => Math.min(i + 1, documentList.length - 1)); }}
-                                                    disabled={lightboxIndex === documentList.length - 1}
-                                                    className="h-8 px-4 rounded-xl border border-white/10 text-white/70 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-all font-black text-xs bg-white/5 hover:bg-white/10"
-                                                >
-                                                    ▶
-                                                </button>
-                                </div>
-                                    )}
-                                </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -2472,6 +2164,7 @@ export default function RequestHubPage() {
                 file={null}
                 fileUrl={viewerUrl}
                 title={viewerTitle}
+                themeColor={themeColor || "var(--primary-theme)"}
             />
         </>
     );

@@ -59,7 +59,6 @@ import {
 } from "@/app/admin/transactions/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { compressImage } from "@/lib/image-compression";
 
@@ -811,6 +810,7 @@ export default function BirthRegistrationPage() {
         });
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const isStepValid = (stepId: Step): boolean => {
         if (stepId === "STATUS") return true;
         if (stepId === "IDENTITY") {
