@@ -1430,7 +1430,7 @@ export default function RequestHubPage() {
                                                     </p>
                                                 </div>
 
-                                                {isBusinessPermit || isCedula ? (
+                                                {isBusinessPermit || isCedula || isLcrDeathReg ? (
                                                     <div className="space-y-3 pt-4 border-t" style={{ borderTopColor: `${themeColor}15` }}>
                                                         <div className="space-y-1">
                                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
@@ -1445,7 +1445,7 @@ export default function RequestHubPage() {
                                                             className="w-full h-11 rounded-xl hover:opacity-90 text-white font-black italic uppercase text-[9px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
                                                             style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
                                                         >
-                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : `/user/services/cedula?revisionId=${request.id}`}>
+                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : isCedula ? `/user/services/cedula?revisionId=${request.id}` : `/user/services/civil-registry/death-registration?revisionId=${request.id}`}>
                                                                 <ExternalLink className="w-3.5 h-3.5" />
                                                                 Fix Application
                                                             </Link>
@@ -1523,15 +1523,36 @@ export default function RequestHubPage() {
                                             <div className="absolute top-0 right-0 p-6 md:p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700"><Info className="w-20 h-20 md:w-24 md:h-24" /></div>
                                             <div className="space-y-6 md:space-y-10 relative z-10">
                                                 <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">Government Verification</h3>
-                                                <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
-                                                    &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
-                                                        ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
-                                                        : (request.status === "PAID"
-                                                            ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
-                                                            : (["REJECTED", "FOR_REVISION"].includes(request.status)
-                                                                ? (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)
-                                                                : `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
-                                                </p>
+                                                {request.status === "REJECTED" ? (
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                                                            <p className="text-sm md:text-base font-black uppercase tracking-widest italic text-red-500 leading-none">
+                                                                Request Rejected
+                                                            </p>
+                                                        </div>
+                                                        {request.rejectionRemarks && (
+                                                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 space-y-1.5">
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-red-400 italic">
+                                                                    Rejection Remarks
+                                                                </span>
+                                                                <p className="text-xs md:text-sm font-bold italic text-red-400 leading-relaxed">
+                                                                    &ldquo;{request.rejectionRemarks}&rdquo;
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
+                                                        &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
+                                                            ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
+                                                            : (request.status === "PAID"
+                                                                ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
+                                                                : (request.status === "FOR_REVISION"
+                                                                    ? (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)
+                                                                    : `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
                                                 <Separator className="bg-white/10" />
