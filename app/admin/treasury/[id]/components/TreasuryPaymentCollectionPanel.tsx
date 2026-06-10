@@ -41,6 +41,8 @@ export default function TreasuryPaymentCollectionPanel({
         additional?.payment_id ||
         transaction.paymentId;
 
+    const isBusinessPermit = transaction?.type?.code?.startsWith("BUSINESS_PERMIT") ?? false;
+
     return (
         <div className="space-y-4">
             {/* GCash Reference Panel */}
@@ -81,9 +83,9 @@ export default function TreasuryPaymentCollectionPanel({
                         <div className="space-y-4 pt-2">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
-                                    O.R. Series Number {transaction.status !== "PAID" && <span className="text-rose-500 font-extrabold">*Required</span>}
+                                    O.R. Series Number {(transaction.status !== "PAID" || isBusinessPermit) && <span className="text-rose-500 font-extrabold">*Required</span>}
                                 </label>
-                                {transaction.status === "PAID" ? (
+                                {transaction.status === "PAID" && !isBusinessPermit ? (
                                     <div className="h-11 flex items-center px-4 rounded-xl border border-slate-150 dark:border-white/5 bg-slate-50 dark:bg-white/5 text-xs font-bold text-slate-800 dark:text-slate-100">
                                         {orSeriesNumber || transaction.orSeriesNumber || additional?.orSeriesNumber || "N/A"}
                                     </div>
@@ -100,9 +102,9 @@ export default function TreasuryPaymentCollectionPanel({
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500 italic block">
-                                    Official Receipt (O.R.) Document {transaction.status !== "PAID" && <span className="text-rose-500 font-extrabold">*Required</span>}
+                                    Official Receipt (O.R.) Document {(transaction.status !== "PAID" || isBusinessPermit) && <span className="text-rose-500 font-extrabold">*Required</span>}
                                 </label>
-                                {transaction.status !== "PAID" && (
+                                {(transaction.status !== "PAID" || isBusinessPermit) && (
                                     <input
                                         type="file"
                                         accept=".pdf,image/*"
@@ -174,7 +176,7 @@ export default function TreasuryPaymentCollectionPanel({
                                                 </div>
                                             );
                                         })()}
-                                        {transaction.status !== "PAID" && (
+                                        {(transaction.status !== "PAID" || isBusinessPermit) && (
                                             <div className="flex justify-end">
                                                 <label
                                                     htmlFor="or-document-upload-paid"
@@ -186,7 +188,7 @@ export default function TreasuryPaymentCollectionPanel({
                                         )}
                                     </div>
                                 ) : (
-                                    transaction.status !== "PAID" ? (
+                                    (transaction.status !== "PAID" || isBusinessPermit) ? (
                                         <label
                                             htmlFor="or-document-upload-paid"
                                             className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-all h-28 bg-white dark:bg-[#151b28]/60 overflow-hidden relative group cursor-pointer border-slate-200 dark:border-white/10 hover:border-primary/30"
@@ -206,7 +208,7 @@ export default function TreasuryPaymentCollectionPanel({
                         </div>
                     </div>
 
-                    {transaction.status !== "PAID" && (
+                    {(transaction.status !== "PAID" || isBusinessPermit) && (
                         <Button
                             onClick={handleConfirmPayment}
                             disabled={actionLoading || !orSeriesNumber || !orFile}
@@ -214,7 +216,7 @@ export default function TreasuryPaymentCollectionPanel({
                             className="w-full h-14 text-white rounded-2xl shadow-lg font-black uppercase text-xs tracking-wider flex items-center justify-center active:scale-95 transition-all opacity-100 hover:opacity-90 disabled:opacity-50"
                         >
                             {actionLoading && <RotateCw className="w-4 h-4 animate-spin mr-2" />}
-                            Upload O.R. & Mark as Paid
+                            {transaction.status === "PAID" ? "Submit O.R. & Handoff to BPLO" : "Upload O.R. & Mark as Paid"}
                         </Button>
                     )}
                 </div>

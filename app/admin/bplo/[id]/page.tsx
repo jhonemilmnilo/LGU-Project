@@ -567,7 +567,17 @@ export default function BploDetailPage({ params }: PageProps) {
 
     if (!transaction) return <div className="p-20 text-center dark:text-white">Transaction details unavailable.</div>;
 
-    const additional = transaction.additionalData || {};
+    const additional = (() => {
+        if (!transaction?.additionalData) return {};
+        if (typeof transaction.additionalData === "string") {
+            try {
+                return JSON.parse(transaction.additionalData);
+            } catch {
+                return {};
+            }
+        }
+        return transaction.additionalData;
+    })();
     const resident = transaction.user?.residentProfile || transaction.residentSnapshot || {};
     const isRenewal = additional.businessType === "RENEWAL" || additional.businessType === "RENEW";
 
@@ -665,11 +675,11 @@ export default function BploDetailPage({ params }: PageProps) {
                 <div className="col-span-12 lg:col-span-8 space-y-8">
                     {/* TRANSACTION INFORMATION CARD */}
                     <TransactionInfoCard
-                        transactionName={transaction.type?.requiresBusinessName
+                        transactionName={transaction.type?.name || "Business Permit"}
+                        themeColor={themeColor}
+                        categoryLabel={transaction.type?.requiresBusinessName
                             ? (transaction.businessName || additional?.businessName || "UNNAMED ENTITY")
                             : `${resident?.firstName || ''} ${resident?.lastName || ''}`}
-                        themeColor={themeColor}
-                        categoryLabel={transaction.type?.name || "Business Permit"}
                     />
 
                     {/* METRICS + BREAKDOWN CARD */}
@@ -1253,7 +1263,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                     if (!orNo && !orDocUrl) return null;
 
                                     return (
-                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 md:p-10 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4 animate-in fade-in duration-300">
+                                        <div className="bg-white dark:bg-[#151b28] rounded-[2rem] p-8 shadow-[0_2px_40px_rgba(0,0,0,0.02)] border border-slate-50 dark:border-white/5 space-y-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 rounded-xl bg-green-500/10 text-green-500">
                                                     <FileText className="w-4 h-4" />
@@ -1266,16 +1276,16 @@ export default function BploDetailPage({ params }: PageProps) {
 
                                             {orNo && (
                                                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">O.R. Series Number</span>
-                                                    <p className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-500 block leading-none">O.R. Series Number</span>
+                                                    <span className="text-xs font-black uppercase italic tracking-wider text-slate-800 dark:text-slate-200 font-mono block">
                                                         {orNo}
-                                                    </p>
+                                                    </span>
                                                 </div>
                                             )}
 
                                             {orDocUrl && (
                                                 <div className="space-y-2">
-                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1 block leading-none">Scanned O.R. Copy</span>
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 block leading-none">Scanned O.R. Copy</span>
                                                     {(() => {
                                                         const isPdf = orDocUrl.toLowerCase().endsWith(".pdf") || orDocUrl.includes("application/pdf") || orDocUrl.includes(".pdf?");
                                                         if (isPdf) {
@@ -1304,7 +1314,7 @@ export default function BploDetailPage({ params }: PageProps) {
                                                         return (
                                                             <div
                                                                 onClick={() => handleViewFile?.(orDocUrl, "Official Treasury Receipt")}
-                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all text-left block cursor-pointer select-none"
+                                                                className="relative aspect-[16/9] w-full rounded-2xl bg-slate-950 overflow-hidden border border-slate-100 dark:border-white/5 group hover:border-primary/50 transition-all cursor-pointer select-none"
                                                             >
                                                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                                                 <img
@@ -1312,13 +1322,14 @@ export default function BploDetailPage({ params }: PageProps) {
                                                                     alt="OR Preview"
                                                                     className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-300"
                                                                 />
-                                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 backdrop-blur-[2px]">
-                                                                    <div
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                        className="backdrop-blur-md px-4 py-2 rounded-xl border border-white/25 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 backdrop-blur-[2px]">
+                                                                    <button
+                                                                        type="button"
+                                                                        style={{ backgroundColor: themeColor || 'var(--primary)' }}
+                                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all"
                                                                     >
-                                                                        <span>View</span>
-                                                                    </div>
+                                                                        <span>VIEW</span>
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         );
@@ -1356,7 +1367,7 @@ export default function BploDetailPage({ params }: PageProps) {
                             </div>
                         )}
 
-                        {["FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING"].includes(transaction.status) && (
+                        {["FOR_CLAIM", "FOR_PICKING", "FOR_PROCESSING", "RELEASED", "DELIVERED"].includes(transaction.status) && (
                             <div className="space-y-4">
                                 <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-8 border border-slate-50 dark:border-white/5 shadow-2xl shadow-slate-900/5 space-y-6">
                                     {/* Card header */}
@@ -1370,8 +1381,15 @@ export default function BploDetailPage({ params }: PageProps) {
                                         </div>
                                     </div>
 
-                                    {isRenewal ? (
-                                        <div className="bg-emerald-50 dark:bg-emerald-500/5 p-4 rounded-2xl border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
+                                    {isRenewal && !["RELEASED", "DELIVERED"].includes(transaction.status) ? (
+                                        <div 
+                                            style={{ 
+                                                backgroundColor: `${themeColor}10`, 
+                                                borderColor: `${themeColor}30`,
+                                                color: themeColor 
+                                            }}
+                                            className="p-4 rounded-2xl border text-xs"
+                                        >
                                             <span className="font-bold">Renewal Auto-Carried:</span> Existing Permit Number <span className="font-mono font-black">#{additional.permitNumber || additional.existingPermitNumber || "—"}</span> carries over.
                                         </div>
                                     ) : (
