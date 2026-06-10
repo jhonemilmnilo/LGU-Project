@@ -8,7 +8,7 @@ import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye, Heart, Sparkles, ShieldCheck } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye, Heart, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Card } from "@/components/ui/card";
@@ -415,7 +415,7 @@ export default function MarriageLicenseApplicationPage() {
 		}
 
 		init();
-	}, []);
+	}, [router]);
 
 	const handleApp2Select = async (res: any) => {
 		const result = await getResidentDataById(res.id);
