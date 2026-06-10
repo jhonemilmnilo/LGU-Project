@@ -51,6 +51,7 @@ export function Sidebar({
     const router = useRouter();
     const searchParams = useSearchParams();
     const role = session?.user?.role || "ADMIN";
+    const department = session?.user?.department;
     const { isOpen: isSidebarOpen, close } = useSidebar();
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(pathname.startsWith("/admin/settings"));
     const [isAboutOpen, setIsAboutOpen] = React.useState(pathname.startsWith("/admin/about"));
@@ -252,8 +253,25 @@ export function Sidebar({
     let menuItems = allMenuItems;
 
     if (role === "ADMIN") {
-        // ADMIN should be able to see all the bars in the side bar
-        menuItems = allMenuItems;
+        if (department) {
+            if (department.toUpperCase() === "BPLO") {
+                menuItems = [
+                    { href: "/admin/bplo", label: "BPLO Permits", icon: CreditCard, category: "Treasury" }
+                ];
+            } else if (department.toUpperCase() === "REGISTRAR" || department.toUpperCase() === "CIVIL_REGISTRY") {
+                const registrarHubItem = allMenuItems.find(item => item.label === "Registrar Hub");
+                menuItems = [
+                    ...(registrarHubItem ? [registrarHubItem] : [])
+                ];
+            } else {
+                menuItems = [
+                    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }
+                ];
+            }
+        } else {
+            // ADMIN without department gets allMenuItems
+            menuItems = allMenuItems;
+        }
     } else if (role === "CONTENT_ADMIN") {
         menuItems = allMenuItems.filter(item => contentAdminAllowed.includes(item.label));
     } else if (role === "BARANGAY_ADMIN") {
