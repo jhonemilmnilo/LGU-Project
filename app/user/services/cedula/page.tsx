@@ -943,146 +943,16 @@ export default function CedulaApplicationPage() {
                                             </div>
                                         </div>
                                     </div>
+                                    <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
+                                        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                                        <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
+                                            Note: Changes will update your Resident Profile upon submission.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
-                                {currentStep === "RESIDENT" && (
-                                 <div className="space-y-6 md:space-y-8">
-                                     <div className="space-y-1">
-                                         <h2 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-tight">Identity <span className="text-primary italic">Confirmation</span></h2>
-                                         <p className="text-[10px] md:text-xs text-slate-500 font-medium italic">Verify your personal records. Only the contact number should be provided/updated.</p>
-                                     </div>
-
-                                     {revisionTx && (
-                                         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
-                                             <AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
-                                             <div className="text-left space-y-1">
-                                                 <p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
-                                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                                     &ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
-                                                 </p>
-                                             </div>
-                                         </div>
-                                     )}
-
-                                     <div className="space-y-4 md:space-y-6">
-                                         {/* Row 1: Names */}
-                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</Label>
-                                                 <Input
-                                                     value={formData.residentData?.firstName || ""}
-                                                     readOnly={true}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                 />
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Middle Name</Label>
-                                                 <Input
-                                                     value={formData.residentData?.middleName || ""}
-                                                     readOnly={true}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                 />
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Last Name</Label>
-                                                 <Input
-                                                     value={formData.residentData?.lastName || ""}
-                                                     readOnly={true}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                 />
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Suffix</Label>
-                                                 <Input
-                                                     value={formData.residentData?.suffix || ""}
-                                                     readOnly={true}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                 />
-                                             </div>
-                                         </div>
-
-                                         <Separator className="opacity-50" />
-
-                                         {/* Row 2: Personal */}
-                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Birth Date</Label>
-                                                 <Input
-                                                     type="date"
-                                                     value={formData.residentData?.dateOfBirth ? new Date(formData.residentData.dateOfBirth).toISOString().split('T')[0] : ""}
-                                                     readOnly={true}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                 />
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Age</Label>
-                                                 <Input
-                                                     value={(() => {
-                                                         if (!formData.residentData?.dateOfBirth) return "";
-                                                         const today = new Date();
-                                                         const birthDate = new Date(formData.residentData.dateOfBirth);
-                                                         let age = today.getFullYear() - birthDate.getFullYear();
-                                                         const m = today.getMonth() - birthDate.getMonth();
-                                                         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-                                                         return age;
-                                                     })()}
-                                                     readOnly
-                                                     className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm"
-                                                 />
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Civil Status</Label>
-                                                 <Input
-                                                     value={formData.residentData?.civilStatus || "N/A"}
-                                                     readOnly
-                                                     className="h-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 font-bold text-xs md:text-sm"
-                                                 />
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Citizenship</Label>
-                                                 <Input
-                                                     value={formData.residentData?.citizenship || "Filipino"}
-                                                     readOnly={true}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                 />
-                                             </div>
-                                         </div>
-
-                                         {/* Row 3: Contact & Occupation */}
-                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Occupation</Label>
-                                                 <div className="relative">
-                                                     <Input
-                                                         value={formData.residentData?.occupation || ""}
-                                                         readOnly={true}
-                                                         className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm bg-slate-50 text-slate-400"
-                                                     />
-                                                 </div>
-                                             </div>
-                                             <div className="space-y-1.5">
-                                                 <Label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
-                                                 <Input
-                                                     ref={contactInputRef}
-                                                     value={formData.residentData?.contactNumber || ""}
-                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value.replace(/[^0-9]/g, '') } }))}
-                                                     className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm"
-                                                     placeholder="09xx xxx xxxx"
-                                                 />
-                                                 <p className="text-[9px] font-black text-amber-500 uppercase tracking-wider ml-1 animate-pulse">
-                                                     * Note: Please use your active contact number. This will be used to contact you regarding your transaction.
-                                                 </p>
-                                             </div>
-                                         </div>
-                                     </div>
-
-                                     <div className="bg-primary/5 border border-primary/10 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-3">
-                                         <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-                                         <p className="text-[8px] md:text-[10px] text-primary font-black italic leading-tight uppercase tracking-widest">
-                                             Note: Changes will update your Resident Profile upon submission.
-                                         </p>
-                                     </div>
-                                 </div>
-                            )}                             {/* Step 3: FINANCIAL DECLARATION */}
+                            {/* Step 3: FINANCIAL DECLARATION */}
                             {currentStep === "DECLARATION" && (
                                 <div className="space-y-8 md:space-y-12">
                                     <div className="space-y-2 md:space-y-4 text-center md:text-left">
