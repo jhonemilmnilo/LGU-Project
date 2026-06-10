@@ -90,7 +90,6 @@ const isPaymongoPaymentId = (value: unknown) => {
 };
 
 // Display dates/times in Philippine Standard Time (Asia/Manila) regardless of server or client timezone
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatPHDate(date: string | Date): string {
     return new Intl.DateTimeFormat("en-PH", {
         timeZone: "Asia/Manila",
@@ -99,7 +98,6 @@ function formatPHDate(date: string | Date): string {
         year: "numeric",
     }).format(new Date(date));
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatPHDateTime(date: string | Date): string {
     return new Intl.DateTimeFormat("en-PH", {
         timeZone: "Asia/Manila",
