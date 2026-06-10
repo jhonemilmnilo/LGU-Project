@@ -15,7 +15,6 @@ import {
     CheckCircle2,
     Home,
     Loader2,
-    Camera,
     Upload,
     Check,
     Copy,
@@ -45,8 +44,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -126,88 +125,21 @@ import {
     requestReturnOrRefund,
     resubmitTransaction,
     checkPaymongoPaymentStatus,
-    saveLogisticsDetails,
-    requestPsaEndorsement
+    saveLogisticsDetails
 } from "@/app/admin/transactions/actions";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { BirthCertificateRequestDetails, BirthCertificateVerificationCard } from "./birth-certificate-request";
+import { DeathCertificateRequestDetails, DeathCertificateVerificationCard } from "./death-certificate-request";
+import { DeathRegistrationRequestDetails, DeathRegistrationVerificationCard } from "./death-registration";
+import { MarriageCertificateRequestDetails, MarriageCertificateVerificationCard } from "./marriage-certificate-request";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
     ssr: false,
     loading: () => <div className="h-[250px] w-full rounded-xl bg-white/5 animate-pulse flex items-center justify-center text-[9px] font-black uppercase tracking-widest text-slate-400 italic">Initializing Grid Matrix...</div>
 });
 
-const getVerificationConfig = (formType: string) => {
-    switch (formType) {
-        case "FORM_1B":
-            return {
-                title: "Record Not Available (Form 1B)",
-                description: "Your requested birth certificate record is not available in our archives.",
-                badgeColor: "bg-amber-500 text-white border-transparent",
-                themeColor: "#f59e0b",
-                bgColor: "bg-amber-500/5 dark:bg-amber-500/10",
-                borderColor: "border-amber-500/20 dark:border-amber-500/30",
-                textColor: "text-amber-600 dark:text-amber-400",
-                glowColor: "shadow-amber-500/10",
-            };
-        case "FORM_1C":
-            return {
-                title: "Record Destroyed (Form 1C)",
-                description: "Your requested birth certificate record has been destroyed in our archives.",
-                badgeColor: "bg-rose-500 text-white border-transparent",
-                themeColor: "#f43f5e",
-                bgColor: "bg-rose-500/5 dark:bg-rose-500/10",
-                borderColor: "border-rose-500/20 dark:border-rose-500/30",
-                textColor: "text-rose-600 dark:text-rose-400",
-                glowColor: "shadow-rose-500/10",
-            };
-        case "FORM_2B":
-            return {
-                title: "Record Not Available (Form 2B)",
-                description: "Your requested death certificate record is not available in our archives.",
-                badgeColor: "bg-amber-500 text-white border-transparent",
-                themeColor: "#f59e0b",
-                bgColor: "bg-amber-500/5 dark:bg-amber-500/10",
-                borderColor: "border-amber-500/20 dark:border-amber-500/30",
-                textColor: "text-amber-600 dark:text-amber-400",
-                glowColor: "shadow-amber-500/10",
-            };
-        case "FORM_2C":
-            return {
-                title: "Record Destroyed (Form 2C)",
-                description: "Your requested death certificate record has been destroyed in our archives.",
-                badgeColor: "bg-rose-500 text-white border-transparent",
-                themeColor: "#f43f5e",
-                bgColor: "bg-rose-500/5 dark:bg-rose-500/10",
-                borderColor: "border-rose-500/20 dark:border-rose-500/30",
-                textColor: "text-rose-600 dark:text-rose-400",
-                glowColor: "shadow-rose-500/10",
-            };
-        case "FORM_2A":
-            return {
-                title: "Record Found (Form 2A)",
-                description: "Your requested death certificate has been retrieved and certified.",
-                badgeColor: "bg-emerald-500 text-white border-transparent",
-                themeColor: "#10b981",
-                bgColor: "bg-emerald-500/5 dark:bg-emerald-500/10",
-                borderColor: "border-emerald-500/20 dark:border-emerald-500/30",
-                textColor: "text-emerald-600 dark:text-emerald-400",
-                glowColor: "shadow-emerald-500/10",
-            };
-        case "FORM_1A":
-        default:
-            return {
-                title: "Record Found (Form 1A)",
-                description: "Your requested birth certificate has been retrieved and certified.",
-                badgeColor: "bg-emerald-500 text-white border-transparent",
-                themeColor: "#10b981",
-                bgColor: "bg-emerald-500/5 dark:bg-emerald-500/10",
-                borderColor: "border-emerald-500/20 dark:border-emerald-500/30",
-                textColor: "text-emerald-600 dark:text-emerald-400",
-                glowColor: "shadow-emerald-500/10",
-            };
-    }
-}
+
 
 export default function RequestHubPage() {
     const params = useParams();
@@ -225,15 +157,10 @@ export default function RequestHubPage() {
     const [isResubmitting, setIsResubmitting] = useState(false);
     const [revisionFiles, setRevisionFiles] = useState<{ [key: string]: File | null }>({});
 
-    // PSA Endorsement States
-    const [psaEndorsementOpen, setPsaEndorsementOpen] = useState(false);
-    const [psaNegFile, setPsaNegFile] = useState<File | null>(null);
-    const [psaNegPreview, setPsaNegPreview] = useState<string | null>(null);
-    const [isSubmittingPsaEndorsement, setIsSubmittingPsaEndorsement] = useState(false);
+
 
     // Dispute States
     const [disputeOpen, setDisputeOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [disputeType, setDisputeType] = useState<"RETURN" | "REFUND">("RETURN");
     const [disputeReason, setDisputeReason] = useState("");
     const [disputeFile, setDisputeFile] = useState<File | null>(null);
@@ -300,6 +227,8 @@ export default function RequestHubPage() {
                 const res = await getTransactionById(id);
                 if (res.success && res.data) {
                     let req = res.data;
+
+
 
                     if (req.status === "UNPAID" || req.status === "EVALUATED") {
                         try {
@@ -712,32 +641,7 @@ export default function RequestHubPage() {
         }
     };
 
-    const handlePsaEndorsementSubmit = async () => {
-        if (!psaNegFile) {
-            toast.error("Please upload the PSA Negative Certification document.");
-            return;
-        }
-        setIsSubmittingPsaEndorsement(true);
-        try {
-            const formData = new FormData();
-            formData.append("transactionId", id);
-            formData.append("psaNegCertFile", psaNegFile);
 
-            const res = await requestPsaEndorsement(formData);
-            if (res.success) {
-                toast.success("PSA Endorsement requested successfully!");
-                setPsaEndorsementOpen(false);
-                window.location.reload();
-            } else {
-                toast.error(res.error || "Failed to request PSA endorsement");
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error("An error occurred during submission.");
-        } finally {
-            setIsSubmittingPsaEndorsement(false);
-        }
-    };
 
     const getStatusConfig = (status: string) => {
         if (request?.isCancelled) {
@@ -794,6 +698,8 @@ export default function RequestHubPage() {
 
     const additionalData = useMemo(() => request?.additionalData || {}, [request?.additionalData]);
     const residentData = request?.user?.residentProfile || request?.residentSnapshot || {};
+    const residentIdFront = residentData.idFrontUrl;
+    const residentIdBack = residentData.idBackUrl;
     const statusConfig = request ? getStatusConfig(request.status) : null;
     const typeCode = request?.type?.code || "";
     const isActionable = (request?.status === "EVALUATED" && (!typeCode.startsWith("BUILDING_PERMIT") || !!request.fiscalSnapshot)) || (request?.status === "UNPAID" && (typeCode.startsWith("BUSINESS_PERMIT") || typeCode.startsWith("CEDULA") || typeCode.startsWith("BUILDING_PERMIT")));
@@ -802,18 +708,19 @@ export default function RequestHubPage() {
     const isCedula = typeCode.startsWith("CEDULA");
     const estimatedCedulaAmount = useMemo(() => {
         if (!isCedula || !request) return 0;
-        if (request.isStudent) {
-            const baseStudentFee = Number(request.type?.studentFee || 0);
-            const deliveryFee = request.fulfillmentType === "DELIVERY" ? (request.type?.deliveryFee || 0) : 0;
+        const reqAny = request as any;
+        if (reqAny.isStudent) {
+            const baseStudentFee = Number(reqAny.type?.studentFee || 0);
+            const deliveryFee = reqAny.fulfillmentType === "DELIVERY" ? (reqAny.type?.deliveryFee || 0) : 0;
             return baseStudentFee + deliveryFee;
         } else {
             const incomeValue = Number(additionalData.income || 0);
             const propertyValue = Number(additionalData.propertyValue || 0);
             const type = typeCode === "CEDULA_JUR" ? "JURIDICAL" : "INDIVIDUAL";
-            const fulfillmentType = request.fulfillmentType;
-            const deliveryFee = request.type?.deliveryFee || 0;
-            const baseFee = request.type?.baseFee;
-            
+            const fulfillmentType = reqAny.fulfillmentType;
+            const deliveryFee = reqAny.type?.deliveryFee || 0;
+            const baseFee = reqAny.type?.baseFee;
+
             const calc = calculateCedula({
                 type,
                 income: incomeValue,
@@ -826,8 +733,11 @@ export default function RequestHubPage() {
         }
     }, [isCedula, request, additionalData, typeCode]);
     const isCivilRegistry = typeCode.startsWith("CIVIL_REGISTRY") || typeCode.startsWith("LCR_");
-    const isLcrBirth = typeCode === "LCR_BIRTH";
-    const isLcrDeath = typeCode === "LCR_DEATH";
+    const isLcrBirth = typeCode === "LCR_BIRTH" || typeCode === "LCR_BIRTH_REG";
+    const isLcrDeath = typeCode === "LCR_DEATH" || typeCode === "LCR_DEATH_REG";
+    const isLcrDeathCert = typeCode === "LCR_DEATH";
+    const isLcrDeathReg = typeCode === "LCR_DEATH_REG";
+    const isLcrMarriage = typeCode === "LCR_MARRIAGE" || typeCode === "LCR_MARRIAGE_REG";
     const isBirthPsaEndorsement = typeCode === "LCR_PSA_ENDORSEMENT";
     const isDeathPsaEndorsement = typeCode === "LCR_DEATH_PSA_ENDORSEMENT";
     const isPsaEndorsement = isBirthPsaEndorsement || isDeathPsaEndorsement;
@@ -854,16 +764,17 @@ export default function RequestHubPage() {
 
     const computation = useMemo(() => {
         if (!request) return null;
-        const fiscal = request.fiscalSnapshot as any;
-        const addData = request.additionalData || {};
+        const reqAny = request as any;
+        const fiscal = reqAny.fiscalSnapshot as any;
+        const addData = reqAny.additionalData || {};
         const selectedBrgy = availableBarangays.find(b => b.name === address.barangay);
-        const dFee = localFulfillment === "DELIVERY" ? (selectedBrgy?.deliveryFee ?? request.type?.deliveryFee ?? 0) : 0;
+        const dFee = localFulfillment === "DELIVERY" ? (selectedBrgy?.deliveryFee ?? reqAny.type?.deliveryFee ?? 0) : 0;
 
         // Handle Civil Registry (Usually simple total or evaluated amount)
         if (isCivilRegistry) {
-            const fiscal = request.fiscalSnapshot as any;
+            const fiscal = reqAny.fiscalSnapshot as any;
             const savedDeliveryFee = Number(fiscal?.deliveryFee || 0);
-            const cleanBase = Math.max(0, (Number(request.totalAmount) || Number(fiscal?.totalAmount) || 0) - savedDeliveryFee);
+            const cleanBase = Math.max(0, (Number(reqAny.totalAmount) || Number(fiscal?.totalAmount) || 0) - savedDeliveryFee);
             const finalTotal = cleanBase + dFee;
             return {
                 basicTax: 0,
@@ -893,6 +804,44 @@ export default function RequestHubPage() {
             };
         }
 
+        // --- CUSTOM CEDULA CALCULATIONS ---
+        if (isCedula) {
+            if (reqAny.isStudent) {
+                const baseStudentFee = Number(reqAny.type?.studentFee || 0);
+                return {
+                    basicTax: baseStudentFee,
+                    additionalTax: 0,
+                    penaltyAmount: 0,
+                    deliveryFee: dFee,
+                    finalTotal: baseStudentFee + dFee,
+                    cedulaType: "INDIVIDUAL"
+                };
+            }
+
+            const income = Number(addData.income) || 0;
+            const propertyValue = Number(addData.propertyValue) || 0;
+            const baseFee = reqAny.type?.baseFee;
+
+            const calc = calculateCedula({
+                type: cedulaType,
+                income,
+                propertyValue,
+                fulfillmentType: localFulfillment,
+                deliveryFee: dFee,
+                baseFee
+            });
+
+            return {
+                basicTax: calc.basicTax,
+                additionalTax: calc.additionalTax,
+                penaltyAmount: calc.penalty,
+                deliveryFee: dFee,
+                finalTotal: calc.totalAmount,
+                cedulaType
+            };
+        }
+
+        // Fallback for Business Permits or other requests when no fiscal snapshot exists
         const income = Number(addData.income) || 0;
         const propertyValue = Number(addData.propertyValue) || 0;
         const totalBasis = income + propertyValue;
@@ -900,22 +849,22 @@ export default function RequestHubPage() {
         const additionalTax = cedulaType === "JURIDICAL" ? Math.floor(totalBasis / 5000) * 2.00 : Math.floor(totalBasis / 1000) * 1.00;
         const subtotal = basicTax + additionalTax;
 
-        const savedDeliveryFee = Number(request.fiscalSnapshot?.deliveryFee || 0);
-        const cleanTotalAmount = Math.max(0, (Number(request.totalAmount) || 0) - savedDeliveryFee);
+        const savedDeliveryFee = Number(reqAny.fiscalSnapshot?.deliveryFee || 0);
+        const cleanTotalAmount = Math.max(0, (Number(reqAny.totalAmount) || 0) - savedDeliveryFee);
 
         const totalWithPenalty = cleanTotalAmount || subtotal;
         const penaltyAmount = Math.max(0, totalWithPenalty - subtotal);
         const finalTotal = totalWithPenalty + dFee;
 
         return { basicTax, additionalTax, penaltyAmount, deliveryFee: dFee, finalTotal, cedulaType };
-    }, [request, localFulfillment, address.barangay, availableBarangays, isCivilRegistry]);
+    }, [request, localFulfillment, address.barangay, availableBarangays, isCivilRegistry, isCedula]);
 
     const isFreeDeathRegPickUp = (
-            request?.typeId === "cmpgkxxke0019vpjkquvcxggu" || 
-            typeCode === "LCR_DEATH_REG" || 
-            typeCode === "LCR_MARRIAGE_REG" || 
-            typeCode === "LCR_BIRTH_REG"
-        ) &&
+        request?.typeId === "cmpgkxxke0019vpjkquvcxggu" ||
+        typeCode === "LCR_DEATH_REG" ||
+        typeCode === "LCR_MARRIAGE_REG" ||
+        typeCode === "LCR_BIRTH_REG"
+    ) &&
         ((additionalData.registrationType || "").toUpperCase() === "STANDARD" || !additionalData.registrationType) &&
         localFulfillment === "PICK_UP" &&
         (computation?.finalTotal ?? 0) === 0;
@@ -959,6 +908,42 @@ export default function RequestHubPage() {
             return docs.filter(doc => !!doc.url) as { label: string; url: string }[];
         }
 
+        if (isCivilRegistry) {
+            const lcrDocs = [];
+            // Deceased / Registrations (Death)
+            if (addData.municipalForm103) lcrDocs.push({ label: "Municipal Form No. 103", url: addData.municipalForm103 });
+            if (addData.psaNegative) lcrDocs.push({ label: "PSA Negative Certification", url: addData.psaNegative });
+            if (addData.affidavitOfDelay) lcrDocs.push({ label: "Affidavit of Delayed Registration", url: addData.affidavitOfDelay });
+
+            // Birth Registration
+            if (addData.municipalForm102) lcrDocs.push({ label: "Municipal Form 102", url: addData.municipalForm102 });
+            if (addData.marriageCertificate) lcrDocs.push({ label: "Marriage Certificate of Parents", url: addData.marriageCertificate });
+            if (addData.communityTaxCertificate) lcrDocs.push({ label: "Community Tax Certificate", url: addData.communityTaxCertificate });
+            if (addData.negativePSA) lcrDocs.push({ label: "Negative Certification from PSA", url: addData.negativePSA });
+            if (addData.colb) lcrDocs.push({ label: "Certificate of Live Birth (COLB)", url: addData.colb });
+            if (addData.affidavitDelayed) lcrDocs.push({ label: "Affidavit of Delayed Registration", url: addData.affidavitDelayed });
+
+            // Marriage Registration
+            if (addData.marriageCert) lcrDocs.push({ label: "Accomplished Certificate of Marriage", url: addData.marriageCert });
+            if (addData.psaNeg) lcrDocs.push({ label: "Negative Certificate from PSA", url: addData.psaNeg });
+            if (addData.affidavitDelay) lcrDocs.push({ label: "Affidavit of Delayed Registration", url: addData.affidavitDelay });
+            if (addData.marriageLicense) lcrDocs.push({ label: "Certified Copy of Marriage License", url: addData.marriageLicense });
+
+            // Shared LCR IDs
+            const idFront = addData.validIdFront || addData.validIdFrontUrl || addData.idFrontUrl || residentIdFront || request?.user?.residentProfile?.idFrontUrl;
+            const idBack = addData.validIdBack || addData.validIdBackUrl || addData.idBackUrl || residentIdBack || request?.user?.residentProfile?.idBackUrl;
+            if (idFront) {
+                lcrDocs.push({ label: "Valid ID (Front)", url: idFront });
+            }
+            if (idBack) {
+                lcrDocs.push({ label: "Valid ID (Back)", url: idBack });
+            }
+            if (addData.validIdUrl) {
+                lcrDocs.push({ label: "Identity Matrix", url: addData.validIdUrl });
+            }
+            return lcrDocs.filter(d => !!d.url) as { label: string; url: string }[];
+        }
+
         const docs = isBusinessPermit
             ? [
                 { label: "Owner's Valid ID", url: addData.ownerIdUrl },
@@ -976,7 +961,7 @@ export default function RequestHubPage() {
                 { label: request?.isStudent ? "Student Proof (Enrollment/COR)" : "Financial Evidence", url: addData.proofOfIncomeUrl },
             ];
         return docs.filter(d => !!d.url) as { label: string; url: string }[];
-    }, [request, isBusinessPermit, isBuildingPermit]);
+    }, [request, isBusinessPermit, isBuildingPermit, isCivilRegistry, residentIdFront, residentIdBack]);
 
     // Keyboard navigation for lightbox
     useEffect(() => {
@@ -1016,7 +1001,7 @@ export default function RequestHubPage() {
                 className="min-h-screen bg-white dark:bg-[#0a0c10] pb-20"
                 style={{ "--primary-theme": themeColor } as React.CSSProperties}
             >
-                <div className="max-w-5xl mx-auto px-4 md:px-0 pt-4 md:pt-10 space-y-6 md:space-y-12">
+                <div className="max-w-7xl mx-auto px-4 md:px-0 pt-4 md:pt-10 space-y-6 md:space-y-12">
                     {/* Breadcrumb section - Glassmorphic & Compact */}
                     <div className="sticky top-[64px] sm:top-[80px] md:static z-40 -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                         <Breadcrumb>
@@ -1076,7 +1061,7 @@ export default function RequestHubPage() {
                                                             toast.success("Permit number copied to clipboard!");
                                                             setTimeout(() => setCopied(false), 2000);
                                                         }}
-                                                        className="p-0.5 hover:text-primary transition-all duration-200 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-white/5 active:scale-90"
+                                                        className="p-0.5 hover:text-primary transition-all duration-200 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95"
                                                         title="Copy Permit Number"
                                                     >
                                                         {copied ? (
@@ -1404,6 +1389,7 @@ export default function RequestHubPage() {
                                 )}
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-10 items-start">
+                                    {/* Application Matrix Card */}
                                     <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-xl rounded-2xl md:rounded-3xl lg:col-span-2 relative overflow-hidden h-fit">
                                         <div className="absolute top-0 right-0 p-8 opacity-5"><FileText className="w-32 h-32" /></div>
                                         <div className="relative z-10 space-y-12">
@@ -1420,8 +1406,9 @@ export default function RequestHubPage() {
                                         </div>
                                     </Card>
 
+                                    {/* Government Verification / Revision Card */}
                                     {request.status === "FOR_REVISION" ? (
-                                        <Card className="p-6 md:p-8 border-primary/20 bg-primary/[0.02] shadow-2xl rounded-2xl md:rounded-[2rem] relative overflow-hidden flex flex-col justify-between" style={{ borderColor: `${themeColor}20`, backgroundColor: `${themeColor}05` }}>
+                                        <Card className="p-6 md:p-8 border-primary/20 bg-primary/[0.02] shadow-2xl rounded-2xl md:rounded-[2rem] relative overflow-hidden flex flex-col justify-between lg:col-span-1" style={{ borderColor: `${themeColor}20`, backgroundColor: `${themeColor}05` }}>
                                             <div className="absolute top-0 right-0 p-4 opacity-5">
                                                 <AlertCircle className="w-20 h-20" />
                                             </div>
@@ -1443,7 +1430,7 @@ export default function RequestHubPage() {
                                                     </p>
                                                 </div>
 
-                                                {isBusinessPermit || isCedula ? (
+                                                {isBusinessPermit || isCedula || isLcrDeathReg ? (
                                                     <div className="space-y-3 pt-4 border-t" style={{ borderTopColor: `${themeColor}15` }}>
                                                         <div className="space-y-1">
                                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
@@ -1458,7 +1445,7 @@ export default function RequestHubPage() {
                                                             className="w-full h-11 rounded-xl hover:opacity-90 text-white font-black italic uppercase text-[9px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
                                                             style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
                                                         >
-                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : `/user/services/cedula?revisionId=${request.id}`}>
+                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : isCedula ? `/user/services/cedula?revisionId=${request.id}` : `/user/services/civil-registry/death-registration?revisionId=${request.id}`}>
                                                                 <ExternalLink className="w-3.5 h-3.5" />
                                                                 Fix Application
                                                             </Link>
@@ -1467,42 +1454,105 @@ export default function RequestHubPage() {
                                                 ) : (
                                                     <div className="space-y-4 pt-4 border-t" style={{ borderTopColor: `${themeColor}15` }}>
                                                         <div className="space-y-3">
-                                                            <div className="space-y-1">
-                                                                <Label className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Valid ID</Label>
-                                                                <Input type="file" onChange={(e) => handleRevisionFile("idFile", e.target.files?.[0] || null)} className="text-[9px] file:text-[9px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-1.5 file:py-0.5 h-auto py-1 rounded-lg border-slate-200 dark:border-white/10 cursor-pointer" />
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Proof Document</Label>
-                                                                <Input type="file" onChange={(e) => handleRevisionFile("proofFile", e.target.files?.[0] || null)} className="text-[9px] file:text-[9px] file:font-black file:uppercase file:bg-slate-100 dark:file:bg-white/10 file:text-slate-700 dark:file:text-white file:border-none file:rounded-md file:mr-2 file:px-1.5 file:py-0.5 h-auto py-1 rounded-lg border-slate-200 dark:border-white/10 cursor-pointer" />
-                                                            </div>
+                                                            {documentList.map((doc, idx) => {
+                                                                const labelKeyMap: { [key: string]: string } = {
+                                                                    "Owner's Valid ID": "ownerId",
+                                                                    "Cedula (CTC) Copy": "ctc",
+                                                                    "DTI / SEC Registry": "dtiSec",
+                                                                    "Barangay Clearance": "brgyClearance",
+                                                                    "Location Photo": "locationPhoto",
+                                                                    "Sanitary Permit": "sanitary",
+                                                                    "Fire Safety Certificate": "fireSafety",
+                                                                    "BIR Certificate (COR)": "birCor",
+                                                                    "Previous Business Permit": "previousPermit",
+                                                                    "Identity Matrix": "validId",
+                                                                    "Financial Evidence": "proofOfIncome",
+                                                                    "Municipal Form No. 103": "municipalForm103",
+                                                                    "PSA Negative Certification": "psaNegative",
+                                                                    "Affidavit of Delayed Registration": "affidavitOfDelay",
+                                                                    "Municipal Form 102": "municipalForm102",
+                                                                    "Marriage Certificate of Parents": "marriageCertificate",
+                                                                    "Community Tax Certificate": "communityTaxCertificate",
+                                                                    "Negative Certification from PSA": "negativePSA",
+                                                                    "Certificate of Live Birth (COLB)": "colb",
+                                                                    "Accomplished Certificate of Marriage": "marriageCert",
+                                                                    "Negative Certificate from PSA (Marriage)": "psaNeg",
+                                                                    "Certified Copy of Marriage License": "marriageLicense",
+                                                                    "Valid ID (Front)": "validIdFront",
+                                                                    "Valid ID (Back)": "validIdBack"
+                                                                };
+                                                                const fileKey = labelKeyMap[doc.label] || `doc_${idx}`;
+                                                                return (
+                                                                    <div key={idx} className="space-y-1.5">
+                                                                        <span className="text-[8px] font-black uppercase text-slate-500 block truncate">{doc.label}</span>
+                                                                        <Label htmlFor={`rev-${fileKey}`} className="flex items-center justify-center gap-2 h-9 border border-dashed border-slate-200 dark:border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest cursor-pointer hover:border-primary/50 transition-colors">
+                                                                            <Upload className="w-3 h-3" />
+                                                                            {revisionFiles[fileKey] ? "Change File" : "Choose File"}
+                                                                        </Label>
+                                                                        <input
+                                                                            id={`rev-${fileKey}`}
+                                                                            type="file"
+                                                                            className="hidden"
+                                                                            onChange={(e) => {
+                                                                                const file = e.target.files?.[0];
+                                                                                if (file) handleRevisionFile(fileKey, file);
+                                                                            }}
+                                                                        />
+                                                                        {revisionFiles[fileKey] && (
+                                                                            <span className="text-[8px] font-bold text-slate-400 block truncate">{revisionFiles[fileKey]?.name}</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                         <Button
                                                             onClick={handleResubmit}
-                                                            disabled={isResubmitting || Object.values(revisionFiles).every(f => !f)}
-                                                            className="w-full h-11 rounded-xl hover:opacity-90 text-white font-black italic uppercase text-[9px] transition-all active:scale-95 flex items-center justify-center gap-2"
-                                                            style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
+                                                            disabled={isResubmitting || Object.values(revisionFiles).every(f => f === null)}
+                                                            className="w-full h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-primary/20 transition-all duration-200 active:scale-95"
+                                                            style={{ backgroundColor: themeColor }}
                                                         >
-                                                            {isResubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                                                            Submit Revision
+                                                            {isResubmitting ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                                            RESUBMIT TRANSACTION
                                                         </Button>
                                                     </div>
                                                 )}
                                             </div>
                                         </Card>
                                     ) : (
-                                        <Card className="p-6 md:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-2xl md:rounded-[3rem] relative overflow-hidden flex flex-col justify-between group">
+                                        <Card className="p-6 md:p-10 border-none bg-slate-950 text-white shadow-2xl rounded-2xl md:rounded-[3rem] relative overflow-hidden flex flex-col justify-between group lg:col-span-1">
                                             <div className="absolute top-0 right-0 p-6 md:p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700"><Info className="w-20 h-20 md:w-24 md:h-24" /></div>
                                             <div className="space-y-6 md:space-y-10 relative z-10">
-                                                <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">Admin Assessment</h3>
-                                                <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
-                                                    &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
-                                                        ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
-                                                        : (request.status === "PAID"
-                                                            ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
-                                                            : (["REJECTED", "FOR_REVISION"].includes(request.status)
-                                                                ? (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)
-                                                                : `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
-                                                </p>
+                                                <h3 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">Government Verification</h3>
+                                                {request.status === "REJECTED" ? (
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                                                            <p className="text-sm md:text-base font-black uppercase tracking-widest italic text-red-500 leading-none">
+                                                                Request Rejected
+                                                            </p>
+                                                        </div>
+                                                        {request.rejectionRemarks && (
+                                                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 space-y-1.5">
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-red-400 italic">
+                                                                    Rejection Remarks
+                                                                </span>
+                                                                <p className="text-xs md:text-sm font-bold italic text-red-400 leading-relaxed">
+                                                                    &ldquo;{request.rejectionRemarks}&rdquo;
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs md:text-sm font-bold italic opacity-90 leading-relaxed tracking-tight">
+                                                        &quot;{(request.status === "RELEASED" || request.status === "DELIVERED")
+                                                            ? "Registry Process Complete. Thank you for utilizing Mapandan's digital governance portal. Records successfully finalized and archived."
+                                                            : (request.status === "PAID"
+                                                                ? `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`
+                                                                : (request.status === "FOR_REVISION"
+                                                                    ? (request.rejectionRemarks || `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`)
+                                                                    : `Standard professional assessment concludes within ${request.type?.slaDays || 3} business days. Our team is currently validating your documentary evidence.`))}&quot;
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="space-y-3 md:space-y-4 pt-10 relative z-10">
                                                 <Separator className="bg-white/10" />
@@ -1523,7 +1573,20 @@ export default function RequestHubPage() {
                             </TabsContent>
 
                             <TabsContent value="records" className="mt-0">
-                                <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/50 shadow-xl rounded-2xl md:rounded-3xl space-y-12">
+                                <Card className="p-6 md:p-10 border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/40 shadow-xl rounded-2xl md:rounded-3xl space-y-12">
+                                    {isLcrBirth && (
+                                        <BirthCertificateRequestDetails additionalData={additionalData} />
+                                    )}
+                                    {isLcrDeathCert && (
+                                        <DeathCertificateRequestDetails additionalData={additionalData} />
+                                    )}
+                                    {isLcrDeathReg && (
+                                        <DeathRegistrationRequestDetails additionalData={additionalData} />
+                                    )}
+                                    {isLcrMarriage && (
+                                        <MarriageCertificateRequestDetails additionalData={additionalData} />
+                                    )}
+
                                     {request.type?.code.startsWith("BUSINESS_PERMIT") && (
                                         <div className="space-y-6 pb-8 border-b border-slate-100 dark:border-white/5">
                                             <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Business Information</h4>
@@ -1570,67 +1633,68 @@ export default function RequestHubPage() {
                                                     <div className="space-y-1"><p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Citizenship</p><p className="text-xs md:text-lg font-bold italic uppercase">{residentData.citizenship || "Filipino"}</p></div>
                                                 </div>
                                             </div>
-                                            <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
-                                                <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">
-                                                    {request.isStudent ? "Student Status" : "Financial Declarations"}
-                                                </h4>
-                                                <div className="grid grid-cols-2 gap-6 md:gap-8">
-                                                    {request.type?.code.startsWith("BUSINESS_PERMIT") ? (
-                                                        <>
-                                                            <div className="space-y-1">
-                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">
-                                                                    {additionalData.businessType === "NEW" ? "Capital Investment" : "Annual Gross Sales"}
-                                                                </p>
-                                                                <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
-                                                                    ₱{(additionalData.capitalInvestment || additionalData.grossSales || 0).toLocaleString()}
-                                                                </p>
-                                                            </div>
-                                                            {request.businessPermit?.expiryDate && (
+                                            {!isCivilRegistry && (
+                                                <div className="space-y-6 pt-6 border-t border-slate-100 dark:border-white/5">
+                                                    <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">
+                                                        {request.isStudent ? "Student Status" : "Financial Declarations"}
+                                                    </h4>
+                                                    <div className="grid grid-cols-2 gap-6 md:gap-8">
+                                                        {request.type?.code.startsWith("BUSINESS_PERMIT") ? (
+                                                            <>
                                                                 <div className="space-y-1">
-                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
-                                                                    <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
-                                                                        Expires {format(new Date(request.businessPermit.expiryDate), "MMM d, yyyy")}
+                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">
+                                                                        {additionalData.businessType === "NEW" ? "Capital Investment" : "Annual Gross Sales"}
+                                                                    </p>
+                                                                    <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
+                                                                        ₱{(additionalData.capitalInvestment || additionalData.grossSales || 0).toLocaleString()}
                                                                     </p>
                                                                 </div>
-                                                            )}
-                                                        </>
-                                                    ) : request.isStudent ? (
-                                                        <>
-                                                            <div className="space-y-1">
-                                                                {/* <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Application Pathway</p> */}
-                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20 shrink-0 w-fit mt-1 italic shadow-sm">
-                                                                    🎓 Student Request
-                                                                </span>
-                                                            </div>
-                                                            {request.cedula?.expiryDate && (
+                                                                {request.businessPermit?.expiryDate && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                        <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                            Expires {format(new Date(request.businessPermit.expiryDate), "MMM d, yyyy")}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : request.isStudent ? (
+                                                            <>
                                                                 <div className="space-y-1">
-                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
-                                                                    <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
-                                                                        Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
+                                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20 shrink-0 w-fit mt-1 italic shadow-sm">
+                                                                        🎓 Student Request
+                                                                    </span>
+                                                                </div>
+                                                                {request.cedula?.expiryDate && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                        <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                            Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Annual Gross Income</p>
+                                                                    <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
+                                                                        ₱{(additionalData.income || 0).toLocaleString()}
                                                                     </p>
                                                                 </div>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <div className="space-y-1">
-                                                                <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Annual Gross Income</p>
-                                                                <p className="text-lg md:text-2xl font-black text-slate-900 dark:text-white italic">
-                                                                    ₱{(additionalData.income || 0).toLocaleString()}
-                                                                </p>
-                                                            </div>
-                                                            {request.cedula?.expiryDate && (
-                                                                <div className="space-y-1">
-                                                                    <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
-                                                                    <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
-                                                                        Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
-                                                                    </p>
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    )}
+                                                                {request.cedula?.expiryDate && (
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-[8px] md:text-[10px] uppercase font-black text-slate-400 leading-none">Validity Mandate</p>
+                                                                        <p className="text-lg md:text-2xl font-black text-primary italic uppercase leading-none">
+                                                                            Expires {format(new Date(request.cedula.expiryDate), "MMM d")}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
                                         <div className="space-y-6">
                                             <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Registered Address</h4>
@@ -1668,7 +1732,7 @@ export default function RequestHubPage() {
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
                                     <div className="space-y-6">
                                         <h4 className="text-[9px] md:text-[11px] font-black uppercase tracking-widest text-primary italic border-l-4 border-primary pl-4">Requirements</h4>
-                                        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {documentList.length > 0 ? documentList.map((doc, i) => {
                                                 const isPdf = checkIsPdf(doc.url);
                                                 if (isPdf) {
@@ -1676,7 +1740,7 @@ export default function RequestHubPage() {
                                                         <button
                                                             key={i}
                                                             onClick={() => handleViewFile(doc.url, doc.label)}
-                                                            className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 hover:border-red-500/50"
+                                                            className="relative aspect-[16/9] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-white/5 hover:border-red-500/50"
                                                         >
                                                             <FileText className="w-8 h-8 text-red-500 group-hover/doc:scale-110 transition-transform duration-300 animate-pulse" />
                                                             <span className="text-[7px] font-black uppercase text-red-500/70 tracking-wider mt-1">View PDF Document</span>
@@ -1690,7 +1754,7 @@ export default function RequestHubPage() {
                                                     <button
                                                         key={i}
                                                         onClick={() => { setLightboxIndex(i); setLightboxOpen(true); }}
-                                                        className="relative aspect-[4/3] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full text-left"
+                                                        className="relative aspect-[16/9] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden group/doc hover:shadow-xl transition-all w-full text-left"
                                                     >
                                                         <Image src={doc.url} alt={doc.label} fill className="object-cover transition-transform group-hover/doc:scale-110 duration-700" unoptimized />
                                                         <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/doc:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
@@ -1707,7 +1771,7 @@ export default function RequestHubPage() {
                                                     </button>
                                                 );
                                             }) : (
-                                                <div className="col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
+                                                <div className="col-span-1 sm:col-span-2 py-10 flex flex-col items-center justify-center text-slate-300 dark:text-white/20">
                                                     <FileText className="w-8 h-8 mb-2 opacity-30" />
                                                     <p className="text-[9px] font-black uppercase tracking-widest italic">No documents uploaded</p>
                                                 </div>
@@ -1734,11 +1798,11 @@ export default function RequestHubPage() {
                                                                 if (!paymentProofUrl) return;
                                                                 try {
                                                                     const response = await fetch(paymentProofUrl);
-                                                                    const blob = await response.blob();
-                                                                    const url = window.URL.createObjectURL(blob);
+                                                                    const font = await response.blob();
+                                                                    const url = window.URL.createObjectURL(font);
                                                                     const link = document.createElement("a");
                                                                     link.href = url;
-                                                                    const ext = blob.type.includes("pdf") ? "pdf" : "png";
+                                                                    const ext = font.type.includes("pdf") ? "pdf" : "png";
                                                                     link.download = `Payment_Proof_${id.slice(-6).toUpperCase()}.${ext}`;
                                                                     document.body.appendChild(link);
                                                                     link.click();
@@ -1825,11 +1889,11 @@ export default function RequestHubPage() {
                                                                     if (!orUrlToUse) return;
                                                                     try {
                                                                         const response = await fetch(orUrlToUse);
-                                                                        const blob = await response.blob();
-                                                                        const url = window.URL.createObjectURL(blob);
+                                                                        const font = await response.blob();
+                                                                        const url = window.URL.createObjectURL(font);
                                                                         const link = document.createElement("a");
                                                                         link.href = url;
-                                                                        const ext = blob.type.includes("pdf") ? "pdf" : "png";
+                                                                        const ext = font.type.includes("pdf") ? "pdf" : "png";
                                                                         link.download = `Official_Receipt_${id.slice(-6).toUpperCase()}.${ext}`;
                                                                         document.body.appendChild(link);
                                                                         link.click();
@@ -1863,298 +1927,42 @@ export default function RequestHubPage() {
                                                 </div>
                                             )}
 
-                                        {(isLcrBirth || isLcrDeath) && (request.status === "RELEASED" || request.status === "DELIVERED") && (
-                                            (() => {
-                                                const formType = additionalData.registryBookVerification || (isLcrDeath ? "FORM_2A" : "FORM_1A");
-                                                const config = getVerificationConfig(formType);
-                                                return (
-                                                    <div
-                                                        className="p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:scale-[1.01] w-full text-left bg-white dark:bg-slate-900/40"
-                                                        style={{
-                                                            borderColor: `${themeColor}20`,
-                                                            boxShadow: `0 20px 25px -5px ${themeColor}10`
-                                                        }}
-                                                    >
-                                                        <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                                                            <ShieldCheck className="w-24 h-24" style={{ color: themeColor }} />
-                                                        </div>
-                                                        <div className="relative z-10 space-y-6">
-                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                                <div className="flex items-center gap-4">
-                                                                    <div
-                                                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"
-                                                                        style={{ backgroundColor: themeColor }}
-                                                                    >
-                                                                        <FileText className="w-5 h-5 text-white" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-[8px] font-black uppercase tracking-widest italic opacity-70 leading-none" style={{ color: themeColor }}>
-                                                                            Registry Book Verification
-                                                                        </p>
-                                                                        <p className="text-xs md:text-sm font-black italic tracking-tight uppercase leading-none mt-1.5 text-slate-900 dark:text-white">
-                                                                            {config.title}
-                                                                        </p>
-                                                                    </div>
-                                                                </div>
-                                                                <Badge
-                                                                    className="text-[8px] font-black uppercase tracking-widest italic px-3 py-1 rounded-full text-white border-transparent"
-                                                                    style={{ backgroundColor: themeColor }}
-                                                                >
-                                                                    {formType.replace(/_/g, " ")}
-                                                                </Badge>
-                                                            </div>
-
-                                                            <div className="p-5 bg-white/50 dark:bg-[#121620]/60 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm">
-                                                                <p className="text-xs md:text-sm font-bold italic text-slate-700 dark:text-slate-200 leading-relaxed">
-                                                                    &ldquo;{config.description}&rdquo;
-                                                                </p>
-                                                            </div>
-
-                                                            {(formType === "FORM_1B" || formType === "FORM_2B") && (
-                                                                <div
-                                                                    className="p-5 rounded-2xl border shadow-inner space-y-4 animate-in slide-in-from-top-2 duration-300 bg-white dark:bg-white/[0.02]"
-                                                                    style={{ borderColor: `${themeColor}20` }}
-                                                                >
-                                                                    <div className="flex items-start gap-3">
-                                                                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: themeColor }} />
-                                                                        <div className="space-y-1">
-                                                                            <h4 className="text-[10px] font-black uppercase tracking-widest leading-none" style={{ color: themeColor }}>MCR negative verification notice</h4>
-                                                                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-normal italic">
-                                                                                MCR issued {formType} (Negative Result). Please proceed with Registration to create a record.
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <Button
-                                                                        asChild
-                                                                        className="w-full h-11 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg transition-all duration-200 active:scale-95 flex items-center justify-center border-none hover:opacity-90"
-                                                                        style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
-                                                                    >
-                                                                        <Link href={isLcrDeath ? "/user/services/civil-registry/death-registration" : "/user/services/civil-registry/birth-registration"}>
-                                                                            Proceed to Registration
-                                                                        </Link>
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-
-                                                            {(formType === "FORM_1A" || formType === "FORM_2A") && (
-                                                                <div className="p-5 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner space-y-4">
-                                                                    <div className="flex flex-col gap-2">
-                                                                        <div className="space-y-1">
-                                                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-none">Need to forward to Manila?</h4>
-                                                                            <p className="text-[10px] text-slate-400 italic">Initiate {isLcrDeath ? "Death" : "Birth"} PSA endorsement to forward the certificate to PSA Main office.</p>
-                                                                        </div>
-                                                                        {additionalData.psaEndorsementRequested ? (
-                                                                            <div
-                                                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest italic mt-1 p-3 rounded-xl border"
-                                                                                style={{ color: themeColor, backgroundColor: `${themeColor}10`, borderColor: `${themeColor}20` }}
-                                                                            >
-                                                                                <Check className="w-4 h-4 shrink-0" />
-                                                                                <span>{isLcrDeath ? "Death" : "Birth"} PSA Endorsement Requested (₱200)</span>
-                                                                            </div>
-                                                                        ) : isLcrDeath ? (
-                                                                            <Button
-                                                                                asChild
-                                                                                className="w-full h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all border-none"
-                                                                                style={{
-                                                                                    backgroundColor: themeColor,
-                                                                                    boxShadow: `0 10px 20px -5px ${themeColor}30`
-                                                                                }}
-                                                                            >
-                                                                                <Link href="/user/services/civil-registry/death-psa-endorsement">
-                                                                                    Request Death PSA Endorsement (₱200)
-                                                                                </Link>
-                                                                            </Button>
-                                                                        ) : (
-                                                                            <Dialog open={psaEndorsementOpen} onOpenChange={setPsaEndorsementOpen}>
-                                                                                <DialogTrigger asChild>
-                                                                                    <Button
-                                                                                        className="w-full h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                                        style={{
-                                                                                            backgroundColor: themeColor,
-                                                                                            boxShadow: `0 10px 20px -5px ${themeColor}30`
-                                                                                        }}
-                                                                                    >
-                                                                                        Request Birth PSA Endorsement (₱200)
-                                                                                    </Button>
-                                                                                </DialogTrigger>
-                                                                                <DialogContent className="max-w-[360px] w-full bg-white dark:bg-slate-950 border-none rounded-[1.5rem] shadow-2xl p-6 z-[150]">
-                                                                                    <DialogHeader className="space-y-1">
-                                                                                        <DialogTitle className="text-md font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">
-                                                                                            Birth PSA <span style={{ color: themeColor }}>Endorsement</span>
-                                                                                        </DialogTitle>
-                                                                                        <DialogDescription className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">
-                                                                                            Official Manila Dispatch Protocol
-                                                                                        </DialogDescription>
-                                                                                    </DialogHeader>
-                                                                                    <div className="space-y-4 py-3">
-                                                                                        <p className="text-xs font-medium text-slate-500 leading-relaxed italic">
-                                                                                            Please upload your PSA Negative Certification document to initiate the endorsement process. This service carries a government fee of ₱200.
-                                                                                        </p>
-                                                                                        <div className="space-y-1.5">
-                                                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">PSA Negative Cert (PDF/Image)</Label>
-                                                                                            <div className="w-full aspect-[21/8] bg-slate-50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">
-                                                                                                {psaNegPreview ? (
-                                                                                                    <>
-                                                                                                        <div className="absolute inset-0 flex items-center justify-center font-bold text-xs uppercase text-slate-800 dark:text-white">
-                                                                                                            File Selected
-                                                                                                        </div>
-                                                                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                                                            <Button variant="secondary" size="sm" className="h-7 px-3 font-black italic uppercase text-[8px] tracking-widest rounded-lg relative overflow-hidden">
-                                                                                                                Change
-                                                                                                                <input
-                                                                                                                    type="file"
-                                                                                                                    accept=".pdf,image/*"
-                                                                                                                    onChange={async (e) => {
-                                                                                                                        const file = e.target.files?.[0];
-                                                                                                                        if (file) {
-                                                                                                                            let fileToProcess = file;
-                                                                                                                            if (file.type.startsWith("image/")) {
-                                                                                                                                try {
-                                                                                                                                    toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                                                                                                                                    fileToProcess = await compressImage(file);
-                                                                                                                                    toast.success("Document optimized successfully!", { id: "image-compress-toast" });
-                                                                                                                                } catch (err) {
-                                                                                                                                    console.error("Compression error:", err);
-                                                                                                                                    toast.dismiss("image-compress-toast");
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            setPsaNegFile(fileToProcess);
-                                                                                                                            setPsaNegPreview(URL.createObjectURL(fileToProcess));
-                                                                                                                        }
-                                                                                                                    }}
-                                                                                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                                                                                />
-                                                                                                            </Button>
-                                                                                                        </div>
-                                                                                                    </>
-                                                                                                ) : (
-                                                                                                    <div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
-                                                                                                        <Upload className="w-4 h-4 text-slate-350 mb-0.5" />
-                                                                                                        <p className="text-[8px] font-black uppercase text-slate-400 italic">Upload Document</p>
-                                                                                                        <input
-                                                                                                            type="file"
-                                                                                                            accept=".pdf,image/*"
-                                                                                                            onChange={async (e) => {
-                                                                                                                const file = e.target.files?.[0];
-                                                                                                                if (file) {
-                                                                                                                    let fileToProcess = file;
-                                                                                                                    if (file.type.startsWith("image/")) {
-                                                                                                                        try {
-                                                                                                                            toast.loading("Compressing and optimizing document...", { id: "image-compress-toast" });
-                                                                                                                            fileToProcess = await compressImage(file);
-                                                                                                                            toast.success("Document optimized successfully!", { id: "image-compress-toast" });
-                                                                                                                        } catch (err) {
-                                                                                                                            console.error("Compression error:", err);
-                                                                                                                            toast.dismiss("image-compress-toast");
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    setPsaNegFile(fileToProcess);
-                                                                                                                    setPsaNegPreview(URL.createObjectURL(fileToProcess));
-                                                                                                                }
-                                                                                                            }}
-                                                                                                            className="absolute inset-0 opacity-0 cursor-pointer"
-                                                                                                        />
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <DialogFooter className="pt-2">
-                                                                                        <Button
-                                                                                            onClick={handlePsaEndorsementSubmit}
-                                                                                            disabled={isSubmittingPsaEndorsement || !psaNegFile}
-                                                                                            className="w-full h-11 text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2 hover:opacity-90 border-none"
-                                                                                            style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
-                                                                                        >
-                                                                                            {isSubmittingPsaEndorsement ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                                                                            Submit Request
-                                                                                        </Button>
-                                                                                    </DialogFooter>
-                                                                                </DialogContent>
-                                                                            </Dialog>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {additionalData.scannedDocUrl && (
-                                                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                                                    <Button
-                                                                        onClick={async () => {
-                                                                            if (!additionalData.scannedDocUrl) return;
-                                                                            try {
-                                                                                const response = await fetch(additionalData.scannedDocUrl);
-                                                                                const blob = await response.blob();
-                                                                                const url = window.URL.createObjectURL(blob);
-                                                                                const link = document.createElement("a");
-                                                                                link.href = url;
-                                                                                const ext = blob.type.includes("pdf") ? "pdf" : "png";
-                                                                                link.download = `Scanned_Verification_${id.slice(-6).toUpperCase()}.${ext}`;
-                                                                                document.body.appendChild(link);
-                                                                                link.click();
-                                                                                document.body.removeChild(link);
-                                                                                window.URL.revokeObjectURL(url);
-                                                                                toast.success("Document downloaded!");
-                                                                            } catch {
-                                                                                toast.error("Download failed. Try opening in a new tab.");
-                                                                            }
-                                                                        }}
-                                                                        className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                        style={{
-                                                                            backgroundColor: themeColor,
-                                                                            boxShadow: `0 10px 20px -5px ${themeColor}30`
-                                                                        }}
-                                                                    >
-                                                                        <Download className="w-4 h-4" />
-                                                                        Verification Form
-                                                                    </Button>
-                                                                    <Button
-                                                                        onClick={() => {
-                                                                            if (additionalData.scannedDocUrl) {
-                                                                                handleViewFile(additionalData.scannedDocUrl, "Verification Document");
-                                                                            }
-                                                                        }}
-                                                                        variant="outline"
-                                                                        className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
-                                                                    >
-                                                                        <Eye className="w-4 h-4" />
-                                                                        Preview Form
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-
-                                                            {request.eCopyUrl && (
-                                                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                                                    <Button
-                                                                        onClick={handleECopyDownload}
-                                                                        className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
-                                                                        style={{
-                                                                            backgroundColor: config.themeColor,
-                                                                            boxShadow: `0 10px 20px -5px ${config.themeColor}30`
-                                                                        }}
-                                                                    >
-                                                                        <Download className="w-4 h-4" />
-                                                                        Download
-                                                                    </Button>
-                                                                    <Button
-                                                                        onClick={() => {
-                                                                            if (request.eCopyUrl) {
-                                                                                handleViewFile(request.eCopyUrl, isCedula ? "E-Copy of CEDULA" : "Official Document");
-                                                                            }
-                                                                        }}
-                                                                        variant="outline"
-                                                                        className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
-                                                                    >
-                                                                        <Eye className="w-4 h-4" />
-                                                                        Preview
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()
+                                        {isLcrBirth && ["RELEASED", "DELIVERED", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE"].includes(request.status) && (
+                                            <BirthCertificateVerificationCard
+                                                request={request}
+                                                additionalData={additionalData}
+                                                themeColor={themeColor}
+                                                handleViewFile={handleViewFile}
+                                            />
                                         )}
+
+                                        {isLcrDeathCert && ["RELEASED", "DELIVERED", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE"].includes(request.status) && (
+                                            <DeathCertificateVerificationCard
+                                                request={request}
+                                                additionalData={additionalData}
+                                                themeColor={themeColor}
+                                                handleViewFile={handleViewFile}
+                                            />
+                                        )}
+
+                                        {isLcrDeathReg && ["RELEASED", "DELIVERED", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE"].includes(request.status) && (
+                                            <DeathRegistrationVerificationCard
+                                                request={request}
+                                                additionalData={additionalData}
+                                                themeColor={themeColor}
+                                                handleViewFile={handleViewFile}
+                                            />
+                                        )}
+
+                                        {isLcrMarriage && ["RELEASED", "DELIVERED", "FOR_REINSPECTION", "FOR_CLAIM", "FOR_PICKING", "IN_ROUTE"].includes(request.status) && (
+                                            <MarriageCertificateVerificationCard
+                                                request={request}
+                                                additionalData={additionalData}
+                                                themeColor={themeColor}
+                                                handleViewFile={handleViewFile}
+                                            />
+                                        )}
+
 
                                         {isPsaEndorsement && (request.status === "RELEASED" || request.status === "DELIVERED") && (
                                             <div
@@ -2218,19 +2026,19 @@ export default function RequestHubPage() {
                                                                 }}
                                                             >
                                                                 <Download className="w-4 h-4" />
-                                                                Download Endorsement Copy
+                                                                Download
                                                             </Button>
                                                             <Button
                                                                 onClick={() => {
                                                                     if (request.eCopyUrl) {
-                                                                        handleViewFile(request.eCopyUrl, "Official Endorsement Copy");
+                                                                        handleViewFile(request.eCopyUrl, isCedula ? "E-Copy of CEDULA" : "Official Document");
                                                                     }
                                                                 }}
                                                                 variant="outline"
-                                                                className="h-12 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
+                                                                className="h-12 border-slate-200 dark:border-white/10 text-slate-750 dark:text-slate-300 font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 hover:bg-slate-50 dark:hover:bg-white/5 bg-transparent"
                                                             >
                                                                 <Eye className="w-4 h-4" />
-                                                                Preview Copy
+                                                                Preview
                                                             </Button>
                                                         </div>
                                                     )}
@@ -2238,18 +2046,25 @@ export default function RequestHubPage() {
                                             </div>
                                         )}
 
-                                        {!isLcrBirth && !isPsaEndorsement && (request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
+                                        {!isLcrBirth && !isLcrDeath && !isLcrMarriage && !isPsaEndorsement && (request.status === "RELEASED" || request.status === "DELIVERED") && (request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl) && (
                                             <div className="bg-slate-950 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] text-white space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden group">
                                                 <div className="absolute top-0 right-0 p-6 opacity-5 rotate-12 group-hover:rotate-0 transition-transform"><ShieldCheck className="w-24 h-24" /></div>
                                                 <div className="relative z-10 space-y-6">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><FileText className="w-5 h-5 text-white" /></div>
-                                                        <div><p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Issuance Secured</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">{isCedula ? "E-Copy of CEDULA" : "Official Digital Record"}</p></div>
+                                                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center"><CheckCircle2 className="w-5 h-5 text-white" /></div>
+                                                        <div>
+                                                            <p className="text-[8px] font-black uppercase text-primary tracking-widest italic opacity-70 leading-none">Issuance Protocol Secured</p>
+                                                            <p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1">Certified Official Document</p>
+                                                        </div>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <Button
                                                             onClick={handleECopyDownload}
-                                                            className="h-12 bg-primary hover:opacity-90 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2"
+                                                            className="h-12 text-white font-black italic uppercase tracking-widest text-[9px] rounded-xl gap-2 shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                                                            style={{
+                                                                backgroundColor: themeColor,
+                                                                boxShadow: `0 10px 20px -5px ${themeColor}30`
+                                                            }}
                                                         >
                                                             <Download className="w-4 h-4" />
                                                             Download
@@ -2258,9 +2073,7 @@ export default function RequestHubPage() {
                                                             onClick={() => {
                                                                 const url = request.eCopyUrl || request.cedula?.documentUrl || request.businessPermit?.documentUrl;
                                                                 if (url) {
-                                                                    setViewerUrl(url);
-                                                                    setViewerTitle(isCedula ? "E-Copy of CEDULA" : "Official Digital Record");
-                                                                    setViewerOpen(true);
+                                                                    handleViewFile(url, isCedula ? "E-Copy of CEDULA" : "Official Document");
                                                                 }
                                                             }}
                                                             variant="outline"
@@ -2274,38 +2087,70 @@ export default function RequestHubPage() {
                                             </div>
                                         )}
 
-                                        {request?.status === "DELIVERED" && request?.podUrl && (
-                                            <div className="bg-emerald-500/5 p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] border border-emerald-500/20 space-y-6 md:space-y-8 shadow-xl">
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20"><Camera className="w-5 h-5" /></div>
-                                                        <div><p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest italic leading-none opacity-70">POD Protocol</p><p className="text-xs font-bold italic tracking-tight uppercase leading-none mt-1 text-slate-900 dark:text-white">Fulfillment Snapshot</p></div>
-                                                    </div>
-                                                    {isReportAllowed && (
-                                                        <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
-                                                            <DialogTrigger asChild><Button className="h-10 px-4 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}><AlertCircle className="w-4 h-4" /> Report Issue</Button></DialogTrigger>
-                                                            <DialogContent className="max-w-[330px] w-full bg-white dark:bg-slate-950 border-none rounded-[1.25rem] shadow-2xl p-4 z-[150]">
-                                                                <DialogHeader className="space-y-0.5"><DialogTitle className="text-sm font-black italic uppercase tracking-tighter text-slate-900 dark:text-white leading-none">Resolution <span style={{ color: themeColor }}>Center</span></DialogTitle><DialogDescription className="text-[7px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Submit formal dispute for validation</DialogDescription></DialogHeader>
-                                                                <div className="space-y-3 py-1.5">
-                                                                    <div className="flex items-center justify-between py-1 bg-slate-50 dark:bg-white/5 px-2.5 rounded-lg border border-slate-100 dark:border-white/5">
-                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic">Protocol</span>
-                                                                        <span className="text-[7px] font-black uppercase tracking-widest text-primary italic bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20" style={{ color: themeColor, borderColor: `${themeColor}20`, backgroundColor: `${themeColor}10` }}>RETURN ONLY</span>
-                                                                    </div>
-                                                                    <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Core Reason</Label><Textarea placeholder="Describe the issue..." className="min-h-[50px] bg-slate-50 dark:bg-white/5 border-none rounded-xl font-bold italic text-[10px] p-2 focus:ring-1 focus-visible:ring-1 focus-visible:ring-offset-0 focus:outline-none placeholder:text-slate-400 text-slate-800 dark:text-white" style={{ "--tw-ring-color": `${themeColor}40` } as any} value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} /></div>
-                                                                    <div className="space-y-1"><Label className="text-[7px] font-black uppercase tracking-widest text-slate-400 italic ml-1 leading-none">Evidence JPG/PNG</Label><div className="w-full aspect-[21/6] bg-slate-50 dark:bg-white/5 rounded-xl border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center relative overflow-hidden group">{disputePreview ? (<><Image src={disputePreview} alt="Proof" fill className="object-cover" /><div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Button variant="secondary" size="sm" className="h-6 px-2 font-black italic uppercase text-[7px] tracking-widest rounded-lg relative overflow-hidden">Change<input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></Button></div></>) : (<div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"><Upload className="w-3.5 h-3.5 text-slate-300 mb-0.5" /><p className="text-[6px] font-black uppercase text-slate-400 italic">Upload Evidence</p><input type="file" onChange={handleDisputeFileChange} className="absolute inset-0 opacity-0 cursor-pointer" /></div>)}</div></div>
+                                        {isReportAllowed && (
+                                            <div className="flex justify-end pt-4 md:pt-6">
+                                                <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
+                                                    <DialogTrigger asChild>
+                                                        <Button
+                                                            variant="link"
+                                                            className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-red-500 transition-colors italic shrink-0"
+                                                        >
+                                                            ⚠️ Report Concern / Request Dispute
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-[400px] w-full bg-slate-900 text-white border-none rounded-[2rem] shadow-2xl p-6 md:p-8 z-[150]">
+                                                        <DialogHeader className="space-y-1">
+                                                            <DialogTitle className="text-xl font-black italic uppercase tracking-tighter text-white">Dispute <span className="text-red-500">Protocol</span></DialogTitle>
+                                                            <DialogDescription className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic opacity-60">Resolution & Audit System</DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="space-y-5 py-4">
+                                                            <div className="space-y-1.5">
+                                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Resolution Strategy</Label>
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    {[
+                                                                        { id: "RETURN", label: "Request Return" },
+                                                                        { id: "REFUND", label: "Request Refund" }
+                                                                    ].map(opt => (
+                                                                        <button key={opt.id} type="button" onClick={() => setDisputeType(opt.id as any)} className={cn("h-11 rounded-xl font-black uppercase tracking-widest text-[9px] italic border-2 transition-all active:scale-95", disputeType === opt.id ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/20" : "bg-transparent border-slate-800 text-slate-400 hover:border-slate-700")}>{opt.label}</button>
+                                                                    ))}
                                                                 </div>
-                                                                <DialogFooter><Button onClick={handleDispute} disabled={isDisputing || !disputeReason} className="w-full h-8 text-white rounded-xl text-[8px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2" style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px -5px ${themeColor}40` }}>{isDisputing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Submit</Button></DialogFooter>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    )}
-                                                </div>
-                                                <Button onClick={() => {
-                                                    if (request.podUrl) {
-                                                        handleViewFile(request.podUrl, "Fulfillment Snapshot");
-                                                    }
-                                                }} variant="outline" className="w-full h-12 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black italic uppercase tracking-widest text-[9px] rounded-xl hover:bg-emerald-500/10">
-                                                    View Deployment Snapshot <Eye className="w-3.5 h-3.5 ml-2" />
-                                                </Button>
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Reason / Statement</Label>
+                                                                <Textarea placeholder="PROVIDE COMPLETE STATEMENT FOR DISPUTE AUDIT..." value={disputeReason} onChange={e => setDisputeReason(e.target.value)} className="min-h-[100px] bg-slate-950 border-slate-800 rounded-xl focus:border-red-500 text-xs md:text-sm font-bold placeholder:text-slate-600 uppercase" />
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <Label className="text-[9px] font-black uppercase tracking-widest text-slate-500 italic ml-1">Evidence / Proof File (Optional)</Label>
+                                                                <div className="w-full aspect-[21/9] bg-slate-950 rounded-xl border border-dashed border-slate-800 flex items-center justify-center relative overflow-hidden group">
+                                                                    {disputePreview ? (
+                                                                        <>
+                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                            <img src={disputePreview} alt="Evidence preview" className="w-full h-full object-cover" />
+                                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                                <Button variant="secondary" size="sm" className="h-7 px-3 font-black italic uppercase text-[8px] tracking-widest rounded-lg relative overflow-hidden">
+                                                                                    Change File
+                                                                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleDisputeFileChange} />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="relative w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-900 transition-colors">
+                                                                            <Upload className="w-5 h-5 text-slate-650 mb-1" />
+                                                                            <p className="text-[9px] font-black uppercase text-slate-500 italic">Upload Evidence</p>
+                                                                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleDisputeFileChange} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <DialogFooter className="pt-2">
+                                                            <Button onClick={handleDispute} disabled={isDisputing || !disputeReason} className="w-full h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest italic transition-all active:scale-95 gap-2 border-none shadow-xl shadow-red-600/10">
+                                                                {isDisputing ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                                                                Submit Concern Statement
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </DialogContent>
+                                                </Dialog>
                                             </div>
                                         )}
                                     </div>
@@ -2316,9 +2161,7 @@ export default function RequestHubPage() {
                 </div>
             </div>
 
-            {/* ============================================================ */}
-            {/* PREMIUM LIGHTBOX MODAL                                        */}
-            {/* ============================================================ */}
+            {/* Lightbox component - Elegant backdrop overlay */}
             <AnimatePresence>
                 {lightboxOpen && documentList[lightboxIndex] && (
                     <motion.div
@@ -2438,6 +2281,7 @@ export default function RequestHubPage() {
                 )}
             </AnimatePresence>
 
+            {/* Document Viewer Modal for PDFs */}
             <DocumentViewerModal
                 isOpen={viewerOpen}
                 onClose={() => setViewerOpen(false)}
@@ -2449,4 +2293,3 @@ export default function RequestHubPage() {
         </>
     );
 }
-

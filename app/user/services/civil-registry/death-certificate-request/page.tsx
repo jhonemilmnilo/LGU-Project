@@ -106,8 +106,9 @@ interface FormState {
     civilStatus: string;
     gender: string;
     relationship: string;
-    contactNumber: string;
     email: string;
+    contactNumber: string;
+    informantAddress?: string;
     // Deceased Details
     deceasedFirstName: string;
     deceasedMiddleName: string;
@@ -294,6 +295,7 @@ export default function DeathCertificateRequestPage() {
         relationship: "",
         contactNumber: "",
         email: "",
+        informantAddress: "",
         deceasedFirstName: "",
         deceasedMiddleName: "",
         deceasedLastName: "",
@@ -369,6 +371,7 @@ export default function DeathCertificateRequestPage() {
                         relationship: draft.relationship || "",
                         contactNumber: draft.contactNumber || "",
                         email: draft.email || "",
+                        informantAddress: draft.informantAddress || "",
                         deceasedFirstName: draft.deceasedFirstName || "",
                         deceasedMiddleName: draft.deceasedMiddleName || "",
                         deceasedLastName: draft.deceasedLastName || "",
@@ -391,7 +394,17 @@ export default function DeathCertificateRequestPage() {
                         setCurrentStep(draft.currentStep);
                     }
                 } else if (residentData) {
-                    // Pre-fill requester details from database resident profile
+                    const parts = [
+                        residentData.houseNumber && `#${residentData.houseNumber}`,
+                        residentData.street && `${residentData.street} St.`,
+                        residentData.purok && `Purok ${residentData.purok}`,
+                        residentData.sitio && `Sitio ${residentData.sitio}`,
+                        residentData.barangay && `Brgy. ${residentData.barangay}`,
+                        residentData.municipality || "Mapandan",
+                        residentData.province || "Pangasinan"
+                    ].filter(Boolean);
+                    const constructedAddr = parts.join(", ").toUpperCase();
+
                     setForm(prev => ({
                         ...prev,
                         typeId: lcrTypeId || prev.typeId,
@@ -403,6 +416,7 @@ export default function DeathCertificateRequestPage() {
                         gender: (residentData.gender || "").toUpperCase(),
                         contactNumber: residentData.contactNumber || "",
                         email: residentData.email || "",
+                        informantAddress: constructedAddr
                     }));
                 } else if (lcrTypeId) {
                     setForm(prev => ({ ...prev, typeId: lcrTypeId }));
@@ -504,6 +518,7 @@ export default function DeathCertificateRequestPage() {
     };
 
     const handleSubmit = async () => {
+        if (submitting) return;
         if (!resident) {
             toast.error("User profile required to submit transaction");
             return;
@@ -865,6 +880,17 @@ export default function DeathCertificateRequestPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                </div>
+
+                                {/* Informant Address */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Informant Address</Label>
+                                    <Input
+                                        value={form.informantAddress || ""}
+                                        readOnly
+                                        className="h-10 rounded-xl text-xs md:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase"
+                                        placeholder="Informant Address"
+                                    />
                                 </div>
 
                                 {/* Contact Number */}
@@ -1590,6 +1616,10 @@ export default function DeathCertificateRequestPage() {
                                             <div className="flex justify-between py-1 border-b border-slate-200/30 dark:border-white/5">
                                                 <span className="text-slate-400 font-bold italic uppercase text-[9px]">Contact:</span>
                                                 <span className="font-black text-slate-900 dark:text-white">{form.contactNumber}</span>
+                                            </div>
+                                            <div className="flex justify-between py-1 border-b border-slate-200/30 dark:border-white/5">
+                                                <span className="text-slate-400 font-bold italic uppercase text-[9px]">Address:</span>
+                                                <span className="font-black uppercase text-slate-900 dark:text-white text-right max-w-[200px] truncate" title={form.informantAddress}>{form.informantAddress || "N/A"}</span>
                                             </div>
                                         </div>
                                     </div>

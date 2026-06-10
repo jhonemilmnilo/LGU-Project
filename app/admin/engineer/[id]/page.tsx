@@ -485,7 +485,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
                 toast.success("Marked for re-inspection");
                 setIsReinspecting(false);
                 setReinspectReason("");
-                fetchTransaction();
+                router.push(backUrl);
             }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
@@ -561,7 +561,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
             if (res.success) {
                 toast.success(`Dispute ${disputeAction === 'APPROVE' ? 'Approved' : 'Rejected'}`);
                 setDisputeModalOpen(false);
-                fetchTransaction();
+                router.push(backUrl);
             } else {
                 toast.error(res.error || "Resolution failed");
             }
@@ -769,10 +769,12 @@ export default function EngineerDetailPage({ params }: PageProps) {
             { id: "REJECTED", label: "REJECTED" }
         ];
     } else if (status === "FOR_REVISION") {
-        steps = [
-            { id: "FOR_REQUESTING", label: "EVALUATION" },
-            { id: "FOR_REVISION", label: "REVISION REQ." }
-        ];
+        const evalIdx = steps.findIndex(s => s.id === "FOR_REQUESTING" || s.id === "FOR_INSPECTION");
+        if (evalIdx >= 0) {
+            steps.splice(evalIdx + 1, 0, { id: "FOR_REVISION", label: "REVISION REQ." });
+        } else {
+            steps.splice(1, 0, { id: "FOR_REVISION", label: "REVISION REQ." });
+        }
     } else if (status === "FOR_REINSPECTION") {
         const inspectionIdx = steps.findIndex(s => s.id === "FOR_INSPECTION");
         if (inspectionIdx !== -1) {
@@ -1018,7 +1020,7 @@ export default function EngineerDetailPage({ params }: PageProps) {
         setActionLoading(true);
         try {
             const res = await confirmTransactionPayment(transaction.id);
-            if (res.success) { toast.success("Payment Confirmed"); fetchTransaction(); }
+            if (res.success) { toast.success("Payment Confirmed"); router.push(backUrl); }
             else toast.error(res.error || "Failed");
         } finally { setActionLoading(false); }
     };

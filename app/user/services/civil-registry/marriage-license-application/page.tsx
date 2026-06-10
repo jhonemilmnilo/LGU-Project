@@ -192,7 +192,8 @@ export default function MarriageLicenseApplicationPage() {
 		app2Citizenship: "FILIPINO",
 		requiredDocs: {} as Record<string, boolean>,
 		files: {} as Record<string, File | null>,
-		previews: {} as Record<string, string | null>
+		previews: {} as Record<string, string | null>,
+		informantAddress: ""
 	});
 
 	// Privacy / Terms modal state (shared key across LCR pages)
@@ -309,12 +310,25 @@ export default function MarriageLicenseApplicationPage() {
 	 			}
 
 	 			if (activeResident) {
+	 				const r = activeResident;
+	 				const parts = [
+	 					r.houseNumber && `#${r.houseNumber}`,
+	 					r.street && `${r.street} St.`,
+	 					r.purok && `Purok ${r.purok}`,
+	 					r.sitio && `Sitio ${r.sitio}`,
+	 					r.barangay && `Brgy. ${r.barangay}`,
+	 					r.municipality || "Mapandan",
+	 					r.province || "Pangasinan"
+	 				].filter(Boolean);
+	 				const constructedAddr = parts.join(", ").toUpperCase();
+
 	 				setForm((prev: any) => ({
 	 					...prev,
 	 					app1FullName: `${activeResident.firstName} ${activeResident.middleName ? activeResident.middleName[0] + '. ' : ''}${activeResident.lastName}`.toUpperCase(),
 	 					app1BirthDate: activeResident.dateOfBirth ? new Date(activeResident.dateOfBirth).toISOString().split('T')[0] : "",
 	 					app1BirthPlace: (activeResident.placeOfBirth || activeResident.municipality || "").toUpperCase(),
-	 					app1Citizenship: (activeResident.citizenship || "FILIPINO").toUpperCase()
+	 					app1Citizenship: (activeResident.citizenship || "FILIPINO").toUpperCase(),
+	 					informantAddress: constructedAddr
 	 				}));
 	 			}
 	 		} catch (err) {
@@ -487,6 +501,7 @@ export default function MarriageLicenseApplicationPage() {
 	};
 
 	const handleSubmit = async () => {
+		if (submitting) return;
 
 		// Require privacy terms acceptance before allowing submit
 		if (!policyAccepted) {
@@ -581,6 +596,7 @@ export default function MarriageLicenseApplicationPage() {
 				},
 				requiredDocs: selectedDocs,
 				subjectName: `${form.app1FullName} & ${form.app2FullName}`,
+				informantAddress: form.informantAddress,
 				payments: [
 					{ label: "Misc Fee", amount: dbMiscFee }
 				],
@@ -790,6 +806,10 @@ export default function MarriageLicenseApplicationPage() {
 									<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Citizenship</Label>
 									<Input disabled value={form.app1Citizenship} className="bg-slate-100 dark:bg-white/5 font-bold uppercase cursor-not-allowed opacity-75 border-none" />
 								</div>
+								<div className="space-y-1.5 col-span-1 md:col-span-2">
+									<Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Informant Address</Label>
+									<Input disabled value={form.informantAddress || ""} className="bg-slate-100 dark:bg-white/5 font-bold uppercase cursor-not-allowed opacity-75 border-none" />
+								</div>
 							</div>
 						</Card>
 
@@ -944,6 +964,7 @@ export default function MarriageLicenseApplicationPage() {
 									<div className="text-sm font-black">{form.app1FullName}</div>
 									<div className="text-xs text-slate-600">{form.app1BirthDate} {form.app1BirthPlace ? `• ${form.app1BirthPlace}` : ''}</div>
 									<div className="text-xs text-slate-400">{form.app1Citizenship}</div>
+									<div className="text-xs text-slate-400 mt-1">Address: {form.informantAddress || "N/A"}</div>
 								</div>
 								<div className="p-4 rounded-2xl border bg-white dark:bg-[#071018]">
 									<div className="text-sm font-black">{form.app2FullName || 'N/A'}</div>

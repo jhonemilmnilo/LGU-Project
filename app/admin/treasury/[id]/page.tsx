@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, use, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -600,6 +601,32 @@ export default function TreasuryDetailPage({ params }: PageProps) {
     }, [id]);
 
     useEffect(() => {
+        if (!supabase || !id) return;
+
+        console.log(`Subscribing to Supabase Realtime for transaction ${id}...`);
+        const channel = supabase
+            .channel(`realtime-treasury-transaction-${id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "Transaction",
+                    filter: `id=eq.${id}`,
+                },
+                () => {
+                    fetchTransaction();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log(`Unsubscribing from Supabase Realtime for transaction ${id}...`);
+            supabase.removeChannel(channel);
+        };
+    }, [id, fetchTransaction]);
+
+    useEffect(() => {
         if (!session) return;
         const role = (session?.user as any)?.role;
         const dept = (session?.user as any)?.department;
@@ -770,7 +797,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
             if (res.success) {
                 toast.success(`Dispute ${disputeAction === 'APPROVE' ? 'Approved' : 'Rejected'}`);
                 setDisputeModalOpen(false);
-                fetchTransaction();
+                router.push(backUrl);
             } else {
                 toast.error(res.error || "Resolution failed");
             }
@@ -1212,6 +1239,10 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 } else {
                     docs.push({ url: additional.municipalForm103, label: "Municipal Form No. 103" });
                 }
+                const idFront = additional.validIdFront || additional.idFrontUrl || resident.idFrontUrl || transaction.user?.residentProfile?.idFrontUrl;
+                const idBack = additional.validIdBack || additional.idBackUrl || resident.idBackUrl || transaction.user?.residentProfile?.idBackUrl;
+                if (idFront) docs.push({ url: idFront, label: "Informant's Valid ID (Front)" });
+                if (idBack) docs.push({ url: idBack, label: "Informant's Valid ID (Back)" });
             }
 
             // --- Marriage Certificate Request (Certified Copy) ---
@@ -1541,7 +1572,7 @@ export default function TreasuryDetailPage({ params }: PageProps) {
                 toast.success("Payment proof declined successfully.");
                 setRemarks("");
                 setIsRequestingRevision(false);
-                fetchTransaction();
+                router.push(backUrl);
             } else {
                 toast.error(res.error || "Failed to decline payment proof");
             }
