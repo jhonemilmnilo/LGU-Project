@@ -31,6 +31,7 @@ import LightboxView from "../components/LightboxView";
 import ResidentIdentityProfile from "../components/ResidentIdentityProfile";
 import TransactionInfoCard from "../components/TransactionInfoCard";
 import RejectionRevisionControls from "../components/RejectionRevisionControls";
+import TreasuryPaymentCollectionPanel from "../components/TreasuryPaymentCollectionPanel";
 import { TreasuryViewProps } from "./types";
 
 const documentExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "rtf"];
@@ -86,6 +87,7 @@ export default function BusinessPermitView({
     orFile,
     setOrFile,
     orPreview,
+    setOrPreview,
     themeColor,
     branding,
     isResolvingDispute,
@@ -760,20 +762,25 @@ export default function BusinessPermitView({
                                         )}
 
                                         {/* Upload Official Receipt (OR) */}
-                                        {(transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && (
+                                        {transaction.status === "PAID" && (
+                                            <TreasuryPaymentCollectionPanel
+                                                transaction={transaction}
+                                                additional={additional}
+                                                actionLoading={actionLoading}
+                                                orSeriesNumber={orSeriesNumber}
+                                                setOrSeriesNumber={setOrSeriesNumber}
+                                                orFile={orFile}
+                                                setOrFile={setOrFile}
+                                                orPreview={orPreview}
+                                                setOrPreview={setOrPreview}
+                                                themeColor={themeColor}
+                                                handleConfirmPayment={handleConfirmPayment}
+                                                handleViewFile={handleViewFile}
+                                            />
+                                        )}
+
+                                        {transaction.status === "FOR_PROCESSING" && (
                                             <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5 space-y-3">
-                                                {transaction.status === "PAID" && (
-                                                    <div className="space-y-1.5 mb-2">
-                                                        <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">O.R. Series Number <span className="text-slate-400 ml-0.5">(Optional)</span></Label>
-                                                        <Input
-                                                            type="text"
-                                                            value={orSeriesNumber || ""}
-                                                            onChange={(e) => setOrSeriesNumber?.(e.target.value)}
-                                                            placeholder="ENTER O.R. SERIES NUMBER..."
-                                                            className="h-11 rounded-xl border-slate-150 dark:border-white/5 bg-white dark:bg-[#151b28]/60 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-primary transition-all"
-                                                        />
-                                                    </div>
-                                                )}
                                                 <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">Upload Official Receipt (OR) <span className="text-rose-500">*</span></Label>
                                                 <Input
                                                     type="file"
@@ -874,14 +881,14 @@ export default function BusinessPermitView({
                                                         </div>
                                                     )}
 
-                                                    {transaction.status !== "FOR_REINSPECTION" && !isTreasuryStaff && (
+                                                    {transaction.status !== "FOR_REINSPECTION" && !isTreasuryStaff && transaction.status !== "PAID" && (
                                                         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border-2 border-primary/20 space-y-3">
                                                             <Label className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 italic">License Business Permit No.</Label>
                                                             <Input
                                                                 value={ctcNumber}
                                                                 onChange={(e) => setCtcNumber(e.target.value)}
                                                                 placeholder="ENTER BUSINESS PERMIT NO..."
-                                                                className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-900 dark:text-white uppercase"
+                                                                className="h-12 rounded-xl border-slate-100 dark:border-white/5 italic font-black text-sm tracking-[0.2em] focus:ring-primary/10 dark:bg-slate-950 dark:text-white uppercase"
                                                             />
                                                         </div>
                                                     )}
@@ -902,20 +909,22 @@ export default function BusinessPermitView({
 
                                             {transaction.status !== "FOR_PICKING" && (
                                                 <>
-                                                    <Button
-                                                        onClick={["FOR_PROCESSING", "PAID"].includes(transaction.status) ? handleConfirmPayment : handleRelease}
-                                                        disabled={
-                                                            actionLoading ||
-                                                            (isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
-                                                            (!isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
-                                                            (!isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
-                                                            (transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
-                                                            ((transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && !orFile && !transaction.orUrl)
-                                                        }
-                                                        className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
-                                                    >
-                                                        {actionLoading ? "Submitting..." : ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Payment Received" : (transaction.status === "FOR_REINSPECTION" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document")}
-                                                    </Button>
+                                                    {transaction.status !== "PAID" && (
+                                                        <Button
+                                                            onClick={["FOR_PROCESSING", "PAID"].includes(transaction.status) ? handleConfirmPayment : handleRelease}
+                                                            disabled={
+                                                                actionLoading ||
+                                                                (isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                                (!isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && (!ctcNumber && !transaction.businessPermit?.permitNumber)) ||
+                                                                (!isBusinessPermitRenewal && transaction.status === "FOR_REINSPECTION" && !stickerNumber) ||
+                                                                (transaction.status === "FOR_REINSPECTION" && !eCopyFile && !transaction.eCopyUrl) ||
+                                                                ((transaction.status === "FOR_PROCESSING" || transaction.status === "PAID") && !orFile && !transaction.orUrl)
+                                                            }
+                                                            className="w-full h-16 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20"
+                                                        >
+                                                            {actionLoading ? "Submitting..." : ["FOR_PROCESSING", "PAID"].includes(transaction.status) ? "Payment Received" : (transaction.status === "FOR_REINSPECTION" ? (transaction.fulfillmentType === "DELIVERY" ? "Ready for Picking" : "Mark Ready for Claiming") : "Confirm & Release Document")}
+                                                        </Button>
+                                                    )}
 
 
                                                     {!(["PAID", "FOR_PROCESSING", "FOR_REINSPECTION"].includes(transaction.status)) && (

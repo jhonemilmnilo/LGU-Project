@@ -935,7 +935,8 @@ export default function CivilRegistryPage() {
                                             <Input
                                                 name="contactNumber"
                                                 value={form.contactNumber}
-                                                onChange={(e) => setForm(p => ({ ...p, contactNumber: e.target.value }))}
+                                                onChange={(e) => setForm(p => ({ ...p, contactNumber: e.target.value.replace(/[^0-9]/g, '') }))}
+
                                                 className={cn(
                                                     "h-10 rounded-xl border-slate-950 dark:border-white focus:ring-blue-500 shadow-sm text-xs md:text-sm transition-all duration-300 font-bold italic",
                                                     (errors.contactNumber || (showErrors && !form.contactNumber)) && "border-red-500 bg-red-50/10 focus:ring-red-500 focus:border-red-500 focus-visible:ring-red-500 focus-visible:border-red-500"

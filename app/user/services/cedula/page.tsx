@@ -933,7 +933,7 @@ export default function CedulaApplicationPage() {
                                                  <Input
                                                      ref={contactInputRef}
                                                      value={formData.residentData?.contactNumber || ""}
-                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value } }))}
+                                                     onChange={(e) => setFormData(p => ({ ...p, residentData: { ...p.residentData, contactNumber: e.target.value.replace(/[^0-9]/g, '') } }))}
                                                      className="h-10 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-xs md:text-sm"
                                                      placeholder="09xx xxx xxxx"
                                                  />
