@@ -529,7 +529,7 @@ export default function BploDetailPage({ params }: PageProps) {
             if (res.success) {
                 toast.success(`Dispute ${disputeAction === 'APPROVE' ? 'Approved' : 'Rejected'}`);
                 setDisputeModalOpen(false);
-                fetchTransaction();
+                router.push("/admin/bplo");
             } else {
                 toast.error(res.error || "Resolution failed");
             }
