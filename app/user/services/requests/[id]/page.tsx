@@ -133,6 +133,7 @@ import { BirthCertificateRequestDetails, BirthCertificateVerificationCard } from
 import { DeathCertificateRequestDetails, DeathCertificateVerificationCard } from "./death-certificate-request";
 import { DeathRegistrationRequestDetails, DeathRegistrationVerificationCard } from "./death-registration";
 import { MarriageCertificateRequestDetails, MarriageCertificateVerificationCard } from "./marriage-certificate-request";
+import { MarriageLicenseRequestDetails } from "./marriage-license-request";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
     ssr: false,
@@ -738,6 +739,7 @@ export default function RequestHubPage() {
     const isLcrDeathCert = typeCode === "LCR_DEATH";
     const isLcrDeathReg = typeCode === "LCR_DEATH_REG";
     const isLcrMarriage = typeCode === "LCR_MARRIAGE" || typeCode === "LCR_MARRIAGE_REG";
+    const isLcrMarriageLicense = typeCode === "LCR_MARRIAGE_LICENSE";
     const isBirthPsaEndorsement = typeCode === "LCR_PSA_ENDORSEMENT";
     const isDeathPsaEndorsement = typeCode === "LCR_DEATH_PSA_ENDORSEMENT";
     const isPsaEndorsement = isBirthPsaEndorsement || isDeathPsaEndorsement;
@@ -1430,7 +1432,7 @@ export default function RequestHubPage() {
                                                     </p>
                                                 </div>
 
-                                                {isBusinessPermit || isCedula || isLcrDeathReg ? (
+                                                {isBusinessPermit || isCedula || isLcrDeathReg || isLcrMarriageLicense ? (
                                                     <div className="space-y-3 pt-4 border-t" style={{ borderTopColor: `${themeColor}15` }}>
                                                         <div className="space-y-1">
                                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: `${themeColor}15`, color: themeColor }}>
@@ -1445,7 +1447,7 @@ export default function RequestHubPage() {
                                                             className="w-full h-11 rounded-xl hover:opacity-90 text-white font-black italic uppercase text-[9px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
                                                             style={{ backgroundColor: themeColor, boxShadow: `0 10px 15px -3px ${themeColor}30` }}
                                                         >
-                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : isCedula ? `/user/services/cedula?revisionId=${request.id}` : `/user/services/civil-registry/death-registration?revisionId=${request.id}`}>
+                                                            <Link href={isBusinessPermit ? `/user/services/business-permit?revisionId=${request.id}` : isCedula ? `/user/services/cedula?revisionId=${request.id}` : isLcrMarriageLicense ? `/user/services/civil-registry/marriage-license-application?revisionId=${request.id}` : `/user/services/civil-registry/death-registration?revisionId=${request.id}`}>
                                                                 <ExternalLink className="w-3.5 h-3.5" />
                                                                 Fix Application
                                                             </Link>
@@ -1585,6 +1587,9 @@ export default function RequestHubPage() {
                                     )}
                                     {isLcrMarriage && (
                                         <MarriageCertificateRequestDetails additionalData={additionalData} />
+                                    )}
+                                    {isLcrMarriageLicense && (
+                                        <MarriageLicenseRequestDetails additionalData={additionalData} />
                                     )}
 
                                     {request.type?.code.startsWith("BUSINESS_PERMIT") && (
