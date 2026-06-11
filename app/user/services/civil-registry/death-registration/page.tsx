@@ -883,7 +883,7 @@ export default function DeathRegistrationPage() {
                     border-color: ${themeColor}80 !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
-                    color: #0f172a !important;
+                    color: #314158 !important;
                 }
                 .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
                     color: #f8fafc !important;
