@@ -120,6 +120,65 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
 
     const partnerNamesLabel = `${app1.fullName || "N/A"} & ${app2.fullName || "N/A"}`;
 
+    const isApp1Groom = (app1.gender || "").toUpperCase() === "MALE" || (app2.gender || "").toUpperCase() === "FEMALE";
+    const groomName = isApp1Groom ? app1.fullName : app2.fullName;
+    const brideName = isApp1Groom ? app2.fullName : app1.fullName;
+
+    const groomBirthCertLabel = isApp1Groom ? "Birth Certificate of Applicant 1" : "Birth Certificate of Applicant 2";
+    const groomIdLabel = isApp1Groom ? "Government ID of Applicant 1" : "Government ID of Applicant 2";
+
+    const brideBirthCertLabel = isApp1Groom ? "Birth Certificate of Applicant 2" : "Birth Certificate of Applicant 1";
+    const brideIdLabel = isApp1Groom ? "Government ID of Applicant 2" : "Government ID of Applicant 1";
+
+    const groomDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && (d.label === groomBirthCertLabel || d.label === groomIdLabel)) : [];
+    const brideDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && (d.label === brideBirthCertLabel || d.label === brideIdLabel)) : [];
+    const sharedDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && 
+        d.label !== groomBirthCertLabel && 
+        d.label !== groomIdLabel && 
+        d.label !== brideBirthCertLabel && 
+        d.label !== brideIdLabel
+    ) : [];
+
+    const renderDocItem = (doc: any, originalIdx: number) => {
+        let displayLabel = doc.label;
+        if (doc.label === groomBirthCertLabel) {
+            displayLabel = "Birth Certificate of Groom";
+        } else if (doc.label === groomIdLabel) {
+            displayLabel = "Government ID of Groom";
+        } else if (doc.label === brideBirthCertLabel) {
+            displayLabel = "Birth Certificate of Bride / Wife";
+        } else if (doc.label === brideIdLabel) {
+            displayLabel = "Government ID of Bride / Wife";
+        }
+
+        return (
+            <div key={originalIdx} className="space-y-2">
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block italic leading-none">
+                    {displayLabel}
+                </span>
+                <div
+                    onClick={() => handleViewFile?.(doc.url, doc.label, evidenceDocs, originalIdx)}
+                    className="relative group rounded-3xl overflow-hidden aspect-[3/2] bg-[#f8fafd] dark:bg-white/5 border border-slate-200/50 dark:border-white/5 cursor-pointer shadow-md hover:shadow-xl transition-all"
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={doc.url}
+                        alt={displayLabel}
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
+                        <div
+                            style={{ backgroundColor: themeColor }}
+                            className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
+                        >
+                            <span>VIEW</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // Hide FOR_REQUESTING from Registrar — only Treasury should see this status
     if (transaction.status === "FOR_REQUESTING" && !isTreasuryContext) {
         return (
@@ -529,40 +588,64 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
                             </div>
                         </div>
 
-                        {/* ATTACHMENT CARD FOR EVIDENCE */}
-                        {evidenceDocs && evidenceDocs.filter((d: any) => d?.url).length > 0 && (
-                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-8 animate-in fade-in duration-300">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1e293b] dark:text-white leading-none">
-                                    Submitted Identifications & Requirements
-                                </h3>
-                                <div className={cn("grid gap-6", evidenceDocs.filter((d: any) => d?.url).length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-2")}>
-                                    {evidenceDocs.map((doc: any, idx: number) => {
-                                        if (!doc.url) return null;
-                                        return (
-                                            <div
-                                                key={idx}
-                                                onClick={() => handleViewFile?.(doc.url, doc.label, evidenceDocs, idx)}
-                                                className="relative group rounded-3xl overflow-hidden aspect-[3/2] bg-[#f8fafd] dark:bg-white/5 border border-slate-200/50 dark:border-white/5 cursor-pointer shadow-md hover:shadow-xl transition-all"
-                                            >
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
-                                                    src={doc.url}
-                                                    alt={doc.label}
-                                                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10">
-                                                    <div
-                                                        style={{ backgroundColor: themeColor }}
-                                                        className="backdrop-blur-md px-4 py-2 rounded-full border border-white/20 flex items-center justify-center text-white font-black italic uppercase tracking-widest text-[9px] shadow-lg animate-in zoom-in-75 duration-200"
-                                                    >
-                                                        <span>VIEW</span>
-                                                    </div>
-                                                </div>
-                                                <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-white font-black italic uppercase tracking-wider text-[8px] truncate z-10">
-                                                    {doc.label}
-                                                </div>
-                                            </div>
-                                        );
+                        {/* GROOM DOCUMENTS CARD */}
+                        {groomDocs.length > 0 && (
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-6 animate-in fade-in duration-300">
+                                <div className="space-y-1">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.25em] text-slate-800 dark:text-white leading-none font-bold">
+                                        Groom Documents (Male)
+                                    </h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary italic">
+                                        {groomName || "—"}
+                                    </p>
+                                </div>
+                                <div className="h-px bg-slate-100 dark:bg-white/5 my-4" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {groomDocs.map((doc: any) => {
+                                        const originalIdx = evidenceDocs.findIndex((d: any) => d.label === doc.label);
+                                        return renderDocItem(doc, originalIdx);
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* BRIDE DOCUMENTS CARD */}
+                        {brideDocs.length > 0 && (
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-6 animate-in fade-in duration-300">
+                                <div className="space-y-1">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.25em] text-slate-800 dark:text-white leading-none font-bold">
+                                        Bride / Wife Documents (Female)
+                                    </h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary italic">
+                                        {brideName || "—"}
+                                    </p>
+                                </div>
+                                <div className="h-px bg-slate-100 dark:bg-white/5 my-4" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {brideDocs.map((doc: any) => {
+                                        const originalIdx = evidenceDocs.findIndex((d: any) => d.label === doc.label);
+                                        return renderDocItem(doc, originalIdx);
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SHARED DOCUMENTS CARD */}
+                        {sharedDocs.length > 0 && (
+                            <div className="bg-white dark:bg-[#151b28] rounded-[2.5rem] p-12 shadow-xl dark:shadow-2xl border border-slate-50 dark:border-white/5 space-y-6 animate-in fade-in duration-300">
+                                <div className="space-y-1">
+                                    <h3 className="text-xs font-black uppercase tracking-[0.25em] text-slate-800 dark:text-white leading-none font-bold">
+                                        General / Shared Documents
+                                    </h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary italic">
+                                        Joint & Administrative Requirements
+                                    </p>
+                                </div>
+                                <div className="h-px bg-slate-100 dark:bg-white/5 my-4" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {sharedDocs.map((doc: any) => {
+                                        const originalIdx = evidenceDocs.findIndex((d: any) => d.label === doc.label);
+                                        return renderDocItem(doc, originalIdx);
                                     })}
                                 </div>
                             </div>
