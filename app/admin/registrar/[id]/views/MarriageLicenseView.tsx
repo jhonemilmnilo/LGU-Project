@@ -132,10 +132,10 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
 
     const groomDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && (d.label === groomBirthCertLabel || d.label === groomIdLabel)) : [];
     const brideDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && (d.label === brideBirthCertLabel || d.label === brideIdLabel)) : [];
-    const sharedDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url && 
-        d.label !== groomBirthCertLabel && 
-        d.label !== groomIdLabel && 
-        d.label !== brideBirthCertLabel && 
+    const sharedDocs = evidenceDocs ? evidenceDocs.filter((d: any) => d.url &&
+        d.label !== groomBirthCertLabel &&
+        d.label !== groomIdLabel &&
+        d.label !== brideBirthCertLabel &&
         d.label !== brideIdLabel
     ) : [];
 
@@ -557,34 +557,6 @@ export default function MarriageLicenseView(props: TreasuryViewProps) {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-8 border-t border-slate-100 dark:border-slate-800/50">
-                                <div className="space-y-6">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-primary italic font-bold">Registry Info</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">License No.</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {transaction.marriageLicenseApplication?.registryNumber || "PENDING"}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Expiry Date</span>
-                                            <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                                {transaction.marriageLicenseApplication?.expiryDate ? safeFormatDate(transaction.marriageLicenseApplication.expiryDate) : "PENDING"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {(transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy) && (
-                                    <div className="space-y-1.5 flex flex-col justify-end">
-                                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest block leading-none">Issued By</span>
-                                        <div className="bg-slate-50 dark:bg-[#1f2937]/50 border border-slate-100 dark:border-slate-800 rounded-2xl h-12 px-4 flex items-center font-bold text-slate-800 dark:text-white text-sm uppercase leading-none">
-                                            {transaction.marriageLicenseApplication?.issuedBy || additional.issuedBy}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
 

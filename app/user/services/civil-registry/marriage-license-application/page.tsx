@@ -8,7 +8,7 @@ import PrivacyTermsModal from "@/components/shared/PrivacyTermsModal";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye, Heart, ShieldCheck } from "lucide-react";
+import { Home, User, Search, CheckCircle2, Check, Loader2, Upload, FileText, Eye, Heart, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DocumentViewerModal from "@/components/shared/DocumentViewerModal";
 import { Card } from "@/components/ui/card";
@@ -184,6 +184,7 @@ export default function MarriageLicenseApplicationPage() {
 	const [typeId, setTypeId] = useState("");
 	const [dbMiscFee, setDbMiscFee] = useState<number>(MISC_FEE);
 	const [revisionId, setRevisionId] = useState<string | null>(null);
+	const [revisionTx, setRevisionTx] = useState<any>(null);
 
 	const [resident, setResident] = useState<any>(null);
 	const [, setHasDraft] = useState(false);
@@ -302,6 +303,7 @@ export default function MarriageLicenseApplicationPage() {
 					if (txRes.success && txRes.data) {
 						txData = txRes.data;
 						setRevisionId(revId);
+						setRevisionTx(txRes.data);
 					} else {
 						toast.error("Failed to fetch revision details");
 					}
@@ -1014,6 +1016,18 @@ export default function MarriageLicenseApplicationPage() {
 					{/* Identity Step */}
 					{currentStep === 'IDENTITY' && (
 						<>
+							{revisionTx && (
+								<div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 animate-in fade-in duration-300">
+									<AlertCircle className="w-5 h-5 shrink-0 animate-pulse mt-0.5" />
+									<div className="text-left space-y-1">
+										<p className="text-[10px] font-black uppercase tracking-wider italic">Attention: Revision Needed</p>
+										<p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed italic">
+											&ldquo;{revisionTx.rejectionRemarks || "Please check the highlighted checklist files or values and submit them again."}&rdquo;
+										</p>
+									</div>
+								</div>
+							)}
+
 							<Card className="p-8 rounded-[2rem] border-slate-200/50 dark:border-white/5 shadow-xl dark:shadow-2xl space-y-6">
 								<h3 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
 									{form.app1Gender === "MALE" ? "Groom (Male)" : form.app1Gender === "FEMALE" ? "Bride / Wife (Female)" : "Applicant 1"}
