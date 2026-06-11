@@ -62,6 +62,7 @@ import { submitMarriageRegistrationTransaction } from "@/app/admin/transactions/
 import { searchResidents, getResidentDataById } from "@/app/admin/actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { saveDraftFile, getDraftFiles, clearDraftFiles } from "@/lib/draftDb";
 import { compressImage } from "@/lib/image-compression";
 
@@ -640,28 +641,40 @@ export default function MarriageRegistrationPage() {
                 themeColor="var(--primary-theme)"
             />
             <div className="container max-w-5xl mx-auto px-4 pt-0 pb-0 space-y-8">
+            <div className="sticky top-[64px] sm:top-[80px] z-40 md:static -mx-4 md:mx-0 px-4 md:px-0 pt-2 md:pt-0">
                 <Breadcrumb>
-                    <BreadcrumbList>
+                    <BreadcrumbList className="bg-white/80 dark:bg-white/5 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200/60 dark:border-white/5 w-fit shadow-sm">
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/" className="flex items-center gap-1 font-bold italic text-[11px] uppercase tracking-wider">
-                                <Home className="w-3.5 h-3.5" />
-                                Home
+                            <BreadcrumbLink asChild>
+                                <Link href="/" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    <Home className="w-3.5 h-3.5 mb-0.5" />
+                                    Home
+                                </Link>
                             </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator />
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/user/services" className="font-bold italic text-[11px] uppercase tracking-wider">Services</BreadcrumbLink>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/services" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    Services
+                                </Link>
+                            </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator />
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/user/services/civil-registry" className="font-bold italic text-[11px] uppercase tracking-wider">Civil Registry</BreadcrumbLink>
+                            <BreadcrumbLink asChild>
+                                <Link href="/user/services/civil-registry" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors italic">
+                                    Civil Registry
+                                </Link>
+                            </BreadcrumbLink>
                         </BreadcrumbItem>
-                        <BreadcrumbSeparator />
+                        <BreadcrumbSeparator className="text-slate-300 dark:text-white/10" />
                         <BreadcrumbItem>
-                            <BreadcrumbPage className="font-black italic text-[11px] uppercase tracking-wider text-rose-500">Marriage Registration</BreadcrumbPage>
+                            <BreadcrumbPage className="text-[10px] font-black uppercase tracking-widest italic text-emerald-700 dark:text-emerald-400">Marriage Registration</BreadcrumbPage>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
+            </div>
 
                 <div className="space-y-6">
                     {/* Premium Header/Banner with Ambient Gradient Backdrop */}
