@@ -621,10 +621,22 @@ export default function BirthPsaEndorsementPage() {
                     border-color: ${themeColor}80 !important;
                 }
                 input:not([type="button"]):not([type="submit"]), select, textarea {
-                    color: #314158 !important;
+                    color: #0f172a !important;
+                }
+                input:not([type="button"]):not([type="submit"]):disabled, select:disabled, textarea:disabled,
+                input:not([type="button"]):not([type="submit"])[readonly], select[readonly], textarea[readonly] {
+                    color: #1e293b !important;
+                    -webkit-text-fill-color: #1e293b !important;
+                    opacity: 0.9 !important;
                 }
                 .dark input:not([type="button"]):not([type="submit"]), .dark select, .dark textarea {
                     color: #f8fafc !important;
+                }
+                .dark input:not([type="button"]):not([type="submit"]):disabled, .dark select:disabled, .dark textarea:disabled,
+                .dark input:not([type="button"]):not([type="submit"])[readonly], .dark select[readonly], .dark textarea[readonly] {
+                    color: #cbd5e1 !important;
+                    -webkit-text-fill-color: #cbd5e1 !important;
+                    opacity: 0.8 !important;
                 }
                 `
             }} />
